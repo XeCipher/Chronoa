@@ -1,3 +1,6 @@
 Flask
 flask-cors
 gunicorn
+apscheduler
+supabase
+python-dotenv
