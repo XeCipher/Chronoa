@@ -1,5 +1,6 @@
 import CenterClock from "@/components/home/CenterClock";
 import SceneryBackground from "@/components/home/SceneryBackground";
+import ProductivityWidgets from "@/components/home/ProductivityWidgets";
 
 export default function HomePage() {
   return (
@@ -8,13 +9,7 @@ export default function HomePage() {
       
       <div className="z-10 flex flex-col items-center">
         <CenterClock />
-        
-        {/* We will add the hover-reveal timers here in the next step! */}
-        <div className="mt-20 h-20">
-          <p className="text-[10px] text-[#b0ad9a] tracking-[0.2em] uppercase font-bold animate-pulse">
-            Scroll down to reveal dock
-          </p>
-        </div>
+        <ProductivityWidgets />
       </div>
     </div>
   );
