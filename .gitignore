@@ -48,3 +48,18 @@ desktop.ini
 # Local Databases
 *.db
 *.sqlite3
+
+# TypeScript
+*.tsbuildinfo
+next-env.d.ts
+
+# Testing
+coverage/
+
+# Yarn / PNPM future-proofing
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
