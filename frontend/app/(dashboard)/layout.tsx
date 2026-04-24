@@ -12,27 +12,19 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   useEffect(() => {
     const checkAuth = async () => {
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        router.push("/login");
-      } else {
-        setIsLoading(false);
-      }
+      if (!session) router.push("/login");
+      else setIsLoading(false);
     };
     checkAuth();
   }, [router]);
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-[#f7f5f0] flex items-center justify-center">
-        <div className="w-6 h-6 border-2 border-[#c2956e] border-t-transparent rounded-full animate-spin"></div>
-      </div>
-    );
-  }
+  if (isLoading) return <div className="min-h-screen bg-[#f7f5f0]" />;
 
   return (
-    <div className="flex h-screen bg-[#f7f5f0] overflow-hidden">
+    <div className="flex h-screen w-full bg-[#f7f5f0] overflow-hidden">
       <SidebarNav />
-      <main className="flex-1 relative overflow-y-auto">
+      {/* We use w-full and min-w-0 here to ensure the main area expands correctly */}
+      <main className="flex-1 h-full overflow-y-auto relative min-w-0">
         {children}
       </main>
     </div>
