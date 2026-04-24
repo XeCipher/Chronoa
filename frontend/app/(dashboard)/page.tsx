@@ -1,14 +1,20 @@
 import CenterClock from "@/components/home/CenterClock";
+import SceneryBackground from "@/components/home/SceneryBackground";
 
 export default function HomePage() {
   return (
-    <div className="relative w-full h-full flex items-center justify-center">
-      {/* Temporary placeholder for the scenery */}
-      <div className="absolute inset-0 bg-gradient-to-br from-[#f7f5f0] to-[#e8d5f5]/30 pointer-events-none"></div>
+    <div className="relative w-full h-screen flex flex-col items-center justify-center p-6">
+      <SceneryBackground />
       
       <div className="z-10 flex flex-col items-center">
         <CenterClock />
-        <p className="mt-4 text-[#888] text-sm tracking-widest uppercase">Select a module from the sidebar</p>
+        
+        {/* We will add the hover-reveal timers here in the next step! */}
+        <div className="mt-20 h-20">
+          <p className="text-[10px] text-[#b0ad9a] tracking-[0.2em] uppercase font-bold animate-pulse">
+            Scroll down to reveal dock
+          </p>
+        </div>
       </div>
     </div>
   );
