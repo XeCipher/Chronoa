@@ -8,16 +8,14 @@ const config: Config = {
   theme: {
     extend: {
       fontFamily: {
-        sans: ['var(--font-dm-sans)', 'sans-serif'],
+        // Updated to use the clean sans font for the editor
+        sans: ['var(--font-dm-sans)', 'system-ui', 'sans-serif'],
         serif: ['var(--font-cormorant)', 'serif'],
       },
-      colors: {
-        // These match the vars we put in globals.css
-        sage: "rgb(var(--color-sage))",
-        amber: "rgb(var(--color-amber))",
-      }
     },
   },
-  plugins: [],
+  plugins: [
+    require('@tailwindcss/typography'), // Added this line
+  ],
 };
 export default config;

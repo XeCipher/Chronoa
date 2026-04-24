@@ -2,130 +2,89 @@
 
 /* ─── Design Tokens ──────────────────────────────────────────────────────── */
 :root {
-  /* Core palette */
-  --color-bg:           247, 245, 240;   /* #F7F5F0 — warm off-white */
-  --color-surface:      255, 255, 255;   /* #FFFFFF */
-  --color-text-primary: 61,  59,  51;    /* #3D3B33 — soft dark brown */
-  --color-text-muted:   136, 135, 128;   /* #888780 */
-  --color-text-faint:   196, 192, 184;   /* #C4C0B8 */
-  --color-border:       235, 232, 226;   /* #EBE8E2 */
+  --color-bg:           247, 245, 240;
+  --color-surface:      255, 255, 255;
+  --color-text-primary: 61,  59,  51;
+  --color-text-muted:   136, 135, 128;
+  --color-text-faint:   196, 192, 184;
+  --color-border:       235, 232, 226;
 
-  /* Accent — Sage (completions, success) */
-  --color-sage:         124, 169, 130;   /* #7CA982 */
-  --color-sage-light:   232, 242, 233;   /* #E8F2E9 */
+  --color-sage:         124, 169, 130;
+  --color-sage-light:   232, 242, 233;
+  --color-amber:        194, 149, 110;
+  --color-amber-light:  245, 237, 227;
 
-  /* Accent — Amber (actions, edit, warnings) */
-  --color-amber:        194, 149, 110;   /* #C2956E */
-  --color-amber-light:  245, 237, 227;   /* #F5EDE3 */
-
-  /* Accent — Blue (calendar, info) */
-  --color-blue:         110, 144, 194;   /* #6E90C2 */
-  --color-blue-light:   232, 239, 248;   /* #E8EFF8 */
-
-  /* Accent — Violet (journal, analytics) */
-  --color-violet:       168, 130, 194;   /* #A882C2 */
-  --color-violet-light: 240, 232, 245;   /* #F0E8F5 */
-
-  /* Accent — Teal (Japanese, timers) */
-  --color-teal:          91, 158, 160;   /* #5B9EA0 */
-  --color-teal-light:   224, 240, 240;   /* #E0F0F0 */
-
-  /* Typography */
   --font-display:       'Cormorant Garamond', Georgia, serif;
   --font-body:          'DM Sans', 'Helvetica Neue', Arial, sans-serif;
   --font-mono:          'JetBrains Mono', 'Fira Code', monospace;
 
-  /* Radii */
   --radius-sm:  8px;
   --radius-md:  14px;
-  --radius-lg:  20px;
   --radius-xl:  28px;
   --radius-pill: 999px;
-
-  /* Shadows */
-  --shadow-card:  0 2px 16px rgba(44, 43, 39, 0.05);
-  --shadow-float: 0 8px 32px rgba(44, 43, 39, 0.10);
 }
 
 /* ─── Base Reset ─────────────────────────────────────────────────────────── */
-*, *::before, *::after {
-  box-sizing: border-box;
-}
-
-html {
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  text-rendering: optimizeLegibility;
-}
-
 body {
   font-family: var(--font-body);
   color: rgb(var(--color-text-primary));
   background-color: rgb(var(--color-bg));
   line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
 }
 
-/* ─── Typography ─────────────────────────────────────────────────────────── */
-h1, h2, h3, h4 {
-  font-family: var(--font-display);
-  font-weight: 500;
+h1, h2, h3, h4 { font-family: var(--font-display); font-weight: 500; }
+
+/* ─── Scrollbar ──────────────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-thumb { background: rgb(var(--color-border)); border-radius: 10px; }
+
+/* ─── CHRONOA JOURNAL EDITOR STYLING ─────────────────────────────────────── */
+
+/* Force Headings */
+.chronoa-editor h1 {
+  font-size: 3rem !important;
+  font-weight: 800 !important;
+  margin-top: 1rem !important;
+  margin-bottom: 1rem !important;
+  line-height: 1.1 !important;
+  color: #1a1a1a !important;
 }
 
-/* ─── Scrollbar — thin and muted ─────────────────────────────────────────── */
-::-webkit-scrollbar {
-  width: 5px;
-  height: 5px;
-}
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-::-webkit-scrollbar-thumb {
-  background: rgb(var(--color-border));
-  border-radius: var(--radius-pill);
-}
-::-webkit-scrollbar-thumb:hover {
-  background: rgb(var(--color-text-faint));
+.chronoa-editor h2 {
+  font-size: 1.8rem !important;
+  font-weight: 700 !important;
+  margin-top: 0.75rem !important;
+  margin-bottom: 0.75rem !important;
+  color: #333 !important;
 }
 
-/* ─── Selection color ────────────────────────────────────────────────────── */
-::selection {
-  background: rgba(var(--color-sage), 0.18);
-  color: rgb(var(--color-text-primary));
+/* Paragraphs & Line Height */
+.chronoa-editor p {
+  margin-bottom: 0.5rem !important;
+  line-height: 1.45 !important;
 }
 
-/* ─── Focus rings ────────────────────────────────────────────────────────── */
-:focus-visible {
-  outline: 2px solid rgba(var(--color-sage), 0.5);
-  outline-offset: 2px;
-  border-radius: var(--radius-sm);
+.chronoa-editor strong { font-weight: 800 !important; color: #000 !important; }
+.chronoa-editor em { font-style: italic !important; }
+
+/* Lists */
+.chronoa-editor ul {
+  list-style-type: disc !important;
+  padding-left: 2rem !important;
+  margin: 0.5rem 0 !important;
 }
 
-/* ─── Smooth transitions for all interactive elements ────────────────────── */
-button, a, input, textarea {
-  transition-property: color, background-color, border-color, box-shadow, opacity, transform;
-  transition-duration: 150ms;
-  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+.chronoa-editor ol {
+  list-style-type: decimal !important;
+  padding-left: 2rem !important;
+  margin: 0.5rem 0 !important;
 }
 
-/* ─── Utility: hide scrollbar but keep scroll ────────────────────────────── */
+.chronoa-editor li { margin-bottom: 0.25rem !important; }
+.chronoa-editor li p { margin: 0 !important; display: inline !important; }
+
+/* ─── Utilities ──────────────────────────────────────────────────────────── */
 .no-scrollbar::-webkit-scrollbar { display: none; }
-.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-
-/* ─── Animation: gentle fade-in ─────────────────────────────────────────── */
-@keyframes fadeUp {
-  from { opacity: 0; transform: translateY(6px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-.animate-fade-up {
-  animation: fadeUp 0.3s cubic-bezier(0.4, 0, 0.2, 1) both;
-}
-
-/* ─── Animation: pulse for loading skeletons ─────────────────────────────── */
-@keyframes shimmer {
-  0%   { opacity: 1; }
-  50%  { opacity: 0.45; }
-  100% { opacity: 1; }
-}
-.animate-pulse {
-  animation: shimmer 1.6s ease-in-out infinite;
-}
+@keyframes fadeUp { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+.animate-fade-up { animation: fadeUp 0.3s cubic-bezier(0.4, 0, 0.2, 1) both; }

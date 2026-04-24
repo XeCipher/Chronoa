@@ -1,7 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  // This tells Turbopack to "transpile" these packages properly
+  transpilePackages: ['@tiptap/react', '@tiptap/starter-kit', '@tiptap/extension-bubble-menu'],
 };
 
 export default nextConfig;
