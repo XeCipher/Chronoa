@@ -3,6 +3,7 @@
 import { useState } from "react";
 import TaskSection from "@/components/tasks/TaskSection";
 import TaskHistory from "@/components/tasks/TaskHistory";
+import ICloudTodayFeed from "@/components/tasks/ICloudTodayFeed"; // The new feed component
 import { ListChecks, History } from "lucide-react";
 
 export default function TasksPage() {
@@ -42,17 +43,24 @@ export default function TasksPage() {
         </header>
 
         {view === 'focus' ? (
-          /* ACTIVE TASKS VIEW */
-          <div className="flex flex-col md:flex-row items-start gap-8 lg:gap-12 w-full animate-fade-up">
-            <div className="w-full md:w-1/2 min-w-0">
-              <TaskSection type="routine" title="My Routine" />
-            </div>
-            <div className="w-full md:w-1/2 min-w-0">
-              <TaskSection type="normal" title="Tasks & Ideas" />
+          /* ACTIVE FOCUS VIEW */
+          <div className="space-y-10 animate-fade-up">
+            
+            {/* The iCloud Calendar Integration sitting on top */}
+            <ICloudTodayFeed />
+
+            {/* Task sections side-by-side */}
+            <div className="flex flex-col md:flex-row items-start gap-8 lg:gap-12 w-full">
+              <div className="w-full md:w-1/2 min-w-0">
+                <TaskSection type="routine" title="My Routine" />
+              </div>
+              <div className="w-full md:w-1/2 min-w-0">
+                <TaskSection type="normal" title="Tasks & Ideas" />
+              </div>
             </div>
           </div>
         ) : (
-          /* HISTORY VIEW */
+          /* HISTORY/ARCHIVE VIEW */
           <div className="max-w-4xl animate-fade-up">
             <TaskHistory />
           </div>
