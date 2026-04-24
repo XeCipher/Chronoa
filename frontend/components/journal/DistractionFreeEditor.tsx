@@ -15,7 +15,12 @@ export default function DistractionFreeEditor({ initialContent, date }: { initia
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const editor = useEditor({
-    extensions: [StarterKit, Underline],
+    extensions: [
+      StarterKit.configure({
+        heading: { levels: [1, 2] },
+      }), 
+      Underline,
+    ],
     content: initialContent,
     editorProps: { 
       attributes: { 
