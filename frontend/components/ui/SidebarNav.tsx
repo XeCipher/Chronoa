@@ -86,17 +86,6 @@ export default function SidebarNav() {
           <div className={`absolute inset-0 flex items-center justify-center transition-opacity duration-300 ${isExpanded ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
              <Sun className="text-[#c2956e]" size={22} />
           </div>
-          
-          {/* Pin Toggle Button */}
-          <button
-            onClick={toggleSidebarPin}
-            className={`absolute top-8 -right-3 z-50 p-1.5 bg-white border border-[#e0ddd5] rounded-full shadow-sm text-[#888] hover:text-[#3d3b33] transition-all duration-300 ${
-              isExpanded ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-4 pointer-events-none'
-            }`}
-            title={isSidebarPinned ? "Unpin Sidebar" : "Pin Sidebar Open"}
-          >
-            <PanelLeftClose size={14} className={`transition-transform duration-300 ${isSidebarPinned ? '' : 'rotate-180'}`} />
-          </button>
         </div>
 
         {/* Main Navigation */}
@@ -152,6 +141,17 @@ export default function SidebarNav() {
         </div>
 
       </div>
+
+      {/* PIN BUTTON (MOVED OUTSIDE) */}
+      <button
+        onClick={toggleSidebarPin}
+        className={`absolute top-20 right-0 translate-x-1/2 z-50 p-2 bg-white border border-[#e0ddd5] rounded-full shadow-lg text-[#888] hover:text-[#c2956e] transition-all duration-500 ease-in-out
+          ${isHiddenMode ? 'opacity-0 scale-0 pointer-events-none' : 'opacity-100 scale-100'}
+        `}
+        title={isSidebarPinned ? "Unpin Sidebar" : "Pin Sidebar Open"}
+      >
+        <PanelLeftClose size={16} className={`transition-transform duration-300 ${isSidebarPinned ? '' : 'rotate-180'}`} />
+      </button>
     </aside>
   );
 }
