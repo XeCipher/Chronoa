@@ -2,12 +2,132 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ─── Design Tokens ──────────────────────────────────────────────────────── */
 :root {
-  --foreground-rgb: 61, 59, 51;
-  --background-rgb: 247, 245, 240;
+  /* Core palette */
+  --color-bg:           247, 245, 240;   /* #F7F5F0 — warm off-white */
+  --color-surface:      255, 255, 255;   /* #FFFFFF */
+  --color-text-primary: 61,  59,  51;    /* #3D3B33 — soft dark brown */
+  --color-text-muted:   136, 135, 128;   /* #888780 */
+  --color-text-faint:   196, 192, 184;   /* #C4C0B8 */
+  --color-border:       235, 232, 226;   /* #EBE8E2 */
+
+  /* Accent — Sage (completions, success) */
+  --color-sage:         124, 169, 130;   /* #7CA982 */
+  --color-sage-light:   232, 242, 233;   /* #E8F2E9 */
+
+  /* Accent — Amber (actions, edit, warnings) */
+  --color-amber:        194, 149, 110;   /* #C2956E */
+  --color-amber-light:  245, 237, 227;   /* #F5EDE3 */
+
+  /* Accent — Blue (calendar, info) */
+  --color-blue:         110, 144, 194;   /* #6E90C2 */
+  --color-blue-light:   232, 239, 248;   /* #E8EFF8 */
+
+  /* Accent — Violet (journal, analytics) */
+  --color-violet:       168, 130, 194;   /* #A882C2 */
+  --color-violet-light: 240, 232, 245;   /* #F0E8F5 */
+
+  /* Accent — Teal (Japanese, timers) */
+  --color-teal:          91, 158, 160;   /* #5B9EA0 */
+  --color-teal-light:   224, 240, 240;   /* #E0F0F0 */
+
+  /* Typography */
+  --font-display:       'Cormorant Garamond', Georgia, serif;
+  --font-body:          'DM Sans', 'Helvetica Neue', Arial, sans-serif;
+  --font-mono:          'JetBrains Mono', 'Fira Code', monospace;
+
+  /* Radii */
+  --radius-sm:  8px;
+  --radius-md:  14px;
+  --radius-lg:  20px;
+  --radius-xl:  28px;
+  --radius-pill: 999px;
+
+  /* Shadows */
+  --shadow-card:  0 2px 16px rgba(44, 43, 39, 0.05);
+  --shadow-float: 0 8px 32px rgba(44, 43, 39, 0.10);
+}
+
+/* ─── Base Reset ─────────────────────────────────────────────────────────── */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
 
 body {
-  color: rgb(var(--foreground-rgb));
-  background: rgb(var(--background-rgb));
+  font-family: var(--font-body);
+  color: rgb(var(--color-text-primary));
+  background-color: rgb(var(--color-bg));
+  line-height: 1.55;
+}
+
+/* ─── Typography ─────────────────────────────────────────────────────────── */
+h1, h2, h3, h4 {
+  font-family: var(--font-display);
+  font-weight: 500;
+}
+
+/* ─── Scrollbar — thin and muted ─────────────────────────────────────────── */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgb(var(--color-border));
+  border-radius: var(--radius-pill);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgb(var(--color-text-faint));
+}
+
+/* ─── Selection color ────────────────────────────────────────────────────── */
+::selection {
+  background: rgba(var(--color-sage), 0.18);
+  color: rgb(var(--color-text-primary));
+}
+
+/* ─── Focus rings ────────────────────────────────────────────────────────── */
+:focus-visible {
+  outline: 2px solid rgba(var(--color-sage), 0.5);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+/* ─── Smooth transitions for all interactive elements ────────────────────── */
+button, a, input, textarea {
+  transition-property: color, background-color, border-color, box-shadow, opacity, transform;
+  transition-duration: 150ms;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ─── Utility: hide scrollbar but keep scroll ────────────────────────────── */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* ─── Animation: gentle fade-in ─────────────────────────────────────────── */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-up {
+  animation: fadeUp 0.3s cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+/* ─── Animation: pulse for loading skeletons ─────────────────────────────── */
+@keyframes shimmer {
+  0%   { opacity: 1; }
+  50%  { opacity: 0.45; }
+  100% { opacity: 1; }
+}
+.animate-pulse {
+  animation: shimmer 1.6s ease-in-out infinite;
 }
