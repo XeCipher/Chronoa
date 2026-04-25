@@ -44,7 +44,6 @@ export default function AnalyticsGrid({ data, title, themeColors, unit }: Props)
     );
   }, [data]);
 
-  // Helper to format the tooltip text
   const getTooltipContent = (activity: any) => {
     if (unit === 'minutes' && activity.count > 0) {
       const h = Math.floor(activity.count / 60);
@@ -56,7 +55,7 @@ export default function AnalyticsGrid({ data, title, themeColors, unit }: Props)
   };
 
   return (
-    <div className="bg-white border border-[#e0ddd5] rounded-[2rem] p-6 md:p-10 shadow-sm w-full overflow-hidden">
+    <div className="bg-white border border-[#e0ddd5] rounded-[2.5rem] p-6 md:p-10 shadow-sm w-full overflow-hidden">
       <div className="flex justify-between items-center mb-8">
         <h3 className="text-xl font-medium text-[#3d3b33] italic" style={{ fontFamily: 'var(--font-cormorant), serif' }}>
           {title}
@@ -70,28 +69,32 @@ export default function AnalyticsGrid({ data, title, themeColors, unit }: Props)
         </div>
       </div>
       
-      <div className="w-full flex justify-center scale-[0.9] lg:scale-100 origin-center">
-        <ActivityCalendar 
-          data={fullYearData} 
-          colorScheme="light"
-          theme={{ light: themeColors }}
-          labels={{ totalCount: `{{count}} ${unit} in the last year` }}
-          showWeekdayLabels
-          fontSize={10}
-          blockSize={11}
-          blockGutter={3}
-          blockRadius={2}
-          // THIS ATTACHES THE TOOLTIP DATA TO EACH SQUARE
-          renderBlock={(block: any, activity: any) => 
-            React.cloneElement(block, {
-              'data-tooltip-id': 'heatmap-tooltip',
-              'data-tooltip-content': getTooltipContent(activity),
-            })
-          }
-        />
+      {/* 
+         FIX: Added vertical padding (py-4) to the inner container 
+         and used a slightly smaller blockSize (10) for better fit.
+      */}
+      <div className="w-full flex justify-center py-4 overflow-x-auto no-scrollbar">
+        <div className="min-w-fit px-2">
+          <ActivityCalendar 
+            data={fullYearData} 
+            colorScheme="light"
+            theme={{ light: themeColors }}
+            labels={{ totalCount: `{{count}} ${unit} in the last year` }}
+            showWeekdayLabels
+            fontSize={10}
+            blockSize={10} 
+            blockGutter={3}
+            blockRadius={2}
+            renderBlock={(block: any, activity: any) => 
+              React.cloneElement(block, {
+                'data-tooltip-id': 'heatmap-tooltip',
+                'data-tooltip-content': getTooltipContent(activity),
+              })
+            }
+          />
+        </div>
       </div>
 
-      {/* THE TOOLTIP ENGINE */}
       <ReactTooltip 
         id="heatmap-tooltip" 
         style={{ 
