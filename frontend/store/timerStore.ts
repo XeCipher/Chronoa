@@ -1,57 +1,67 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
-type Mode = 'timer' | 'stopwatch';
+type SessionType = 'timer' | 'stopwatch';
+
+interface EngineState {
+  isRunning: boolean;
+  startTime: number | null;
+  accumulatedSeconds: number;
+  title: string;
+  targetMinutes?: number; // Only for timer
+}
 
 interface TimerState {
-  mode: Mode;
-  isRunning: boolean;
-  startTime: number | null; // Timestamp when it was started/resumed
-  accumulatedSeconds: number; // Seconds gathered from previous paused intervals
-  targetMinutes: number; // For timer mode
-  title: string;
+  activeTab: SessionType;
   isPinned: boolean;
-  
-  // Actions
-  setMode: (mode: Mode) => void;
-  setTitle: (title: string) => void;
-  setTargetMinutes: (mins: number) => void;
+  timer: EngineState;
+  stopwatch: EngineState;
+
+  setActiveTab: (tab: SessionType) => void;
   togglePin: () => void;
-  start: () => void;
-  pause: () => void;
-  reset: () => void;
+  setTitle: (tab: SessionType, title: string) => void;
+  setTargetMinutes: (mins: number) => void;
+  start: (tab: SessionType) => void;
+  pause: (tab: SessionType) => void;
+  reset: (tab: SessionType) => void;
 }
 
 export const useTimerStore = create<TimerState>()(
   persist(
     (set) => ({
-      mode: 'stopwatch',
-      isRunning: false,
-      startTime: null,
-      accumulatedSeconds: 0,
-      targetMinutes: 25,
-      title: 'Deep Work',
+      activeTab: 'stopwatch',
       isPinned: false,
+      timer: { isRunning: false, startTime: null, accumulatedSeconds: 0, title: 'Focus Task', targetMinutes: 25 },
+      stopwatch: { isRunning: false, startTime: null, accumulatedSeconds: 0, title: 'Focus Task' },
 
-      setMode: (mode) => set({ mode }),
-      setTitle: (title) => set({ title }),
-      setTargetMinutes: (targetMinutes) => set({ targetMinutes }),
+      setActiveTab: (activeTab) => set({ activeTab }),
       togglePin: () => set((state) => ({ isPinned: !state.isPinned })),
       
-      start: () => set({ isRunning: true, startTime: Date.now() }),
+      setTitle: (tab, title) => set((state) => ({ 
+        [tab]: { ...state[tab], title } 
+      })),
       
-      pause: () => set((state) => {
-        if (!state.startTime) return state;
-        const elapsedSinceStart = Math.floor((Date.now() - state.startTime) / 1000);
+      setTargetMinutes: (targetMinutes) => set((state) => ({ 
+        timer: { ...state.timer, targetMinutes } 
+      })),
+      
+      start: (tab) => set((state) => ({ 
+        [tab]: { ...state[tab], isRunning: true, startTime: Date.now() } 
+      })),
+      
+      pause: (tab) => set((state) => {
+        const engine = state[tab];
+        if (!engine.startTime) return state;
+        const elapsed = Math.floor((Date.now() - engine.startTime) / 1000);
         return { 
-          isRunning: false, 
-          startTime: null, 
-          accumulatedSeconds: state.accumulatedSeconds + elapsedSinceStart 
+          [tab]: { ...engine, isRunning: false, startTime: null, accumulatedSeconds: engine.accumulatedSeconds + elapsed } 
         };
       }),
       
-      reset: () => set({ isRunning: false, startTime: null, accumulatedSeconds: 0 }),
+      reset: (tab) => set((state) => ({ 
+        [tab]: { ...state[tab], isRunning: false, startTime: null, accumulatedSeconds: 0 } 
+      })),
     }),
-    { name: 'chronoa-timer' }
+    { name: 'chronoa-dual-timer' }
   )
 );
