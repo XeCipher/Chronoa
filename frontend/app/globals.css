@@ -1,4 +1,7 @@
 @import "tailwindcss";
+@config "../tailwind.config.ts";
+
+@custom-variant dark (&:is(.dark *));
 
 /* ─── Design Tokens ──────────────────────────────────────────────────────── */
 :root {
