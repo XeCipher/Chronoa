@@ -17,6 +17,14 @@ const dmSans = DM_Sans({
 export const metadata: Metadata = {
   title: "Chronoa",
   description: "Your personal sanctuary.",
+  openGraph: {
+    title: "Chronoa",
+    description: "Your personal sanctuary.",
+    images: [{ url: '/opengraph-image.png', width: 1200, height: 630 }],
+    type: 'website',
+  },
+  // Force Next.js to NOT inject any default icons
+  icons: { icon: [], apple: [] }, 
 };
 
 export default function RootLayout({
@@ -41,11 +49,20 @@ export default function RootLayout({
                     }
                   }
                   var isDark = theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+                  
+                  // 1. Set the dark mode class immediately
                   if (isDark) {
                     document.documentElement.classList.add('dark');
                   } else {
                     document.documentElement.classList.remove('dark');
                   }
+
+                  // 2. Create and inject the correct icon immediately
+                  var link = document.createElement('link');
+                  link.rel = 'icon';
+                  link.type = 'image/svg+xml';
+                  link.href = isDark ? '/icon-dark.svg' : '/icon-light.svg';
+                  document.head.appendChild(link);
                 } catch (e) {}
               })();
             `,
