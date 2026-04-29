@@ -27,6 +27,7 @@ export default function RecursiveCheckbox({ task, isEditMode, onUpdate, onDelete
   useEffect(() => { if (isEditingText) inputRef.current?.focus(); }, [isEditingText]);
 
   const handleBlur = () => {
+    if (!isEditingText) return; // Prevent double execution bug from onBlur + onKeyDown
     if (title.trim() && title !== task.title) onUpdate(task.id, { title: title.trim() });
     else setTitle(task.title);
     setIsEditingText(false);

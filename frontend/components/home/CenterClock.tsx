@@ -3,12 +3,15 @@
 import { useState, useEffect } from "react";
 
 export default function CenterClock() {
-  const [time, setTime] = useState(new Date());
+  const [time, setTime] = useState<Date | null>(null);
 
   useEffect(() => {
+    setTime(new Date());
     const timer = setInterval(() => setTime(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
+
+  if (!time) return <div className="h-[140px] md:h-[220px]" />; // Prevents Hydration Shift
 
   return (
     <div className="text-center select-none pointer-events-none flex flex-col items-center">

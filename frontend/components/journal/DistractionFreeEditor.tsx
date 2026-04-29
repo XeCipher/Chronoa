@@ -17,7 +17,7 @@ export default function DistractionFreeEditor({ initialContent, date }: { initia
   const editor = useEditor({
     extensions: [StarterKit.configure({ heading: { levels: [1, 2] } }), Underline],
     content: initialContent,
-    editorProps: { attributes: { class: 'chronoa-editor focus:outline-none w-full min-h-[700px] pt-2 pb-20 text-[#3d3b33] selection:bg-[#c2956e]/20 dark:selection:bg-[#b0855f]/40' } },
+    editorProps: { attributes: { class: 'chronoa-editor focus:outline-none w-full min-h-[700px] pt-2 pb-20 text-[#3d3b33] dark:text-[#e0e0e0] selection:bg-[#c2956e]/20 dark:selection:bg-[#b0855f]/40' } },
     onUpdate: ({ editor }) => {
       setShowToolbar(!editor.state.selection.empty);
       setSaveStatus("Saving...");
@@ -34,6 +34,12 @@ export default function DistractionFreeEditor({ initialContent, date }: { initia
     onSelectionUpdate: ({ editor }) => { setShowToolbar(!editor.state.selection.empty); },
     immediatelyRender: false,
   });
+
+  useEffect(() => {
+    return () => {
+      if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+    };
+  }, []);
 
   useEffect(() => {
     if(editor && initialContent !== editor.getHTML()) {

@@ -26,13 +26,18 @@ def get_activity_data():
         date_only = date_str.split('T')[0]
         activity_map[date_only] = activity_map.get(date_only, 0) + 1
 
-    for t in tasks.data: add_to_map(t['completed_at'])
-    for j in journals.data: add_to_map(j['entry_date'])
-    for r in routines.data: add_to_map(r['reset_date'])
+    for t in tasks.data: add_to_map(t.get('completed_at'))
+    for j in journals.data: add_to_map(j.get('entry_date'))
+    for r in routines.data: add_to_map(r.get('reset_date'))
 
     # Calculate Current Streak (based on map keys)
     streak = 0
     check_date = datetime.now().date()
+    
+    # If the user hasn't done anything today yet, check if the streak is alive from yesterday
+    if check_date.strftime('%Y-%m-%d') not in activity_map:
+        check_date -= timedelta(days=1)
+        
     while check_date.strftime('%Y-%m-%d') in activity_map:
         streak += 1
         check_date -= timedelta(days=1)
@@ -50,11 +55,11 @@ def get_activity_data():
     category_map = {}
 
     for s in sessions.data:
-        date = s['created_at'].split('T')[0]
-        mins = s['duration_seconds'] // 60
+        date = s.get('created_at', '').split('T')[0]
+        mins = s.get('duration_seconds', 0) // 60
         time_map[date] = time_map.get(date, 0) + mins
         
-        cat = s['title'] or "Unfocused"
+        cat = s.get('title') or "Unfocused"
         category_map[cat] = category_map.get(cat, 0) + mins
 
     formatted_time = [{"date": k, "count": v, "level": min(v // 30, 4)} for k, v in time_map.items()]

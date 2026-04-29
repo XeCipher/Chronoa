@@ -49,7 +49,7 @@ export default function SessionsPage() {
   };
 
   const filteredSessions = sessions.filter(s => {
-    const matchesSearch = s.title.toLowerCase().includes(search.toLowerCase());
+    const matchesSearch = (s.title || '').toLowerCase().includes(search.toLowerCase());
     const matchesFilter = filter === 'all' || s.session_type === filter;
     return matchesSearch && matchesFilter;
   });
@@ -105,7 +105,7 @@ export default function SessionsPage() {
                       className="border-b border-[#c2956e] dark:border-[#b0855f] bg-transparent outline-none text-[#3d3b33] dark:text-white font-medium pb-0.5"
                     />
                   ) : (
-                    <span className="text-[#3d3b33] dark:text-[#f0f0f0] font-medium">{session.title}</span>
+                    <span className="text-[#3d3b33] dark:text-[#f0f0f0] font-medium">{session.title || 'Untitled Session'}</span>
                   )}
                   <span className="text-[10px] text-[#b0ad9a] dark:text-[#7a7a7a] font-bold uppercase tracking-widest mt-1">
                     {new Date(session.created_at).toLocaleDateString()} at {new Date(session.created_at).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}
@@ -116,7 +116,7 @@ export default function SessionsPage() {
               <div className="flex items-center justify-between md:justify-end gap-6 w-full md:w-auto mt-2 md:mt-0">
                 <span className="text-xl font-serif italic text-[#3d3b33] dark:text-[#f0f0f0]">{formatDuration(session.duration_seconds)}</span>
                 <div className="opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 bg-[#f7f5f0] dark:bg-[#121212] p-1 rounded-lg border border-[#e0ddd5] dark:border-[#444]">
-                  <button onClick={() => {setEditingId(session.id); setEditTitle(session.title)}} className="p-1.5 text-gray-400 dark:text-[#7a7a7a] hover:text-[#6e90c2] dark:hover:text-[#8aaae0] rounded-md hover:bg-white dark:hover:bg-[#2a2a2a] transition-colors"><Edit2 size={16} /></button>
+                  <button onClick={() => {setEditingId(session.id); setEditTitle(session.title || '')}} className="p-1.5 text-gray-400 dark:text-[#7a7a7a] hover:text-[#6e90c2] dark:hover:text-[#8aaae0] rounded-md hover:bg-white dark:hover:bg-[#2a2a2a] transition-colors"><Edit2 size={16} /></button>
                   <button onClick={() => handleDelete(session.id)} className="p-1.5 text-gray-400 dark:text-[#7a7a7a] hover:text-red-500 dark:hover:text-red-400 rounded-md hover:bg-white dark:hover:bg-[#2a2a2a] transition-colors"><Trash2 size={16} /></button>
                 </div>
               </div>

@@ -3,14 +3,16 @@
 import { useEffect, useState } from "react";
 
 export default function SceneryBackground() {
-  const [hour, setHour] = useState(new Date().getHours());
+  const [hour, setHour] = useState<number | null>(null);
 
   useEffect(() => {
+    setHour(new Date().getHours());
     const timer = setInterval(() => setHour(new Date().getHours()), 60000);
     return () => clearInterval(timer);
   }, []);
 
   const getTimeOfDay = () => {
+    if (hour === null) return "day"; // Default safe fallback
     if (hour >= 5 && hour < 8) return "dawn";
     if (hour >= 8 && hour < 17) return "day";
     if (hour >= 17 && hour < 20) return "dusk";

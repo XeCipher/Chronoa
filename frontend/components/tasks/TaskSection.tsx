@@ -35,7 +35,8 @@ export default function TaskSection({ type, title }: Props) {
 
   useEffect(() => {
     fetchTasks();
-    const channel = supabase.channel(`rt_${type}`).on("postgres_changes", { event: "*", schema: "public", table: "tasks" }, () => fetchTasks()).subscribe();
+    const channelId = `rt_${type}_${Math.random().toString(36).substring(7)}`;
+    const channel = supabase.channel(channelId).on("postgres_changes", { event: "*", schema: "public", table: "tasks" }, () => fetchTasks()).subscribe();
     const timer = setInterval(() => setNow(Date.now()), 10000);
     return () => { supabase.removeChannel(channel); clearInterval(timer); };
   }, [type]);

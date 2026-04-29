@@ -201,12 +201,12 @@ export default function SettingsPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
           <section className="space-y-4">
             <div className="flex items-center gap-3 text-[#c2956e] dark:text-[#d1a784]"><Clock size={18} /><h3 className="text-lg font-medium text-[#3d3b33] dark:text-[#f0f0f0]">Vanishing Delay</h3></div>
-            <input type="number" value={taskArchiveDelay} onChange={(e) => setTaskArchiveDelay(parseInt(e.target.value))} className="w-full bg-[#f7f5f0] dark:bg-[#222] border border-[#e0ddd5] dark:border-[#333] rounded-xl px-4 py-3 outline-none focus:border-[#c2956e] dark:focus:border-[#b0855f] font-bold text-[#3d3b33] dark:text-white" />
+            <input type="number" value={taskArchiveDelay} onChange={(e) => setTaskArchiveDelay(parseInt(e.target.value) || 0)} className="w-full bg-[#f7f5f0] dark:bg-[#222] border border-[#e0ddd5] dark:border-[#333] rounded-xl px-4 py-3 outline-none focus:border-[#c2956e] dark:focus:border-[#b0855f] font-bold text-[#3d3b33] dark:text-white" />
           </section>
           <section className="space-y-4">
              <div className="flex items-center gap-3 text-[#c2956e] dark:text-[#d1a784]"><Sparkles size={18} /><h3 className="text-lg font-medium text-[#3d3b33] dark:text-[#f0f0f0]">Routine Reset</h3></div>
             <div className="flex items-center gap-3">
-              <input type="number" min="0" max="23" value={routineResetHour} onChange={(e) => handleResetHourChange(parseInt(e.target.value))} className="flex-1 bg-[#f7f5f0] dark:bg-[#222] border border-[#e0ddd5] dark:border-[#333] rounded-xl px-4 py-3 outline-none focus:border-[#c2956e] dark:focus:border-[#b0855f] font-bold text-[#3d3b33] dark:text-white" />
+              <input type="number" min="0" max="23" value={routineResetHour} onChange={(e) => handleResetHourChange(parseInt(e.target.value) || 0)} className="flex-1 bg-[#f7f5f0] dark:bg-[#222] border border-[#e0ddd5] dark:border-[#333] rounded-xl px-4 py-3 outline-none focus:border-[#c2956e] dark:focus:border-[#b0855f] font-bold text-[#3d3b33] dark:text-white" />
               <div className="px-4 py-3 bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] rounded-xl text-[10px] font-bold text-[#b0ad9a] dark:text-[#7a7a7a] uppercase tracking-widest">{routineResetHour >= 12 ? 'PM' : 'AM'}</div>
             </div>
           </section>

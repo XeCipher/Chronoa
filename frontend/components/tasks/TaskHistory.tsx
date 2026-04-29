@@ -23,9 +23,14 @@ export default function TaskHistory() {
   const getBreadcrumbPath = (task: Task) => {
     let path = task.title;
     let current = task;
+    const visited = new Set([task.id]); // Prevents infinite recursion loops
     while (current.parent_id) {
       const parent = allTasks.find(t => t.id === current.parent_id);
-      if (parent) { path = `${parent.title} > ${path}`; current = parent; } else break; 
+      if (parent && !visited.has(parent.id)) { 
+        visited.add(parent.id);
+        path = `${parent.title} > ${path}`; 
+        current = parent; 
+      } else break; 
     }
     return path;
   };
@@ -33,9 +38,14 @@ export default function TaskHistory() {
   const handleRestore = async (task: Task) => {
     const idsToRestore = [task.id];
     let current = task;
+    const visited = new Set([task.id]); // Prevents infinite recursion loops
     while (current.parent_id) {
       const parent = allTasks.find(t => t.id === current.parent_id);
-      if (parent) { idsToRestore.push(parent.id); current = parent; } else break;
+      if (parent && !visited.has(parent.id)) { 
+        visited.add(parent.id);
+        idsToRestore.push(parent.id); 
+        current = parent; 
+      } else break;
     }
     setAllTasks(prev => prev.map(t => idsToRestore.includes(t.id) ? { ...t, is_completed: false, completed_at: null } : t));
     await supabase.from('tasks').update({ is_completed: false, completed_at: null }).in('id', idsToRestore);

@@ -6,12 +6,17 @@ import DistractionFreeEditor from "@/components/journal/DistractionFreeEditor";
 
 export default function JournalPage() {
   const [entries, setEntries] = useState<any[]>([]);
-  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+  const [selectedDate, setSelectedDate] = useState("");
   const [currentContent, setCurrentContent] = useState("");
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => { fetchEntries(); }, []);
+  useEffect(() => { 
+    setSelectedDate(new Date().toISOString().split('T')[0]);
+    fetchEntries(); 
+  }, []);
+  
   useEffect(() => {
+    if (!selectedDate) return;
     const entry = entries.find(e => e.entry_date === selectedDate);
     setCurrentContent(entry ? entry.content : "<p></p>");
   }, [selectedDate, entries]);
@@ -23,7 +28,12 @@ export default function JournalPage() {
     setLoading(false);
   };
 
-  const formatDateLabel = (dateStr: string) => new Date(dateStr).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+  const formatDateLabel = (dateStr: string) => {
+    if (!dateStr) return "";
+    return new Date(dateStr).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+  };
+
+  if (!selectedDate) return <div className="min-h-screen bg-[#f7f5f0] dark:bg-[#121212]" />;
 
   return (
     <div className="flex flex-col lg:flex-row h-full w-full">
