@@ -137,15 +137,15 @@ export default function TaskSection({ type, title }: Props) {
 
   return (
     <div className="relative flex flex-col bg-white/70 dark:bg-[#1a1a1a]/80 backdrop-blur-sm border border-[#ebe8e2] dark:border-[#333] rounded-[28px] overflow-hidden shadow-[0_2px_16px_rgba(44,43,39,0.05)] transition-all duration-300">
-      <div className="px-8 pt-8 pb-5 border-b border-[#f0ede8] dark:border-[#2a2a2a]">
+      <div className="px-5 md:px-8 pt-6 md:pt-8 pb-4 md:pb-5 border-b border-[#f0ede8] dark:border-[#2a2a2a]">
         <div className="flex items-start justify-between gap-4">
           <div className="flex flex-col gap-1.5">
-            <h2 className="text-[26px] text-[#3d3b33] dark:text-[#f0f0f0] leading-none italic font-medium" style={{ fontFamily: "var(--font-cormorant), serif" }}>
+            <h2 className="text-[22px] md:text-[26px] text-[#3d3b33] dark:text-[#f0f0f0] leading-none italic font-medium" style={{ fontFamily: "var(--font-cormorant), serif" }}>
               {title}
             </h2>
             {type === "routine" && rootCount > 0 && (
               <div className="flex items-center gap-2 mt-1">
-                <div className="w-28 h-[3px] bg-[#ebe8e2] dark:bg-[#333] rounded-full overflow-hidden">
+                <div className="w-24 md:w-28 h-[3px] bg-[#ebe8e2] dark:bg-[#333] rounded-full overflow-hidden">
                   <div className="h-full bg-[#7ca982] dark:bg-[#6a9a70] rounded-full transition-all duration-500" style={{ width: `${(completedCount / rootCount) * 100}%` }} />
                 </div>
                 <span className="text-[11px] text-[#b0ad9a] dark:text-[#7a7a7a] tracking-wide">{completedCount}/{rootCount}</span>
@@ -168,7 +168,7 @@ export default function TaskSection({ type, title }: Props) {
         </div>
       </div>
 
-      <div className="px-5 py-4 min-h-[60px]">
+      <div className="px-3 md:px-5 py-3 md:py-4 min-h-[60px]">
         {isLoading ? (
           <div className="space-y-3 py-2 px-3">
             {[...Array(3)].map((_, i) => (

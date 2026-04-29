@@ -9,11 +9,12 @@ import { useTimerStore } from "@/store/timerStore";
 
 export default function HomePage() {
   const [isHovered, setIsHovered] = useState(false);
+  const [isTouched, setIsTouched] = useState(false);
+  
   const isPinned = useTimerStore((state: any) => state.isPinned);
-  const showWidget = isHovered || isPinned;
+  const showWidget = isHovered || isPinned || isTouched;
 
   return (
-    // FIX: Removed bg-[#f7f5f0] which was hiding the scenery
     <div className="relative w-full h-screen overflow-hidden flex items-center justify-center">
       <SceneryBackground />
       
@@ -32,11 +33,32 @@ export default function HomePage() {
       </div>
 
       <div 
-        className="absolute bottom-0 left-0 w-full h-[25vh] z-30 flex items-end justify-center pb-10 group"
+        className="absolute bottom-[72px] md:bottom-0 left-0 w-full h-[15vh] md:h-[25vh] z-30 flex items-end justify-center pb-6 md:pb-10 group"
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
       >
-        <ProductivityWidgets isVisible={showWidget} />
+        {/* Mobile Pull-up Handle */}
+        <div
+          className="md:hidden absolute bottom-4 left-1/2 -translate-x-1/2 flex flex-col items-center justify-center p-4 z-40 transition-opacity"
+          style={{ opacity: showWidget ? 0 : 1, pointerEvents: showWidget ? 'none' : 'auto' }}
+          onClick={() => setIsTouched(true)}
+        >
+          <div className="w-12 h-1.5 bg-[#3d3b33]/20 dark:bg-[#e0e0e0]/20 rounded-full mb-1.5" />
+          <span className="text-[10px] uppercase font-bold tracking-[0.2em] text-[#888] dark:text-[#a0a0a0]">Focus</span>
+        </div>
+
+        {/* Touch dismiss overlay */}
+        {isTouched && !isPinned && (
+          <button
+            className="md:hidden fixed inset-0 w-full h-full z-0 cursor-default outline-none"
+            onClick={() => setIsTouched(false)}
+            tabIndex={-1}
+          />
+        )}
+
+        <div className="relative z-10 w-full flex justify-center">
+          <ProductivityWidgets isVisible={showWidget} />
+        </div>
       </div>
     </div>
   );

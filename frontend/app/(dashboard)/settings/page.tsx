@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { useUiStore } from "@/store/uiStore";
 import { supabase } from "@/lib/supabase";
-import { Plus, Trash2, MapPin, Search, Calendar, Clock, Sparkles, X, Monitor } from "lucide-react";
+import { Plus, Trash2, MapPin, Search, Calendar, Clock, Sparkles, X, Monitor, LogOut } from "lucide-react";
 
 interface CalendarLink {
   name: string;
@@ -11,6 +12,7 @@ interface CalendarLink {
 }
 
 export default function SettingsPage() {
+  const router = useRouter();
   const { taskArchiveDelay, setTaskArchiveDelay, routineResetHour, setRoutineResetHour, theme, setTheme } = useUiStore();
   
   const [calendars, setCalendars] = useState<CalendarLink[]>([]);
@@ -99,6 +101,11 @@ export default function SettingsPage() {
     if (user) {
       await supabase.from('profiles').update({ routine_reset_hour: hour }).eq('id', user.id);
     }
+  };
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    router.push("/login");
   };
 
   return (
@@ -211,6 +218,15 @@ export default function SettingsPage() {
             </div>
           </section>
         </div>
+
+        <hr className="border-[#f0ede8] dark:border-[#2a2a2a]" />
+
+        <section className="pt-4 flex justify-center">
+          <button onClick={handleLogout} className="flex items-center gap-2 px-6 py-3 bg-red-50 dark:bg-red-900/10 text-red-500 dark:text-red-400 rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-red-500 hover:text-white transition-all shadow-sm">
+            <LogOut size={16} /> Sign Out
+          </button>
+        </section>
+
       </div>
     </div>
   );
