@@ -1,10 +1,23 @@
 "use client";
 
 import { createBrowserClient } from '@supabase/ssr';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    try {
+      const localState = localStorage.getItem('chronoa-settings');
+      let theme = 'system';
+      if (localState) {
+        const parsed = JSON.parse(localState);
+        if (parsed?.state?.theme) theme = parsed.state.theme;
+      }
+      const isDark = theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+      document.documentElement.classList.toggle('dark', isDark);
+    } catch (e) {}
+  }, []);
 
   const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -22,36 +35,36 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="relative min-h-screen bg-[#f7f5f0] flex flex-col items-center justify-center overflow-hidden selection:bg-[#c2956e] selection:text-white">
+    <div className="relative min-h-screen bg-[#f7f5f0] dark:bg-[#121212] flex flex-col items-center justify-center overflow-hidden selection:bg-[#c2956e] dark:selection:bg-[#b0855f] selection:text-white transition-colors duration-300">
       
       {/* Soft Ambient Background Elements */}
       <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none flex items-center justify-center">
         {/* Violet ambient glow */}
-        <div className="absolute w-[500px] h-[500px] bg-[#a882c2]/20 rounded-full blur-[100px] -translate-y-48 translate-x-32"></div>
+        <div className="absolute w-[500px] h-[500px] bg-[#a882c2]/20 dark:bg-[#a882c2]/10 rounded-full blur-[100px] -translate-y-48 translate-x-32"></div>
         {/* Sage ambient glow */}
-        <div className="absolute w-[400px] h-[400px] bg-[#7ca982]/20 rounded-full blur-[100px] translate-y-48 -translate-x-32"></div>
+        <div className="absolute w-[400px] h-[400px] bg-[#7ca982]/20 dark:bg-[#7ca982]/10 rounded-full blur-[100px] translate-y-48 -translate-x-32"></div>
         {/* Amber ambient glow */}
-        <div className="absolute w-[600px] h-[600px] bg-[#c2956e]/10 rounded-full blur-[120px] translate-y-12"></div>
+        <div className="absolute w-[600px] h-[600px] bg-[#c2956e]/10 dark:bg-[#c2956e]/5 rounded-full blur-[120px] translate-y-12"></div>
       </div>
 
       {/* Main Content */}
       <div className="z-10 flex flex-col items-center px-4 w-full">
         {/* Title utilizing the injected Cormorant font */}
-        <h1 className="text-6xl md:text-7xl text-[#3d3b33] mb-4 tracking-tight" style={{ fontFamily: 'var(--font-cormorant), serif' }}>
+        <h1 className="text-6xl md:text-7xl text-[#3d3b33] dark:text-[#f0f0f0] mb-4 tracking-tight" style={{ fontFamily: 'var(--font-cormorant), serif' }}>
           Chronoa
         </h1>
-        <p className="text-[#888888] tracking-[0.25em] text-[11px] font-semibold uppercase mb-16">
+        <p className="text-[#888888] dark:text-[#7a7a7a] tracking-[0.25em] text-[11px] font-semibold uppercase mb-16">
           Your personal sanctuary
         </p>
 
-        {/* Button with STRICT explicit sizing (w-[280px]) */}
+        {/* Button with STRICT explicit sizing */}
         <button
           onClick={handleGoogleLogin}
           disabled={isLoading}
-          className="flex items-center justify-center gap-3 w-[280px] h-[52px] bg-white border border-[#e0ddd5] rounded-2xl text-[#3d3b33] text-sm font-medium transition-all duration-300 hover:border-[#c2956e] hover:shadow-lg hover:shadow-[#c2956e]/10 hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:transform-none disabled:hover:shadow-none"
+          className="flex items-center justify-center gap-3 w-[280px] h-[52px] bg-white dark:bg-[#1e1e1e] border border-[#e0ddd5] dark:border-[#333] rounded-2xl text-[#3d3b33] dark:text-[#f0f0f0] text-sm font-medium transition-all duration-300 hover:border-[#c2956e] dark:hover:border-[#b0855f] hover:shadow-lg hover:shadow-[#c2956e]/10 dark:hover:shadow-[#b0855f]/10 hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:transform-none disabled:hover:shadow-none"
         >
           {isLoading ? (
-            <div className="w-5 h-5 border-2 border-[#c2956e] border-t-transparent rounded-full animate-spin"></div>
+            <div className="w-5 h-5 border-2 border-[#c2956e] dark:border-[#b0855f] border-t-transparent rounded-full animate-spin"></div>
           ) : (
             <>
               <svg width="18" height="18" viewBox="0 0 24 24" className="shrink-0">

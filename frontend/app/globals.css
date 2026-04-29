@@ -27,8 +27,6 @@
 /* ─── Base Reset ─────────────────────────────────────────────────────────── */
 body {
   font-family: var(--font-body);
-  color: rgb(var(--color-text-primary));
-  background-color: rgb(var(--color-bg));
   line-height: 1.55;
   -webkit-font-smoothing: antialiased;
 }
@@ -38,10 +36,10 @@ h1, h2, h3, h4 { font-family: var(--font-display); font-weight: 500; }
 /* ─── Scrollbar ──────────────────────────────────────────────────────────── */
 ::-webkit-scrollbar { width: 5px; height: 5px; }
 ::-webkit-scrollbar-thumb { background: rgb(var(--color-border)); border-radius: 10px; }
+.dark ::-webkit-scrollbar-thumb { background: #333333; }
 
 /* ─── CHRONOA JOURNAL EDITOR STYLING ─────────────────────────────────────── */
 
-/* Force Headings */
 .chronoa-editor h1 {
   font-size: 3rem !important;
   font-weight: 800 !important;
@@ -51,6 +49,8 @@ h1, h2, h3, h4 { font-family: var(--font-display); font-weight: 500; }
   color: #1a1a1a !important;
 }
 
+.dark .chronoa-editor h1 { color: #f0f0f0 !important; }
+
 .chronoa-editor h2 {
   font-size: 1.8rem !important;
   font-weight: 700 !important;
@@ -59,16 +59,18 @@ h1, h2, h3, h4 { font-family: var(--font-display); font-weight: 500; }
   color: #333 !important;
 }
 
-/* Paragraphs & Line Height */
+.dark .chronoa-editor h2 { color: #d0d0d0 !important; }
+
 .chronoa-editor p {
   margin-bottom: 0.5rem !important;
   line-height: 1.45 !important;
 }
 
 .chronoa-editor strong { font-weight: 800 !important; color: #000 !important; }
+.dark .chronoa-editor strong { color: #fff !important; }
+
 .chronoa-editor em { font-style: italic !important; }
 
-/* Lists */
 .chronoa-editor ul {
   list-style-type: disc !important;
   padding-left: 2rem !important;
