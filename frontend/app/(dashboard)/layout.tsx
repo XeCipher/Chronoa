@@ -1,13 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import SidebarNav from "@/components/ui/SidebarNav";
 import { useUiStore } from "@/store/uiStore";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
+  const pathname = usePathname();
   const [isLoading, setIsLoading] = useState(true);
   const { theme } = useUiStore();
 
@@ -53,11 +54,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       return () => mediaQuery.removeEventListener('change', handler);
     }
   }, [theme]);
+  
+  const isHomePage = pathname === '/';
 
   if (isLoading) return <div className="min-h-screen bg-[#f7f5f0] dark:bg-[#121212]" />;
 
   return (
-    <div className="flex h-screen w-full overflow-hidden bg-[#f7f5f0] dark:bg-[#121212]">
+    <div className={`flex h-screen w-full overflow-hidden ${isHomePage ? 'bg-transparent' : 'bg-[#f7f5f0] dark:bg-[#121212]'}`}>
       <SidebarNav />
       <main className="flex-1 h-full overflow-y-auto relative min-w-0 pb-[72px] md:pb-0 pt-[max(1rem,env(safe-area-inset-top))] md:pt-0">
         {children}

@@ -31,15 +31,14 @@ export default function WeatherWidget() {
   const getWeatherDetails = (code: number, isDay: number) => {
     const day = isDay === 1;
     if (code === 0) return { text: "Clear", icon: day ? Sun : Moon, color: day ? "text-amber-500" : "text-indigo-300" };
-    if (code === 1) return { text: "Mostly Clear", icon: day ? CloudSun : CloudMoon, color: day ? "text-amber-400" : "text-indigo-200" };
-    if (code === 2) return { text: "Partly Cloudy", icon: day ? CloudSun : CloudMoon, color: "text-gray-500 dark:text-gray-400" };
+    if ([1, 2].includes(code)) return { text: "Partly Cloudy", icon: day ? CloudSun : CloudMoon, color: "text-gray-500 dark:text-gray-400" };
     if (code === 3) return { text: "Overcast", icon: Cloud, color: "text-gray-500 dark:text-gray-400" };
-    if (code === 45 || code === 48) return { text: "Foggy", icon: Wind, color: "text-gray-400 dark:text-gray-500" };
-    if (code >= 51 && code <= 55) return { text: "Drizzle", icon: CloudDrizzle, color: "text-blue-400" };
-    if (code >= 61 && code <= 65) return { text: "Rain", icon: CloudRain, color: "text-blue-500" };
-    if (code >= 71 && code <= 77) return { text: "Snow", icon: Snowflake, color: "text-blue-200 dark:text-blue-300" };
-    if (code >= 80 && code <= 82) return { text: "Showers", icon: CloudRain, color: "text-blue-500" };
-    if (code >= 95) return { text: "Storms", icon: CloudLightning, color: "text-purple-600 dark:text-purple-400" };
+    if ([45, 48].includes(code)) return { text: "Fog", icon: Wind, color: "text-gray-400 dark:text-gray-500" };
+    if ([51, 53, 55, 56, 57].includes(code)) return { text: "Drizzle", icon: CloudDrizzle, color: "text-blue-400" };
+    if ([61, 63, 65, 66, 67].includes(code)) return { text: "Rain", icon: CloudRain, color: "text-blue-500" };
+    if ([71, 73, 75, 77, 85, 86].includes(code)) return { text: "Snow", icon: Snowflake, color: "text-blue-200 dark:text-blue-300" };
+    if ([80, 81, 82].includes(code)) return { text: "Showers", icon: CloudRain, color: "text-blue-500" };
+    if ([95, 96, 99].includes(code)) return { text: "Storms", icon: CloudLightning, color: "text-purple-600 dark:text-purple-400" };
     return { text: "Cloudy", icon: Cloud, color: "text-gray-400 dark:text-gray-500" };
   };
 

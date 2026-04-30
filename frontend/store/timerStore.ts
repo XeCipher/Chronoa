@@ -3,65 +3,114 @@ import { persist } from 'zustand/middleware';
 
 type SessionType = 'timer' | 'stopwatch';
 
-interface EngineState {
+export interface EngineInstance {
+  id: string;
   isRunning: boolean;
   startTime: number | null;
   accumulatedSeconds: number;
   title: string;
-  targetMinutes?: number; // Only for timer
+  targetMinutes?: number;
 }
 
 interface TimerState {
   activeTab: SessionType;
   isPinned: boolean;
-  timer: EngineState;
-  stopwatch: EngineState;
+  timers: EngineInstance[];
+  stopwatches: EngineInstance[];
 
   setActiveTab: (tab: SessionType) => void;
   togglePin: () => void;
-  setTitle: (tab: SessionType, title: string) => void;
-  setTargetMinutes: (mins: number) => void;
-  start: (tab: SessionType) => void;
-  pause: (tab: SessionType) => void;
-  reset: (tab: SessionType) => void;
+  addInstance: (tab: SessionType) => string;
+  removeInstance: (tab: SessionType, id: string) => void;
+  setTitle: (tab: SessionType, id: string, title: string) => void;
+  setTargetMinutes: (id: string, mins: number) => void;
+  start: (tab: SessionType, id: string) => void;
+  pause: (tab: SessionType, id: string) => void;
+  reset: (tab: SessionType, id: string) => void;
 }
+
+const generateId = () => Math.random().toString(36).substring(2, 9);
+
+const createDefaultTimer = (): EngineInstance => ({
+  id: generateId(),
+  isRunning: false,
+  startTime: null,
+  accumulatedSeconds: 0,
+  title: 'Focus Task',
+  targetMinutes: 25
+});
+
+const createDefaultStopwatch = (): EngineInstance => ({
+  id: generateId(),
+  isRunning: false,
+  startTime: null,
+  accumulatedSeconds: 0,
+  title: 'Focus Task'
+});
 
 export const useTimerStore = create<TimerState>()(
   persist(
     (set) => ({
       activeTab: 'stopwatch',
       isPinned: false,
-      timer: { isRunning: false, startTime: null, accumulatedSeconds: 0, title: 'Focus Task', targetMinutes: 25 },
-      stopwatch: { isRunning: false, startTime: null, accumulatedSeconds: 0, title: 'Focus Task' },
+      timers: [createDefaultTimer()],
+      stopwatches: [createDefaultStopwatch()],
 
       setActiveTab: (activeTab) => set({ activeTab }),
       togglePin: () => set((state) => ({ isPinned: !state.isPinned })),
-      
-      setTitle: (tab, title) => set((state) => ({ 
-        [tab]: { ...state[tab], title } 
+
+      addInstance: (tab) => {
+        const newId = generateId();
+        set((state) => {
+          const listName = tab === 'timer' ? 'timers' : 'stopwatches';
+          const newInst = tab === 'timer' ? createDefaultTimer() : createDefaultStopwatch();
+          newInst.id = newId;
+          return { [listName]: [...state[listName], newInst] };
+        });
+        return newId;
+      },
+
+      removeInstance: (tab, id) => set((state) => {
+        const listName = tab === 'timer' ? 'timers' : 'stopwatches';
+        let newList = state[listName].filter((i) => i.id !== id);
+        if (newList.length === 0) {
+          newList = [tab === 'timer' ? createDefaultTimer() : createDefaultStopwatch()];
+        }
+        return { [listName]: newList };
+      }),
+
+      setTitle: (tab, id, title) => set((state) => {
+        const listName = tab === 'timer' ? 'timers' : 'stopwatches';
+        return { [listName]: state[listName].map((i) => i.id === id ? { ...i, title } : i) };
+      }),
+
+      setTargetMinutes: (id, targetMinutes) => set((state) => ({
+        timers: state.timers.map((i) => i.id === id ? { ...i, targetMinutes } : i)
       })),
-      
-      setTargetMinutes: (targetMinutes) => set((state) => ({ 
-        timer: { ...state.timer, targetMinutes } 
-      })),
-      
-      start: (tab) => set((state) => ({ 
-        [tab]: { ...state[tab], isRunning: true, startTime: Date.now() } 
-      })),
-      
-      pause: (tab) => set((state) => {
-        const engine = state[tab];
-        if (!engine.startTime) return state;
-        const elapsed = Math.floor((Date.now() - engine.startTime) / 1000);
-        return { 
-          [tab]: { ...engine, isRunning: false, startTime: null, accumulatedSeconds: engine.accumulatedSeconds + elapsed } 
+
+      start: (tab, id) => set((state) => {
+        const listName = tab === 'timer' ? 'timers' : 'stopwatches';
+        return { [listName]: state[listName].map((i) => i.id === id ? { ...i, isRunning: true, startTime: Date.now() } : i) };
+      }),
+
+      pause: (tab, id) => set((state) => {
+        const listName = tab === 'timer' ? 'timers' : 'stopwatches';
+        return {
+          [listName]: state[listName].map((i) => {
+            if (i.id === id && i.startTime) {
+              const elapsed = Math.floor((Date.now() - i.startTime) / 1000);
+              return { ...i, isRunning: false, startTime: null, accumulatedSeconds: i.accumulatedSeconds + elapsed };
+            }
+            return i;
+          })
         };
       }),
-      
-      reset: (tab) => set((state) => ({ 
-        [tab]: { ...state[tab], isRunning: false, startTime: null, accumulatedSeconds: 0 } 
-      })),
+
+      reset: (tab, id) => set((state) => {
+        const listName = tab === 'timer' ? 'timers' : 'stopwatches';
+        return { [listName]: state[listName].map((i) => i.id === id ? { ...i, isRunning: false, startTime: null, accumulatedSeconds: 0 } : i) };
+      }),
     }),
-    { name: 'chronoa-dual-timer' }
+    { name: 'chronoa-multi-timer-v2' }
   )
 );
