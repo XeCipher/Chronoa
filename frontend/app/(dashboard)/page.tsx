@@ -18,7 +18,8 @@ export default function HomePage() {
     <div className="relative w-full h-[100dvh] overflow-hidden flex items-center justify-center touch-none overscroll-none">
       <SceneryBackground />
       
-      <div className="absolute top-10 right-12 z-20">
+      {/* Improved placement: tighter to the corner on mobile */}
+      <div className="absolute top-6 right-6 md:top-10 md:right-12 z-20">
         <WeatherWidget />
       </div>
 

@@ -8,6 +8,7 @@ export default function WeatherWidget() {
   const [weather, setWeather] = useState<any>(null);
   const [city, setCity] = useState("");
   const [loading, setLoading] = useState(true);
+  const [isToggled, setIsToggled] = useState(false);
 
   useEffect(() => {
     const initWeather = async () => {
@@ -48,14 +49,25 @@ export default function WeatherWidget() {
   const Icon = details.icon;
 
   return (
-    <div className="group flex items-center bg-white/10 dark:bg-black/20 hover:bg-white/30 dark:hover:bg-black/40 backdrop-blur-md border border-white/20 dark:border-white/10 shadow-sm rounded-full p-1.5 pr-3 cursor-default transition-all duration-500 ease-out animate-fade-up">
+    <div 
+      onClick={() => setIsToggled(!isToggled)}
+      className={`
+        group flex items-center bg-white/10 dark:bg-black/20 hover:bg-white/30 dark:hover:bg-black/40 backdrop-blur-md border border-white/20 dark:border-white/10 shadow-sm rounded-full p-1.5 cursor-pointer transition-all duration-500 ease-out animate-fade-up
+        ${isToggled ? 'pr-4' : 'pr-3'}
+      `}
+    >
       <div className={`flex items-center justify-center w-8 h-8 rounded-full bg-white/20 dark:bg-black/40 transition-colors ${details.color}`}>
         <Icon size={16} strokeWidth={2} />
       </div>
+      
       <span className="text-base font-medium text-[#3d3b33] dark:text-white ml-2.5 transition-colors">
         {Math.round(weather.temperature_2m)}°
       </span>
-      <div className="grid transition-all duration-500 ease-out grid-cols-[0fr] opacity-0 group-hover:grid-cols-[1fr] group-hover:opacity-100 group-hover:ml-3">
+
+      <div className={`
+        grid transition-all duration-500 ease-out 
+        ${isToggled ? 'grid-cols-[1fr] opacity-100 ml-3' : 'grid-cols-[0fr] opacity-0 group-hover:grid-cols-[1fr] group-hover:opacity-100 group-hover:ml-3'}
+      `}>
         <div className="overflow-hidden whitespace-nowrap flex flex-col justify-center border-l border-[#3d3b33]/15 dark:border-white/15 pl-3 transition-colors">
           <span className="text-[11px] font-semibold text-[#3d3b33] dark:text-white leading-tight tracking-wide transition-colors">
             {details.text}
