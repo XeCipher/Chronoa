@@ -1,6 +1,8 @@
+// frontend/app/layout.tsx
 import type { Metadata } from "next";
 import { Cormorant_Garamond, DM_Sans } from "next/font/google";
 import "./globals.css";
+import GoogleAnalytics from "@/components/GoogleAnalytics";
 
 const cormorant = Cormorant_Garamond({
   subsets: ["latin"],
@@ -23,8 +25,17 @@ export const metadata: Metadata = {
     images: [{ url: '/opengraph-image.png', width: 1200, height: 630 }],
     type: 'website',
   },
-  // Force Next.js to NOT inject any default icons
-  icons: { icon: [], apple: [] }, 
+  // Configure iOS PWA behavior
+  appleWebApp: {
+    capable: true,
+    title: "Chronoa",
+    statusBarStyle: "black-translucent",
+  },
+  // Force Next.js to NOT inject any default icons, but strictly define the Apple Icon
+  icons: { 
+    icon: [], 
+    apple: [{ url: '/apple-icon.png' }] // Note: Create an apple-icon.png in your public/ folder
+  }, 
 };
 
 export default function RootLayout({
@@ -71,6 +82,7 @@ export default function RootLayout({
       </head>
       <body className={`${cormorant.variable} ${dmSans.variable} font-sans antialiased bg-[#f7f5f0] dark:bg-[#121212] text-[#3d3b33] dark:text-[#e0e0e0] transition-colors duration-300`}>
         {children}
+        <GoogleAnalytics gaId={process.env.NEXT_PUBLIC_GA_ID || ""} />
       </body>
     </html>
   );

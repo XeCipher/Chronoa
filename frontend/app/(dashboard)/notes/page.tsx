@@ -246,7 +246,8 @@ export default function NotesPage() {
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto no-scrollbar p-4 space-y-3">
+        {/* ADDED ID: "notes-library-scroll-container" AND "scroll-smooth" HERE FOR SCROLL CONTROLS */}
+        <div id="notes-library-scroll-container" className="flex-1 overflow-y-auto no-scrollbar p-4 space-y-3 scroll-smooth">
           {loading ? (
             <div className="flex flex-col items-center justify-center py-12 gap-3 opacity-40">
               <Sparkles className="animate-pulse text-[#c2956e]" />
@@ -315,8 +316,9 @@ export default function NotesPage() {
                 )}
               </div>
             </header>
-
-            <div className="flex-1 overflow-y-auto no-scrollbar scroll-smooth">
+            
+            {/* ADDED ID: "notes-scroll-container" AND "scroll-smooth" HERE FOR SCROLL CONTROLS */}
+            <div id="notes-scroll-container" className="flex-1 overflow-y-auto no-scrollbar scroll-smooth">
               <div className="max-w-[1000px] mx-auto px-6 py-8 lg:py-10 lg:px-12 w-full animate-fade-up">
                 <div className="mb-6">
                   {!isTrashOpen && notesTab === 'journal' ? (

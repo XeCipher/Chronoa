@@ -1,5 +1,4 @@
 // frontend/components/ui/SidebarNav.tsx
-
 "use client";
 
 import { useState, useEffect } from "react";
@@ -153,6 +152,17 @@ export default function SidebarNav() {
             <Link
               key={item.name}
               href={item.href}
+              onClick={(e) => {
+                if (isActive) {
+                  e.preventDefault();
+                  // Custom smooth scrolling logic mapped to dynamically tagged IDs
+                  const containers = ["notes-library-scroll-container", "notes-scroll-container", "main-scroll-container"];
+                  for (const id of containers) {
+                    const el = document.getElementById(id);
+                    if (el) el.scrollTo({ top: 0, behavior: "smooth" });
+                  }
+                }
+              }}
               className={`flex flex-col items-center justify-center w-16 h-full gap-1 transition-all ${
                 isActive ? "text-[#c2956e] dark:text-[#d1a784]" : "text-[#888888] dark:text-[#a0a0a0] hover:text-[#3d3b33] dark:hover:text-[#fff]"
               }`}
@@ -166,6 +176,13 @@ export default function SidebarNav() {
         })}
         <Link
           href="/settings"
+          onClick={(e) => {
+            if (pathname === "/settings") {
+              e.preventDefault();
+              const el = document.getElementById("main-scroll-container");
+              if (el) el.scrollTo({ top: 0, behavior: "smooth" });
+            }
+          }}
           className={`flex flex-col items-center justify-center w-16 h-full gap-1 transition-all ${
             pathname === "/settings" ? "text-[#3d3b33] dark:text-[#fff]" : "text-[#888888] dark:text-[#a0a0a0] hover:text-[#3d3b33] dark:hover:text-[#fff]"
           }`}
