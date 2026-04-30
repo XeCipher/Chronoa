@@ -4,9 +4,10 @@
 import { useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Task } from "@/types/app.types";
-import { Plus, Trash2, GripVertical, Check, Timer, Hourglass, ChevronRight, ChevronLeft, MoreVertical, ArrowUp, ArrowDown, Palette } from "lucide-react";
-import { useSortable, SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
-import { CSS } from "@dnd-kit/utilities";
+import { 
+  Plus, Trash2, Check, Timer, Hourglass, ChevronRight, ChevronLeft, 
+  MoreVertical, ArrowUp, ArrowDown, Palette 
+} from "lucide-react";
 import { useUiStore } from "@/store/uiStore";
 import { useTimerStore } from "@/store/timerStore";
 
@@ -25,7 +26,10 @@ interface Props {
   setNewTaskId: (id: string | null) => void;
 }
 
-export default function RecursiveCheckbox({ task, isEditMode, onUpdate, onDelete, onAdd, onIndent, onUnindent, onMoveUp, onMoveDown, depth = 0, newTaskId, setNewTaskId }: Props) {
+export default function RecursiveCheckbox({ 
+  task, isEditMode, onUpdate, onDelete, onAdd, onIndent, onUnindent, 
+  onMoveUp, onMoveDown, depth = 0, newTaskId, setNewTaskId 
+}: Props) {
   const router = useRouter();
   const textRef = useRef<HTMLSpanElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -36,31 +40,14 @@ export default function RecursiveCheckbox({ task, isEditMode, onUpdate, onDelete
   const isRoutine = task.task_type === 'routine';
   const isNormal = task.task_type === 'normal';
 
-  // Sortable Hook Setup
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ 
-    id: task.id, 
-    disabled: isRoutine && !isEditMode 
-  });
-
-  // Utilizing Transform for hardware acceleration during drag
-  const style = { 
-    transform: CSS.Transform.toString(transform), 
-    transition: isDragging ? 'none' : transition, 
-    opacity: isDragging ? 0.6 : 1, 
-    zIndex: isDragging ? 50 : undefined,
-    position: 'relative' as const
-  };
-
-  // Handle click-away to close unified advanced menu
+  // Handles closing the unified menu when clicking elsewhere in the document
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (activeTaskIdWithMenu !== task.id) return;
       
       if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
-        // If clicking another menu-toggle-btn, let its own onClick handle opening itself.
         const target = event.target as Element;
         if (target.closest('.menu-toggle-btn')) return;
-        
         setActiveTaskIdWithMenu(null);
       }
     };
@@ -69,7 +56,7 @@ export default function RecursiveCheckbox({ task, isEditMode, onUpdate, onDelete
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [activeTaskIdWithMenu, task.id, setActiveTaskIdWithMenu]);
 
-  // Focus management for newly created items
+  // Automatically focus and select text when a new task is created
   useEffect(() => {
     if (newTaskId === task.id) {
       setNewTaskId(null); 
@@ -106,14 +93,13 @@ export default function RecursiveCheckbox({ task, isEditMode, onUpdate, onDelete
   const isVanishingNow = taskArchiveDelay <= 0 && task.is_completed && !isEditMode;
   const isMenuOpen = activeTaskIdWithMenu === task.id;
 
-  // UI Visibility Flags
-  const showDragHandle = isNormal || (isRoutine && isEditMode);
+  // Visibility logic for specific components based on type/mode
   const showTimerStopwatchOutside = isRoutine && !isEditMode;
   const showTimerInsideMenu = isNormal;
   const showThreeDotMenu = isNormal || (isRoutine && isEditMode);
   const showManagementActions = isNormal || (isRoutine && isEditMode);
 
-  // Visual constraints
+  // Dynamic visual sizing based on hierarchy depth
   const titleSize = depth === 0 ? "text-[15px]" : depth === 1 ? "text-[13.5px]" : "text-[12.5px]";
   const titleWeight = depth === 0 ? "font-[500]" : "font-[400]";
   const checkboxSize = depth === 0 ? "w-[18px] h-[18px]" : "w-[15px] h-[15px]";
@@ -124,14 +110,14 @@ export default function RecursiveCheckbox({ task, isEditMode, onUpdate, onDelete
     setActiveTaskIdWithMenu(isMenuOpen ? null : task.id);
   };
 
-  // Dynamic Highlighting Configuration (Includes persistent hover when Menu is Open)
+  // Color highlighting configuration
   const colorStyles: Record<string, string> = {
-    none: isDragging ? "bg-[#f7f5f0] dark:bg-[#2a2a2a] ring-1 ring-[#e0ddd5] dark:ring-[#444] shadow-md" : (isMenuOpen ? "bg-[#ebe8e2]/60 dark:bg-[#222]" : "hover:bg-[#ebe8e2]/60 dark:hover:bg-[#222]"),
-    rose: isDragging ? "bg-rose-100 dark:bg-rose-900/40 ring-1 ring-rose-300 dark:ring-rose-800 shadow-md" : (isMenuOpen ? "bg-rose-100 dark:bg-rose-900/40 ring-1 ring-rose-200 dark:ring-rose-800" : "bg-rose-50 dark:bg-rose-900/20 ring-1 ring-rose-200 dark:ring-rose-900 hover:bg-rose-100 dark:hover:bg-rose-900/40"),
-    amber: isDragging ? "bg-amber-100 dark:bg-amber-900/40 ring-1 ring-amber-300 dark:ring-amber-800 shadow-md" : (isMenuOpen ? "bg-amber-100 dark:bg-amber-900/40 ring-1 ring-amber-200 dark:ring-amber-800" : "bg-amber-50 dark:bg-amber-900/20 ring-1 ring-amber-200 dark:ring-amber-900 hover:bg-amber-100 dark:hover:bg-amber-900/40"),
-    emerald: isDragging ? "bg-emerald-100 dark:bg-emerald-900/40 ring-1 ring-emerald-300 dark:ring-emerald-800 shadow-md" : (isMenuOpen ? "bg-emerald-100 dark:bg-emerald-900/40 ring-1 ring-emerald-200 dark:ring-emerald-800" : "bg-emerald-50 dark:bg-emerald-900/20 ring-1 ring-emerald-200 dark:ring-emerald-900 hover:bg-emerald-100 dark:hover:bg-emerald-900/40"),
-    blue: isDragging ? "bg-blue-100 dark:bg-blue-900/40 ring-1 ring-blue-300 dark:ring-blue-800 shadow-md" : (isMenuOpen ? "bg-blue-100 dark:bg-blue-900/40 ring-1 ring-blue-200 dark:ring-blue-800" : "bg-blue-50 dark:bg-blue-900/20 ring-1 ring-blue-200 dark:ring-blue-900 hover:bg-blue-100 dark:hover:bg-blue-900/40"),
-    purple: isDragging ? "bg-purple-100 dark:bg-purple-900/40 ring-1 ring-purple-300 dark:ring-purple-800 shadow-md" : (isMenuOpen ? "bg-purple-100 dark:bg-purple-900/40 ring-1 ring-purple-200 dark:ring-purple-800" : "bg-purple-50 dark:bg-purple-900/20 ring-1 ring-purple-200 dark:ring-purple-900 hover:bg-purple-100 dark:hover:bg-purple-900/40")
+    none: isMenuOpen ? "bg-[#ebe8e2]/60 dark:bg-[#222]" : "hover:bg-[#ebe8e2]/60 dark:hover:bg-[#222]",
+    rose: isMenuOpen ? "bg-rose-100 dark:bg-rose-900/40 ring-1 ring-rose-200 dark:ring-rose-800" : "bg-rose-50 dark:bg-rose-900/20 ring-1 ring-rose-200 dark:ring-rose-900 hover:bg-rose-100 dark:hover:bg-rose-900/40",
+    amber: isMenuOpen ? "bg-amber-100 dark:bg-amber-900/40 ring-1 ring-amber-200 dark:ring-amber-800" : "bg-amber-50 dark:bg-amber-900/20 ring-1 ring-amber-200 dark:ring-amber-900 hover:bg-amber-100 dark:hover:bg-amber-900/40",
+    emerald: isMenuOpen ? "bg-emerald-100 dark:bg-emerald-900/40 ring-1 ring-emerald-200 dark:ring-emerald-800" : "bg-emerald-50 dark:bg-emerald-900/20 ring-1 ring-emerald-200 dark:ring-emerald-900 hover:bg-emerald-100 dark:hover:bg-emerald-900/40",
+    blue: isMenuOpen ? "bg-blue-100 dark:bg-blue-900/40 ring-1 ring-blue-200 dark:ring-blue-800" : "bg-blue-50 dark:bg-blue-900/20 ring-1 ring-blue-200 dark:ring-blue-900 hover:bg-blue-100 dark:hover:bg-blue-900/40",
+    purple: isMenuOpen ? "bg-purple-100 dark:bg-purple-900/40 ring-1 ring-purple-200 dark:ring-purple-800" : "bg-purple-50 dark:bg-purple-900/20 ring-1 ring-purple-200 dark:ring-purple-900 hover:bg-purple-100 dark:hover:bg-purple-900/40"
   };
 
   const availableColors = [
@@ -147,26 +133,22 @@ export default function RecursiveCheckbox({ task, isEditMode, onUpdate, onDelete
   const activeColorStyle = colorStyles[baseColor];
 
   return (
-    <div ref={setNodeRef} style={style} className={`flex flex-col w-full ${isVanishingNow ? "task-vanishing-soothing" : ""}`}>
+    <div className={`flex flex-col w-full ${isVanishingNow ? "task-vanishing-soothing" : ""}`}>
       <div 
         ref={containerRef}
         className={`group relative flex items-center gap-3 py-[7px] px-3 rounded-xl transition-all duration-150 ${activeColorStyle}`}
       >
         
-        {/* Drag Handle */}
-        {showDragHandle && (
-          <div {...attributes} {...listeners} className={`cursor-grab active:cursor-grabbing shrink-0 text-[#d4d0c8] dark:text-[#555] hover:text-[#c2956e] transition-colors duration-150 touch-none ${isNormal ? 'md:opacity-0 md:group-hover:opacity-100' : ''}`}>
-            <GripVertical size={14} strokeWidth={1.8} />
-          </div>
-        )}
-
         {/* Checkbox */}
-        <button onClick={() => onUpdate(task.id, { is_completed: !task.is_completed })} className={`${checkboxSize} ${checkboxRadius} shrink-0 border flex items-center justify-center transition-all duration-200 cursor-pointer ${task.is_completed ? "bg-[#7ca982] dark:bg-[#6a9a70] border-[#7ca982] shadow-[0_0_0_3px_rgba(124,169,130,0.12)]" : "border-[#d4d0c8] dark:border-[#555] bg-white dark:bg-[#1a1a1a] hover:border-[#7ca982] hover:shadow-[0_0_0_3px_rgba(124,169,130,0.10)]"}`}>
+        <button 
+          onClick={() => onUpdate(task.id, { is_completed: !task.is_completed })} 
+          className={`${checkboxSize} ${checkboxRadius} shrink-0 border flex items-center justify-center transition-all duration-200 cursor-pointer ${task.is_completed ? "bg-[#7ca982] dark:bg-[#6a9a70] border-[#7ca982] shadow-[0_0_0_3px_rgba(124,169,130,0.12)]" : "border-[#d4d0c8] dark:border-[#555] bg-white dark:bg-[#1a1a1a] hover:border-[#7ca982] hover:shadow-[0_0_0_3px_rgba(124,169,130,0.10)]"}`}
+        >
           {task.is_completed && <Check size={depth === 0 ? 10 : 9} strokeWidth={3} className="text-white" />}
         </button>
 
         <div className="flex-1 flex flex-col min-w-0">
-          {/* Text Title */}
+          {/* Editable Task Title */}
           <span 
             ref={textRef}
             contentEditable={isEditMode || isNormal}
@@ -189,12 +171,11 @@ export default function RecursiveCheckbox({ task, isEditMode, onUpdate, onDelete
             {task.title}
           </span>
 
-          {/* Unified Advanced Control Panel */}
+          {/* Expanded Menu for Task Actions */}
           {isMenuOpen && (
             <div className="flex flex-col gap-3 mt-2 pt-3 border-t border-[#e0ddd5] dark:border-[#333] animate-fade-up w-full">
                <div className="flex flex-wrap gap-3 items-center justify-between w-full">
                   
-                  {/* Timer functions strictly isolated inside Menu */}
                   {showTimerInsideMenu && (
                     <div className="flex items-center gap-2">
                        <button onClick={() => handleSendToFocus('timer')} title="Send to Timer" className="flex items-center justify-center w-8 h-8 rounded-lg text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 transition-colors hover:bg-blue-100 dark:hover:bg-blue-900/40"><Timer size={14} /></button>
@@ -204,7 +185,7 @@ export default function RecursiveCheckbox({ task, isEditMode, onUpdate, onDelete
                   
                   {showManagementActions && (
                      <div className="flex items-center gap-3 md:ml-auto flex-wrap">
-                        {/* Highlighting */}
+                        {/* Task Highlighting Colors */}
                         <div className="flex items-center gap-1.5 bg-white dark:bg-[#252525] rounded-lg p-1.5 border border-[#e0ddd5] dark:border-[#333] shadow-sm">
                            <Palette size={13} className="text-[#888] mx-1" />
                            {availableColors.map(c => (
@@ -217,7 +198,7 @@ export default function RecursiveCheckbox({ task, isEditMode, onUpdate, onDelete
                            ))}
                         </div>
 
-                        {/* Reordering & Indentation */}
+                        {/* Hierarchical Controls */}
                         <div className="flex items-center bg-white dark:bg-[#252525] rounded-lg p-0.5 border border-[#e0ddd5] dark:border-[#333] shadow-sm">
                            <button onClick={() => onMoveUp(task)} className="p-1.5 text-[#888] hover:text-[#c2956e] hover:bg-[#f7f5f0] dark:hover:bg-[#1a1a1a] rounded-md transition-colors" title="Move Up"><ArrowUp size={14} /></button>
                            <button onClick={() => onMoveDown(task)} className="p-1.5 text-[#888] hover:text-[#c2956e] hover:bg-[#f7f5f0] dark:hover:bg-[#1a1a1a] rounded-md transition-colors" title="Move Down"><ArrowDown size={14} /></button>
@@ -229,7 +210,7 @@ export default function RecursiveCheckbox({ task, isEditMode, onUpdate, onDelete
                   )}
                </div>
 
-               {/* Dedicated Action Row (Mobile Only inside Menu) */}
+               {/* Mobile-only primary action row inside menu */}
                {showManagementActions && (
                    <div className="flex md:hidden items-center justify-between w-full pt-1">
                       <button onClick={() => onAdd(task.id)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[#c2956e] hover:text-white hover:bg-[#c2956e] bg-[#c2956e]/10 text-[10px] font-bold uppercase tracking-wider transition-colors"><Plus size={12} /> Add Subtask</button>
@@ -240,7 +221,7 @@ export default function RecursiveCheckbox({ task, isEditMode, onUpdate, onDelete
           )}
         </div>
 
-        {/* Quick Actions Container - In flex-flow for perfect alignment */}
+        {/* Desktop Quick Actions (Hover revealed) */}
         <div className={`hidden md:flex items-center shrink-0 ml-auto gap-0.5 transition-opacity duration-200 ${isMenuOpen ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
             {showTimerStopwatchOutside && (
                 <>
@@ -261,7 +242,7 @@ export default function RecursiveCheckbox({ task, isEditMode, onUpdate, onDelete
             )}
         </div>
 
-        {/* Mobile More Toggle */}
+        {/* Mobile View Toggle */}
         <div className={`md:hidden shrink-0 ml-auto flex items-center gap-0.5 ${isMenuOpen ? 'hidden' : 'flex'}`}>
             {showTimerStopwatchOutside && (
                 <>
@@ -277,29 +258,27 @@ export default function RecursiveCheckbox({ task, isEditMode, onUpdate, onDelete
         </div>
       </div>
 
-      {/* Children Hierarchy Rendering */}
+      {/* Recursive Children Rendering */}
       {task.children && task.children.length > 0 && (
-        <SortableContext items={task.children.map(c => c.id)} strategy={verticalListSortingStrategy}>
-          <div className="ml-[34px] mt-[1px] mb-[2px] pl-4 border-l border-[#ebe8e2] dark:border-[#333] space-y-[1px]">
-            {task.children.map((child) => (
-              <RecursiveCheckbox 
-                key={child.id} 
-                task={child} 
-                isEditMode={isEditMode} 
-                onUpdate={onUpdate} 
-                onDelete={onDelete} 
-                onAdd={onAdd} 
-                onIndent={onIndent} 
-                onUnindent={onUnindent} 
-                onMoveUp={onMoveUp}
-                onMoveDown={onMoveDown}
-                depth={depth + 1} 
-                newTaskId={newTaskId} 
-                setNewTaskId={setNewTaskId} 
-              />
-            ))}
-          </div>
-        </SortableContext>
+        <div className="ml-[34px] mt-[1px] mb-[2px] pl-4 border-l border-[#ebe8e2] dark:border-[#333] space-y-[1px]">
+          {task.children.map((child) => (
+            <RecursiveCheckbox 
+              key={child.id} 
+              task={child} 
+              isEditMode={isEditMode} 
+              onUpdate={onUpdate} 
+              onDelete={onDelete} 
+              onAdd={onAdd} 
+              onIndent={onIndent} 
+              onUnindent={onUnindent} 
+              onMoveUp={onMoveUp}
+              onMoveDown={onMoveDown}
+              depth={depth + 1} 
+              newTaskId={newTaskId} 
+              setNewTaskId={setNewTaskId} 
+            />
+          ))}
+        </div>
       )}
     </div>
   );

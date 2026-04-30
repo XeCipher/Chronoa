@@ -7,14 +7,11 @@ import { Task } from "@/types/app.types";
 import RecursiveCheckbox from "../ui/RecursiveCheckbox";
 import { Plus, Edit3, CheckCircle2 } from "lucide-react";
 import { useUiStore } from "@/store/uiStore";
-import { 
-  DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors 
-} from '@dnd-kit/core';
-import { 
-  arrayMove, SortableContext, verticalListSortingStrategy 
-} from '@dnd-kit/sortable';
 
-interface Props { type: "routine" | "normal"; title: string; }
+interface Props {
+  type: "routine" | "normal";
+  title: string;
+}
 
 export default function TaskSection({ type, title }: Props) {
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -25,11 +22,10 @@ export default function TaskSection({ type, title }: Props) {
   const [now, setNow] = useState(Date.now());
   const sectionRef = useRef<HTMLDivElement>(null);
 
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
-    useSensor(KeyboardSensor)
-  );
-
+  /**
+   * Fetches tasks from Supabase based on the section type (routine or normal).
+   * Includes a fallback mechanism in case the initial query fails.
+   */
   const fetchTasks = async () => {
     let { data, error } = await supabase
       .from("tasks")
@@ -39,7 +35,11 @@ export default function TaskSection({ type, title }: Props) {
       .order("position", { ascending: true });
 
     if (error) {
-      const fallback = await supabase.from("tasks").select("*").eq("task_type", type).order("position", { ascending: true });
+      const fallback = await supabase
+        .from("tasks")
+        .select("*")
+        .eq("task_type", type)
+        .order("position", { ascending: true });
       data = fallback.data;
     }
 
@@ -49,27 +49,41 @@ export default function TaskSection({ type, title }: Props) {
 
   useEffect(() => {
     fetchTasks();
+
+    // Subscribe to realtime changes with a slight debounce to avoid flickering
     const channelId = `rt_${type}_${Math.random().toString(36).substring(7)}`;
     let timeoutId: NodeJS.Timeout;
 
-    // Debounce realtime updates to prevent lag spikes on bulk drag-drop updates
-    const channel = supabase.channel(channelId).on("postgres_changes", { event: "*", schema: "public", table: "tasks" }, () => {
-      clearTimeout(timeoutId);
-      timeoutId = setTimeout(() => fetchTasks(), 400);
-    }).subscribe();
+    const channel = supabase
+      .channel(channelId)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "tasks" },
+        () => {
+          clearTimeout(timeoutId);
+          timeoutId = setTimeout(() => fetchTasks(), 400);
+        }
+      )
+      .subscribe();
 
-    const timer = setInterval(() => setNow(Date.now()), 1000); 
-    
-    return () => { 
-      supabase.removeChannel(channel); 
-      clearInterval(timer); 
+    const timer = setInterval(() => setNow(Date.now()), 1000);
+
+    return () => {
+      supabase.removeChannel(channel);
+      clearInterval(timer);
       clearTimeout(timeoutId);
     };
   }, [type]);
 
+  // Handles clicking outside the section to exit edit mode for routines
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
-      if (isEditMode && type === 'routine' && sectionRef.current && !sectionRef.current.contains(e.target as Node)) {
+      if (
+        isEditMode &&
+        type === "routine" &&
+        sectionRef.current &&
+        !sectionRef.current.contains(e.target as Node)
+      ) {
         setIsEditMode(false);
       }
     };
@@ -79,31 +93,38 @@ export default function TaskSection({ type, title }: Props) {
 
   const delayMs = taskArchiveDelay <= 0 ? 1000 : taskArchiveDelay * 60 * 1000;
 
+  // Filter tasks based on archive delay settings
   const filteredTasks = useMemo(() => {
     if (isEditMode) return tasks;
     if (taskArchiveDelay < 0) return tasks;
     return tasks.filter((t) => {
       if (!t.is_completed || !t.completed_at) return true;
       const completedTime = new Date(t.completed_at).getTime();
-      return (now - completedTime) < delayMs;
+      return now - completedTime < delayMs;
     });
   }, [tasks, isEditMode, taskArchiveDelay, now, delayMs]);
 
+  // Organizes tasks into a hierarchical tree structure for rendering
   const taskTree = useMemo(() => {
     const map: Record<string, Task> = {};
     const roots: Task[] = [];
     filteredTasks.forEach((t) => (map[t.id] = { ...t, children: [] }));
     filteredTasks.forEach((t) => {
-      if (t.parent_id && map[t.parent_id]) map[t.parent_id].children!.push(map[t.id]);
-      else if (!t.parent_id) roots.push(map[t.id]);
+      if (t.parent_id && map[t.parent_id]) {
+        map[t.parent_id].children!.push(map[t.id]);
+      } else if (!t.parent_id) {
+        roots.push(map[t.id]);
+      }
     });
 
     const sortNodes = (nodes: Task[]) => {
       nodes.sort((a, b) => a.position - b.position);
       if (moveCompletedToBottom && !isEditMode) {
-        nodes.sort((a, b) => (a.is_completed === b.is_completed ? 0 : a.is_completed ? 1 : -1));
+        nodes.sort((a, b) =>
+          a.is_completed === b.is_completed ? 0 : a.is_completed ? 1 : -1
+        );
       }
-      nodes.forEach(n => {
+      nodes.forEach((n) => {
         if (n.children) sortNodes(n.children);
       });
       return nodes;
@@ -114,36 +135,54 @@ export default function TaskSection({ type, title }: Props) {
 
   const totalTasksCount = tasks.length;
   const totalCompletedCount = tasks.filter((t) => t.is_completed).length;
-  const progressPercent = totalTasksCount > 0 ? Math.round((totalCompletedCount / totalTasksCount) * 100) : 0;
+  const progressPercent =
+    totalTasksCount > 0
+      ? Math.round((totalCompletedCount / totalTasksCount) * 100)
+      : 0;
 
   const onUpdate = async (id: string, updates: Partial<Task>) => {
-    const isToggling = updates.hasOwnProperty('is_completed');
+    const isToggling = updates.hasOwnProperty("is_completed");
     const isDone = updates.is_completed;
     const completionTime = isDone ? new Date().toISOString() : null;
-    let tasksToUpdate: { id: string, updates: Partial<Task> }[] = [];
+    let tasksToUpdate: { id: string; updates: Partial<Task> }[] = [];
 
     if (isToggling) {
+      // Toggle children status recursively
       const addChildrenToUpdate = (parentId: string) => {
-        tasks.filter(t => t.parent_id === parentId).forEach(child => {
-          if (child.is_completed !== isDone) {
-            tasksToUpdate.push({ id: child.id, updates: { is_completed: isDone, completed_at: completionTime } });
-          }
-          addChildrenToUpdate(child.id);
-        });
+        tasks
+          .filter((t) => t.parent_id === parentId)
+          .forEach((child) => {
+            if (child.is_completed !== isDone) {
+              tasksToUpdate.push({
+                id: child.id,
+                updates: { is_completed: isDone, completed_at: completionTime },
+              });
+            }
+            addChildrenToUpdate(child.id);
+          });
       };
       addChildrenToUpdate(id);
 
+      // Update parent status based on siblings
       const checkParentStatus = (taskId: string, status: boolean) => {
-        const currentTask = tasks.find(t => t.id === taskId);
+        const currentTask = tasks.find((t) => t.id === taskId);
         if (!currentTask?.parent_id) return;
-        const siblings = tasks.filter(t => t.parent_id === currentTask.parent_id && t.id !== taskId);
-        const allSiblingsChecked = siblings.every(s => s.is_completed);
+        const siblings = tasks.filter(
+          (t) => t.parent_id === currentTask.parent_id && t.id !== taskId
+        );
+        const allSiblingsChecked = siblings.every((s) => s.is_completed);
 
         if (status && allSiblingsChecked) {
-          tasksToUpdate.push({ id: currentTask.parent_id, updates: { is_completed: true, completed_at: completionTime } });
+          tasksToUpdate.push({
+            id: currentTask.parent_id,
+            updates: { is_completed: true, completed_at: completionTime },
+          });
           checkParentStatus(currentTask.parent_id, true);
         } else if (!status) {
-          tasksToUpdate.push({ id: currentTask.parent_id, updates: { is_completed: false, completed_at: null } });
+          tasksToUpdate.push({
+            id: currentTask.parent_id,
+            updates: { is_completed: false, completed_at: null },
+          });
           checkParentStatus(currentTask.parent_id, false);
         }
       };
@@ -151,29 +190,45 @@ export default function TaskSection({ type, title }: Props) {
       updates.completed_at = completionTime;
     }
 
-    setTasks(prev => prev.map(t => {
-      if (t.id === id) return { ...t, ...updates };
-      const bulk = tasksToUpdate.find(u => u.id === t.id);
-      return bulk ? { ...t, ...bulk.updates } : t;
-    }));
+    setTasks((prev) =>
+      prev.map((t) => {
+        if (t.id === id) return { ...t, ...updates };
+        const bulk = tasksToUpdate.find((u) => u.id === t.id);
+        return bulk ? { ...t, ...bulk.updates } : t;
+      })
+    );
 
-    await supabase.from('tasks').update(updates).eq('id', id);
+    await supabase.from("tasks").update(updates).eq("id", id);
     for (const bulk of tasksToUpdate) {
-      await supabase.from('tasks').update(bulk.updates).eq('id', bulk.id);
+      await supabase.from("tasks").update(bulk.updates).eq("id", bulk.id);
     }
   };
 
   const onAdd = async (parentId: string | null = null) => {
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
     if (!user) return;
-    const siblings = tasks.filter(t => t.parent_id === parentId);
-    const maxPosition = siblings.length > 0 ? Math.max(...siblings.map(t => t.position)) : -1;
+
+    const siblings = tasks.filter((t) => t.parent_id === parentId);
+    const maxPosition =
+      siblings.length > 0 ? Math.max(...siblings.map((t) => t.position)) : -1;
     const newPosition = maxPosition + 1;
-    const { data } = await supabase.from("tasks").insert({ 
-      user_id: user.id, title: "New Item", task_type: type, parent_id: parentId, position: newPosition 
-    }).select().single();
+
+    const { data } = await supabase
+      .from("tasks")
+      .insert({
+        user_id: user.id,
+        title: "New Item",
+        task_type: type,
+        parent_id: parentId,
+        position: newPosition,
+      })
+      .select()
+      .single();
+
     if (data) {
-      setTasks(prev => [...prev, data]);
+      setTasks((prev) => [...prev, data]);
       setNewTaskId(data.id);
     }
   };
@@ -181,148 +236,185 @@ export default function TaskSection({ type, title }: Props) {
   const onDelete = async (id: string) => {
     const idsToDelete = [id];
     const findChildren = (parentId: string) => {
-      tasks.filter(t => t.parent_id === parentId).forEach(child => {
-        idsToDelete.push(child.id);
-        findChildren(child.id);
-      });
+      tasks
+        .filter((t) => t.parent_id === parentId)
+        .forEach((child) => {
+          idsToDelete.push(child.id);
+          findChildren(child.id);
+        });
     };
     findChildren(id);
+
     const deletedTime = new Date().toISOString();
     setTasks((prev) => prev.filter((t) => !idsToDelete.includes(t.id)));
     for (const delId of idsToDelete) {
-      await supabase.from("tasks").update({ deleted_at: deletedTime }).eq("id", delId);
+      await supabase
+        .from("tasks")
+        .update({ deleted_at: deletedTime })
+        .eq("id", delId);
     }
   };
 
   const onIndent = async (task: Task) => {
-    const siblings = tasks.filter(t => t.parent_id === task.parent_id).sort((a,b) => a.position - b.position);
-    const index = siblings.findIndex(t => t.id === task.id);
+    const siblings = tasks
+      .filter((t) => t.parent_id === task.parent_id)
+      .sort((a, b) => a.position - b.position);
+    const index = siblings.findIndex((t) => t.id === task.id);
     if (index > 0) {
       const previousSibling = siblings[index - 1];
       const newParentId = previousSibling.id;
-      const newSiblings = tasks.filter(t => t.parent_id === newParentId);
-      const newPosition = newSiblings.length > 0 ? Math.max(...newSiblings.map(t => t.position)) + 1 : 0;
-      setTasks(prev => prev.map(t => t.id === task.id ? { ...t, parent_id: newParentId, position: newPosition } : t));
-      await supabase.from('tasks').update({ parent_id: newParentId, position: newPosition }).eq('id', task.id);
+      const newSiblings = tasks.filter((t) => t.parent_id === newParentId);
+      const newPosition =
+        newSiblings.length > 0
+          ? Math.max(...newSiblings.map((t) => t.position)) + 1
+          : 0;
+
+      setTasks((prev) =>
+        prev.map((t) =>
+          t.id === task.id
+            ? { ...t, parent_id: newParentId, position: newPosition }
+            : t
+        )
+      );
+      await supabase
+        .from("tasks")
+        .update({ parent_id: newParentId, position: newPosition })
+        .eq("id", task.id);
     }
   };
 
   const onUnindent = async (task: Task) => {
     if (!task.parent_id) return;
-    const parent = tasks.find(t => t.id === task.parent_id);
+    const parent = tasks.find((t) => t.id === task.parent_id);
     if (!parent) return;
+
     const newParentId = parent.parent_id;
-    const newSiblings = tasks.filter(t => t.parent_id === newParentId);
-    const newPosition = parent.position + 1; 
-    
-    const tasksToUpdate: { id: string, updates: Partial<Task> }[] = [ 
-      { id: task.id, updates: { parent_id: newParentId, position: newPosition } } 
+    const newSiblings = tasks.filter((t) => t.parent_id === newParentId);
+    const newPosition = parent.position + 1;
+
+    const tasksToUpdate: { id: string; updates: Partial<Task> }[] = [
+      { id: task.id, updates: { parent_id: newParentId, position: newPosition } },
     ];
-    
-    newSiblings.forEach(t => {
+
+    newSiblings.forEach((t) => {
       if (t.position >= newPosition) {
         tasksToUpdate.push({ id: t.id, updates: { position: t.position + 1 } });
       }
     });
-    
-    setTasks(prev => prev.map(t => {
-      const update = tasksToUpdate.find(u => u.id === t.id);
-      return update ? { ...t, ...update.updates } as Task : t;
-    }));
-    
+
+    setTasks((prev) =>
+      prev.map((t) => {
+        const update = tasksToUpdate.find((u) => u.id === t.id);
+        return update ? ({ ...t, ...update.updates } as Task) : t;
+      })
+    );
+
     for (const update of tasksToUpdate) {
-      await supabase.from('tasks').update(update.updates).eq('id', update.id);
+      await supabase.from("tasks").update(update.updates).eq("id", update.id);
     }
   };
 
   const onMoveUp = async (task: Task) => {
-    const siblings = tasks.filter(t => t.parent_id === task.parent_id).sort((a, b) => a.position - b.position);
-    const index = siblings.findIndex(t => t.id === task.id);
+    const siblings = tasks
+      .filter((t) => t.parent_id === task.parent_id)
+      .sort((a, b) => a.position - b.position);
+    const index = siblings.findIndex((t) => t.id === task.id);
     if (index > 0) {
       const prev = siblings[index - 1];
       const newPosTask = prev.position;
       const newPosPrev = task.position;
 
-      setTasks(prevTasks => prevTasks.map(t => {
-        if (t.id === task.id) return { ...t, position: newPosTask };
-        if (t.id === prev.id) return { ...t, position: newPosPrev };
-        return t;
-      }));
+      setTasks((prevTasks) =>
+        prevTasks.map((t) => {
+          if (t.id === task.id) return { ...t, position: newPosTask };
+          if (t.id === prev.id) return { ...t, position: newPosPrev };
+          return t;
+        })
+      );
 
-      await supabase.from('tasks').update({ position: newPosTask }).eq('id', task.id);
-      await supabase.from('tasks').update({ position: newPosPrev }).eq('id', prev.id);
+      await supabase.from("tasks").update({ position: newPosTask }).eq("id", task.id);
+      await supabase.from("tasks").update({ position: newPosPrev }).eq("id", prev.id);
     }
   };
 
   const onMoveDown = async (task: Task) => {
-    const siblings = tasks.filter(t => t.parent_id === task.parent_id).sort((a, b) => a.position - b.position);
-    const index = siblings.findIndex(t => t.id === task.id);
+    const siblings = tasks
+      .filter((t) => t.parent_id === task.parent_id)
+      .sort((a, b) => a.position - b.position);
+    const index = siblings.findIndex((t) => t.id === task.id);
     if (index < siblings.length - 1) {
       const next = siblings[index + 1];
       const newPosTask = next.position;
       const newPosNext = task.position;
 
-      setTasks(prevTasks => prevTasks.map(t => {
-        if (t.id === task.id) return { ...t, position: newPosTask };
-        if (t.id === next.id) return { ...t, position: newPosNext };
-        return t;
-      }));
+      setTasks((prevTasks) =>
+        prevTasks.map((t) => {
+          if (t.id === task.id) return { ...t, position: newPosTask };
+          if (t.id === next.id) return { ...t, position: newPosNext };
+          return t;
+        })
+      );
 
-      await supabase.from('tasks').update({ position: newPosTask }).eq('id', task.id);
-      await supabase.from('tasks').update({ position: newPosNext }).eq('id', next.id);
+      await supabase.from("tasks").update({ position: newPosTask }).eq("id", task.id);
+      await supabase.from("tasks").update({ position: newPosNext }).eq("id", next.id);
     }
   };
 
-  const onDragEnd = async (event: any) => {
-    const { active, over } = event;
-    if (!over || active.id === over.id) return;
-
-    const activeTask = tasks.find(t => t.id === active.id);
-    const overTask = tasks.find(t => t.id === over.id);
-    if (!activeTask || !overTask || activeTask.parent_id !== overTask.parent_id) return;
-    
-    const siblings = tasks.filter(t => t.parent_id === activeTask.parent_id).sort((a, b) => a.position - b.position);
-    const oldIndex = siblings.findIndex(t => t.id === active.id);
-    const newIndex = siblings.findIndex(t => t.id === over.id);
-    
-    const reorderedSiblings = arrayMove(siblings, oldIndex, newIndex);
-
-    setTasks(currentTasks => {
-      const nonSiblingTasks = currentTasks.filter(t => t.parent_id !== activeTask.parent_id);
-      const updatedSiblings = reorderedSiblings.map((t, index) => ({ ...t, position: index }));
-      return [...nonSiblingTasks, ...updatedSiblings].sort((a, b) => a.position - b.position);
-    });
-
-    const updates = reorderedSiblings.map((task, index) => 
-      supabase.from("tasks").update({ position: index }).eq("id", task.id)
-    );
-    await Promise.all(updates);
-  };
-
   return (
-    <div ref={sectionRef} className="relative flex flex-col bg-white/70 dark:bg-[#1a1a1a]/80 backdrop-blur-sm border border-[#ebe8e2] dark:border-[#333] rounded-[28px] overflow-hidden shadow-[0_2px_16px_rgba(44,43,39,0.05)] transition-all duration-300">
+    <div
+      ref={sectionRef}
+      className="relative flex flex-col bg-white/70 dark:bg-[#1a1a1a]/80 backdrop-blur-sm border border-[#ebe8e2] dark:border-[#333] rounded-[28px] overflow-hidden shadow-[0_2px_16px_rgba(44,43,39,0.05)] transition-all duration-300"
+    >
       <div className="px-5 md:px-8 pt-6 md:pt-8 pb-4 md:pb-5 border-b border-[#f0ede8] dark:border-[#2a2a2a]">
         <div className="flex items-start justify-between gap-4">
           <div className="flex flex-col gap-1.5">
-            <h2 className="text-[22px] md:text-[26px] text-[#3d3b33] dark:text-[#f0f0f0] leading-none italic font-medium" style={{ fontFamily: "var(--font-cormorant), serif" }}>{title}</h2>
+            <h2
+              className="text-[22px] md:text-[26px] text-[#3d3b33] dark:text-[#f0f0f0] leading-none italic font-medium"
+              style={{ fontFamily: "var(--font-cormorant), serif" }}
+            >
+              {title}
+            </h2>
             {type === "routine" && totalTasksCount > 0 && (
               <div className="flex items-center gap-2 mt-1">
                 <div className="w-24 md:w-28 h-[3px] bg-[#ebe8e2] dark:bg-[#333] rounded-full overflow-hidden">
-                  <div className="h-full bg-[#7ca982] dark:bg-[#6a9a70] rounded-full transition-all duration-500" style={{ width: `${progressPercent}%` }} />
+                  <div
+                    className="h-full bg-[#7ca982] dark:bg-[#6a9a70] rounded-full transition-all duration-500"
+                    style={{ width: `${progressPercent}%` }}
+                  />
                 </div>
-                <span className="text-[11px] text-[#b0ad9a] dark:text-[#7a7a7a] tracking-wide">{progressPercent}%</span>
+                <span className="text-[11px] text-[#b0ad9a] dark:text-[#7a7a7a] tracking-wide">
+                  {progressPercent}%
+                </span>
               </div>
             )}
           </div>
           <div className="flex items-center gap-2 shrink-0 pt-0.5">
-            {type === 'routine' ? (
-                <button onClick={() => setIsEditMode((v) => !v)} className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-[11px] font-[600] tracking-[0.08em] uppercase transition-all duration-200 ${isEditMode ? "bg-[#c2956e] dark:bg-[#b0855f] text-white shadow-lg" : "bg-[#f7f5f0] dark:bg-[#222] text-[#c2956e] dark:text-[#d1a784] hover:bg-[#c2956e]/10 dark:hover:bg-[#b0855f]/20"}`}>
-                  {isEditMode ? <><CheckCircle2 size={13} /> Done</> : <><Edit3 size={12} /> Edit</>}
-                </button>
+            {type === "routine" ? (
+              <button
+                onClick={() => setIsEditMode((v) => !v)}
+                className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-[11px] font-[600] tracking-[0.08em] uppercase transition-all duration-200 ${
+                  isEditMode
+                    ? "bg-[#c2956e] dark:bg-[#b0855f] text-white shadow-lg"
+                    : "bg-[#f7f5f0] dark:bg-[#222] text-[#c2956e] dark:text-[#d1a784] hover:bg-[#c2956e]/10 dark:hover:bg-[#b0855f]/20"
+                }`}
+              >
+                {isEditMode ? (
+                  <>
+                    <CheckCircle2 size={13} /> Done
+                  </>
+                ) : (
+                  <>
+                    <Edit3 size={12} /> Edit
+                  </>
+                )}
+              </button>
             ) : (
-                <button onClick={() => onAdd(null)} className="w-9 h-9 flex items-center justify-center bg-[#f7f5f0] dark:bg-[#222] text-[#c2956e] dark:text-[#d1a784] rounded-full hover:bg-[#c2956e]/10 dark:hover:bg-[#b0855f]/20 transition-all">
-                  <Plus size={18} strokeWidth={2} />
-                </button>
+              <button
+                onClick={() => onAdd(null)}
+                className="w-9 h-9 flex items-center justify-center bg-[#f7f5f0] dark:bg-[#222] text-[#c2956e] dark:text-[#d1a784] rounded-full hover:bg-[#c2956e]/10 dark:hover:bg-[#b0855f]/20 transition-all"
+              >
+                <Plus size={18} strokeWidth={2} />
+              </button>
             )}
           </div>
         </div>
@@ -340,31 +432,42 @@ export default function TaskSection({ type, title }: Props) {
           </div>
         ) : taskTree.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-10 gap-2">
-            <span className="text-2xl opacity-20 dark:opacity-10 select-none text-[#3d3b33] dark:text-white">✦</span>
-            <p className="text-[12px] text-[#c4c0b8] dark:text-[#555] tracking-wide uppercase font-bold">Clear Space</p>
+            <span className="text-2xl opacity-20 dark:opacity-10 select-none text-[#3d3b33] dark:text-white">
+              ✦
+            </span>
+            <p className="text-[12px] text-[#c4c0b8] dark:text-[#555] tracking-wide uppercase font-bold">
+              Clear Space
+            </p>
           </div>
         ) : (
-          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
-            <SortableContext items={taskTree.map((t) => t.id)} strategy={verticalListSortingStrategy}>
-              <div className="space-y-[2px]">
-                {taskTree.map((t) => (
-                  <RecursiveCheckbox 
-                    key={t.id} task={t} isEditMode={type === "normal" ? true : isEditMode} 
-                    onUpdate={onUpdate} onDelete={onDelete} onAdd={onAdd}
-                    onIndent={onIndent} onUnindent={onUnindent}
-                    onMoveUp={onMoveUp} onMoveDown={onMoveDown}
-                    depth={0} newTaskId={newTaskId} setNewTaskId={setNewTaskId}
-                  />
-                ))}
-              </div>
-            </SortableContext>
-          </DndContext>
+          <div className="space-y-[2px]">
+            {taskTree.map((t) => (
+              <RecursiveCheckbox
+                key={t.id}
+                task={t}
+                isEditMode={type === "normal" ? true : isEditMode}
+                onUpdate={onUpdate}
+                onDelete={onDelete}
+                onAdd={onAdd}
+                onIndent={onIndent}
+                onUnindent={onUnindent}
+                onMoveUp={onMoveUp}
+                onMoveDown={onMoveDown}
+                depth={0}
+                newTaskId={newTaskId}
+                setNewTaskId={setNewTaskId}
+              />
+            ))}
+          </div>
         )}
       </div>
 
-      {isEditMode && type === 'routine' && (
+      {isEditMode && type === "routine" && (
         <div className="px-5 pb-5">
-          <button onClick={() => onAdd(null)} className="w-full flex items-center justify-center gap-2 py-2.5 border border-dashed border-[#d4d0c8] dark:border-[#444] rounded-xl text-[12px] text-[#b0ad9a] dark:text-[#777] hover:border-[#c2956e] dark:hover:border-[#b0855f] hover:text-[#c2956e] dark:hover:text-[#b0855f] transition-all">
+          <button
+            onClick={() => onAdd(null)}
+            className="w-full flex items-center justify-center gap-2 py-2.5 border border-dashed border-[#d4d0c8] dark:border-[#444] rounded-xl text-[12px] text-[#b0ad9a] dark:text-[#777] hover:border-[#c2956e] dark:hover:border-[#b0855f] hover:text-[#c2956e] dark:hover:text-[#b0855f] transition-all"
+          >
             <Plus size={14} /> Add routine item
           </button>
         </div>
