@@ -19,6 +19,8 @@ interface UiState {
   sessionsFilter: SessionsFilter;
   hotkeysEnabled: boolean;
   moveCompletedToBottom: boolean;
+  // State for tracking active task menu
+  activeTaskIdWithMenu: string | null;
   
   setTaskArchiveDelay: (delay: number) => void;
   setRoutineResetHour: (hour: number) => void;
@@ -32,6 +34,7 @@ interface UiState {
   setSessionsFilter: (filter: SessionsFilter) => void;
   setHotkeysEnabled: (enabled: boolean) => void;
   setMoveCompletedToBottom: (val: boolean) => void;
+  setActiveTaskIdWithMenu: (id: string | null) => void;
 }
 
 export const useUiStore = create<UiState>()(
@@ -49,6 +52,8 @@ export const useUiStore = create<UiState>()(
       sessionsFilter: 'all',
       hotkeysEnabled: true,
       moveCompletedToBottom: true,
+      activeTaskIdWithMenu: null,
+
       setTaskArchiveDelay: (delay) => set({ taskArchiveDelay: delay }),
       setRoutineResetHour: (hour) => set({ routineResetHour: hour }),
       setJournalZoom: (zoom) => set({ journalZoom: zoom }),
@@ -61,7 +66,14 @@ export const useUiStore = create<UiState>()(
       setSessionsFilter: (filter) => set({ sessionsFilter: filter }),
       setHotkeysEnabled: (hotkeysEnabled) => set({ hotkeysEnabled }),
       setMoveCompletedToBottom: (val) => set({ moveCompletedToBottom: val }),
+      setActiveTaskIdWithMenu: (id) => set({ activeTaskIdWithMenu: id }),
     }),
-    { name: 'chronoa-settings' }
+    { 
+      name: 'chronoa-settings',
+      // We don't want to persist which menu was open across refreshes
+      partialize: (state) => Object.fromEntries(
+        Object.entries(state).filter(([key]) => key !== 'activeTaskIdWithMenu')
+      ),
+    }
   )
 );
