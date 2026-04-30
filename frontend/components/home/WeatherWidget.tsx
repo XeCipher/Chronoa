@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
-import { Cloud, Sun, Moon, CloudSun, CloudMoon, CloudRain, CloudDrizzle, Snowflake, CloudLightning, Wind, MapPin } from "lucide-react";
+import { Cloud, Sun, Moon, CloudSun, CloudMoon, CloudRain, CloudDrizzle, Snowflake, CloudLightning, Wind, MapPin, RefreshCw } from "lucide-react";
 
 export default function WeatherWidget() {
   const [weather, setWeather] = useState<any>(null);
@@ -10,42 +10,125 @@ export default function WeatherWidget() {
   const [loading, setLoading] = useState(true);
   const [isToggled, setIsToggled] = useState(false);
 
-  useEffect(() => {
-    const initWeather = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-      const { data: profile } = await supabase.from('profiles').select('weather_lat, weather_lon, weather_city').eq('id', user.id).single();
+  const fetchWeather = async () => {
+    setLoading(true);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      setLoading(false);
+      return;
+    }
 
-      if (profile?.weather_lat && profile?.weather_lon) {
-        try {
-          const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${profile.weather_lat}&longitude=${profile.weather_lon}&current=temperature_2m,weather_code,is_day&timezone=auto`, { cache: 'no-store' });
-          const data = await res.json();
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('weather_lat, weather_lon, weather_city')
+      .eq('id', user.id)
+      .single();
+
+    if (profile?.weather_lat && profile?.weather_lon) {
+      try {
+        // We use the standard API but fetch cloud_cover to validate "Ghost Storms"
+        const params = new URLSearchParams({
+          latitude: profile.weather_lat.toString(),
+          longitude: profile.weather_lon.toString(),
+          current: 'temperature_2m,weather_code,is_day,precipitation,cloud_cover',
+          timezone: 'auto',
+          forecast_days: '1'
+        });
+
+        const res = await fetch(`https://api.open-meteo.com/v1/forecast?${params.toString()}`, { cache: 'no-store' });
+        const data = await res.json();
+
+        if (data?.current) {
           setWeather(data.current);
           setCity(profile.weather_city);
-        } catch (err) {}
+        }
+      } catch (err) {
+        console.error("Sanctuary Weather Error:", err);
       }
-      setLoading(false);
-    };
-    initWeather();
-  }, []);
-
-  const getWeatherDetails = (code: number, isDay: number) => {
-    const day = isDay === 1;
-    if (code === 0) return { text: "Clear", icon: day ? Sun : Moon, color: day ? "text-amber-500" : "text-indigo-300" };
-    if ([1, 2].includes(code)) return { text: "Partly Cloudy", icon: day ? CloudSun : CloudMoon, color: "text-gray-500 dark:text-gray-400" };
-    if (code === 3) return { text: "Overcast", icon: Cloud, color: "text-gray-500 dark:text-gray-400" };
-    if ([45, 48].includes(code)) return { text: "Fog", icon: Wind, color: "text-gray-400 dark:text-gray-500" };
-    if ([51, 53, 55, 56, 57].includes(code)) return { text: "Drizzle", icon: CloudDrizzle, color: "text-blue-400" };
-    if ([61, 63, 65, 66, 67].includes(code)) return { text: "Rain", icon: CloudRain, color: "text-blue-500" };
-    if ([71, 73, 75, 77, 85, 86].includes(code)) return { text: "Snow", icon: Snowflake, color: "text-blue-200 dark:text-blue-300" };
-    if ([80, 81, 82].includes(code)) return { text: "Showers", icon: CloudRain, color: "text-blue-500" };
-    if ([95, 96, 99].includes(code)) return { text: "Storms", icon: CloudLightning, color: "text-purple-600 dark:text-purple-400" };
-    return { text: "Cloudy", icon: Cloud, color: "text-gray-400 dark:text-gray-500" };
+    }
+    setLoading(false);
   };
 
-  if (loading || !weather) return null;
+  useEffect(() => {
+    fetchWeather();
+    const interval = setInterval(fetchWeather, 20 * 60 * 1000); // 20 mins
+    return () => clearInterval(interval);
+  }, []);
 
-  const details = getWeatherDetails(weather.weather_code, weather.is_day);
+  const getWeatherDetails = (code: number, isDay: number, precipitation: number, cloudCover: number) => {
+    const day = isDay === 1;
+    
+    /**
+     * TROPICAL CALIBRATION LOGIC
+     * Coastal cities like Mumbai often have high instability codes (95+) in models 
+     * while the actual sky is clear. We override the code based on sensors.
+     */
+    let calibratedCode = code;
+
+    // If it's a "Storm" or "Rain" but there is 0 rain and few clouds, it's Sunny.
+    if (precipitation <= 0 && (code >= 50)) {
+      if (cloudCover < 20) calibratedCode = 0; // Force Sunny
+      else if (cloudCover < 50) calibratedCode = 1; // Force Partly Cloudy
+      else calibratedCode = 3; // Force Overcast
+    }
+
+    // 0: Clear/Sunny
+    if (calibratedCode === 0) {
+      return { 
+        text: day ? "Sunny" : "Clear", 
+        icon: day ? Sun : Moon, 
+        color: day ? "text-amber-500" : "text-indigo-300" 
+      };
+    }
+    
+    // 1, 2: Partly Cloudy
+    if ([1, 2].includes(calibratedCode)) {
+      return { text: "Partly Cloudy", icon: day ? CloudSun : CloudMoon, color: "text-gray-400" };
+    }
+
+    // 3: Overcast
+    if (calibratedCode === 3) {
+      return { text: "Cloudy", icon: Cloud, color: "text-gray-500" };
+    }
+    
+    // 45, 48: Fog
+    if ([45, 48].includes(calibratedCode)) {
+      return { text: "Foggy", icon: Wind, color: "text-gray-400" };
+    }
+    
+    // 51-57: Drizzle
+    if ([51, 53, 55, 56, 57].includes(calibratedCode)) {
+      return { text: "Drizzle", icon: CloudDrizzle, color: "text-blue-300" };
+    }
+
+    // 61-67, 80-82: Rain
+    if ([61, 63, 65, 66, 67, 80, 81, 82].includes(calibratedCode)) {
+      return { text: "Rainy", icon: CloudRain, color: "text-blue-500" };
+    }
+    
+    // 71-77, 85-86: Snow
+    if ([71, 73, 75, 77, 85, 86].includes(calibratedCode)) {
+      return { text: "Snowy", icon: Snowflake, color: "text-blue-100" };
+    }
+    
+    // 95-99: Storms (Now verified by precipitation check)
+    if ([95, 96, 99].includes(calibratedCode)) {
+      return { text: "Storms", icon: CloudLightning, color: "text-purple-500" };
+    }
+
+    return { text: day ? "Sunny" : "Clear", icon: day ? Sun : Moon, color: day ? "text-amber-500" : "text-indigo-300" };
+  };
+
+  if (loading && !weather) return (
+    <div className="flex items-center gap-2 bg-white/10 dark:bg-black/20 backdrop-blur-md rounded-full px-4 py-2 border border-white/10">
+      <RefreshCw size={14} className="animate-spin text-[#c2956e]" />
+      <span className="text-[10px] font-bold uppercase tracking-widest opacity-50">Syncing...</span>
+    </div>
+  );
+
+  if (!weather) return null;
+
+  const details = getWeatherDetails(weather.weather_code, weather.is_day, weather.precipitation, weather.cloud_cover);
   const Icon = details.icon;
 
   return (
@@ -57,7 +140,7 @@ export default function WeatherWidget() {
       `}
     >
       <div className={`flex items-center justify-center w-8 h-8 rounded-full bg-white/20 dark:bg-black/40 transition-colors ${details.color}`}>
-        <Icon size={16} strokeWidth={2} />
+        <Icon size={16} strokeWidth={2.5} />
       </div>
       
       <span className="text-base font-medium text-[#3d3b33] dark:text-white ml-2.5 transition-colors">
