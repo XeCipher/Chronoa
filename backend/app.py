@@ -3,6 +3,7 @@ from flask_cors import CORS
 from apscheduler.schedulers.background import BackgroundScheduler
 from services.routine_reset import perform_routine_reset
 from routes.analytics import analytics_bp
+from routes.auth import auth_bp
 from config import Config
 
 # VALIDATION
@@ -10,8 +11,9 @@ Config.validate()
 
 app = Flask(__name__)
 
-# 1. Register Blueprint FIRST
+# 1. Register Blueprints FIRST
 app.register_blueprint(analytics_bp)
+app.register_blueprint(auth_bp)
 
 # 2. Initialize CORS SECOND (Allowing everything for now to guarantee it works)
 CORS(app, resources={r"/*": {"origins": "*"}})

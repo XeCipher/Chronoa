@@ -93,3 +93,35 @@ h1, h2, h3, h4 { font-family: var(--font-display); font-weight: 500; }
 .no-scrollbar::-webkit-scrollbar { display: none; }
 @keyframes fadeUp { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
 .animate-fade-up { animation: fadeUp 0.3s cubic-bezier(0.4, 0, 0.2, 1) both; }
+
+/* ─── Soothing Task Vanishing Animation ────────────────────────────────── */
+
+@keyframes sanctuaryExit {
+  0% {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+    filter: blur(0px);
+    max-height: 100px;
+    margin-bottom: 0px;
+  }
+  30% {
+    opacity: 0.5;
+    transform: translateX(10px);
+    filter: blur(2px);
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(30px) scale(0.95);
+    filter: blur(12px);
+    max-height: 0px;
+    margin-bottom: -12px; /* Pulls up the list items below it smoothly */
+    padding-top: 0px;
+    padding-bottom: 0px;
+    pointer-events: none;
+  }
+}
+
+.task-vanishing-soothing {
+  animation: sanctuaryExit 0.8s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  overflow: hidden;
+}

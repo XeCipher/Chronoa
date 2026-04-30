@@ -27,6 +27,7 @@ interface TimerState {
   start: (tab: SessionType, id: string) => void;
   pause: (tab: SessionType, id: string) => void;
   reset: (tab: SessionType, id: string) => void;
+  toggleFirstActive: () => void; // New helper for hotkeys
 }
 
 const generateId = () => Math.random().toString(36).substring(2, 9);
@@ -50,7 +51,7 @@ const createDefaultStopwatch = (): EngineInstance => ({
 
 export const useTimerStore = create<TimerState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       activeTab: 'stopwatch',
       isPinned: false,
       timers: [createDefaultTimer()],
@@ -110,6 +111,22 @@ export const useTimerStore = create<TimerState>()(
         const listName = tab === 'timer' ? 'timers' : 'stopwatches';
         return { [listName]: state[listName].map((i) => i.id === id ? { ...i, isRunning: false, startTime: null, accumulatedSeconds: 0 } : i) };
       }),
+
+      // Logic for Spacebar hotkey
+      toggleFirstActive: () => {
+        const state = get();
+        const tab = state.activeTab;
+        const list = tab === 'timer' ? state.timers : state.stopwatches;
+        
+        // Find the first instance that is already running
+        const running = list.find(i => i.isRunning);
+        if (running) {
+          state.pause(tab, running.id);
+        } else {
+          // Otherwise, start the very first one in the list
+          state.start(tab, list[0].id);
+        }
+      }
     }),
     { name: 'chronoa-multi-timer-v2' }
   )

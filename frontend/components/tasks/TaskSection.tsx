@@ -19,6 +19,7 @@ export default function TaskSection({ type, title }: Props) {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [isEditMode, setIsEditMode] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [newTaskId, setNewTaskId] = useState<string | null>(null);
   const { taskArchiveDelay } = useUiStore();
   const [now, setNow] = useState(Date.now());
 
@@ -28,6 +29,7 @@ export default function TaskSection({ type, title }: Props) {
   );
 
   const fetchTasks = async () => {
+    // Ensuring we fetch by position strictly
     const { data } = await supabase.from("tasks").select("*").eq("task_type", type).order("position", { ascending: true });
     if (data) setTasks(data);
     setIsLoading(false);
@@ -37,20 +39,22 @@ export default function TaskSection({ type, title }: Props) {
     fetchTasks();
     const channelId = `rt_${type}_${Math.random().toString(36).substring(7)}`;
     const channel = supabase.channel(channelId).on("postgres_changes", { event: "*", schema: "public", table: "tasks" }, () => fetchTasks()).subscribe();
-    const timer = setInterval(() => setNow(Date.now()), 10000);
+    
+    const timer = setInterval(() => setNow(Date.now()), 1000); 
     return () => { supabase.removeChannel(channel); clearInterval(timer); };
   }, [type]);
+
+  const delayMs = taskArchiveDelay <= 0 ? 1000 : taskArchiveDelay * 60 * 1000;
 
   const filteredTasks = useMemo(() => {
     if (isEditMode) return tasks;
     if (taskArchiveDelay < 0) return tasks;
-    const delayMs = taskArchiveDelay * 60 * 1000;
     return tasks.filter((t) => {
       if (!t.is_completed || !t.completed_at) return true;
       const completedTime = new Date(t.completed_at).getTime();
       return (now - completedTime) < delayMs;
     });
-  }, [tasks, isEditMode, taskArchiveDelay, now]);
+  }, [tasks, isEditMode, taskArchiveDelay, now, delayMs]);
 
   const taskTree = useMemo(() => {
     const map: Record<string, Task> = {};
@@ -63,8 +67,9 @@ export default function TaskSection({ type, title }: Props) {
     return roots;
   }, [filteredTasks]);
 
-  const completedCount = useMemo(() => tasks.filter((t) => !t.parent_id && t.is_completed).length, [tasks]);
-  const rootCount = useMemo(() => tasks.filter((t) => !t.parent_id).length, [tasks]);
+  const totalTasksCount = tasks.length;
+  const totalCompletedCount = tasks.filter((t) => t.is_completed).length;
+  const progressPercent = totalTasksCount > 0 ? Math.round((totalCompletedCount / totalTasksCount) * 100) : 0;
 
   const onUpdate = async (id: string, updates: Partial<Task>) => {
     const isToggling = updates.hasOwnProperty('is_completed');
@@ -116,8 +121,25 @@ export default function TaskSection({ type, title }: Props) {
   const onAdd = async (parentId: string | null = null) => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
-    await supabase.from("tasks").insert({ user_id: user.id, title: "New Item", task_type: type, parent_id: parentId, position: tasks.length });
-    fetchTasks();
+    
+    // FILTER TO FIND SIBLINGS ONLY (tasks with the same parent)
+    const siblings = tasks.filter(t => t.parent_id === parentId);
+    // Find the highest position among those siblings
+    const maxPosition = siblings.length > 0 ? Math.max(...siblings.map(t => t.position)) : -1;
+    const newPosition = maxPosition + 1;
+    
+    const { data } = await supabase.from("tasks").insert({ 
+      user_id: user.id, 
+      title: "New Item", 
+      task_type: type, 
+      parent_id: parentId, 
+      position: newPosition 
+    }).select().single();
+
+    if (data) {
+      setTasks(prev => [...prev, data]);
+      setNewTaskId(data.id);
+    }
   };
 
   const onDelete = async (id: string) => {
@@ -128,10 +150,26 @@ export default function TaskSection({ type, title }: Props) {
   const onDragEnd = async (event: any) => {
     const { active, over } = event;
     if (!over || active.id === over.id) return;
-    const oldIndex = tasks.findIndex((t) => t.id === active.id);
-    const newIndex = tasks.findIndex((t) => t.id === over.id);
-    const reordered = arrayMove(tasks, oldIndex, newIndex).map((t, idx) => ({ ...t, position: idx }));
-    setTasks(reordered);
+    
+    const activeTask = tasks.find(t => t.id === active.id);
+    const overTask = tasks.find(t => t.id === over.id);
+    
+    if (!activeTask || !overTask || activeTask.parent_id !== overTask.parent_id) return;
+
+    const siblings = tasks.filter(t => t.parent_id === activeTask.parent_id).sort((a, b) => a.position - b.position);
+    const oldIndex = siblings.findIndex(t => t.id === active.id);
+    const newIndex = siblings.findIndex(t => t.id === over.id);
+    const reordered = arrayMove(siblings, oldIndex, newIndex);
+    
+    const newTasks = tasks.map(t => {
+       if (t.parent_id === activeTask.parent_id) {
+           const newPos = reordered.findIndex(r => r.id === t.id);
+           return { ...t, position: newPos };
+       }
+       return t;
+    });
+
+    setTasks(newTasks);
     await Promise.all(reordered.map((t, idx) => supabase.from("tasks").update({ position: idx }).eq("id", t.id)));
   };
 
@@ -143,12 +181,12 @@ export default function TaskSection({ type, title }: Props) {
             <h2 className="text-[22px] md:text-[26px] text-[#3d3b33] dark:text-[#f0f0f0] leading-none italic font-medium" style={{ fontFamily: "var(--font-cormorant), serif" }}>
               {title}
             </h2>
-            {type === "routine" && rootCount > 0 && (
+            {type === "routine" && totalTasksCount > 0 && (
               <div className="flex items-center gap-2 mt-1">
                 <div className="w-24 md:w-28 h-[3px] bg-[#ebe8e2] dark:bg-[#333] rounded-full overflow-hidden">
-                  <div className="h-full bg-[#7ca982] dark:bg-[#6a9a70] rounded-full transition-all duration-500" style={{ width: `${(completedCount / rootCount) * 100}%` }} />
+                  <div className="h-full bg-[#7ca982] dark:bg-[#6a9a70] rounded-full transition-all duration-500" style={{ width: `${progressPercent}%` }} />
                 </div>
-                <span className="text-[11px] text-[#b0ad9a] dark:text-[#7a7a7a] tracking-wide">{completedCount}/{rootCount}</span>
+                <span className="text-[11px] text-[#b0ad9a] dark:text-[#7a7a7a] tracking-wide">{progressPercent}%</span>
               </div>
             )}
           </div>
@@ -185,12 +223,13 @@ export default function TaskSection({ type, title }: Props) {
           </div>
         ) : (
           <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
-            <SortableContext items={tasks.map((t) => t.id)} strategy={verticalListSortingStrategy}>
+            <SortableContext items={taskTree.map((t) => t.id)} strategy={verticalListSortingStrategy}>
               <div className="space-y-[2px]">
                 {taskTree.map((t) => (
                   <RecursiveCheckbox 
                     key={t.id} task={t} isEditMode={type === "normal" || isEditMode} 
                     onUpdate={onUpdate} onDelete={onDelete} onAdd={onAdd} depth={0} 
+                    newTaskId={newTaskId} setNewTaskId={setNewTaskId}
                   />
                 ))}
               </div>

@@ -3,14 +3,21 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { Clock, Search, Trash2, Edit2, PlayCircle, Timer, AlertCircle } from "lucide-react";
+import { useUiStore } from "@/store/uiStore";
 
 export default function SessionsPage() {
+  const { sessionsFilter, setSessionsFilter } = useUiStore();
   const [sessions, setSessions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
-  const [filter, setFilter] = useState<'all' | 'timer' | 'stopwatch'>('all');
+  const [filter, setFilter] = useState<'all' | 'timer' | 'stopwatch'>(sessionsFilter || 'all');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState("");
+
+  const handleFilterChange = (f: 'all' | 'timer' | 'stopwatch') => {
+    setFilter(f);
+    setSessionsFilter(f);
+  };
 
   const fetchSessions = async () => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -78,7 +85,7 @@ export default function SessionsPage() {
           <div className="flex bg-[#f7f5f0] dark:bg-[#121212] border border-[#e0ddd5] dark:border-[#333] p-1 rounded-2xl">
             {['all', 'timer', 'stopwatch'].map(f => (
               <button 
-                key={f} onClick={() => setFilter(f as any)}
+                key={f} onClick={() => handleFilterChange(f as any)}
                 className={`flex-1 px-6 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all ${filter === f ? 'bg-[#c2956e] dark:bg-[#b0855f] text-white shadow-md' : 'text-[#888] dark:text-[#7a7a7a] hover:text-[#3d3b33] dark:hover:text-[#f0f0f0]'}`}
               >
                 {f}

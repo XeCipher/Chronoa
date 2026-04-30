@@ -1,16 +1,28 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import SidebarNav from "@/components/ui/SidebarNav";
 import { useUiStore } from "@/store/uiStore";
+import { useTimerStore } from "@/store/timerStore";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const [isLoading, setIsLoading] = useState(true);
-  const { theme } = useUiStore();
+  const { 
+    theme, 
+    lastVisitedPage, 
+    setLastVisitedPage, 
+    setNotesTab, 
+    isSidebarPinned, 
+    toggleSidebarPin,
+    hotkeysEnabled 
+  } = useUiStore();
+  
+  const toggleFirstActive = useTimerStore((state) => state.toggleFirstActive);
+  const initialRestoreDone = useRef(false);
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -21,38 +33,73 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     checkAuth();
   }, [router]);
 
-  // BULLETPROOF THEME & ICON SWITCHER
+  // GLOBAL HOTKEYS ENGINE (MNEMONIC BASED)
   useEffect(() => {
-    const updateEverything = (isDark: boolean) => {
-      // 1. Update the UI class
-      if (isDark) {
-        document.documentElement.classList.add('dark');
-      } else {
-        document.documentElement.classList.remove('dark');
+    if (!hotkeysEnabled) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const isAlt = e.altKey;
+      const isTyping = ['INPUT', 'TEXTAREA'].includes((e.target as HTMLElement).tagName) || (e.target as HTMLElement).isContentEditable;
+
+      if (isAlt) {
+        const key = e.key.toLowerCase();
+
+        // Alt + H -> Home
+        if (key === 'h') { e.preventDefault(); router.push('/'); }
+        // Alt + T -> Tasks
+        if (key === 't') { e.preventDefault(); router.push('/tasks'); }
+        // Alt + N -> Notes
+        if (key === 'n') { 
+          e.preventDefault(); 
+          setNotesTab('notes'); 
+          router.push('/notes'); 
+        }
+        // Alt + J -> Journal
+        if (key === 'j') { 
+          e.preventDefault(); 
+          setNotesTab('journal'); 
+          router.push('/notes'); 
+        }
+        // Alt + L -> Log (Time Sessions)
+        if (key === 'l') { e.preventDefault(); router.push('/sessions'); }
+        // Alt + A -> Analytics
+        if (key === 'a') { e.preventDefault(); router.push('/analytics'); }
+        // Alt + S -> Settings
+        if (key === 's') { e.preventDefault(); router.push('/settings'); }
       }
 
-      // 2. Find and completely remove ANY existing favicon links
-      const existingLinks = document.querySelectorAll("link[rel~='icon']");
-      existingLinks.forEach(link => link.remove());
+      // Space -> Toggle Focus (Only on Home, not typing)
+      if (e.code === 'Space' && pathname === '/' && !isTyping) {
+        e.preventDefault();
+        toggleFirstActive();
+      }
 
-      // 3. Create a brand new link tag and append it to the head
-      const newLink = document.createElement('link');
-      newLink.rel = 'icon';
-      newLink.type = 'image/svg+xml';
-      // Timestamp trick completely bypasses browser caching
-      newLink.href = `${isDark ? '/icon-dark.svg' : '/icon-light.svg'}?v=${Date.now()}`;
-      document.head.appendChild(newLink);
+      // Esc -> Collapse Sidebar
+      if (e.key === 'Escape') {
+        if (isSidebarPinned) toggleSidebarPin();
+      }
     };
 
-    const isCurrentlyDark = theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
-    updateEverything(isCurrentlyDark);
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [pathname, router, setNotesTab, isSidebarPinned, toggleSidebarPin, toggleFirstActive, hotkeysEnabled]);
 
-    if (theme === 'system') {
-      const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-      const handler = (e: MediaQueryListEvent) => updateEverything(e.matches);
-      mediaQuery.addEventListener('change', handler);
-      return () => mediaQuery.removeEventListener('change', handler);
+  // Navigation Persistence
+  useEffect(() => {
+    if (!isLoading && !initialRestoreDone.current) {
+      if (pathname === '/' && lastVisitedPage && lastVisitedPage !== '/') {
+        router.replace(lastVisitedPage);
+      }
+      initialRestoreDone.current = true;
     }
+    if (!isLoading) setLastVisitedPage(pathname);
+  }, [pathname, isLoading, lastVisitedPage, router, setLastVisitedPage]);
+
+  // Theme Sync
+  useEffect(() => {
+    const isCurrentlyDark = theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    if (isCurrentlyDark) document.documentElement.classList.add('dark');
+    else document.documentElement.classList.remove('dark');
   }, [theme]);
   
   const isHomePage = pathname === '/';

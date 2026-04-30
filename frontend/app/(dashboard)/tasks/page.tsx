@@ -5,9 +5,16 @@ import TaskSection from "@/components/tasks/TaskSection";
 import TaskHistory from "@/components/tasks/TaskHistory";
 import ICloudTodayFeed from "@/components/tasks/ICloudTodayFeed";
 import { ListChecks, History } from "lucide-react";
+import { useUiStore } from "@/store/uiStore";
 
 export default function TasksPage() {
-  const [view, setView] = useState<'focus' | 'archive'>('focus');
+  const { tasksView, setTasksView } = useUiStore();
+  const [view, setView] = useState<'focus' | 'archive'>(tasksView || 'focus');
+
+  const handleViewChange = (v: 'focus' | 'archive') => {
+    setView(v);
+    setTasksView(v);
+  };
 
   return (
     <div className="w-full min-h-screen bg-[#f7f5f0] dark:bg-[#121212] p-4 md:p-12 lg:p-16">
@@ -23,7 +30,7 @@ export default function TasksPage() {
 
           <div className="flex bg-white/50 dark:bg-[#1e1e1e]/50 border border-[#e0ddd5] dark:border-[#333] p-1 rounded-2xl shadow-sm self-start">
             <button 
-              onClick={() => setView('focus')}
+              onClick={() => handleViewChange('focus')}
               className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-xs font-bold uppercase tracking-widest transition-all ${
                 view === 'focus' ? 'bg-[#c2956e] dark:bg-[#b0855f] text-white shadow-md' : 'text-[#b0ad9a] dark:text-[#7a7a7a] hover:text-[#3d3b33] dark:hover:text-white'
               }`}
@@ -31,7 +38,7 @@ export default function TasksPage() {
               <ListChecks size={14} /> Focus
             </button>
             <button 
-              onClick={() => setView('archive')}
+              onClick={() => handleViewChange('archive')}
               className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-xs font-bold uppercase tracking-widest transition-all ${
                 view === 'archive' ? 'bg-[#c2956e] dark:bg-[#b0855f] text-white shadow-md' : 'text-[#b0ad9a] dark:text-[#7a7a7a] hover:text-[#3d3b33] dark:hover:text-white'
               }`}

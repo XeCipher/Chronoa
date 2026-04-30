@@ -11,30 +11,32 @@ def get_activity_data():
         return jsonify({"error": "user_id required"}), 400
 
     # --- 1. Master Activity Aggregation (Tasks + Journal) ---
-    # Fetch all completed tasks
     tasks = supabase.table("tasks").select("completed_at").eq("user_id", user_id).not_.is_("completed_at", "null").execute()
-    # Fetch all journal entries
     journals = supabase.table("journal_entries").select("entry_date").eq("user_id", user_id).execute()
-    # Fetch all routine completions from history
     routines = supabase.table("routine_history").select("reset_date").eq("user_id", user_id).execute()
     
     activity_map = {}
 
-    # Helper to increment counts in the map
     def add_to_map(date_str):
         if not date_str: return
         date_only = date_str.split('T')[0]
         activity_map[date_only] = activity_map.get(date_only, 0) + 1
 
+    today_str = datetime.now().date().strftime('%Y-%m-%d')
+
     for t in tasks.data: add_to_map(t.get('completed_at'))
-    for j in journals.data: add_to_map(j.get('entry_date'))
+    
+    # Writing today's journal shouldn't immediately pad the master focus map
+    for j in journals.data: 
+        if j.get('entry_date') != today_str:
+            add_to_map(j.get('entry_date'))
+            
     for r in routines.data: add_to_map(r.get('reset_date'))
 
-    # Calculate Current Streak (based on map keys)
+    # Calculate Current Streak
     streak = 0
     check_date = datetime.now().date()
     
-    # If the user hasn't done anything today yet, check if the streak is alive from yesterday
     if check_date.strftime('%Y-%m-%d') not in activity_map:
         check_date -= timedelta(days=1)
         
@@ -42,10 +44,8 @@ def get_activity_data():
         streak += 1
         check_date -= timedelta(days=1)
     
-    # Format for Heatmap (Scale level 0-4 based on count)
     formatted_activity = []
     for date, count in activity_map.items():
-        # Level logic: 1-2 = lvl 1, 3-5 = lvl 2, 6-8 = lvl 3, 9+ = lvl 4
         level = 1 if count <= 2 else 2 if count <= 5 else 3 if count <= 8 else 4
         formatted_activity.append({"date": date, "count": count, "level": level})
 
