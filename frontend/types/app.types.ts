@@ -10,5 +10,6 @@ export type Task = {
   created_at: string;
   completed_at: string | null;
   deleted_at: string | null;
+  color?: string | null;
   children?: Task[];
 };

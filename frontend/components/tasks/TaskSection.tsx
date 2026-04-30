@@ -223,6 +223,44 @@ export default function TaskSection({ type, title }: Props) {
     }
   };
 
+  const onMoveUp = async (task: Task) => {
+    const siblings = tasks.filter(t => t.parent_id === task.parent_id).sort((a, b) => a.position - b.position);
+    const index = siblings.findIndex(t => t.id === task.id);
+    if (index > 0) {
+      const prev = siblings[index - 1];
+      const newPosTask = prev.position;
+      const newPosPrev = task.position;
+
+      setTasks(prevTasks => prevTasks.map(t => {
+        if (t.id === task.id) return { ...t, position: newPosTask };
+        if (t.id === prev.id) return { ...t, position: newPosPrev };
+        return t;
+      }));
+
+      await supabase.from('tasks').update({ position: newPosTask }).eq('id', task.id);
+      await supabase.from('tasks').update({ position: newPosPrev }).eq('id', prev.id);
+    }
+  };
+
+  const onMoveDown = async (task: Task) => {
+    const siblings = tasks.filter(t => t.parent_id === task.parent_id).sort((a, b) => a.position - b.position);
+    const index = siblings.findIndex(t => t.id === task.id);
+    if (index < siblings.length - 1) {
+      const next = siblings[index + 1];
+      const newPosTask = next.position;
+      const newPosNext = task.position;
+
+      setTasks(prevTasks => prevTasks.map(t => {
+        if (t.id === task.id) return { ...t, position: newPosTask };
+        if (t.id === next.id) return { ...t, position: newPosNext };
+        return t;
+      }));
+
+      await supabase.from('tasks').update({ position: newPosTask }).eq('id', task.id);
+      await supabase.from('tasks').update({ position: newPosNext }).eq('id', next.id);
+    }
+  };
+
   const onDragEnd = async (event: any) => {
     const { active, over } = event;
     if (!over || active.id === over.id) return;
@@ -297,6 +335,7 @@ export default function TaskSection({ type, title }: Props) {
                     key={t.id} task={t} isEditMode={type === "normal" ? false : isEditMode} 
                     onUpdate={onUpdate} onDelete={onDelete} onAdd={onAdd}
                     onIndent={onIndent} onUnindent={onUnindent}
+                    onMoveUp={onMoveUp} onMoveDown={onMoveDown}
                     depth={0} newTaskId={newTaskId} setNewTaskId={setNewTaskId}
                   />
                 ))}
