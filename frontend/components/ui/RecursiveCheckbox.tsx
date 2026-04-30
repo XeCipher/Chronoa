@@ -1,10 +1,10 @@
 // frontend/components/ui/RecursiveCheckbox.tsx
 "use client";
 
-import { useRef, useEffect } from "react";
+import { useRef, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Task } from "@/types/app.types";
-import { Plus, Trash2, GripVertical, Check, Timer, Hourglass, ChevronRight, ChevronLeft } from "lucide-react";
+import { Plus, Trash2, GripVertical, Check, Timer, Hourglass, ChevronRight, ChevronLeft, MoreVertical } from "lucide-react";
 import { useSortable, SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { useUiStore } from "@/store/uiStore";
@@ -26,6 +26,7 @@ interface Props {
 export default function RecursiveCheckbox({ task, isEditMode, onUpdate, onDelete, onAdd, onIndent, onUnindent, depth = 0, newTaskId, setNewTaskId }: Props) {
   const router = useRouter();
   const textRef = useRef<HTMLSpanElement>(null);
+  const [showMobileActions, setShowMobileActions] = useState(false);
   const { taskArchiveDelay } = useUiStore();
   const { addInstance, setTitle: setTimerTitle, setActiveTab, setForceShowWidgets } = useTimerStore();
 
@@ -82,19 +83,22 @@ export default function RecursiveCheckbox({ task, isEditMode, onUpdate, onDelete
 
   return (
     <div ref={setNodeRef} style={style} className={`flex flex-col w-full ${isVanishingNow ? "task-vanishing-soothing" : ""}`}>
-      <div className={`group relative flex items-center gap-3 py-[7px] px-3 rounded-xl transition-all duration-150 hover-marquee ${isDragging ? "bg-[#f7f5f0] dark:bg-[#2a2a2a] shadow-md ring-1 ring-[#e0ddd5] dark:ring-[#444]" : "hover:bg-[#faf9f6] dark:hover:bg-[#222]"}`}>
+      <div className={`group relative flex items-start gap-3 py-[7px] px-3 rounded-xl transition-all duration-150 ${isDragging ? "bg-[#f7f5f0] dark:bg-[#2a2a2a] shadow-md ring-1 ring-[#e0ddd5] dark:ring-[#444]" : "hover:bg-[#faf9f6] dark:hover:bg-[#222]"}`}>
         
+        {/* Drag Handle */}
         {showOrgButtons && (
-          <div {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing shrink-0 text-[#d4d0c8] dark:text-[#555] hover:text-[#c2956e] dark:hover:text-[#d1a784] transition-colors duration-150 touch-none">
+          <div {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing shrink-0 mt-[2px] text-[#d4d0c8] dark:text-[#555] hover:text-[#c2956e] dark:hover:text-[#d1a784] transition-colors duration-150 touch-none">
             <GripVertical size={14} strokeWidth={1.8} />
           </div>
         )}
 
-        <button onClick={() => onUpdate(task.id, { is_completed: !task.is_completed })} className={`${checkboxSize} ${checkboxRadius} shrink-0 border flex items-center justify-center transition-all duration-200 cursor-pointer ${task.is_completed ? "bg-[#7ca982] dark:bg-[#6a9a70] border-[#7ca982] dark:border-[#6a9a70] shadow-[0_0_0_3px_rgba(124,169,130,0.12)]" : "border-[#d4d0c8] dark:border-[#555] bg-white dark:bg-[#1a1a1a] hover:border-[#7ca982] hover:shadow-[0_0_0_3px_rgba(124,169,130,0.10)]"}`}>
+        {/* Checkbox */}
+        <button onClick={() => onUpdate(task.id, { is_completed: !task.is_completed })} className={`${checkboxSize} ${checkboxRadius} shrink-0 border flex items-center justify-center mt-[2px] transition-all duration-200 cursor-pointer ${task.is_completed ? "bg-[#7ca982] dark:bg-[#6a9a70] border-[#7ca982] dark:border-[#6a9a70] shadow-[0_0_0_3px_rgba(124,169,130,0.12)]" : "border-[#d4d0c8] dark:border-[#555] bg-white dark:bg-[#1a1a1a] hover:border-[#7ca982] hover:shadow-[0_0_0_3px_rgba(124,169,130,0.10)]"}`}>
           {task.is_completed && <Check size={depth === 0 ? 10 : 9} strokeWidth={3} className="text-white" />}
         </button>
 
-        <div className="flex-1 flex items-center gap-2 min-w-0 overflow-hidden task-title-container">
+        <div className="flex-1 flex flex-col min-w-0">
+          {/* Title Element */}
           <span 
             ref={textRef}
             contentEditable={isEditMode || isNormal}
@@ -110,41 +114,76 @@ export default function RecursiveCheckbox({ task, isEditMode, onUpdate, onDelete
                 else onIndent(task);
               }
             }}
-            className={`marquee-content whitespace-nowrap transition-all duration-200 outline-none ${titleSize} ${titleWeight} ${isEditMode || isNormal ? "cursor-text border-b border-transparent focus:border-[#c2956e]/30 pb-[1px]" : "cursor-default"} ${task.is_completed ? "text-[#c4c0b8] dark:text-[#555] line-through" : "text-[#3d3b33] dark:text-[#e0e0e0]"}`}
+            className={`break-words whitespace-pre-wrap transition-all duration-200 outline-none ${titleSize} ${titleWeight} ${isEditMode || isNormal ? "cursor-text border-b border-transparent focus:border-[#c2956e]/30 pb-[1px]" : "cursor-default"} ${task.is_completed ? "text-[#c4c0b8] dark:text-[#555] line-through" : "text-[#3d3b33] dark:text-[#e0e0e0]"}`}
           >
             {task.title}
           </span>
+
+          {/* Mobile Actions Drawer (Hidden on Desktop) */}
+          {showMobileActions && (
+            <div className="md:hidden flex flex-wrap items-center gap-2 mt-2 pt-2 border-t border-[#e0ddd5] dark:border-[#333]">
+              {showFocusButtons && (
+                <>
+                  <button onPointerDown={(e) => e.preventDefault()} onClick={() => handleSendToFocus('timer')} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-blue-500 bg-blue-50 dark:bg-blue-500/10 text-xs font-medium transition-colors hover:bg-blue-100"><Timer size={13} /> Timer</button>
+                  <button onPointerDown={(e) => e.preventDefault()} onClick={() => handleSendToFocus('stopwatch')} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-orange-500 bg-orange-50 dark:bg-orange-500/10 text-xs font-medium transition-colors hover:bg-orange-100"><Hourglass size={13} /> Stopwatch</button>
+                  {isNormal && (
+                    <>
+                      <button onPointerDown={(e) => e.preventDefault()} onClick={() => onAdd(task.id)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[#c2956e] dark:text-[#d1a784] bg-[#c2956e]/10 text-xs font-medium transition-colors hover:bg-[#c2956e]/20"><Plus size={13} /> Subtask</button>
+                      <button onPointerDown={(e) => e.preventDefault()} onClick={() => onDelete(task.id)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[#e07070] bg-[#e07070]/10 text-xs font-medium transition-colors hover:bg-[#e07070]/20 ml-auto"><Trash2 size={13} /> Delete</button>
+                    </>
+                  )}
+                </>
+              )}
+              {showOrgButtons && (
+                <>
+                  <button onPointerDown={(e) => { e.preventDefault(); saveCurrentText(); onIndent(task); }} className="p-2 rounded-lg text-[#3d3b33] dark:text-[#f0f0f0] hover:text-[#c2956e] bg-[#c2956e]/10 transition-colors"><ChevronRight size={14} /></button>
+                  <button onPointerDown={(e) => { e.preventDefault(); saveCurrentText(); onUnindent(task); }} className="p-2 rounded-lg text-[#3d3b33] dark:text-[#f0f0f0] hover:text-[#c2956e] bg-[#c2956e]/10 transition-colors"><ChevronLeft size={14} /></button>
+                  <button onPointerDown={(e) => e.preventDefault()} onClick={() => onAdd(task.id)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[#c2956e] dark:text-[#d1a784] bg-[#c2956e]/10 text-xs font-medium transition-colors hover:bg-[#c2956e]/20"><Plus size={13} /> Subtask</button>
+                  <button onPointerDown={(e) => e.preventDefault()} onClick={() => onDelete(task.id)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[#e07070] bg-[#e07070]/10 text-xs font-medium transition-colors hover:bg-[#e07070]/20 ml-auto"><Trash2 size={13} /> Delete</button>
+                </>
+              )}
+            </div>
+          )}
         </div>
 
-        {/* Action Buttons Layer: Always opacity-0 until parent group is hovered */}
-        <div className="flex flex-wrap items-center gap-0.5 shrink-0 ml-auto bg-inherit pl-2 opacity-0 group-hover:opacity-100 transition-opacity duration-150">
-            
-            {/* Actionable Set (Normal Mode) */}
+        {/* Desktop Actions Layer (Hidden on Mobile) */}
+        <div className="hidden md:flex flex-wrap items-center gap-0.5 shrink-0 ml-auto opacity-0 group-hover:opacity-100 transition-opacity duration-150">
             {showFocusButtons && (
                 <>
-                    <button onPointerDown={(e) => e.preventDefault()} onClick={() => handleSendToFocus('timer')} title="Send to Timer" className="w-6 h-6 flex items-center justify-center rounded-lg text-[#c4c0b8] dark:text-[#555] hover:text-blue-500 hover:bg-blue-50 transition-all"><Timer size={13} strokeWidth={2} /></button>
-                    <button onPointerDown={(e) => e.preventDefault()} onClick={() => handleSendToFocus('stopwatch')} title="Send to Stopwatch" className="w-6 h-6 flex items-center justify-center rounded-lg text-[#c4c0b8] dark:text-[#555] hover:text-orange-500 hover:bg-orange-50 transition-all"><Hourglass size={13} strokeWidth={2} /></button>
+                    <button onPointerDown={(e) => e.preventDefault()} onClick={() => handleSendToFocus('timer')} title="Send to Timer" className="w-6 h-6 flex items-center justify-center rounded-lg text-[#c4c0b8] dark:text-[#555] hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all"><Timer size={13} strokeWidth={2} /></button>
+                    <button onPointerDown={(e) => e.preventDefault()} onClick={() => handleSendToFocus('stopwatch')} title="Send to Stopwatch" className="w-6 h-6 flex items-center justify-center rounded-lg text-[#c4c0b8] dark:text-[#555] hover:text-orange-500 hover:bg-orange-50 dark:hover:bg-orange-900/20 transition-all"><Hourglass size={13} strokeWidth={2} /></button>
                     
-                    {/* Normal tasks expose subtask/delete without needing a separate edit mode */}
                     {isNormal && (
                       <>
-                        <button onPointerDown={(e) => e.preventDefault()} onClick={() => onAdd(task.id)} title="Add Subtask" className="w-6 h-6 flex items-center justify-center rounded-lg text-[#c4c0b8] dark:text-[#555] hover:text-[#c2956e] hover:bg-[#c2956e]/10 transition-all"><Plus size={13} strokeWidth={2} /></button>
-                        <button onPointerDown={(e) => e.preventDefault()} onClick={() => onDelete(task.id)} title="Delete" className="w-6 h-6 flex items-center justify-center rounded-lg text-[#c4c0b8] dark:text-[#555] hover:text-[#e07070] hover:bg-[#e07070]/10 transition-all"><Trash2 size={12} strokeWidth={1.8} /></button>
+                        <button onPointerDown={(e) => e.preventDefault()} onClick={() => onAdd(task.id)} title="Add Subtask" className="w-6 h-6 flex items-center justify-center rounded-lg text-[#c4c0b8] dark:text-[#555] hover:text-[#c2956e] hover:bg-[#c2956e]/10 dark:hover:bg-[#b0855f]/20 transition-all"><Plus size={13} strokeWidth={2} /></button>
+                        <button onPointerDown={(e) => e.preventDefault()} onClick={() => onDelete(task.id)} title="Delete" className="w-6 h-6 flex items-center justify-center rounded-lg text-[#c4c0b8] dark:text-[#555] hover:text-[#e07070] hover:bg-[#e07070]/10 dark:hover:bg-[#e07070]/20 transition-all"><Trash2 size={12} strokeWidth={1.8} /></button>
                       </>
                     )}
                 </>
             )}
 
-            {/* Organization Set (Routine Edit Mode) */}
             {showOrgButtons && (
                 <>
-                    <button onPointerDown={(e) => { e.preventDefault(); saveCurrentText(); onIndent(task); }} title="Indent Forward" className="w-6 h-6 flex items-center justify-center rounded-lg text-[#c4c0b8] dark:text-[#555] hover:text-[#c2956e] hover:bg-[#c2956e]/10 transition-all"><ChevronRight size={14} strokeWidth={2} /></button>
-                    <button onPointerDown={(e) => { e.preventDefault(); saveCurrentText(); onUnindent(task); }} title="Indent Backward" className="w-6 h-6 flex items-center justify-center rounded-lg text-[#c4c0b8] dark:text-[#555] hover:text-[#c2956e] hover:bg-[#c2956e]/10 transition-all"><ChevronLeft size={14} strokeWidth={2} /></button>
-                    <button onPointerDown={(e) => e.preventDefault()} onClick={() => onAdd(task.id)} title="Add Subtask" className="w-6 h-6 flex items-center justify-center rounded-lg text-[#c4c0b8] dark:text-[#555] hover:text-[#c2956e] hover:bg-[#c2956e]/10 transition-all"><Plus size={13} strokeWidth={2} /></button>
-                    <button onPointerDown={(e) => e.preventDefault()} onClick={() => onDelete(task.id)} title="Delete" className="w-6 h-6 flex items-center justify-center rounded-lg text-[#c4c0b8] dark:text-[#555] hover:text-[#e07070] hover:bg-[#e07070]/10 transition-all"><Trash2 size={12} strokeWidth={1.8} /></button>
+                    <button onPointerDown={(e) => { e.preventDefault(); saveCurrentText(); onIndent(task); }} title="Indent Forward" className="w-6 h-6 flex items-center justify-center rounded-lg text-[#c4c0b8] dark:text-[#555] hover:text-[#c2956e] hover:bg-[#c2956e]/10 dark:hover:bg-[#b0855f]/20 transition-all"><ChevronRight size={14} strokeWidth={2} /></button>
+                    <button onPointerDown={(e) => { e.preventDefault(); saveCurrentText(); onUnindent(task); }} title="Indent Backward" className="w-6 h-6 flex items-center justify-center rounded-lg text-[#c4c0b8] dark:text-[#555] hover:text-[#c2956e] hover:bg-[#c2956e]/10 dark:hover:bg-[#b0855f]/20 transition-all"><ChevronLeft size={14} strokeWidth={2} /></button>
+                    <button onPointerDown={(e) => e.preventDefault()} onClick={() => onAdd(task.id)} title="Add Subtask" className="w-6 h-6 flex items-center justify-center rounded-lg text-[#c4c0b8] dark:text-[#555] hover:text-[#c2956e] hover:bg-[#c2956e]/10 dark:hover:bg-[#b0855f]/20 transition-all"><Plus size={13} strokeWidth={2} /></button>
+                    <button onPointerDown={(e) => e.preventDefault()} onClick={() => onDelete(task.id)} title="Delete" className="w-6 h-6 flex items-center justify-center rounded-lg text-[#c4c0b8] dark:text-[#555] hover:text-[#e07070] hover:bg-[#e07070]/10 dark:hover:bg-[#e07070]/20 transition-all"><Trash2 size={12} strokeWidth={1.8} /></button>
                 </>
             )}
         </div>
+
+        {/* Mobile 3-Dots Toggle Button */}
+        {(showFocusButtons || showOrgButtons) && (
+          <div className="md:hidden shrink-0 ml-auto flex items-center pt-[2px]">
+            <button
+              onPointerDown={(e) => e.preventDefault()}
+              onClick={() => setShowMobileActions(!showMobileActions)}
+              className="p-1 rounded-md text-[#c4c0b8] dark:text-[#555] hover:text-[#c2956e] dark:hover:text-[#d1a784] transition-colors"
+            >
+              <MoreVertical size={16} strokeWidth={2} />
+            </button>
+          </div>
+        )}
       </div>
 
       {task.children && task.children.length > 0 && (
