@@ -1,13 +1,20 @@
-// frontend/components/notes/DistractionFreeEditor.tsx
-
 "use client";
 
 import { useState, useEffect, useRef } from "react";
 import { useUiStore } from "@/store/uiStore";
-import { useEditor, EditorContent } from '@tiptap/react';
-import StarterKit from '@tiptap/starter-kit';
-import Underline from '@tiptap/extension-underline';
-import { Clock, Bold, Italic, Underline as UnderlineIcon, List, ListOrdered, Heading1, Heading2 } from "lucide-react";
+import { useEditor, EditorContent } from "@tiptap/react";
+import StarterKit from "@tiptap/starter-kit";
+import Underline from "@tiptap/extension-underline";
+import {
+  Clock,
+  Bold,
+  Italic,
+  Underline as UnderlineIcon,
+  List,
+  ListOrdered,
+  Heading1,
+  Heading2,
+} from "lucide-react";
 
 interface EditorProps {
   initialContent: string;
@@ -15,37 +22,80 @@ interface EditorProps {
   onSave: (content: string) => void;
 }
 
-export default function DistractionFreeEditor({ initialContent, isEditable = true, onSave }: EditorProps) {
+type ActiveStates = {
+  bold: boolean;
+  italic: boolean;
+  underline: boolean;
+  heading1: boolean;
+  heading2: boolean;
+  bulletList: boolean;
+  orderedList: boolean;
+};
+
+export default function DistractionFreeEditor({
+  initialContent,
+  isEditable = true,
+  onSave,
+}: EditorProps) {
   const { journalZoom, setJournalZoom } = useUiStore();
   const [saveStatus, setSaveStatus] = useState("Saved");
-  const [showToolbar, setShowToolbar] = useState(false);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Explicit React state for active marks so the toolbar re-renders
+  // immediately on every editor transaction (including toggling a mark
+  // on an empty line where onUpdate never fires).
+  const [activeStates, setActiveStates] = useState<ActiveStates>({
+    bold: false,
+    italic: false,
+    underline: false,
+    heading1: false,
+    heading2: false,
+    bulletList: false,
+    orderedList: false,
+  });
 
   const editor = useEditor({
     editable: isEditable,
-    extensions: [StarterKit.configure({ heading: { levels: [1, 2] } }), Underline],
+    extensions: [
+      StarterKit.configure({ heading: { levels: [1, 2] } }),
+      Underline,
+    ],
     content: initialContent,
-    editorProps: { 
-      attributes: { 
-        class: 'chronoa-editor focus:outline-none w-full min-h-[500px] text-[#3d3b33] dark:text-[#e0e0e0] selection:bg-[#c2956e]/20 dark:selection:bg-[#b0855f]/40' 
-      } 
+    editorProps: {
+      attributes: {
+        class:
+          "chronoa-editor focus:outline-none w-full min-h-[500px] text-[#3d3b33] dark:text-[#e0e0e0] selection:bg-[#c2956e]/20 dark:selection:bg-[#b0855f]/40",
+      },
     },
-    onUpdate: ({ editor }) => {
+    // onTransaction fires on EVERY state change — cursor moves, mark
+    // toggles, typing. This is the only reliable way to sync toolbar
+    // highlights immediately, including toggling bold on an empty line.
+    onTransaction: ({ editor: ed }) => {
+      setActiveStates({
+        bold: ed.isActive("bold"),
+        italic: ed.isActive("italic"),
+        underline: ed.isActive("underline"),
+        heading1: ed.isActive("heading", { level: 1 }),
+        heading2: ed.isActive("heading", { level: 2 }),
+        bulletList: ed.isActive("bulletList"),
+        orderedList: ed.isActive("orderedList"),
+      });
+    },
+    // onUpdate fires only when the document content actually changes.
+    // Keep save logic here so we don't debounce on every cursor move.
+    onUpdate: ({ editor: ed }) => {
       if (!isEditable) return;
-      setShowToolbar(!editor.state.selection.empty);
       setSaveStatus("Saving...");
       if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
       saveTimeoutRef.current = setTimeout(() => {
-        onSave(editor.getHTML());
+        onSave(ed.getHTML());
         setSaveStatus("Saved");
       }, 1000);
-    },
-    onSelectionUpdate: ({ editor }) => { 
-      if (isEditable) setShowToolbar(!editor.state.selection.empty); 
     },
     immediatelyRender: false,
   });
 
+  // Sync content when the user switches to a different note
   useEffect(() => {
     if (editor && initialContent !== editor.getHTML()) {
       editor.commands.setContent(initialContent);
@@ -54,67 +104,197 @@ export default function DistractionFreeEditor({ initialContent, isEditable = tru
 
   const insertTimestamp = () => {
     if (!editor) return;
-    const timeString = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    
-    // Logic: Is the cursor at the absolute start of the document (position 0 or 1)?
+    const timeString = new Date().toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
     const isAtStart = editor.state.selection.anchor <= 1;
-
-    // If at start: No leading line break.
-    // If not at start: Exactly one leading line break.
-    const content = isAtStart 
-      ? `<p><strong>${timeString}</strong></p><p></p>` 
+    const content = isAtStart
+      ? `<p><strong>${timeString}</strong></p><p></p>`
       : `<p></p><p><strong>${timeString}</strong></p><p></p>`;
-
-    editor.chain()
-      .focus()
-      .insertContent(content)
-      .run();
+    editor.chain().focus().insertContent(content).run();
   };
-  
+
   if (!editor) return null;
 
+  // onMouseDown + preventDefault keeps focus in the editor while
+  // the toolbar command executes — without this, some browsers blur
+  // the editor before the toggle runs.
+  const ToolbarButton = ({
+    onClick,
+    isActive,
+    title,
+    children,
+  }: {
+    onClick: () => void;
+    isActive?: boolean;
+    title?: string;
+    children: React.ReactNode;
+  }) => (
+    <button
+      onMouseDown={(e) => {
+        e.preventDefault();
+        onClick();
+      }}
+      title={title}
+      className={`flex items-center justify-center w-7 h-7 rounded-lg transition-all duration-150 shrink-0 ${
+        isActive
+          ? "bg-[#c2956e] dark:bg-[#b0855f] text-white shadow-sm"
+          : "text-[#888] dark:text-[#999] hover:text-[#3d3b33] dark:hover:text-[#f0f0f0] hover:bg-[#f0ede8] dark:hover:bg-[#2a2a2a]"
+      }`}
+    >
+      {children}
+    </button>
+  );
+
+  const Divider = () => (
+    <div className="w-px h-4 bg-[#e0ddd5] dark:bg-[#333] mx-0.5 shrink-0 self-center" />
+  );
+
+  // Shared zoom widget used in both editable and read-only modes.
+  // preventFocus: use onMouseDown+preventDefault so editor doesn't blur.
+  const ZoomControl = ({ preventFocus = false }: { preventFocus?: boolean }) => {
+    const bind = (fn: () => void) =>
+      preventFocus
+        ? { onMouseDown: (e: React.MouseEvent) => { e.preventDefault(); fn(); } }
+        : { onClick: fn };
+
+    return (
+      <div className="flex items-center gap-1 bg-[#f7f5f0] dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#2a2a2a] px-2 py-1 rounded-xl shrink-0">
+        <button
+          {...bind(() => setJournalZoom(Math.max(50, journalZoom - 10)))}
+          className="text-[#888] hover:text-[#c2956e] dark:hover:text-[#d1a784] text-sm font-bold leading-none transition-colors w-4 text-center select-none"
+        >
+          −
+        </button>
+        <span className="text-[9px] font-bold text-[#3d3b33] dark:text-[#f0f0f0] w-7 text-center tabular-nums">
+          {journalZoom}%
+        </span>
+        <button
+          {...bind(() => setJournalZoom(Math.min(200, journalZoom + 10)))}
+          className="text-[#888] hover:text-[#c2956e] dark:hover:text-[#d1a784] text-sm font-bold leading-none transition-colors w-4 text-center select-none"
+        >
+          +
+        </button>
+      </div>
+    );
+  };
+
   return (
-    <div className="relative w-full">
-      {/* Zoom and Status Controls */}
-      <div className="absolute -top-10 right-0 flex items-center gap-4 z-20">
-        {isEditable && (
-          <div className={`text-[9px] font-bold uppercase tracking-widest px-2 py-1 rounded-md transition-colors ${saveStatus === 'Saving...' ? 'text-[#c2956e] bg-[#c2956e]/5' : 'text-[#b0ad9a]'}`}>
-            {saveStatus}
-          </div>
-        )}
-        <div className="flex items-center gap-3 bg-white dark:bg-[#1a1a1a] border border-[#f0ede8] dark:border-[#2a2a2a] px-2 py-1 rounded-xl shadow-sm">
-           <button onClick={() => setJournalZoom(Math.max(50, journalZoom - 10))} className="text-[#888] hover:text-[#c2956e] text-xs font-bold">-</button>
-           <span className="text-[9px] font-bold text-[#3d3b33] dark:text-[#f0f0f0] w-6 text-center">{journalZoom}%</span>
-           <button onClick={() => setJournalZoom(Math.min(200, journalZoom + 10))} className="text-[#888] hover:text-[#c2956e] text-xs font-bold">+</button>
-        </div>
-        {isEditable && (
-          <button onClick={insertTimestamp} className="p-2 text-[#b0ad9a] hover:text-[#c2956e] transition-colors">
-            <Clock size={16} />
-          </button>
-        )}
-      </div>
+    <div className="relative w-full flex flex-col gap-4">
 
-      {/* Content Area */}
-      <div style={{ fontSize: `${(journalZoom / 100) * 1.05}rem`, fontFamily: 'inherit' }}>
-        <EditorContent editor={editor} />
-      </div>
-
-      {/* Floating Formatting Toolbar - FIXED at bottom of viewport */}
+      {/* ── Persistent toolbar (editable mode) ── */}
       {isEditable && (
-        <div className={`fixed bottom-24 md:bottom-10 left-1/2 -translate-x-1/2 z-[100] transition-all duration-300 ${showToolbar ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-10 scale-95 pointer-events-none'}`}>
-          <div className="flex gap-1 bg-[#3d3b33] dark:bg-[#252525] text-white p-1.5 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.3)] items-center border border-white/10 backdrop-blur-md">
-            <button onClick={() => editor.chain().focus().toggleBold().run()} className={`p-2 rounded-xl transition-colors ${editor.isActive('bold') ? 'bg-[#c2956e]' : 'hover:bg-white/10'}`}><Bold size={16}/></button>
-            <button onClick={() => editor.chain().focus().toggleItalic().run()} className={`p-2 rounded-xl transition-colors ${editor.isActive('italic') ? 'bg-[#c2956e]' : 'hover:bg-white/10'}`}><Italic size={16}/></button>
-            <button onClick={() => editor.chain().focus().toggleUnderline().run()} className={`p-2 rounded-xl transition-colors ${editor.isActive('underline') ? 'bg-[#c2956e]' : 'hover:bg-white/10'}`}><UnderlineIcon size={16}/></button>
-            <div className="w-px h-4 bg-white/20 mx-1" />
-            <button onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()} className={`p-2 rounded-xl transition-colors ${editor.isActive('heading', { level: 1 }) ? 'bg-[#c2956e]' : 'hover:bg-white/10'}`}><Heading1 size={16}/></button>
-            <button onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()} className={`p-2 rounded-xl transition-colors ${editor.isActive('heading', { level: 2 }) ? 'bg-[#c2956e]' : 'hover:bg-white/10'}`}><Heading2 size={16}/></button>
-            <div className="w-px h-4 bg-white/20 mx-1" />
-            <button onClick={() => editor.chain().focus().toggleBulletList().run()} className={`p-2 rounded-xl transition-colors ${editor.isActive('bulletList') ? 'bg-[#c2956e]' : 'hover:bg-white/10'}`}><List size={16}/></button>
-            <button onClick={() => editor.chain().focus().toggleOrderedList().run()} className={`p-2 rounded-xl transition-colors ${editor.isActive('orderedList') ? 'bg-[#c2956e]' : 'hover:bg-white/10'}`}><ListOrdered size={16}/></button>
+        <div className="sticky top-0 z-20 flex items-center gap-2 px-2 py-1.5 bg-white/90 dark:bg-[#121212]/90 backdrop-blur-sm border border-[#e0ddd5] dark:border-[#2a2a2a] rounded-2xl shadow-sm">
+
+          {/* Formatting buttons
+              flex-1 + overflow-x-auto: on narrow screens the buttons
+              scroll horizontally instead of wrapping or overflowing. */}
+          <div className="flex items-center gap-0.5 overflow-x-auto no-scrollbar flex-1 min-w-0">
+            <ToolbarButton
+              title="Bold"
+              onClick={() => editor.chain().focus().toggleBold().run()}
+              isActive={activeStates.bold}
+            >
+              <Bold size={14} />
+            </ToolbarButton>
+
+            <ToolbarButton
+              title="Italic"
+              onClick={() => editor.chain().focus().toggleItalic().run()}
+              isActive={activeStates.italic}
+            >
+              <Italic size={14} />
+            </ToolbarButton>
+
+            <ToolbarButton
+              title="Underline"
+              onClick={() => editor.chain().focus().toggleUnderline().run()}
+              isActive={activeStates.underline}
+            >
+              <UnderlineIcon size={14} />
+            </ToolbarButton>
+
+            <Divider />
+
+            <ToolbarButton
+              title="Heading 1"
+              onClick={() =>
+                editor.chain().focus().toggleHeading({ level: 1 }).run()
+              }
+              isActive={activeStates.heading1}
+            >
+              <Heading1 size={14} />
+            </ToolbarButton>
+
+            <ToolbarButton
+              title="Heading 2"
+              onClick={() =>
+                editor.chain().focus().toggleHeading({ level: 2 }).run()
+              }
+              isActive={activeStates.heading2}
+            >
+              <Heading2 size={14} />
+            </ToolbarButton>
+
+            <Divider />
+
+            <ToolbarButton
+              title="Bullet list"
+              onClick={() => editor.chain().focus().toggleBulletList().run()}
+              isActive={activeStates.bulletList}
+            >
+              <List size={14} />
+            </ToolbarButton>
+
+            <ToolbarButton
+              title="Ordered list"
+              onClick={() => editor.chain().focus().toggleOrderedList().run()}
+              isActive={activeStates.orderedList}
+            >
+              <ListOrdered size={14} />
+            </ToolbarButton>
+
+            <Divider />
+
+            <ToolbarButton title="Insert timestamp" onClick={insertTimestamp}>
+              <Clock size={14} />
+            </ToolbarButton>
+          </div>
+
+          {/* Right side — zoom + save status. shrink-0 keeps it always visible. */}
+          <div className="flex items-center gap-2 shrink-0">
+            <span
+              className={`hidden md:block text-[9px] font-bold uppercase tracking-widest whitespace-nowrap transition-colors ${
+                saveStatus === "Saving..."
+                  ? "text-[#c2956e] dark:text-[#d1a784]"
+                  : "text-[#c4c0b8] dark:text-[#555]"
+              }`}
+            >
+              {saveStatus}
+            </span>
+
+            <ZoomControl preventFocus />
           </div>
         </div>
       )}
+
+      {/* Zoom control only (read-only / trash view) */}
+      {!isEditable && (
+        <div className="flex justify-end">
+          <ZoomControl />
+        </div>
+      )}
+
+      {/* ── Editor content ── */}
+      <div
+        style={{
+          fontSize: `${(journalZoom / 100) * 1.05}rem`,
+          fontFamily: "inherit",
+        }}
+      >
+        <EditorContent editor={editor} />
+      </div>
     </div>
   );
 }
