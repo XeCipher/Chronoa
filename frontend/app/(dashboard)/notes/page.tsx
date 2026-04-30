@@ -1,5 +1,3 @@
-// frontend/app/(dashboard)/notes/page.tsx
-
 "use client";
 
 import { useEffect, useState, useMemo, useCallback } from "react";
@@ -176,11 +174,11 @@ export default function NotesPage() {
   }, [selectedId, activeTab, notes, journals, trash]);
 
   return (
-    <div className="flex h-screen w-full bg-[#f7f5f0] dark:bg-[#121212] overflow-hidden selection:bg-[#c2956e]/20">
+    <div className="flex h-screen w-full bg-[#f7f5f0] dark:bg-[#121212] lg:pl-10 overflow-hidden selection:bg-[#c2956e]/20">
       
       {/* SIDEBAR: Personal Library */}
       <aside className={`
-        w-full lg:w-[380px] flex-shrink-0 flex flex-col border-r border-[#e0ddd5] dark:border-[#2a2a2a] bg-[#f7f5f0]/50 dark:bg-[#121212]/50 backdrop-blur-sm z-30 transition-transform duration-300 ease-in-out
+        w-full lg:w-[350px] flex-shrink-0 flex flex-col border-r border-[#e0ddd5] dark:border-[#2a2a2a] bg-[#f7f5f0] dark:bg-[#121212] z-30 transition-transform duration-300 ease-in-out
         ${isListVisible ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
       `}>
         <div className="p-6 pb-4 space-y-6">
@@ -201,7 +199,7 @@ export default function NotesPage() {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[#b0ad9a]" size={14} />
               <input 
                 type="text" placeholder={`Search ${activeTab}...`} value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
-                className="w-full bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] rounded-2xl pl-9 pr-4 py-2.5 text-sm outline-none focus:border-[#c2956e] dark:focus:border-[#b0855f] transition-all shadow-sm"
+                className="w-full bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] rounded-2xl pl-9 pr-4 py-2 text-sm outline-none focus:border-[#c2956e] dark:focus:border-[#b0855f] transition-all shadow-sm"
               />
             </div>
 
@@ -216,7 +214,7 @@ export default function NotesPage() {
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto no-scrollbar p-3 space-y-1.5">
+        <div className="flex-1 overflow-y-auto no-scrollbar p-4 space-y-3">
           {loading ? (
             <div className="flex flex-col items-center justify-center py-12 gap-3 opacity-40">
               <Sparkles className="animate-pulse text-[#c2956e]" />
@@ -231,12 +229,18 @@ export default function NotesPage() {
 
               return (
                 <button key={id} onClick={() => handleSelectItem(id)} 
-                  className={`w-full text-left p-4 rounded-2xl transition-all duration-200 border ${isSelected ? 'bg-white dark:bg-[#1e1e1e] border-[#c2956e]/30 dark:border-[#b0855f]/40 shadow-md' : 'bg-transparent border-transparent hover:bg-white/40 dark:hover:bg-[#1a1a1a]/40'}`}>
-                  <div className="flex justify-between items-baseline mb-1.5 gap-3">
-                    <span className={`font-semibold text-[14px] truncate ${isSelected ? 'text-[#3d3b33] dark:text-white' : 'text-[#3d3b33] dark:text-[#f0f0f0]'}`}>{title}</span>
-                    <span className="text-[9px] font-bold text-[#b0ad9a] uppercase shrink-0">{formatDateLabel(item.updated_at || item.entry_date)}</span>
+                  className={`w-full text-left p-4 rounded-2xl transition-all duration-200 border relative group overflow-hidden ${
+                    isSelected 
+                    ? 'bg-white dark:bg-[#1e1e1e] border-[#c2956e]/40 dark:border-[#b0855f]/50 shadow-md translate-x-1' 
+                    : 'bg-[#fdfbf7] dark:bg-[#161616] border-[#f0ede8] dark:border-[#222] hover:border-[#c2956e]/20 dark:hover:border-[#b0855f]/20 hover:shadow-sm'
+                  }`}>
+                  {isSelected && <div className="absolute left-0 top-0 bottom-0 w-1 bg-[#c2956e]" />}
+                  
+                  <div className="flex justify-between items-baseline mb-1 gap-3">
+                    <span className={`font-semibold text-[14px] truncate ${isSelected ? 'text-[#c2956e] dark:text-[#d1a784]' : 'text-[#3d3b33] dark:text-[#f0f0f0]'}`}>{title}</span>
+                    <span className="text-[9px] font-bold text-[#b0ad9a] dark:text-[#555] uppercase shrink-0">{formatDateLabel(item.updated_at || item.entry_date)}</span>
                   </div>
-                  <div className="text-[11px] leading-relaxed line-clamp-2 h-[34px] text-[#888] dark:text-[#a0a0a0]">
+                  <div className="text-[11px] leading-relaxed line-clamp-2 text-[#888] dark:text-[#888]">
                     {activeTab === 'trash' && <span className="text-red-500 font-bold block mb-1 text-[9px] uppercase tracking-tighter">Deletes in {daysLeft} days</span>}
                     <Snippet html={item.content} query={searchQuery} />
                   </div>
@@ -257,14 +261,14 @@ export default function NotesPage() {
         {selectedItem ? (
           <div className="flex-1 flex flex-col w-full overflow-hidden">
             {/* Action Header */}
-            <header className="h-16 flex items-center justify-between px-6 lg:px-12 border-b border-[#f0ede8] dark:border-[#1a1a1a] shrink-0">
+            <header className="h-14 flex items-center justify-between px-6 lg:px-8 border-b border-[#f0ede8] dark:border-[#1a1a1a] shrink-0">
               <button onClick={() => setIsListVisible(true)} className="lg:hidden flex items-center gap-1.5 text-xs font-bold uppercase text-[#b0ad9a] tracking-widest hover:text-[#c2956e]">
                 <ChevronLeft size={16} /> Library
               </button>
               
               <div className="flex items-center gap-2 ml-auto">
                 {activeTab === 'notes' && (
-                  <button onClick={() => moveToTrash(selectedItem.id)} className="p-2.5 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 rounded-xl transition-all">
+                  <button onClick={() => moveToTrash(selectedItem.id)} className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 rounded-xl transition-all">
                     <Trash2 size={18} />
                   </button>
                 )}
@@ -273,7 +277,7 @@ export default function NotesPage() {
                     <button onClick={() => restoreNote(selectedItem.id)} className="flex items-center gap-2 px-4 py-2 bg-[#7ca982]/10 text-[#7ca982] rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-[#7ca982] hover:text-white transition-all">
                       <RotateCcw size={14} /> Restore
                     </button>
-                    <button onClick={() => permanentlyDelete(selectedItem.id)} className="p-2.5 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 rounded-xl transition-all">
+                    <button onClick={() => permanentlyDelete(selectedItem.id)} className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 rounded-xl transition-all">
                       <Trash size={18} />
                     </button>
                   </div>
@@ -283,20 +287,20 @@ export default function NotesPage() {
 
             {/* Document Container */}
             <div className="flex-1 overflow-y-auto no-scrollbar scroll-smooth">
-              <div className="max-w-[850px] mx-auto px-6 py-12 lg:py-20 lg:px-12 w-full animate-fade-up">
-                <div className="mb-12">
+              <div className="max-w-[1000px] mx-auto px-6 py-8 lg:py-10 lg:px-12 w-full animate-fade-up">
+                <div className="mb-6">
                   {activeTab === 'journal' ? (
-                    <div className="space-y-2">
-                      <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-[#c2956e]">Daily Entry</p>
-                      <h1 className="text-5xl lg:text-6xl text-[#3d3b33] dark:text-white font-serif italic leading-tight">
+                    <div className="space-y-1">
+                      <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#c2956e]">Daily Entry</p>
+                      <h1 className="text-4xl lg:text-5xl text-[#3d3b33] dark:text-white font-serif italic leading-tight">
                         {new Date(selectedItem.entry_date).toLocaleDateString("en-US", { weekday: 'long', month: 'long', day: 'numeric' })}
                       </h1>
                     </div>
                   ) : (
                     <input 
                       value={editTitle} onChange={e => setEditTitle(e.target.value)} onBlur={updateNoteTitle} disabled={activeTab === 'trash'}
-                      placeholder="Title of your thought..."
-                      className="text-5xl lg:text-6xl text-[#3d3b33] dark:text-white font-serif italic leading-tight bg-transparent outline-none w-full placeholder:text-[#e0ddd5] dark:placeholder:text-[#2a2a2a] transition-all" 
+                      placeholder="Title..."
+                      className="text-4xl lg:text-5xl text-[#3d3b33] dark:text-white font-serif italic leading-tight bg-transparent outline-none w-full placeholder:text-[#e0ddd5] dark:placeholder:text-[#2a2a2a] transition-all" 
                     />
                   )}
                 </div>
@@ -313,14 +317,12 @@ export default function NotesPage() {
             </div>
           </div>
         ) : (
-          <div className="flex-1 flex flex-col items-center justify-center p-12 text-center select-none bg-[#fdfbf7] dark:bg-[#0f0f0f]">
-            <div className="w-24 h-24 bg-white dark:bg-[#1a1a1a] rounded-[2.5rem] flex items-center justify-center shadow-sm border border-[#e0ddd5] dark:border-[#333] mb-8">
-              <FileText size={32} strokeWidth={1} className="text-[#c2956e] opacity-40" />
+          <div className="flex-1 flex flex-col items-center justify-center p-12 text-center select-none bg-white dark:bg-[#121212]">
+            <div className="w-16 h-16 bg-[#f7f5f0] dark:bg-[#1a1a1a] rounded-2xl flex items-center justify-center border border-[#e0ddd5] dark:border-[#333] mb-6">
+              <FileText size={24} strokeWidth={1.5} className="text-[#c2956e] opacity-40" />
             </div>
-            <h2 className="text-xl font-serif italic text-[#3d3b33] dark:text-[#f0f0f0] mb-2">Awaiting your brilliance</h2>
-            <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#b0ad9a] dark:text-[#555] max-w-[200px] leading-relaxed">
-              Choose an entry or start a new note to begin your sanctuary session.
-            </p>
+            <h2 className="text-lg font-medium text-[#3d3b33] dark:text-[#f0f0f0]">Select an entry</h2>
+            <p className="text-xs text-[#b0ad9a] dark:text-[#555] mt-1">Choose a note or journal to start writing.</p>
           </div>
         )}
       </main>
