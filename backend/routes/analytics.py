@@ -1,3 +1,4 @@
+# backend/routes/analytics.py
 from flask import Blueprint, jsonify, request
 from services.db_client import supabase
 from datetime import datetime, timedelta
@@ -10,10 +11,9 @@ def get_activity_data():
     if not user_id:
         return jsonify({"error": "user_id required"}), 400
 
-    # --- 1. Master Activity Aggregation (Tasks + Journal) ---
-    tasks = supabase.table("tasks").select("completed_at").eq("user_id", user_id).not_.is_("completed_at", "null").execute()
-    journals = supabase.table("journal_entries").select("entry_date").eq("user_id", user_id).execute()
-    routines = supabase.table("routine_history").select("reset_date").eq("user_id", user_id).execute()
+    # --- 1. Master Activity Aggregation ---
+    # Only standard tasks count towards the master activity tracker to prevent duplications.
+    tasks = supabase.table("tasks").select("completed_at").eq("user_id", user_id).eq("task_type", "normal").not_.is_("completed_at", "null").execute()
     
     activity_map = {}
 
@@ -22,17 +22,8 @@ def get_activity_data():
         date_only = date_str.split('T')[0]
         activity_map[date_only] = activity_map.get(date_only, 0) + 1
 
-    today_str = datetime.now().date().strftime('%Y-%m-%d')
-
     for t in tasks.data: add_to_map(t.get('completed_at'))
     
-    # Writing today's journal shouldn't immediately pad the master focus map
-    for j in journals.data: 
-        if j.get('entry_date') != today_str:
-            add_to_map(j.get('entry_date'))
-            
-    for r in routines.data: add_to_map(r.get('reset_date'))
-
     # Calculate Current Streak
     streak = 0
     check_date = datetime.now().date()

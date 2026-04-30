@@ -1,4 +1,4 @@
-// This is our client-side representation. 'children' is added after fetching.
+// frontend/types/app.types.ts
 export type Task = {
   id: string;
   user_id: string;
@@ -9,5 +9,6 @@ export type Task = {
   position: number;
   created_at: string;
   completed_at: string | null;
+  deleted_at: string | null;
   children?: Task[];
 };

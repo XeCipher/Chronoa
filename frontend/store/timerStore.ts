@@ -1,3 +1,4 @@
+// frontend/store/timerStore.ts
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
@@ -15,11 +16,13 @@ export interface EngineInstance {
 interface TimerState {
   activeTab: SessionType;
   isPinned: boolean;
+  forceShowWidgets: boolean;
   timers: EngineInstance[];
   stopwatches: EngineInstance[];
 
   setActiveTab: (tab: SessionType) => void;
   togglePin: () => void;
+  setForceShowWidgets: (val: boolean) => void;
   addInstance: (tab: SessionType) => string;
   removeInstance: (tab: SessionType, id: string) => void;
   setTitle: (tab: SessionType, id: string, title: string) => void;
@@ -27,7 +30,7 @@ interface TimerState {
   start: (tab: SessionType, id: string) => void;
   pause: (tab: SessionType, id: string) => void;
   reset: (tab: SessionType, id: string) => void;
-  toggleFirstActive: () => void; // New helper for hotkeys
+  toggleFirstActive: () => void;
 }
 
 const generateId = () => Math.random().toString(36).substring(2, 9);
@@ -54,11 +57,13 @@ export const useTimerStore = create<TimerState>()(
     (set, get) => ({
       activeTab: 'stopwatch',
       isPinned: false,
+      forceShowWidgets: false,
       timers: [createDefaultTimer()],
       stopwatches: [createDefaultStopwatch()],
 
       setActiveTab: (activeTab) => set({ activeTab }),
       togglePin: () => set((state) => ({ isPinned: !state.isPinned })),
+      setForceShowWidgets: (val) => set({ forceShowWidgets: val }),
 
       addInstance: (tab) => {
         const newId = generateId();
@@ -112,18 +117,14 @@ export const useTimerStore = create<TimerState>()(
         return { [listName]: state[listName].map((i) => i.id === id ? { ...i, isRunning: false, startTime: null, accumulatedSeconds: 0 } : i) };
       }),
 
-      // Logic for Spacebar hotkey
       toggleFirstActive: () => {
         const state = get();
         const tab = state.activeTab;
         const list = tab === 'timer' ? state.timers : state.stopwatches;
-        
-        // Find the first instance that is already running
         const running = list.find(i => i.isRunning);
         if (running) {
           state.pause(tab, running.id);
         } else {
-          // Otherwise, start the very first one in the list
           state.start(tab, list[0].id);
         }
       }

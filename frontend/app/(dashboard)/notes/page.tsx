@@ -1,17 +1,17 @@
+// frontend/app/(dashboard)/notes/page.tsx
 "use client";
 
 import { useEffect, useState, useMemo, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
 import DistractionFreeEditor from "@/components/notes/DistractionFreeEditor";
-import { Search, Plus, Trash, BookOpen, FileText, ChevronLeft, RotateCcw, Trash2, Library, Sparkles } from "lucide-react";
+import { Search, Plus, Trash, BookOpen, FileText, ChevronLeft, RotateCcw, Trash2, Library, Sparkles, ArrowLeft } from "lucide-react";
 import { useUiStore } from "@/store/uiStore";
 
-type Tab = 'notes' | 'journal' | 'trash';
+type Tab = 'notes' | 'journal';
 
 const TABS: { id: Tab; label: string; icon: React.ElementType }[] = [
   { id: 'notes', label: 'Notes', icon: FileText },
-  { id: 'journal', label: 'Journal', icon: BookOpen },
-  { id: 'trash', label: 'Trash', icon: Trash }
+  { id: 'journal', label: 'Journal', icon: BookOpen }
 ];
 
 export default function NotesPage() {
@@ -27,11 +27,13 @@ export default function NotesPage() {
   
   const [loading, setLoading] = useState(true);
   const [isListVisible, setIsListVisible] = useState(true);
+  const [isTrashOpen, setIsTrashOpen] = useState(false);
 
   const handleTabChange = (id: Tab) => {
     setNotesTab(id);
     setSelectedId(null);
     setSearchQuery("");
+    setIsTrashOpen(false);
   };
 
   const fetchData = useCallback(async () => {
@@ -62,11 +64,11 @@ export default function NotesPage() {
 
   useEffect(() => {
     if (selectedId) {
-      const item = notesTab === 'notes' ? notes.find(n => n.id === selectedId) : 
-                   notesTab === 'trash' ? trash.find(t => t.id === selectedId) : null;
+      const item = isTrashOpen ? trash.find(t => t.id === selectedId) :
+                   notesTab === 'notes' ? notes.find(n => n.id === selectedId) : null;
       if (item) setEditTitle(item.title || "");
     }
-  }, [selectedId, notesTab, notes, trash]);
+  }, [selectedId, notesTab, notes, trash, isTrashOpen]);
 
   const handleSelectItem = (id: string) => {
     setSelectedId(id);
@@ -83,19 +85,23 @@ export default function NotesPage() {
   };
 
   const updateNoteTitle = async () => {
-    if (!selectedId || notesTab !== 'notes') return;
+    if (!selectedId || notesTab !== 'notes' || isTrashOpen) return;
     const t = editTitle.trim() || "Untitled";
     setNotes(prev => prev.map(n => n.id === selectedId ? { ...n, title: t } : n));
     await supabase.from('notes').update({ title: t, updated_at: new Date().toISOString() }).eq('id', selectedId);
   };
 
-  const saveContent = async (html: string) => {
-    if (!selectedId) return;
+  const saveContent = async (html: string, id: string) => {
+    if (!id || isTrashOpen) return;
+    const updatedNow = new Date().toISOString();
+    
     if (notesTab === 'notes') {
-      await supabase.from('notes').update({ content: html, updated_at: new Date().toISOString() }).eq('id', selectedId);
+      setNotes(prev => prev.map(n => n.id === id ? { ...n, content: html, updated_at: updatedNow } : n));
+      await supabase.from('notes').update({ content: html, updated_at: updatedNow }).eq('id', id);
     } else if (notesTab === 'journal') {
+      setJournals(prev => prev.map(j => j.entry_date === id ? { ...j, content: html, updated_at: updatedNow } : j));
       const { data: { user } } = await supabase.auth.getUser();
-      await supabase.from('journal_entries').upsert({ user_id: user?.id, entry_date: selectedId, content: html, updated_at: new Date().toISOString() }, { onConflict: 'user_id,entry_date' });
+      await supabase.from('journal_entries').upsert({ user_id: user?.id, entry_date: id, content: html, updated_at: updatedNow }, { onConflict: 'user_id,entry_date' });
     }
   };
 
@@ -126,21 +132,29 @@ export default function NotesPage() {
     await supabase.from('notes').delete().eq('id', id);
   };
 
+  const emptyTrash = async () => {
+    if (!confirm("Permanently delete all items in trash?")) return;
+    setTrash([]);
+    setSelectedId(null);
+    setIsListVisible(true);
+    await supabase.from('notes').delete().not('deleted_at', 'is', null);
+  };
+
   const formatDateLabel = (dateStr: string) => {
     const date = new Date(dateStr);
     return date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: date.getFullYear() !== new Date().getFullYear() ? "numeric" : undefined });
   };
 
   const filteredItems = useMemo(() => {
-    let list = notesTab === 'notes' ? notes : notesTab === 'journal' ? journals : trash;
+    let list = isTrashOpen ? trash : (notesTab === 'notes' ? notes : journals);
     if (!searchQuery.trim()) return list;
     const q = searchQuery.toLowerCase();
     return list.filter(item => {
-      const title = notesTab === 'journal' ? formatDateLabel(item.entry_date) : item.title;
+      const title = !isTrashOpen && notesTab === 'journal' ? formatDateLabel(item.entry_date) : item.title;
       const plain = (item.content || "").replace(/<[^>]+>/g, ' ').toLowerCase();
       return title?.toLowerCase().includes(q) || plain.includes(q);
     });
-  }, [notes, journals, trash, notesTab, searchQuery]);
+  }, [notes, journals, trash, notesTab, searchQuery, isTrashOpen]);
 
   const Snippet = ({ html, query }: { html: string, query: string }) => {
     const plain = (html || "").replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
@@ -165,10 +179,10 @@ export default function NotesPage() {
 
   const selectedItem = useMemo(() => {
     if (!selectedId) return null;
+    if (isTrashOpen) return trash.find(t => t.id === selectedId);
     if (notesTab === 'notes') return notes.find(n => n.id === selectedId);
-    if (notesTab === 'journal') return journals.find(j => j.entry_date === selectedId);
-    return trash.find(t => t.id === selectedId);
-  }, [selectedId, notesTab, notes, journals, trash]);
+    return journals.find(j => j.entry_date === selectedId);
+  }, [selectedId, notesTab, notes, journals, trash, isTrashOpen]);
 
   return (
     <div className="flex h-screen w-full bg-[#f7f5f0] dark:bg-[#121212] lg:pl-10 overflow-hidden selection:bg-[#c2956e]/20">
@@ -181,31 +195,53 @@ export default function NotesPage() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2.5 text-[#3d3b33] dark:text-[#f0f0f0]">
               <Library size={20} className="text-[#c2956e]" />
-              <h1 className="text-2xl font-serif italic font-medium tracking-tight">Library</h1>
+              <h1 className="text-2xl font-serif italic font-medium tracking-tight">
+                {isTrashOpen ? 'Trash' : 'Library'}
+              </h1>
             </div>
-            {notesTab === 'notes' && (
-              <button onClick={createNote} className="w-8 h-8 flex items-center justify-center bg-[#3d3b33] dark:bg-[#f0f0f0] text-white dark:text-[#121212] rounded-full hover:scale-105 transition-all shadow-lg">
-                <Plus size={18} />
-              </button>
-            )}
+            
+            <div className="flex items-center gap-2">
+              {!isTrashOpen ? (
+                <>
+                  <button onClick={() => { setIsTrashOpen(true); setSelectedId(null); }} className="w-8 h-8 flex items-center justify-center text-[#888] hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/10 rounded-full transition-all">
+                    <Trash size={16} />
+                  </button>
+                  {notesTab === 'notes' && (
+                    <button onClick={createNote} className="w-8 h-8 flex items-center justify-center bg-[#3d3b33] dark:bg-[#f0f0f0] text-white dark:text-[#121212] rounded-full hover:scale-105 transition-all shadow-lg">
+                      <Plus size={18} />
+                    </button>
+                  )}
+                </>
+              ) : (
+                <button onClick={emptyTrash} title="Empty Trash" className="px-3 py-1.5 bg-red-50 dark:bg-red-900/20 text-red-500 rounded-xl text-[9px] font-bold uppercase tracking-widest hover:bg-red-500 hover:text-white transition-all">
+                  Empty Trash
+                </button>
+              )}
+            </div>
           </div>
 
           <div className="space-y-4">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[#b0ad9a]" size={14} />
               <input 
-                type="text" placeholder={`Search ${notesTab}...`} value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
+                type="text" placeholder={`Search ${isTrashOpen ? 'trash' : notesTab}...`} value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
                 className="w-full bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] rounded-2xl pl-9 pr-4 py-2 text-sm outline-none focus:border-[#c2956e] dark:focus:border-[#b0855f] transition-all shadow-sm"
               />
             </div>
 
             <div className="flex bg-[#ebe8e2] dark:bg-[#1a1a1a] p-1 rounded-xl">
-              {TABS.map(({ id, label, icon: Icon }) => (
-                <button key={id} onClick={() => handleTabChange(id)}
-                  className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all ${notesTab === id ? 'bg-white dark:bg-[#2a2a2a] shadow-sm text-[#c2956e] dark:text-[#d1a784]' : 'text-[#888] hover:text-[#3d3b33]'}`}>
-                  <Icon size={14} /> <span className="hidden xl:inline">{label}</span>
+              {isTrashOpen ? (
+                <button onClick={() => setIsTrashOpen(false)} className="flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all bg-white dark:bg-[#2a2a2a] shadow-sm text-[#3d3b33] dark:text-[#f0f0f0]">
+                  <ArrowLeft size={14} /> Back to Library
                 </button>
-              ))}
+              ) : (
+                TABS.map(({ id, label, icon: Icon }) => (
+                  <button key={id} onClick={() => handleTabChange(id)}
+                    className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all ${notesTab === id ? 'bg-white dark:bg-[#2a2a2a] shadow-sm text-[#c2956e] dark:text-[#d1a784]' : 'text-[#888] hover:text-[#3d3b33] dark:hover:text-[#ccc]'}`}>
+                    <Icon size={14} /> <span className="hidden xl:inline">{label}</span>
+                  </button>
+                ))
+              )}
             </div>
           </div>
         </div>
@@ -218,10 +254,12 @@ export default function NotesPage() {
             </div>
           ) : filteredItems.length > 0 ? (
             filteredItems.map(item => {
-              const id = notesTab === 'journal' ? item.entry_date : item.id;
+              const id = !isTrashOpen && notesTab === 'journal' ? item.entry_date : item.id;
               const isSelected = selectedId === id;
-              const title = notesTab === 'journal' ? (item.entry_date === new Date().toISOString().split('T')[0] ? 'Today' : formatDateLabel(item.entry_date)) : (item.title || 'Untitled');
-              const daysLeft = notesTab === 'trash' ? Math.ceil(30 - (Date.now() - new Date(item.deleted_at).getTime()) / (1000 * 60 * 60 * 24)) : 0;
+              const title = !isTrashOpen && notesTab === 'journal' 
+                ? (item.entry_date === new Date().toISOString().split('T')[0] ? 'Today' : formatDateLabel(item.entry_date)) 
+                : (item.title || 'Untitled');
+              const daysLeft = isTrashOpen ? Math.ceil(30 - (Date.now() - new Date(item.deleted_at).getTime()) / (1000 * 60 * 60 * 24)) : 0;
 
               return (
                 <button key={id} onClick={() => handleSelectItem(id)} 
@@ -236,7 +274,7 @@ export default function NotesPage() {
                     <span className="text-[9px] font-bold text-[#b0ad9a] dark:text-[#555] uppercase shrink-0">{formatDateLabel(item.updated_at || item.entry_date)}</span>
                   </div>
                   <div className="text-[11px] leading-relaxed line-clamp-2 text-[#888] dark:text-[#888]">
-                    {notesTab === 'trash' && <span className="text-red-500 font-bold block mb-1 text-[9px] uppercase tracking-tighter">Deletes in {daysLeft} days</span>}
+                    {isTrashOpen && <span className="text-red-500 font-bold block mb-1 text-[9px] uppercase tracking-tighter">Deletes in {daysLeft} days</span>}
                     <Snippet html={item.content} query={searchQuery} />
                   </div>
                 </button>
@@ -259,12 +297,13 @@ export default function NotesPage() {
                 <ChevronLeft size={16} /> Library
               </button>
               <div className="flex items-center gap-2 ml-auto">
-                {notesTab === 'notes' && (
-                  <button onClick={() => moveToTrash(selectedItem.id)} className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 rounded-xl transition-all">
-                    <Trash2 size={18} />
-                  </button>
-                )}
-                {notesTab === 'trash' && (
+                {!isTrashOpen ? (
+                  notesTab === 'notes' && (
+                    <button onClick={() => moveToTrash(selectedItem.id)} className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 rounded-xl transition-all">
+                      <Trash2 size={18} />
+                    </button>
+                  )
+                ) : (
                   <div className="flex items-center gap-2">
                     <button onClick={() => restoreNote(selectedItem.id)} className="flex items-center gap-2 px-4 py-2 bg-[#7ca982]/10 text-[#7ca982] rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-[#7ca982] hover:text-white transition-all">
                       <RotateCcw size={14} /> Restore
@@ -280,7 +319,7 @@ export default function NotesPage() {
             <div className="flex-1 overflow-y-auto no-scrollbar scroll-smooth">
               <div className="max-w-[1000px] mx-auto px-6 py-8 lg:py-10 lg:px-12 w-full animate-fade-up">
                 <div className="mb-6">
-                  {notesTab === 'journal' ? (
+                  {!isTrashOpen && notesTab === 'journal' ? (
                     <div className="space-y-1">
                       <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#c2956e]">Daily Entry</p>
                       <h1 className="text-4xl lg:text-5xl text-[#3d3b33] dark:text-white font-serif italic leading-tight">
@@ -289,7 +328,7 @@ export default function NotesPage() {
                     </div>
                   ) : (
                     <input 
-                      value={editTitle} onChange={e => setEditTitle(e.target.value)} onBlur={updateNoteTitle} disabled={notesTab === 'trash'}
+                      value={editTitle} onChange={e => setEditTitle(e.target.value)} onBlur={updateNoteTitle} disabled={isTrashOpen}
                       placeholder="Title..."
                       className="text-4xl lg:text-5xl text-[#3d3b33] dark:text-white font-serif italic leading-tight bg-transparent outline-none w-full placeholder:text-[#e0ddd5] dark:placeholder:text-[#2a2a2a] transition-all" 
                     />
@@ -297,10 +336,10 @@ export default function NotesPage() {
                 </div>
                 <div className="relative min-h-[500px]">
                   <DistractionFreeEditor
-                    key={`${notesTab}-${selectedId}`}
+                    key={`${isTrashOpen ? 'trash' : notesTab}-${selectedId}`}
                     initialContent={selectedItem.content || '<p></p>'}
-                    isEditable={notesTab !== 'trash'}
-                    onSave={saveContent}
+                    isEditable={!isTrashOpen}
+                    onSave={(html) => saveContent(html, selectedItem.id || selectedItem.entry_date)}
                   />
                 </div>
               </div>

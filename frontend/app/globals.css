@@ -125,3 +125,23 @@ h1, h2, h3, h4 { font-family: var(--font-display); font-weight: 500; }
   animation: sanctuaryExit 0.8s cubic-bezier(0.4, 0, 0.2, 1) forwards;
   overflow: hidden;
 }
+
+/* frontend/app/globals.css */
+
+/* Marquee scroll for long task titles */
+@keyframes taskTitleScroll {
+  0% { transform: translateX(0); }
+  20% { transform: translateX(0); }
+  80% { transform: translateX(calc(-100% + 100px)); }
+  100% { transform: translateX(calc(-100% + 100px)); }
+}
+
+.hover-marquee:hover .marquee-content {
+  animation: taskTitleScroll 6s linear infinite alternate;
+  width: max-content;
+}
+
+.task-title-container {
+  mask-image: linear-gradient(to right, black calc(100% - 40px), transparent 100%);
+  -webkit-mask-image: linear-gradient(to right, black calc(100% - 40px), transparent 100%);
+}

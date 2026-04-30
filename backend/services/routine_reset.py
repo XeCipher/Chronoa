@@ -1,4 +1,5 @@
-from datetime import datetime
+# backend/services/routine_reset.py
+from datetime import datetime, timedelta
 from services.db_client import supabase
 
 def perform_routine_reset(force=False):
@@ -6,7 +7,15 @@ def perform_routine_reset(force=False):
     
     current_hour = datetime.now().hour
     
-    # 1. Get all users
+    # 1. Clean up permanently deleted tasks older than 5 days automatically
+    try:
+        five_days_ago = (datetime.now() - timedelta(days=5)).isoformat()
+        supabase.table("tasks").delete().lt("deleted_at", five_days_ago).execute()
+        print(f"Cleaned up tasks permanently deleted before {five_days_ago}")
+    except Exception as e:
+        print(f"Error cleaning up old deleted tasks: {e}")
+
+    # 2. Get all users
     users_query = supabase.table("profiles").select("id, routine_reset_hour")
     
     # If not forcing, only get users whose reset hour matches current hour
@@ -18,7 +27,7 @@ def perform_routine_reset(force=False):
     for user in users.data:
         user_id = user['id']
         
-        # 2. Get all completed routine tasks for this user
+        # 3. Get all completed routine tasks for this user
         completed_routines = supabase.table("tasks")\
             .select("title")\
             .eq("user_id", user_id)\
@@ -28,14 +37,14 @@ def perform_routine_reset(force=False):
         
         if completed_routines.data:
             print(f"Archiving {len(completed_routines.data)} tasks for user {user_id}")
-            # 3. Move them to history
+            # 4. Move them to history
             history_data = [
                 {"user_id": user_id, "task_title": r['title']} 
                 for r in completed_routines.data
             ]
             supabase.table("routine_history").insert(history_data).execute()
             
-            # 4. Uncheck all routine tasks for the new day
+            # 5. Uncheck all routine tasks for the new day
             supabase.table("tasks")\
                 .update({"is_completed": False, "completed_at": None})\
                 .eq("user_id", user_id)\

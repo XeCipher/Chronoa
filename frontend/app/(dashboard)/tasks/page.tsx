@@ -1,19 +1,27 @@
+// frontend/app/(dashboard)/tasks/page.tsx
 "use client";
 
 import { useState } from "react";
 import TaskSection from "@/components/tasks/TaskSection";
 import TaskHistory from "@/components/tasks/TaskHistory";
 import ICloudTodayFeed from "@/components/tasks/ICloudTodayFeed";
-import { ListChecks, History } from "lucide-react";
+import { ListChecks, History, Trash2, ArrowLeft } from "lucide-react";
 import { useUiStore } from "@/store/uiStore";
+import { supabase } from "@/lib/supabase";
 
 export default function TasksPage() {
   const { tasksView, setTasksView } = useUiStore();
-  const [view, setView] = useState<'focus' | 'archive'>(tasksView || 'focus');
+  const [isTrashOpen, setIsTrashOpen] = useState(false);
 
   const handleViewChange = (v: 'focus' | 'archive') => {
-    setView(v);
     setTasksView(v);
+    setIsTrashOpen(false);
+  };
+
+  const handleEmptyTrash = async () => {
+    if (!confirm("Permanently delete all items in trash?")) return;
+    await supabase.from('tasks').delete().not('deleted_at', 'is', null);
+    window.location.reload(); // Refresh to clear local state
   };
 
   return (
@@ -21,34 +29,69 @@ export default function TasksPage() {
       <div className="max-w-[1600px] mx-auto w-full">
         
         <header className="mb-12 flex flex-col md:flex-row md:items-end justify-between gap-6">
-          <div>
-            <p className="text-[10px] text-[#c2956e] dark:text-[#d1a784] tracking-[0.3em] uppercase font-bold mb-2">Sanctuary</p>
+          <div className="flex flex-col gap-2">
+            <p className="text-[10px] text-[#c2956e] dark:text-[#d1a784] tracking-[0.3em] uppercase font-bold">
+              {isTrashOpen ? 'Recycle Bin' : 'Sanctuary'}
+            </p>
             <h1 className="text-5xl md:text-6xl text-[#3d3b33] dark:text-[#f0f0f0] font-serif italic font-medium leading-none">
-              {view === 'focus' ? 'Daily Focus' : 'Archive'}
+              {isTrashOpen ? 'Trash' : tasksView === 'focus' ? 'Daily Focus' : 'Archive'}
             </h1>
           </div>
 
-          <div className="flex bg-white/50 dark:bg-[#1e1e1e]/50 border border-[#e0ddd5] dark:border-[#333] p-1 rounded-2xl shadow-sm self-start">
-            <button 
-              onClick={() => handleViewChange('focus')}
-              className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-xs font-bold uppercase tracking-widest transition-all ${
-                view === 'focus' ? 'bg-[#c2956e] dark:bg-[#b0855f] text-white shadow-md' : 'text-[#b0ad9a] dark:text-[#7a7a7a] hover:text-[#3d3b33] dark:hover:text-white'
-              }`}
-            >
-              <ListChecks size={14} /> Focus
-            </button>
-            <button 
-              onClick={() => handleViewChange('archive')}
-              className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-xs font-bold uppercase tracking-widest transition-all ${
-                view === 'archive' ? 'bg-[#c2956e] dark:bg-[#b0855f] text-white shadow-md' : 'text-[#b0ad9a] dark:text-[#7a7a7a] hover:text-[#3d3b33] dark:hover:text-white'
-              }`}
-            >
-              <History size={14} /> Archive
-            </button>
+          <div className="flex items-center gap-4 self-start md:self-end">
+            {!isTrashOpen ? (
+              <>
+                <div className="flex bg-white/50 dark:bg-[#1e1e1e]/50 border border-[#e0ddd5] dark:border-[#333] p-1 rounded-2xl shadow-sm">
+                  <button 
+                    onClick={() => handleViewChange('focus')}
+                    className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-xs font-bold uppercase tracking-widest transition-all ${
+                      tasksView === 'focus' ? 'bg-[#c2956e] dark:bg-[#b0855f] text-white shadow-md' : 'text-[#b0ad9a] dark:text-[#7a7a7a] hover:text-[#3d3b33] dark:hover:text-white'
+                    }`}
+                  >
+                    <ListChecks size={14} /> Focus
+                  </button>
+                  <button 
+                    onClick={() => handleViewChange('archive')}
+                    className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-xs font-bold uppercase tracking-widest transition-all ${
+                      tasksView === 'archive' ? 'bg-[#c2956e] dark:bg-[#b0855f] text-white shadow-md' : 'text-[#b0ad9a] dark:text-[#7a7a7a] hover:text-[#3d3b33] dark:hover:text-white'
+                    }`}
+                  >
+                    <History size={14} /> Archive
+                  </button>
+                </div>
+                
+                <button 
+                  onClick={() => setIsTrashOpen(true)}
+                  className="p-3 text-[#b0ad9a] hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/10 rounded-2xl transition-all border border-transparent hover:border-red-100"
+                  title="View Deleted Tasks"
+                >
+                  <Trash2 size={20} />
+                </button>
+              </>
+            ) : (
+              <div className="flex items-center gap-3">
+                <button 
+                  onClick={() => setIsTrashOpen(false)}
+                  className="flex items-center gap-2 px-6 py-3 bg-white dark:bg-[#1e1e1e] border border-[#e0ddd5] dark:border-[#333] rounded-2xl text-[10px] font-bold uppercase tracking-widest text-[#3d3b33] dark:text-[#f0f0f0] shadow-sm hover:border-[#c2956e] transition-all"
+                >
+                  <ArrowLeft size={14} /> Back to Tasks
+                </button>
+                <button 
+                  onClick={handleEmptyTrash}
+                  className="px-6 py-3 bg-red-50 dark:bg-red-900/10 text-red-500 rounded-2xl text-[10px] font-bold uppercase tracking-widest hover:bg-red-500 hover:text-white transition-all shadow-sm"
+                >
+                  Empty Trash
+                </button>
+              </div>
+            )}
           </div>
         </header>
 
-        {view === 'focus' ? (
+        {isTrashOpen ? (
+          <div className="max-w-4xl animate-fade-up">
+            <TaskHistory forceTrashView={true} />
+          </div>
+        ) : tasksView === 'focus' ? (
           <div className="space-y-10 animate-fade-up">
             <ICloudTodayFeed />
             <div className="flex flex-col lg:flex-row items-start gap-8 lg:gap-12 w-full">
@@ -62,7 +105,7 @@ export default function TasksPage() {
           </div>
         ) : (
           <div className="max-w-4xl animate-fade-up">
-            <TaskHistory />
+            <TaskHistory forceTrashView={false} />
           </div>
         )}
       </div>

@@ -1,3 +1,4 @@
+// frontend/app/(dashboard)/page.tsx
 "use client";
 
 import { useState } from "react";
@@ -12,13 +13,15 @@ export default function HomePage() {
   const [isTouched, setIsTouched] = useState(false);
   
   const isPinned = useTimerStore((state: any) => state.isPinned);
-  const showWidget = isHovered || isPinned || isTouched;
+  const forceShow = useTimerStore((state: any) => state.forceShowWidgets);
+  const setForceShow = useTimerStore((state: any) => state.setForceShowWidgets);
+  
+  const showWidget = isHovered || isPinned || isTouched || forceShow;
 
   return (
     <div className="relative w-full h-[100dvh] overflow-hidden flex items-center justify-center touch-none overscroll-none">
       <SceneryBackground />
       
-      {/* Improved placement: tighter to the corner on mobile */}
       <div className="absolute top-6 right-6 md:top-10 md:right-12 z-20">
         <WeatherWidget />
       </div>
@@ -33,7 +36,6 @@ export default function HomePage() {
         <CenterClock />
       </div>
 
-      {/* Desktop hint to hover */}
       <div 
         className="hidden md:flex absolute bottom-8 left-1/2 -translate-x-1/2 flex-col items-center gap-2 pointer-events-none transition-all duration-700 z-20" 
         style={{ opacity: showWidget ? 0 : 0.5, transform: showWidget ? 'translateY(10px)' : 'translateY(0)' }}
@@ -43,19 +45,23 @@ export default function HomePage() {
 
       <div 
         className="absolute bottom-[72px] md:bottom-0 left-0 w-full h-[15vh] md:h-[25vh] z-30 flex items-end justify-center pb-6 md:pb-10 group"
-        onMouseEnter={() => setIsHovered(true)}
+        onMouseEnter={() => {
+          setIsHovered(true);
+          if (forceShow) setForceShow(false);
+        }}
         onMouseLeave={() => setIsHovered(false)}
       >
-        {/* Mobile Pull-up Handle */}
         <div
           className="md:hidden absolute bottom-4 left-1/2 -translate-x-1/2 flex flex-col items-center justify-center p-4 z-40 transition-opacity"
           style={{ opacity: showWidget ? 0 : 1, pointerEvents: showWidget ? 'none' : 'auto' }}
-          onClick={() => setIsTouched(true)}
+          onClick={() => {
+            setIsTouched(true);
+            if (forceShow) setForceShow(false);
+          }}
         >
           <div className="w-12 h-1.5 bg-[#3d3b33]/20 dark:bg-[#e0e0e0]/20 rounded-full" />
         </div>
 
-        {/* Touch dismiss overlay */}
         {isTouched && !isPinned && (
           <button
             className="md:hidden fixed inset-0 w-full h-full z-0 cursor-default outline-none"

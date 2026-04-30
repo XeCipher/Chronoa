@@ -1,3 +1,4 @@
+// frontend/app/(dashboard)/settings/page.tsx
 "use client";
 
 import { useEffect, useState } from "react";
@@ -20,7 +21,8 @@ export default function SettingsPage() {
     taskArchiveDelay, setTaskArchiveDelay, 
     routineResetHour, setRoutineResetHour, 
     theme, setTheme,
-    hotkeysEnabled, setHotkeysEnabled 
+    hotkeysEnabled, setHotkeysEnabled,
+    moveCompletedToBottom, setMoveCompletedToBottom
   } = useUiStore();
   
   const [calendars, setCalendars] = useState<CalendarLink[]>([]);
@@ -30,7 +32,6 @@ export default function SettingsPage() {
   const [os, setOs] = useState<'mac' | 'windows'>('windows');
 
   useEffect(() => {
-    // OS Detection logic
     const platform = window.navigator.platform.toLowerCase();
     if (platform.includes('mac')) setOs('mac');
 
@@ -167,7 +168,7 @@ export default function SettingsPage() {
 
         <hr className="border-[#f0ede8] dark:border-[#2a2a2a]" />
 
-        {/* Global Hotkeys - Responsive OS detection */}
+        {/* Global Hotkeys */}
         <section className="hidden md:block space-y-6">
           <div className="flex justify-between items-center">
             <div className="space-y-1">
@@ -212,6 +213,27 @@ export default function SettingsPage() {
         </section>
 
         <hr className="hidden md:block border-[#f0ede8] dark:border-[#2a2a2a]" />
+
+        {/* Task Features Configuration */}
+        <section className="space-y-4">
+          <div className="flex items-center gap-3 text-[#6e90c2] dark:text-[#8aaae0]">
+            <CheckCircle2 size={20} />
+            <h3 className="text-xl font-medium text-[#3d3b33] dark:text-[#f0f0f0]">Task Layout Behavior</h3>
+          </div>
+          <p className="text-xs text-[#b0ad9a] dark:text-[#7a7a7a] mt-1 mb-4">Control how checked tasks respond automatically in your lists.</p>
+          
+          <div className="flex items-center justify-between p-4 bg-[#f7f5f0]/50 dark:bg-[#222] border border-[#e0ddd5] dark:border-[#333] rounded-2xl cursor-pointer" onClick={() => setMoveCompletedToBottom(!moveCompletedToBottom)}>
+            <div className="space-y-1">
+              <span className="text-[13px] text-[#3d3b33] dark:text-[#f0f0f0] font-medium">Move Checked Tasks to Bottom</span>
+              <p className="text-[11px] text-[#b0ad9a] dark:text-[#7a7a7a]">Completed tasks will smoothly glide to the end of their list segment instantly upon checking.</p>
+            </div>
+            <button className={`w-12 h-6 rounded-full transition-colors relative ${moveCompletedToBottom ? 'bg-[#7ca982] dark:bg-[#6a9a70]' : 'bg-[#e0ddd5] dark:bg-[#444]'}`}>
+              <div className={`w-5 h-5 bg-white rounded-full absolute top-0.5 transition-transform ${moveCompletedToBottom ? 'translate-x-6' : 'translate-x-0.5 shadow-sm'}`} />
+            </button>
+          </div>
+        </section>
+
+        <hr className="border-[#f0ede8] dark:border-[#2a2a2a]" />
 
         {/* iCloud Calendars */}
         <section className="space-y-4">

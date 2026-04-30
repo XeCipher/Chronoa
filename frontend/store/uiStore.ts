@@ -1,7 +1,8 @@
+// frontend/store/uiStore.ts
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
-type TasksView = 'focus' | 'archive';
+type TasksView = 'focus' | 'archive' | 'trash';
 type NotesTab = 'notes' | 'journal' | 'trash';
 type SessionsFilter = 'all' | 'timer' | 'stopwatch';
 
@@ -16,7 +17,8 @@ interface UiState {
   tasksView: TasksView;
   notesTab: NotesTab;
   sessionsFilter: SessionsFilter;
-  hotkeysEnabled: boolean; // NEW
+  hotkeysEnabled: boolean;
+  moveCompletedToBottom: boolean;
   
   setTaskArchiveDelay: (delay: number) => void;
   setRoutineResetHour: (hour: number) => void;
@@ -28,7 +30,8 @@ interface UiState {
   setTasksView: (view: TasksView) => void;
   setNotesTab: (tab: NotesTab) => void;
   setSessionsFilter: (filter: SessionsFilter) => void;
-  setHotkeysEnabled: (enabled: boolean) => void; // NEW
+  setHotkeysEnabled: (enabled: boolean) => void;
+  setMoveCompletedToBottom: (val: boolean) => void;
 }
 
 export const useUiStore = create<UiState>()(
@@ -44,7 +47,8 @@ export const useUiStore = create<UiState>()(
       tasksView: 'focus',
       notesTab: 'notes',
       sessionsFilter: 'all',
-      hotkeysEnabled: true, // Enabled by default
+      hotkeysEnabled: true,
+      moveCompletedToBottom: true,
       setTaskArchiveDelay: (delay) => set({ taskArchiveDelay: delay }),
       setRoutineResetHour: (hour) => set({ routineResetHour: hour }),
       setJournalZoom: (zoom) => set({ journalZoom: zoom }),
@@ -56,6 +60,7 @@ export const useUiStore = create<UiState>()(
       setNotesTab: (tab) => set({ notesTab: tab }),
       setSessionsFilter: (filter) => set({ sessionsFilter: filter }),
       setHotkeysEnabled: (hotkeysEnabled) => set({ hotkeysEnabled }),
+      setMoveCompletedToBottom: (val) => set({ moveCompletedToBottom: val }),
     }),
     { name: 'chronoa-settings' }
   )
