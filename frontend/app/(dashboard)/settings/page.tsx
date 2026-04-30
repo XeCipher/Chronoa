@@ -195,6 +195,8 @@ export default function SettingsPage() {
               { keys: [modKey, 'L'], desc: 'Go to Time Log' },
               { keys: [modKey, 'A'], desc: 'Go to Analytics' },
               { keys: [modKey, 'S'], desc: 'Go to Settings' },
+              { keys: [modKey, '↑'], desc: 'Move Task Up' },
+              { keys: [modKey, '↓'], desc: 'Move Task Down' },
               { keys: ['Space'], desc: 'Play/Pause Timer & Stopwatch' },
               { keys: ['Esc'], desc: 'Collapse Sidebar' },
             ].map((hk, i) => (

@@ -33,18 +33,38 @@ export default function RecursiveCheckbox({ task, isEditMode, onUpdate, onDelete
   const { taskArchiveDelay, activeTaskIdWithMenu, setActiveTaskIdWithMenu } = useUiStore();
   const { addInstance, setTitle: setTimerTitle, setActiveTab, setForceShowWidgets } = useTimerStore();
 
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: task.id, disabled: !isEditMode });
+  const isRoutine = task.task_type === 'routine';
+  const isNormal = task.task_type === 'normal';
 
-  // Utilizing Translate instead of Transform to prevent text blurriness during drag drops
-  const style = { transform: CSS.Translate.toString(transform), transition, opacity: isDragging ? 0.6 : 1, zIndex: isDragging ? 50 : undefined };
+  // Sortable Hook Setup
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ 
+    id: task.id, 
+    disabled: isRoutine && !isEditMode 
+  });
+
+  // Utilizing Transform for hardware acceleration during drag
+  const style = { 
+    transform: CSS.Transform.toString(transform), 
+    transition: isDragging ? 'none' : transition, 
+    opacity: isDragging ? 0.6 : 1, 
+    zIndex: isDragging ? 50 : undefined,
+    position: 'relative' as const
+  };
 
   // Handle click-away to close unified advanced menu
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
+      if (activeTaskIdWithMenu !== task.id) return;
+      
       if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
-        if (activeTaskIdWithMenu === task.id) setActiveTaskIdWithMenu(null);
+        // If clicking another menu-toggle-btn, let its own onClick handle opening itself.
+        const target = event.target as Element;
+        if (target.closest('.menu-toggle-btn')) return;
+        
+        setActiveTaskIdWithMenu(null);
       }
     };
+    
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [activeTaskIdWithMenu, task.id, setActiveTaskIdWithMenu]);
@@ -84,8 +104,14 @@ export default function RecursiveCheckbox({ task, isEditMode, onUpdate, onDelete
   };
 
   const isVanishingNow = taskArchiveDelay <= 0 && task.is_completed && !isEditMode;
-  const isRoutine = task.task_type === 'routine';
   const isMenuOpen = activeTaskIdWithMenu === task.id;
+
+  // UI Visibility Flags
+  const showDragHandle = isNormal || (isRoutine && isEditMode);
+  const showTimerStopwatchOutside = isRoutine && !isEditMode;
+  const showTimerInsideMenu = isNormal;
+  const showThreeDotMenu = isNormal || (isRoutine && isEditMode);
+  const showManagementActions = isNormal || (isRoutine && isEditMode);
 
   // Visual constraints
   const titleSize = depth === 0 ? "text-[15px]" : depth === 1 ? "text-[13.5px]" : "text-[12.5px]";
@@ -98,30 +124,27 @@ export default function RecursiveCheckbox({ task, isEditMode, onUpdate, onDelete
     setActiveTaskIdWithMenu(isMenuOpen ? null : task.id);
   };
 
-  // Visibility logic based on task type and mode
-  const showFocusActions = !isRoutine || (!isEditMode && isRoutine);
-  const showManagementActions = !isRoutine || (isEditMode && isRoutine);
-
-  // Dynamic Highlighting Configuration
+  // Dynamic Highlighting Configuration (Includes persistent hover when Menu is Open)
   const colorStyles: Record<string, string> = {
-    none: isDragging ? "bg-[#f7f5f0] dark:bg-[#2a2a2a] ring-1 ring-[#e0ddd5] dark:ring-[#444] shadow-md" : "hover:bg-[#faf9f6] dark:hover:bg-[#222]",
-    rose: "bg-rose-50 dark:bg-rose-900/20 ring-1 ring-rose-200 dark:ring-rose-900",
-    amber: "bg-amber-50 dark:bg-amber-900/20 ring-1 ring-amber-200 dark:ring-amber-900",
-    emerald: "bg-emerald-50 dark:bg-emerald-900/20 ring-1 ring-emerald-200 dark:ring-emerald-900",
-    blue: "bg-blue-50 dark:bg-blue-900/20 ring-1 ring-blue-200 dark:ring-blue-900",
-    purple: "bg-purple-50 dark:bg-purple-900/20 ring-1 ring-purple-200 dark:ring-purple-900"
+    none: isDragging ? "bg-[#f7f5f0] dark:bg-[#2a2a2a] ring-1 ring-[#e0ddd5] dark:ring-[#444] shadow-md" : (isMenuOpen ? "bg-[#ebe8e2]/60 dark:bg-[#222]" : "hover:bg-[#ebe8e2]/60 dark:hover:bg-[#222]"),
+    rose: isDragging ? "bg-rose-100 dark:bg-rose-900/40 ring-1 ring-rose-300 dark:ring-rose-800 shadow-md" : (isMenuOpen ? "bg-rose-100 dark:bg-rose-900/40 ring-1 ring-rose-200 dark:ring-rose-800" : "bg-rose-50 dark:bg-rose-900/20 ring-1 ring-rose-200 dark:ring-rose-900 hover:bg-rose-100 dark:hover:bg-rose-900/40"),
+    amber: isDragging ? "bg-amber-100 dark:bg-amber-900/40 ring-1 ring-amber-300 dark:ring-amber-800 shadow-md" : (isMenuOpen ? "bg-amber-100 dark:bg-amber-900/40 ring-1 ring-amber-200 dark:ring-amber-800" : "bg-amber-50 dark:bg-amber-900/20 ring-1 ring-amber-200 dark:ring-amber-900 hover:bg-amber-100 dark:hover:bg-amber-900/40"),
+    emerald: isDragging ? "bg-emerald-100 dark:bg-emerald-900/40 ring-1 ring-emerald-300 dark:ring-emerald-800 shadow-md" : (isMenuOpen ? "bg-emerald-100 dark:bg-emerald-900/40 ring-1 ring-emerald-200 dark:ring-emerald-800" : "bg-emerald-50 dark:bg-emerald-900/20 ring-1 ring-emerald-200 dark:ring-emerald-900 hover:bg-emerald-100 dark:hover:bg-emerald-900/40"),
+    blue: isDragging ? "bg-blue-100 dark:bg-blue-900/40 ring-1 ring-blue-300 dark:ring-blue-800 shadow-md" : (isMenuOpen ? "bg-blue-100 dark:bg-blue-900/40 ring-1 ring-blue-200 dark:ring-blue-800" : "bg-blue-50 dark:bg-blue-900/20 ring-1 ring-blue-200 dark:ring-blue-900 hover:bg-blue-100 dark:hover:bg-blue-900/40"),
+    purple: isDragging ? "bg-purple-100 dark:bg-purple-900/40 ring-1 ring-purple-300 dark:ring-purple-800 shadow-md" : (isMenuOpen ? "bg-purple-100 dark:bg-purple-900/40 ring-1 ring-purple-200 dark:ring-purple-800" : "bg-purple-50 dark:bg-purple-900/20 ring-1 ring-purple-200 dark:ring-purple-900 hover:bg-purple-100 dark:hover:bg-purple-900/40")
   };
 
   const availableColors = [
     { id: 'none', bg: 'bg-[#e0ddd5] dark:bg-[#555]' },
-    { id: 'rose', bg: 'bg-rose-400' },
-    { id: 'amber', bg: 'bg-amber-400' },
-    { id: 'emerald', bg: 'bg-emerald-400' },
-    { id: 'blue', bg: 'bg-blue-400' },
-    { id: 'purple', bg: 'bg-purple-400' },
+    { id: 'rose', bg: 'bg-rose-400 dark:bg-rose-500' },
+    { id: 'amber', bg: 'bg-amber-400 dark:bg-amber-500' },
+    { id: 'emerald', bg: 'bg-emerald-400 dark:bg-emerald-500' },
+    { id: 'blue', bg: 'bg-blue-400 dark:bg-blue-500' },
+    { id: 'purple', bg: 'bg-purple-400 dark:bg-purple-500' },
   ];
 
-  const activeColorStyle = task.color && colorStyles[task.color] ? colorStyles[task.color] : colorStyles.none;
+  const baseColor = task.color && task.color !== 'none' ? task.color : 'none';
+  const activeColorStyle = colorStyles[baseColor];
 
   return (
     <div ref={setNodeRef} style={style} className={`flex flex-col w-full ${isVanishingNow ? "task-vanishing-soothing" : ""}`}>
@@ -130,26 +153,28 @@ export default function RecursiveCheckbox({ task, isEditMode, onUpdate, onDelete
         className={`group relative flex items-center gap-3 py-[7px] px-3 rounded-xl transition-all duration-150 ${activeColorStyle}`}
       >
         
-        {/* Drag Handle - Centered vertically via items-center on parent */}
-        {isEditMode && isRoutine && (
-          <div {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing shrink-0 text-[#d4d0c8] dark:text-[#555] hover:text-[#c2956e] transition-colors duration-150 touch-none">
+        {/* Drag Handle */}
+        {showDragHandle && (
+          <div {...attributes} {...listeners} className={`cursor-grab active:cursor-grabbing shrink-0 text-[#d4d0c8] dark:text-[#555] hover:text-[#c2956e] transition-colors duration-150 touch-none ${isNormal ? 'md:opacity-0 md:group-hover:opacity-100' : ''}`}>
             <GripVertical size={14} strokeWidth={1.8} />
           </div>
         )}
 
-        {/* Checkbox - Centered vertically via items-center on parent */}
+        {/* Checkbox */}
         <button onClick={() => onUpdate(task.id, { is_completed: !task.is_completed })} className={`${checkboxSize} ${checkboxRadius} shrink-0 border flex items-center justify-center transition-all duration-200 cursor-pointer ${task.is_completed ? "bg-[#7ca982] dark:bg-[#6a9a70] border-[#7ca982] shadow-[0_0_0_3px_rgba(124,169,130,0.12)]" : "border-[#d4d0c8] dark:border-[#555] bg-white dark:bg-[#1a1a1a] hover:border-[#7ca982] hover:shadow-[0_0_0_3px_rgba(124,169,130,0.10)]"}`}>
           {task.is_completed && <Check size={depth === 0 ? 10 : 9} strokeWidth={3} className="text-white" />}
         </button>
 
         <div className="flex-1 flex flex-col min-w-0">
-          {/* Text Title - Multi-line enabled */}
+          {/* Text Title */}
           <span 
             ref={textRef}
-            contentEditable={isEditMode || !isRoutine}
+            contentEditable={isEditMode || isNormal}
             suppressContentEditableWarning
             onBlur={() => saveCurrentText()}
             onKeyDown={(e) => {
+              if (e.altKey && e.key === "ArrowUp") { e.preventDefault(); onMoveUp(task); return; }
+              if (e.altKey && e.key === "ArrowDown") { e.preventDefault(); onMoveDown(task); return; }
               if (e.key === "Enter") { e.preventDefault(); e.currentTarget.blur(); }
               if (e.key === "Escape") { e.currentTarget.textContent = task.title; e.currentTarget.blur(); }
               if (e.key === "Tab") {
@@ -159,19 +184,21 @@ export default function RecursiveCheckbox({ task, isEditMode, onUpdate, onDelete
                 else onIndent(task);
               }
             }}
-            className={`break-words whitespace-pre-wrap transition-all duration-200 outline-none pr-8 md:group-hover:pr-40 ${titleSize} ${titleWeight} ${isEditMode || !isRoutine ? "cursor-text border-b border-transparent focus:border-[#c2956e]/30 pb-[1px]" : "cursor-default"} ${task.is_completed ? "text-[#c4c0b8] dark:text-[#555] line-through" : "text-[#3d3b33] dark:text-[#e0e0e0]"}`}
+            className={`break-words whitespace-pre-wrap transition-all duration-200 outline-none ${titleSize} ${titleWeight} ${isEditMode || isNormal ? "cursor-text border-b border-transparent focus:border-[#c2956e]/30 pb-[1px]" : "cursor-default"} ${task.is_completed ? "text-[#c4c0b8] dark:text-[#555] line-through" : "text-[#3d3b33] dark:text-[#e0e0e0]"}`}
           >
             {task.title}
           </span>
 
-          {/* Unified Advanced Control Panel - Works effectively on Desktop and Mobile */}
+          {/* Unified Advanced Control Panel */}
           {isMenuOpen && (
             <div className="flex flex-col gap-3 mt-2 pt-3 border-t border-[#e0ddd5] dark:border-[#333] animate-fade-up w-full">
                <div className="flex flex-wrap gap-3 items-center justify-between w-full">
-                  {showFocusActions && (
+                  
+                  {/* Timer functions strictly isolated inside Menu */}
+                  {showTimerInsideMenu && (
                     <div className="flex items-center gap-2">
-                       <button onClick={() => handleSendToFocus('timer')} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-500/10 text-[10px] font-bold uppercase tracking-wider transition-colors hover:bg-blue-100 dark:hover:bg-blue-500/20"><Timer size={12} /> Timer</button>
-                       <button onClick={() => handleSendToFocus('stopwatch')} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-500/10 text-[10px] font-bold uppercase tracking-wider transition-colors hover:bg-orange-100 dark:hover:bg-orange-500/20"><Hourglass size={12} /> Stopwatch</button>
+                       <button onClick={() => handleSendToFocus('timer')} title="Send to Timer" className="flex items-center justify-center w-8 h-8 rounded-lg text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 transition-colors hover:bg-blue-100 dark:hover:bg-blue-900/40"><Timer size={14} /></button>
+                       <button onClick={() => handleSendToFocus('stopwatch')} title="Send to Stopwatch" className="flex items-center justify-center w-8 h-8 rounded-lg text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-900/20 transition-colors hover:bg-orange-100 dark:hover:bg-orange-900/40"><Hourglass size={14} /></button>
                     </div>
                   )}
                   
@@ -183,7 +210,7 @@ export default function RecursiveCheckbox({ task, isEditMode, onUpdate, onDelete
                            {availableColors.map(c => (
                              <button
                                key={c.id}
-                               onClick={() => { saveCurrentText(); onUpdate(task.id, { color: c.id === 'none' ? null : c.id }); }}
+                               onClick={() => { onUpdate(task.id, { color: c.id === 'none' ? null : c.id }); }}
                                className={`w-4 h-4 rounded-full ${c.bg} transition-all ${task.color === c.id || (!task.color && c.id === 'none') ? 'ring-2 ring-offset-1 ring-[#c2956e] dark:ring-offset-[#252525] scale-110' : 'opacity-60 hover:opacity-100 hover:scale-110'}`}
                                title={`Highlight: ${c.id}`}
                              />
@@ -192,19 +219,19 @@ export default function RecursiveCheckbox({ task, isEditMode, onUpdate, onDelete
 
                         {/* Reordering & Indentation */}
                         <div className="flex items-center bg-white dark:bg-[#252525] rounded-lg p-0.5 border border-[#e0ddd5] dark:border-[#333] shadow-sm">
-                           <button onClick={() => { saveCurrentText(); onMoveUp(task); }} className="p-1.5 text-[#888] hover:text-[#c2956e] hover:bg-[#f7f5f0] dark:hover:bg-[#1a1a1a] rounded-md transition-colors" title="Move Up"><ArrowUp size={14} /></button>
-                           <button onClick={() => { saveCurrentText(); onMoveDown(task); }} className="p-1.5 text-[#888] hover:text-[#c2956e] hover:bg-[#f7f5f0] dark:hover:bg-[#1a1a1a] rounded-md transition-colors" title="Move Down"><ArrowDown size={14} /></button>
+                           <button onClick={() => onMoveUp(task)} className="p-1.5 text-[#888] hover:text-[#c2956e] hover:bg-[#f7f5f0] dark:hover:bg-[#1a1a1a] rounded-md transition-colors" title="Move Up"><ArrowUp size={14} /></button>
+                           <button onClick={() => onMoveDown(task)} className="p-1.5 text-[#888] hover:text-[#c2956e] hover:bg-[#f7f5f0] dark:hover:bg-[#1a1a1a] rounded-md transition-colors" title="Move Down"><ArrowDown size={14} /></button>
                            <div className="w-px h-4 bg-[#e0ddd5] dark:bg-[#444] mx-0.5"/>
-                           <button onClick={() => { saveCurrentText(); onUnindent(task); }} className="p-1.5 text-[#888] hover:text-[#c2956e] hover:bg-[#f7f5f0] dark:hover:bg-[#1a1a1a] rounded-md transition-colors" title="Outdent"><ChevronLeft size={14} /></button>
-                           <button onClick={() => { saveCurrentText(); onIndent(task); }} className="p-1.5 text-[#888] hover:text-[#c2956e] hover:bg-[#f7f5f0] dark:hover:bg-[#1a1a1a] rounded-md transition-colors" title="Indent"><ChevronRight size={14} /></button>
+                           <button onClick={() => onUnindent(task)} className="p-1.5 text-[#888] hover:text-[#c2956e] hover:bg-[#f7f5f0] dark:hover:bg-[#1a1a1a] rounded-md transition-colors" title="Outdent"><ChevronLeft size={14} /></button>
+                           <button onClick={() => onIndent(task)} className="p-1.5 text-[#888] hover:text-[#c2956e] hover:bg-[#f7f5f0] dark:hover:bg-[#1a1a1a] rounded-md transition-colors" title="Indent"><ChevronRight size={14} /></button>
                         </div>
                      </div>
                   )}
                </div>
 
-               {/* Dedicated Action Row */}
+               {/* Dedicated Action Row (Mobile Only inside Menu) */}
                {showManagementActions && (
-                   <div className="flex items-center justify-between w-full pt-1">
+                   <div className="flex md:hidden items-center justify-between w-full pt-1">
                       <button onClick={() => onAdd(task.id)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[#c2956e] hover:text-white hover:bg-[#c2956e] bg-[#c2956e]/10 text-[10px] font-bold uppercase tracking-wider transition-colors"><Plus size={12} /> Add Subtask</button>
                       <button onClick={() => onDelete(task.id)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-red-500 hover:text-white hover:bg-red-500 bg-red-50 dark:bg-red-500/10 text-[10px] font-bold uppercase tracking-wider transition-colors"><Trash2 size={12} /> Delete</button>
                    </div>
@@ -213,12 +240,12 @@ export default function RecursiveCheckbox({ task, isEditMode, onUpdate, onDelete
           )}
         </div>
 
-        {/* Quick Desktop Actions & More Toggle */}
-        <div className={`hidden md:flex items-center gap-0.5 absolute right-2 top-1/2 -translate-y-1/2 transition-all duration-200 pl-4 py-1.5 rounded-l-xl shadow-[-15px_0_15px_-5px_rgba(250,249,246,1)] dark:shadow-[-15px_0_15px_-5px_rgba(34,34,34,1)] ${isMenuOpen ? 'opacity-0 pointer-events-none' : 'opacity-0 group-hover:opacity-100 translate-x-2 group-hover:translate-x-0 bg-[#faf9f6] dark:bg-[#222]'} ${task.color && task.color !== 'none' ? '!shadow-none !bg-transparent' : ''}`}>
-            {showFocusActions && (
+        {/* Quick Actions Container - In flex-flow for perfect alignment */}
+        <div className={`hidden md:flex items-center shrink-0 ml-auto gap-0.5 transition-opacity duration-200 ${isMenuOpen ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
+            {showTimerStopwatchOutside && (
                 <>
-                    <button onClick={() => handleSendToFocus('timer')} title="Send to Timer" className="w-7 h-7 flex items-center justify-center rounded-lg text-[#c4c0b8] hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-500/10 transition-all"><Timer size={14} /></button>
-                    <button onClick={() => handleSendToFocus('stopwatch')} title="Send to Stopwatch" className="w-7 h-7 flex items-center justify-center rounded-lg text-[#c4c0b8] hover:text-orange-500 hover:bg-orange-50 dark:hover:bg-orange-500/10 transition-all"><Hourglass size={14} /></button>
+                    <button onClick={() => handleSendToFocus('timer')} title="Send to Timer" className="w-7 h-7 flex items-center justify-center rounded-lg text-[#c4c0b8] hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all"><Timer size={14} /></button>
+                    <button onClick={() => handleSendToFocus('stopwatch')} title="Send to Stopwatch" className="w-7 h-7 flex items-center justify-center rounded-lg text-[#c4c0b8] hover:text-orange-500 hover:bg-orange-50 dark:hover:bg-orange-900/20 transition-all"><Hourglass size={14} /></button>
                 </>
             )}
             
@@ -229,18 +256,24 @@ export default function RecursiveCheckbox({ task, isEditMode, onUpdate, onDelete
                 </>
             )}
             
-            {/* Expanded Menu Trigger for Desktop */}
-            <button onClick={toggleMenu} title="More Options" className="w-7 h-7 flex items-center justify-center rounded-lg text-[#c4c0b8] hover:text-[#3d3b33] dark:hover:text-white hover:bg-white dark:hover:bg-[#333] transition-all ml-1 border-l border-[#e0ddd5] dark:border-[#444] rounded-l-none"><MoreVertical size={14} /></button>
+            {showThreeDotMenu && (
+               <button onClick={toggleMenu} title="More Options" className="menu-toggle-btn w-7 h-7 flex items-center justify-center rounded-lg text-[#c4c0b8] hover:text-[#3d3b33] dark:hover:text-white hover:bg-white dark:hover:bg-[#333] transition-all ml-1"><MoreVertical size={14} /></button>
+            )}
         </div>
 
-        {/* Mobile More Toggle (Always available to open control panel) */}
-        <div className={`md:hidden shrink-0 ml-auto flex items-center ${isMenuOpen ? 'hidden' : 'block'}`}>
-          <button
-            onClick={toggleMenu}
-            className={`p-1.5 rounded-md transition-colors text-[#c4c0b8]`}
-          >
-            <MoreVertical size={18} strokeWidth={2} />
-          </button>
+        {/* Mobile More Toggle */}
+        <div className={`md:hidden shrink-0 ml-auto flex items-center gap-0.5 ${isMenuOpen ? 'hidden' : 'flex'}`}>
+            {showTimerStopwatchOutside && (
+                <>
+                    <button onClick={() => handleSendToFocus('timer')} className="p-1.5 rounded-md text-[#c4c0b8] hover:text-blue-500 transition-colors"><Timer size={16} /></button>
+                    <button onClick={() => handleSendToFocus('stopwatch')} className="p-1.5 rounded-md text-[#c4c0b8] hover:text-orange-500 transition-colors"><Hourglass size={16} /></button>
+                </>
+            )}
+            {showThreeDotMenu && (
+                <button onClick={toggleMenu} className="menu-toggle-btn p-1.5 rounded-md transition-colors text-[#c4c0b8]">
+                  <MoreVertical size={18} strokeWidth={2} />
+                </button>
+            )}
         </div>
       </div>
 

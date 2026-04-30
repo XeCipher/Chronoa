@@ -50,9 +50,21 @@ export default function TaskSection({ type, title }: Props) {
   useEffect(() => {
     fetchTasks();
     const channelId = `rt_${type}_${Math.random().toString(36).substring(7)}`;
-    const channel = supabase.channel(channelId).on("postgres_changes", { event: "*", schema: "public", table: "tasks" }, () => fetchTasks()).subscribe();
+    let timeoutId: NodeJS.Timeout;
+
+    // Debounce realtime updates to prevent lag spikes on bulk drag-drop updates
+    const channel = supabase.channel(channelId).on("postgres_changes", { event: "*", schema: "public", table: "tasks" }, () => {
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => fetchTasks(), 400);
+    }).subscribe();
+
     const timer = setInterval(() => setNow(Date.now()), 1000); 
-    return () => { supabase.removeChannel(channel); clearInterval(timer); };
+    
+    return () => { 
+      supabase.removeChannel(channel); 
+      clearInterval(timer); 
+      clearTimeout(timeoutId);
+    };
   }, [type]);
 
   useEffect(() => {
@@ -264,22 +276,27 @@ export default function TaskSection({ type, title }: Props) {
   const onDragEnd = async (event: any) => {
     const { active, over } = event;
     if (!over || active.id === over.id) return;
+
     const activeTask = tasks.find(t => t.id === active.id);
     const overTask = tasks.find(t => t.id === over.id);
     if (!activeTask || !overTask || activeTask.parent_id !== overTask.parent_id) return;
+    
     const siblings = tasks.filter(t => t.parent_id === activeTask.parent_id).sort((a, b) => a.position - b.position);
     const oldIndex = siblings.findIndex(t => t.id === active.id);
     const newIndex = siblings.findIndex(t => t.id === over.id);
-    const reordered = arrayMove(siblings, oldIndex, newIndex);
-    const newTasks = tasks.map(t => {
-       if (t.parent_id === activeTask.parent_id) {
-           const newPos = reordered.findIndex(r => r.id === t.id);
-           return { ...t, position: newPos };
-       }
-       return t;
+    
+    const reorderedSiblings = arrayMove(siblings, oldIndex, newIndex);
+
+    setTasks(currentTasks => {
+      const nonSiblingTasks = currentTasks.filter(t => t.parent_id !== activeTask.parent_id);
+      const updatedSiblings = reorderedSiblings.map((t, index) => ({ ...t, position: index }));
+      return [...nonSiblingTasks, ...updatedSiblings].sort((a, b) => a.position - b.position);
     });
-    setTasks(newTasks);
-    await Promise.all(reordered.map((t, idx) => supabase.from("tasks").update({ position: idx }).eq("id", t.id)));
+
+    const updates = reorderedSiblings.map((task, index) => 
+      supabase.from("tasks").update({ position: index }).eq("id", task.id)
+    );
+    await Promise.all(updates);
   };
 
   return (
@@ -332,7 +349,7 @@ export default function TaskSection({ type, title }: Props) {
               <div className="space-y-[2px]">
                 {taskTree.map((t) => (
                   <RecursiveCheckbox 
-                    key={t.id} task={t} isEditMode={type === "normal" ? false : isEditMode} 
+                    key={t.id} task={t} isEditMode={type === "normal" ? true : isEditMode} 
                     onUpdate={onUpdate} onDelete={onDelete} onAdd={onAdd}
                     onIndent={onIndent} onUnindent={onUnindent}
                     onMoveUp={onMoveUp} onMoveDown={onMoveDown}
