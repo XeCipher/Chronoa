@@ -4,7 +4,7 @@
 import { useEffect, useState, useMemo, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
 import DistractionFreeEditor from "@/components/notes/DistractionFreeEditor";
-import { Search, Plus, Trash, BookOpen, FileText, ChevronLeft, RotateCcw, Trash2, Library, Sparkles, ArrowLeft } from "lucide-react";
+import { Search, Plus, Trash, BookOpen, FileText, ChevronLeft, RotateCcw, Trash2, Library, Sparkles, ArrowLeft, CalendarDays, X, ChevronRight } from "lucide-react";
 import { useUiStore } from "@/store/uiStore";
 
 type Tab = 'notes' | 'journal';
@@ -14,8 +14,30 @@ const TABS: { id: Tab; label: string; icon: React.ElementType }[] = [
   { id: 'journal', label: 'Journal', icon: BookOpen }
 ];
 
+// Offline Queue Helper
+const syncOfflineData = async () => {
+  if (!navigator.onLine) return;
+  const queue = JSON.parse(localStorage.getItem('chronoa_offline_queue') || '[]');
+  if (queue.length === 0) return;
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return;
+  let remaining = [];
+  for (const item of queue) {
+    try {
+      if (item.type === 'notes') {
+        await supabase.from('notes').update({ content: item.content, updated_at: item.updated_at }).eq('id', item.id);
+      } else {
+        await supabase.from('journal_entries').upsert({ user_id: user.id, entry_date: item.id, content: item.content, updated_at: item.updated_at }, { onConflict: 'user_id,entry_date' });
+      }
+    } catch (e) {
+      remaining.push(item);
+    }
+  }
+  localStorage.setItem('chronoa_offline_queue', JSON.stringify(remaining));
+};
+
 export default function NotesPage() {
-  const { notesTab, setNotesTab } = useUiStore();
+  const { notesTab, setNotesTab, setMobileNoteOpen } = useUiStore();
   
   const [notes, setNotes] = useState<any[]>([]);
   const [journals, setJournals] = useState<any[]>([]);
@@ -28,12 +50,18 @@ export default function NotesPage() {
   const [loading, setLoading] = useState(true);
   const [isListVisible, setIsListVisible] = useState(true);
   const [isTrashOpen, setIsTrashOpen] = useState(false);
+  const [autoSelectPending, setAutoSelectPending] = useState(true);
+
+  const [showCalendar, setShowCalendar] = useState(false);
+  const [calMonth, setCalMonth] = useState(new Date());
 
   const handleTabChange = (id: Tab) => {
     setNotesTab(id);
     setSelectedId(null);
     setSearchQuery("");
     setIsTrashOpen(false);
+    setAutoSelectPending(true);
+    setShowCalendar(false);
   };
 
   const fetchData = useCallback(async () => {
@@ -44,7 +72,7 @@ export default function NotesPage() {
     const { data: nData } = await supabase.from('notes').select('*').is('deleted_at', null).order('updated_at', { ascending: false });
     setNotes(nData || []);
 
-    const { data: jData } = await supabase.from('journal_entries').select('*').order('entry_date', { ascending: false });
+    const { data: jData } = await supabase.from('journal_entries').select('*').is('deleted_at', null).order('entry_date', { ascending: false });
     const todayStr = new Date().toISOString().split('T')[0];
     const jList = jData || [];
     if (!jList.some(j => j.entry_date === todayStr)) {
@@ -53,22 +81,36 @@ export default function NotesPage() {
     setJournals(jList);
 
     const { data: tData } = await supabase.from('notes').select('*').not('deleted_at', 'is', null);
-    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-    const validTrash = (tData || []).filter(note => new Date(note.deleted_at) > thirtyDaysAgo);
+    const { data: jTrashData } = await supabase.from('journal_entries').select('*').not('deleted_at', 'is', null);
     
-    setTrash(validTrash.sort((a, b) => new Date(b.deleted_at).getTime() - new Date(a.deleted_at).getTime()));
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    const validTrashNotes = (tData || []).filter(note => new Date(note.deleted_at) > thirtyDaysAgo).map(n => ({ ...n, isJournal: false }));
+    const validTrashJournals = (jTrashData || []).filter(j => new Date(j.deleted_at) > thirtyDaysAgo).map(j => ({ ...j, isJournal: true }));
+    
+    const combinedTrash = [...validTrashNotes, ...validTrashJournals].sort((a, b) => new Date(b.deleted_at).getTime() - new Date(a.deleted_at).getTime());
+    
+    setTrash(combinedTrash);
     setLoading(false);
+    syncOfflineData();
   }, []);
 
-  useEffect(() => { fetchData(); }, [fetchData]);
+  useEffect(() => { 
+    fetchData(); 
+    window.addEventListener('online', syncOfflineData);
+    return () => window.removeEventListener('online', syncOfflineData);
+  }, [fetchData]);
 
   useEffect(() => {
     if (selectedId) {
-      const item = isTrashOpen ? trash.find(t => t.id === selectedId) :
-                   notesTab === 'notes' ? notes.find(n => n.id === selectedId) : null;
+      const item = isTrashOpen ? trash.find(t => (t.isJournal ? t.entry_date : t.id) === selectedId) :
+                   notesTab === 'notes' ? notes.find(n => n.id === selectedId) : journals.find(j => j.entry_date === selectedId);
       if (item) setEditTitle(item.title || "");
     }
-  }, [selectedId, notesTab, notes, trash, isTrashOpen]);
+  }, [selectedId, notesTab, notes, journals, trash, isTrashOpen]);
+
+  useEffect(() => {
+    setMobileNoteOpen(!isListVisible);
+  }, [isListVisible, setMobileNoteOpen]);
 
   const handleSelectItem = (id: string) => {
     setSelectedId(id);
@@ -84,52 +126,96 @@ export default function NotesPage() {
     }
   };
 
+  const createJournalForDate = async (dateStr: string) => {
+    if (journals.some(j => j.entry_date === dateStr)) {
+      handleSelectItem(dateStr);
+      setShowCalendar(false);
+      return;
+    }
+    const { data: { user } } = await supabase.auth.getUser();
+    const newJournal = { entry_date: dateStr, content: "<p></p>" };
+    setJournals(prev => [...prev, newJournal].sort((a, b) => new Date(b.entry_date).getTime() - new Date(a.entry_date).getTime()));
+    handleSelectItem(dateStr);
+    setShowCalendar(false);
+    await supabase.from('journal_entries').upsert({ user_id: user?.id, entry_date: dateStr, content: "<p></p>" });
+  };
+
   const updateNoteTitle = async () => {
     if (!selectedId || notesTab !== 'notes' || isTrashOpen) return;
     const t = editTitle.trim() || "Untitled";
     setNotes(prev => prev.map(n => n.id === selectedId ? { ...n, title: t } : n));
-    await supabase.from('notes').update({ title: t, updated_at: new Date().toISOString() }).eq('id', selectedId);
+    const updatedNow = new Date().toISOString();
+    
+    if (navigator.onLine) {
+        await supabase.from('notes').update({ title: t, updated_at: updatedNow }).eq('id', selectedId);
+    }
   };
 
   const saveContent = async (html: string, id: string) => {
     if (!id || isTrashOpen) return;
     const updatedNow = new Date().toISOString();
     
-    if (notesTab === 'notes') {
-      setNotes(prev => prev.map(n => n.id === id ? { ...n, content: html, updated_at: updatedNow } : n));
-      await supabase.from('notes').update({ content: html, updated_at: updatedNow }).eq('id', id);
-    } else if (notesTab === 'journal') {
-      setJournals(prev => prev.map(j => j.entry_date === id ? { ...j, content: html, updated_at: updatedNow } : j));
-      const { data: { user } } = await supabase.auth.getUser();
-      await supabase.from('journal_entries').upsert({ user_id: user?.id, entry_date: id, content: html, updated_at: updatedNow }, { onConflict: 'user_id,entry_date' });
-    }
+    // Update local React state instantly
+    if (notesTab === 'notes') setNotes(prev => prev.map(n => n.id === id ? { ...n, content: html, updated_at: updatedNow } : n));
+    else if (notesTab === 'journal') setJournals(prev => prev.map(j => j.entry_date === id ? { ...j, content: html, updated_at: updatedNow } : j));
+
+    // Save to Offline Queue
+    const queue = JSON.parse(localStorage.getItem('chronoa_offline_queue') || '[]');
+    const itemIndex = queue.findIndex((q: any) => q.id === id && q.type === notesTab);
+    const payload = { type: notesTab, id, content: html, updated_at: updatedNow };
+    if (itemIndex >= 0) queue[itemIndex] = payload;
+    else queue.push(payload);
+    localStorage.setItem('chronoa_offline_queue', JSON.stringify(queue));
+
+    // Trigger sync
+    syncOfflineData();
   };
 
   const moveToTrash = async (id: string) => {
     const deleted_at = new Date().toISOString();
-    const note = notes.find(n => n.id === id);
-    setNotes(prev => prev.filter(n => n.id !== id));
-    setTrash([{ ...note, deleted_at }, ...trash]);
-    setSelectedId(null);
-    setIsListVisible(true);
-    await supabase.from('notes').update({ deleted_at }).eq('id', id);
+    if (notesTab === 'journal') {
+       const journal = journals.find(j => j.entry_date === id);
+       setJournals(prev => prev.filter(j => j.entry_date !== id));
+       setTrash([{ ...journal, deleted_at, isJournal: true }, ...trash]);
+       setSelectedId(null);
+       setIsListVisible(true);
+       if (navigator.onLine) await supabase.from('journal_entries').update({ deleted_at }).eq('entry_date', id);
+    } else {
+       const note = notes.find(n => n.id === id);
+       setNotes(prev => prev.filter(n => n.id !== id));
+       setTrash([{ ...note, deleted_at, isJournal: false }, ...trash]);
+       setSelectedId(null);
+       setIsListVisible(true);
+       if (navigator.onLine) await supabase.from('notes').update({ deleted_at }).eq('id', id);
+    }
   };
 
-  const restoreNote = async (id: string) => {
-    const note = trash.find(n => n.id === id);
-    setTrash(prev => prev.filter(n => n.id !== id));
-    setNotes([{ ...note, deleted_at: null }, ...notes]);
+  const restoreNote = async (item: any) => {
+    const id = item.isJournal ? item.entry_date : item.id;
+    setTrash(prev => prev.filter(t => (t.isJournal ? t.entry_date : t.id) !== id));
+    
+    if (item.isJournal) {
+       setJournals([{ ...item, deleted_at: null }, ...journals].sort((a, b) => new Date(b.entry_date).getTime() - new Date(a.entry_date).getTime()));
+       if (navigator.onLine) await supabase.from('journal_entries').update({ deleted_at: null }).eq('entry_date', id);
+    } else {
+       setNotes([{ ...item, deleted_at: null }, ...notes].sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()));
+       if (navigator.onLine) await supabase.from('notes').update({ deleted_at: null }).eq('id', id);
+    }
     setSelectedId(null);
     setIsListVisible(true);
-    await supabase.from('notes').update({ deleted_at: null }).eq('id', id);
   };
 
-  const permanentlyDelete = async (id: string) => {
+  const permanentlyDelete = async (item: any) => {
     if (!confirm("Delete permanently?")) return;
-    setTrash(prev => prev.filter(n => n.id !== id));
+    const id = item.isJournal ? item.entry_date : item.id;
+    setTrash(prev => prev.filter(t => (t.isJournal ? t.entry_date : t.id) !== id));
+    
+    if (navigator.onLine) {
+       if (item.isJournal) await supabase.from('journal_entries').delete().eq('entry_date', id);
+       else await supabase.from('notes').delete().eq('id', id);
+    }
     setSelectedId(null);
     setIsListVisible(true);
-    await supabase.from('notes').delete().eq('id', id);
   };
 
   const emptyTrash = async () => {
@@ -137,12 +223,15 @@ export default function NotesPage() {
     setTrash([]);
     setSelectedId(null);
     setIsListVisible(true);
-    await supabase.from('notes').delete().not('deleted_at', 'is', null);
+    if (navigator.onLine) {
+        await supabase.from('notes').delete().not('deleted_at', 'is', null);
+        await supabase.from('journal_entries').delete().not('deleted_at', 'is', null);
+    }
   };
 
   const formatDateLabel = (dateStr: string) => {
     const date = new Date(dateStr);
-    return date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: date.getFullYear() !== new Date().getFullYear() ? "numeric" : undefined });
+    return date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
   };
 
   const filteredItems = useMemo(() => {
@@ -150,11 +239,23 @@ export default function NotesPage() {
     if (!searchQuery.trim()) return list;
     const q = searchQuery.toLowerCase();
     return list.filter(item => {
-      const title = !isTrashOpen && notesTab === 'journal' ? formatDateLabel(item.entry_date) : item.title;
+      const isJournal = isTrashOpen ? item.isJournal : notesTab === 'journal';
+      const title = isJournal ? formatDateLabel(item.entry_date) : item.title;
       const plain = (item.content || "").replace(/<[^>]+>/g, ' ').toLowerCase();
       return title?.toLowerCase().includes(q) || plain.includes(q);
     });
   }, [notes, journals, trash, notesTab, searchQuery, isTrashOpen]);
+
+  useEffect(() => {
+    if (autoSelectPending && !loading && !isTrashOpen) {
+      if (filteredItems.length > 0) {
+        const firstItem = filteredItems[0];
+        const firstId = notesTab === 'journal' ? firstItem.entry_date : firstItem.id;
+        setSelectedId(firstId);
+      }
+      setAutoSelectPending(false);
+    }
+  }, [autoSelectPending, loading, filteredItems, isTrashOpen, notesTab]);
 
   const Snippet = ({ html, query }: { html: string, query: string }) => {
     const plain = (html || "").replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
@@ -179,10 +280,53 @@ export default function NotesPage() {
 
   const selectedItem = useMemo(() => {
     if (!selectedId) return null;
-    if (isTrashOpen) return trash.find(t => t.id === selectedId);
+    if (isTrashOpen) return trash.find(t => (t.isJournal ? t.entry_date : t.id) === selectedId);
     if (notesTab === 'notes') return notes.find(n => n.id === selectedId);
     return journals.find(j => j.entry_date === selectedId);
   }, [selectedId, notesTab, notes, journals, trash, isTrashOpen]);
+
+  // Calendar render helper
+  const renderCalendar = () => {
+    const year = calMonth.getFullYear();
+    const month = calMonth.getMonth();
+    const firstDay = new Date(year, month, 1).getDay();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    
+    const days = [];
+    for (let i = 0; i < firstDay; i++) days.push(null);
+    for (let i = 1; i <= daysInMonth; i++) days.push(new Date(year, month, i));
+
+    return (
+      <div className="absolute top-12 right-0 mt-2 p-4 bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] rounded-2xl shadow-xl z-50 w-[260px] animate-fade-up">
+        <div className="flex justify-between items-center mb-4">
+          <button onClick={() => setCalMonth(new Date(year, month - 1, 1))} className="p-1 text-[#888] hover:text-[#c2956e]"><ChevronLeft size={16}/></button>
+          <span className="text-sm font-bold text-[#3d3b33] dark:text-[#f0f0f0] uppercase tracking-widest">{calMonth.toLocaleString('default', { month: 'short' })} {year}</span>
+          <button onClick={() => setCalMonth(new Date(year, month + 1, 1))} className="p-1 text-[#888] hover:text-[#c2956e]"><ChevronRight size={16}/></button>
+        </div>
+        <div className="grid grid-cols-7 gap-1 text-center mb-2">
+          {['S','M','T','W','T','F','S'].map((d,i) => <span key={i} className="text-[9px] font-bold text-[#b0ad9a]">{d}</span>)}
+        </div>
+        <div className="grid grid-cols-7 gap-1">
+          {days.map((d, i) => {
+            if (!d) return <div key={i} />;
+            const dateStr = d.toISOString().split('T')[0];
+            const hasEntry = journals.some(j => j.entry_date === dateStr);
+            const isToday = dateStr === new Date().toISOString().split('T')[0];
+            return (
+              <button 
+                key={i} 
+                onClick={() => createJournalForDate(dateStr)}
+                className={`relative flex items-center justify-center h-8 rounded-lg text-xs font-medium transition-colors hover:bg-[#c2956e]/10 hover:text-[#c2956e] ${isToday ? 'bg-[#c2956e] text-white' : 'text-[#3d3b33] dark:text-[#e0e0e0]'}`}
+              >
+                {d.getDate()}
+                {hasEntry && !isToday && <div className="absolute bottom-1 w-1 h-1 bg-[#c2956e] rounded-full" />}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div className="flex h-screen w-full bg-[#f7f5f0] dark:bg-[#121212] lg:pl-10 overflow-hidden selection:bg-[#c2956e]/20">
@@ -200,17 +344,22 @@ export default function NotesPage() {
               </h1>
             </div>
             
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 relative">
               {!isTrashOpen ? (
                 <>
-                  <button onClick={() => { setIsTrashOpen(true); setSelectedId(null); }} className="w-8 h-8 flex items-center justify-center text-[#888] hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/10 rounded-full transition-all">
+                  <button onClick={() => { setIsTrashOpen(true); setSelectedId(null); setAutoSelectPending(true); setShowCalendar(false); }} className="w-8 h-8 flex items-center justify-center text-[#888] hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/10 rounded-full transition-all">
                     <Trash size={16} />
                   </button>
-                  {notesTab === 'notes' && (
+                  {notesTab === 'notes' ? (
                     <button onClick={createNote} className="w-8 h-8 flex items-center justify-center bg-[#3d3b33] dark:bg-[#f0f0f0] text-white dark:text-[#121212] rounded-full hover:scale-105 transition-all shadow-lg">
                       <Plus size={18} />
                     </button>
+                  ) : (
+                    <button onClick={() => setShowCalendar(!showCalendar)} className="w-8 h-8 flex items-center justify-center bg-[#3d3b33] dark:bg-[#f0f0f0] text-white dark:text-[#121212] rounded-full hover:scale-105 transition-all shadow-lg">
+                      {showCalendar ? <X size={16} /> : <CalendarDays size={16} />}
+                    </button>
                   )}
+                  {showCalendar && renderCalendar()}
                 </>
               ) : (
                 <button onClick={emptyTrash} title="Empty Trash" className="px-3 py-1.5 bg-red-50 dark:bg-red-900/20 text-red-500 rounded-xl text-[9px] font-bold uppercase tracking-widest hover:bg-red-500 hover:text-white transition-all">
@@ -231,7 +380,7 @@ export default function NotesPage() {
 
             <div className="flex bg-[#ebe8e2] dark:bg-[#1a1a1a] p-1 rounded-xl">
               {isTrashOpen ? (
-                <button onClick={() => setIsTrashOpen(false)} className="flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all bg-white dark:bg-[#2a2a2a] shadow-sm text-[#3d3b33] dark:text-[#f0f0f0]">
+                <button onClick={() => { setIsTrashOpen(false); setAutoSelectPending(true); }} className="flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all bg-white dark:bg-[#2a2a2a] shadow-sm text-[#3d3b33] dark:text-[#f0f0f0]">
                   <ArrowLeft size={14} /> Back to Library
                 </button>
               ) : (
@@ -246,7 +395,6 @@ export default function NotesPage() {
           </div>
         </div>
 
-        {/* ADDED ID: "notes-library-scroll-container" AND "scroll-smooth" HERE FOR SCROLL CONTROLS */}
         <div id="notes-library-scroll-container" className="flex-1 overflow-y-auto no-scrollbar p-4 space-y-3 scroll-smooth">
           {loading ? (
             <div className="flex flex-col items-center justify-center py-12 gap-3 opacity-40">
@@ -255,11 +403,10 @@ export default function NotesPage() {
             </div>
           ) : filteredItems.length > 0 ? (
             filteredItems.map(item => {
-              const id = !isTrashOpen && notesTab === 'journal' ? item.entry_date : item.id;
+              const isJournal = isTrashOpen ? item.isJournal : notesTab === 'journal';
+              const id = isJournal ? item.entry_date : item.id;
               const isSelected = selectedId === id;
-              const title = !isTrashOpen && notesTab === 'journal' 
-                ? (item.entry_date === new Date().toISOString().split('T')[0] ? 'Today' : formatDateLabel(item.entry_date)) 
-                : (item.title || 'Untitled');
+              const title = isJournal ? formatDateLabel(item.entry_date) : (item.title || 'Untitled');
               const daysLeft = isTrashOpen ? Math.ceil(30 - (Date.now() - new Date(item.deleted_at).getTime()) / (1000 * 60 * 60 * 24)) : 0;
 
               return (
@@ -299,17 +446,15 @@ export default function NotesPage() {
               </button>
               <div className="flex items-center gap-2 ml-auto">
                 {!isTrashOpen ? (
-                  notesTab === 'notes' && (
-                    <button onClick={() => moveToTrash(selectedItem.id)} className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 rounded-xl transition-all">
-                      <Trash2 size={18} />
-                    </button>
-                  )
+                  <button onClick={() => moveToTrash(selectedItem.isJournal || notesTab === 'journal' ? selectedItem.entry_date : selectedItem.id)} className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 rounded-xl transition-all">
+                    <Trash2 size={18} />
+                  </button>
                 ) : (
                   <div className="flex items-center gap-2">
-                    <button onClick={() => restoreNote(selectedItem.id)} className="flex items-center gap-2 px-4 py-2 bg-[#7ca982]/10 text-[#7ca982] rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-[#7ca982] hover:text-white transition-all">
+                    <button onClick={() => restoreNote(selectedItem)} className="flex items-center gap-2 px-4 py-2 bg-[#7ca982]/10 text-[#7ca982] rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-[#7ca982] hover:text-white transition-all">
                       <RotateCcw size={14} /> Restore
                     </button>
-                    <button onClick={() => permanentlyDelete(selectedItem.id)} className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 rounded-xl transition-all">
+                    <button onClick={() => permanentlyDelete(selectedItem)} className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 rounded-xl transition-all">
                       <Trash size={18} />
                     </button>
                   </div>
@@ -317,15 +462,14 @@ export default function NotesPage() {
               </div>
             </header>
             
-            {/* ADDED ID: "notes-scroll-container" AND "scroll-smooth" HERE FOR SCROLL CONTROLS */}
             <div id="notes-scroll-container" className="flex-1 overflow-y-auto no-scrollbar scroll-smooth">
               <div className="max-w-[1000px] mx-auto px-6 py-8 lg:py-10 lg:px-12 w-full animate-fade-up">
                 <div className="mb-6">
-                  {!isTrashOpen && notesTab === 'journal' ? (
+                  {(!isTrashOpen && notesTab === 'journal') || selectedItem.isJournal ? (
                     <div className="space-y-1">
                       <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#c2956e]">Daily Entry</p>
                       <h1 className="text-4xl lg:text-5xl text-[#3d3b33] dark:text-white font-serif italic leading-tight">
-                        {new Date(selectedItem.entry_date).toLocaleDateString("en-US", { weekday: 'long', month: 'long', day: 'numeric' })}
+                        {formatDateLabel(selectedItem.entry_date)}
                       </h1>
                     </div>
                   ) : (
@@ -342,6 +486,8 @@ export default function NotesPage() {
                     initialContent={selectedItem.content || '<p></p>'}
                     isEditable={!isTrashOpen}
                     onSave={(html) => saveContent(html, selectedItem.id || selectedItem.entry_date)}
+                    noteType={(!isTrashOpen && notesTab === 'journal') || selectedItem.isJournal ? 'journal' : 'notes'}
+                    entryDate={selectedItem.entry_date}
                   />
                 </div>
               </div>

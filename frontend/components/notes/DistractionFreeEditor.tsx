@@ -21,6 +21,8 @@ interface EditorProps {
   initialContent: string;
   isEditable?: boolean;
   onSave: (content: string) => void;
+  noteType?: 'notes' | 'journal';
+  entryDate?: string;
 }
 
 type ActiveStates = {
@@ -37,12 +39,13 @@ export default function DistractionFreeEditor({
   initialContent,
   isEditable = true,
   onSave,
+  noteType = 'notes',
+  entryDate
 }: EditorProps) {
   const { journalZoom, setJournalZoom } = useUiStore();
   const [saveStatus, setSaveStatus] = useState("Saved");
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
-  // Create a ref for onSave to avoid stale closures in the cleanup hook
   const onSaveRef = useRef(onSave);
   useEffect(() => {
     onSaveRef.current = onSave;
@@ -95,7 +98,6 @@ export default function DistractionFreeEditor({
     immediatelyRender: false,
   });
 
-  // Ensure save happens immediately when component is unmounting
   useEffect(() => {
     return () => {
       if (saveTimeoutRef.current && editor) {
@@ -117,10 +119,25 @@ export default function DistractionFreeEditor({
       hour: "2-digit",
       minute: "2-digit",
     });
+    const dateString = new Date().toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric"
+    });
+
+    let displayString = `${dateString}, ${timeString}`;
+    
+    if (noteType === 'journal' && entryDate) {
+        const todayStr = new Date().toISOString().split('T')[0];
+        if (entryDate === todayStr) {
+            displayString = timeString; 
+        }
+    }
+
     const isAtStart = editor.state.selection.anchor <= 1;
     const content = isAtStart
-      ? `<p><strong>${timeString}</strong></p><p></p>`
-      : `<p></p><p><strong>${timeString}</strong></p><p></p>`;
+      ? `<p><strong>${displayString}</strong></p><p></p>`
+      : `<p></p><p><strong>${displayString}</strong></p><p></p>`;
     editor.chain().focus().insertContent(content).run();
   };
 

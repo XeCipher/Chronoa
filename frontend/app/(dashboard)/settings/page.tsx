@@ -22,7 +22,9 @@ export default function SettingsPage() {
     routineResetHour, setRoutineResetHour, 
     theme, setTheme,
     hotkeysEnabled, setHotkeysEnabled,
-    moveCompletedToBottom, setMoveCompletedToBottom
+    moveCompletedToBottom, setMoveCompletedToBottom,
+    keepParentTaskAlive, setKeepParentTaskAlive,
+    addTaskAtTop, setAddTaskAtTop
   } = useUiStore();
   
   const [calendars, setCalendars] = useState<CalendarLink[]>([]);
@@ -222,16 +224,38 @@ export default function SettingsPage() {
             <CheckCircle2 size={20} />
             <h3 className="text-xl font-medium text-[#3d3b33] dark:text-[#f0f0f0]">Task Layout Behavior</h3>
           </div>
-          <p className="text-xs text-[#b0ad9a] dark:text-[#7a7a7a] mt-1 mb-4">Control how checked tasks respond automatically in your lists.</p>
+          <p className="text-xs text-[#b0ad9a] dark:text-[#7a7a7a] mt-1 mb-4">Control how tasks respond automatically in your lists.</p>
           
-          <div className="flex items-center justify-between p-4 bg-[#f7f5f0]/50 dark:bg-[#222] border border-[#e0ddd5] dark:border-[#333] rounded-2xl cursor-pointer" onClick={() => setMoveCompletedToBottom(!moveCompletedToBottom)}>
-            <div className="space-y-1">
-              <span className="text-[13px] text-[#3d3b33] dark:text-[#f0f0f0] font-medium">Move Checked Tasks to Bottom</span>
-              <p className="text-[11px] text-[#b0ad9a] dark:text-[#7a7a7a]">Completed tasks will smoothly glide to the end of their list segment instantly upon checking.</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="flex items-center justify-between p-4 bg-[#f7f5f0]/50 dark:bg-[#222] border border-[#e0ddd5] dark:border-[#333] rounded-2xl cursor-pointer" onClick={() => setMoveCompletedToBottom(!moveCompletedToBottom)}>
+              <div className="space-y-1 pr-4">
+                <span className="text-[13px] text-[#3d3b33] dark:text-[#f0f0f0] font-medium">Glide Completed Tasks</span>
+                <p className="text-[10px] text-[#b0ad9a] dark:text-[#7a7a7a] leading-tight">Move to the bottom instantly.</p>
+              </div>
+              <button className={`shrink-0 w-10 h-5 rounded-full transition-colors relative ${moveCompletedToBottom ? 'bg-[#7ca982] dark:bg-[#6a9a70]' : 'bg-[#e0ddd5] dark:bg-[#444]'}`}>
+                <div className={`w-4 h-4 bg-white rounded-full absolute top-0.5 transition-transform ${moveCompletedToBottom ? 'translate-x-5' : 'translate-x-0.5 shadow-sm'}`} />
+              </button>
             </div>
-            <button className={`w-12 h-6 rounded-full transition-colors relative ${moveCompletedToBottom ? 'bg-[#7ca982] dark:bg-[#6a9a70]' : 'bg-[#e0ddd5] dark:bg-[#444]'}`}>
-              <div className={`w-5 h-5 bg-white rounded-full absolute top-0.5 transition-transform ${moveCompletedToBottom ? 'translate-x-6' : 'translate-x-0.5 shadow-sm'}`} />
-            </button>
+
+            <div className="flex items-center justify-between p-4 bg-[#f7f5f0]/50 dark:bg-[#222] border border-[#e0ddd5] dark:border-[#333] rounded-2xl cursor-pointer" onClick={() => setKeepParentTaskAlive(!keepParentTaskAlive)}>
+              <div className="space-y-1 pr-4">
+                <span className="text-[13px] text-[#3d3b33] dark:text-[#f0f0f0] font-medium">Keep Parent Tasks</span>
+                <p className="text-[10px] text-[#b0ad9a] dark:text-[#7a7a7a] leading-tight">Don't auto-complete when children finish.</p>
+              </div>
+              <button className={`shrink-0 w-10 h-5 rounded-full transition-colors relative ${keepParentTaskAlive ? 'bg-[#7ca982] dark:bg-[#6a9a70]' : 'bg-[#e0ddd5] dark:bg-[#444]'}`}>
+                <div className={`w-4 h-4 bg-white rounded-full absolute top-0.5 transition-transform ${keepParentTaskAlive ? 'translate-x-5' : 'translate-x-0.5 shadow-sm'}`} />
+              </button>
+            </div>
+
+            <div className="flex items-center justify-between p-4 bg-[#f7f5f0]/50 dark:bg-[#222] border border-[#e0ddd5] dark:border-[#333] rounded-2xl cursor-pointer" onClick={() => setAddTaskAtTop(!addTaskAtTop)}>
+              <div className="space-y-1 pr-4">
+                <span className="text-[13px] text-[#3d3b33] dark:text-[#f0f0f0] font-medium">Add New Tasks to Top</span>
+                <p className="text-[10px] text-[#b0ad9a] dark:text-[#7a7a7a] leading-tight">New tasks appear at the top.</p>
+              </div>
+              <button className={`shrink-0 w-10 h-5 rounded-full transition-colors relative ${addTaskAtTop ? 'bg-[#7ca982] dark:bg-[#6a9a70]' : 'bg-[#e0ddd5] dark:bg-[#444]'}`}>
+                <div className={`w-4 h-4 bg-white rounded-full absolute top-0.5 transition-transform ${addTaskAtTop ? 'translate-x-5' : 'translate-x-0.5 shadow-sm'}`} />
+              </button>
+            </div>
           </div>
         </section>
 

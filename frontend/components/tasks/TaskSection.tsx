@@ -18,14 +18,10 @@ export default function TaskSection({ type, title }: Props) {
   const [isEditMode, setIsEditMode] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [newTaskId, setNewTaskId] = useState<string | null>(null);
-  const { taskArchiveDelay, moveCompletedToBottom } = useUiStore();
+  const { taskArchiveDelay, moveCompletedToBottom, keepParentTaskAlive, addTaskAtTop } = useUiStore();
   const [now, setNow] = useState(Date.now());
   const sectionRef = useRef<HTMLDivElement>(null);
 
-  /**
-   * Fetches tasks from Supabase based on the section type (routine or normal).
-   * Includes a fallback mechanism in case the initial query fails.
-   */
   const fetchTasks = async () => {
     let { data, error } = await supabase
       .from("tasks")
@@ -50,7 +46,6 @@ export default function TaskSection({ type, title }: Props) {
   useEffect(() => {
     fetchTasks();
 
-    // Subscribe to realtime changes with a slight debounce to avoid flickering
     const channelId = `rt_${type}_${Math.random().toString(36).substring(7)}`;
     let timeoutId: NodeJS.Timeout;
 
@@ -75,7 +70,6 @@ export default function TaskSection({ type, title }: Props) {
     };
   }, [type]);
 
-  // Handles clicking outside the section to exit edit mode for routines
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (
@@ -93,7 +87,6 @@ export default function TaskSection({ type, title }: Props) {
 
   const delayMs = taskArchiveDelay <= 0 ? 1000 : taskArchiveDelay * 60 * 1000;
 
-  // Filter tasks based on archive delay settings
   const filteredTasks = useMemo(() => {
     if (isEditMode) return tasks;
     if (taskArchiveDelay < 0) return tasks;
@@ -104,7 +97,6 @@ export default function TaskSection({ type, title }: Props) {
     });
   }, [tasks, isEditMode, taskArchiveDelay, now, delayMs]);
 
-  // Organizes tasks into a hierarchical tree structure for rendering
   const taskTree = useMemo(() => {
     const map: Record<string, Task> = {};
     const roots: Task[] = [];
@@ -147,7 +139,6 @@ export default function TaskSection({ type, title }: Props) {
     let tasksToUpdate: { id: string; updates: Partial<Task> }[] = [];
 
     if (isToggling) {
-      // Toggle children status recursively
       const addChildrenToUpdate = (parentId: string) => {
         tasks
           .filter((t) => t.parent_id === parentId)
@@ -163,16 +154,19 @@ export default function TaskSection({ type, title }: Props) {
       };
       addChildrenToUpdate(id);
 
-      // Update parent status based on siblings
       const checkParentStatus = (taskId: string, status: boolean) => {
         const currentTask = tasks.find((t) => t.id === taskId);
         if (!currentTask?.parent_id) return;
+
+        const parentTask = tasks.find((t) => t.id === currentTask.parent_id);
+        const shouldKeepAlive = keepParentTaskAlive || parentTask?.keep_alive;
+
         const siblings = tasks.filter(
           (t) => t.parent_id === currentTask.parent_id && t.id !== taskId
         );
         const allSiblingsChecked = siblings.every((s) => s.is_completed);
 
-        if (status && allSiblingsChecked) {
+        if (status && allSiblingsChecked && !shouldKeepAlive) {
           tasksToUpdate.push({
             id: currentTask.parent_id,
             updates: { is_completed: true, completed_at: completionTime },
@@ -198,9 +192,10 @@ export default function TaskSection({ type, title }: Props) {
       })
     );
 
-    await supabase.from("tasks").update(updates).eq("id", id);
+    // Fire and forget logic for snappy UI updates
+    supabase.from("tasks").update(updates).eq("id", id);
     for (const bulk of tasksToUpdate) {
-      await supabase.from("tasks").update(bulk.updates).eq("id", bulk.id);
+      supabase.from("tasks").update(bulk.updates).eq("id", bulk.id);
     }
   };
 
@@ -211,9 +206,15 @@ export default function TaskSection({ type, title }: Props) {
     if (!user) return;
 
     const siblings = tasks.filter((t) => t.parent_id === parentId);
-    const maxPosition =
-      siblings.length > 0 ? Math.max(...siblings.map((t) => t.position)) : -1;
-    const newPosition = maxPosition + 1;
+    let newPosition = 0;
+    
+    if (siblings.length > 0) {
+      if (addTaskAtTop) {
+        newPosition = Math.min(...siblings.map((t) => t.position)) - 1;
+      } else {
+        newPosition = Math.max(...siblings.map((t) => t.position)) + 1;
+      }
+    }
 
     const { data } = await supabase
       .from("tasks")
@@ -248,10 +249,7 @@ export default function TaskSection({ type, title }: Props) {
     const deletedTime = new Date().toISOString();
     setTasks((prev) => prev.filter((t) => !idsToDelete.includes(t.id)));
     for (const delId of idsToDelete) {
-      await supabase
-        .from("tasks")
-        .update({ deleted_at: deletedTime })
-        .eq("id", delId);
+      supabase.from("tasks").update({ deleted_at: deletedTime }).eq("id", delId);
     }
   };
 
@@ -276,10 +274,7 @@ export default function TaskSection({ type, title }: Props) {
             : t
         )
       );
-      await supabase
-        .from("tasks")
-        .update({ parent_id: newParentId, position: newPosition })
-        .eq("id", task.id);
+      supabase.from("tasks").update({ parent_id: newParentId, position: newPosition }).eq("id", task.id);
     }
   };
 
@@ -310,7 +305,7 @@ export default function TaskSection({ type, title }: Props) {
     );
 
     for (const update of tasksToUpdate) {
-      await supabase.from("tasks").update(update.updates).eq("id", update.id);
+      supabase.from("tasks").update(update.updates).eq("id", update.id);
     }
   };
 
@@ -332,8 +327,9 @@ export default function TaskSection({ type, title }: Props) {
         })
       );
 
-      await supabase.from("tasks").update({ position: newPosTask }).eq("id", task.id);
-      await supabase.from("tasks").update({ position: newPosPrev }).eq("id", prev.id);
+      // Optimistic update - fire and forget
+      supabase.from("tasks").update({ position: newPosTask }).eq("id", task.id);
+      supabase.from("tasks").update({ position: newPosPrev }).eq("id", prev.id);
     }
   };
 
@@ -355,8 +351,9 @@ export default function TaskSection({ type, title }: Props) {
         })
       );
 
-      await supabase.from("tasks").update({ position: newPosTask }).eq("id", task.id);
-      await supabase.from("tasks").update({ position: newPosNext }).eq("id", next.id);
+      // Optimistic update - fire and forget
+      supabase.from("tasks").update({ position: newPosTask }).eq("id", task.id);
+      supabase.from("tasks").update({ position: newPosNext }).eq("id", next.id);
     }
   };
 

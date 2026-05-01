@@ -12,7 +12,7 @@ export default function SidebarNav() {
   const pathname = usePathname();
   const router = useRouter();
   
-  const { isSidebarPinned, toggleSidebarPin } = useUiStore();
+  const { isSidebarPinned, toggleSidebarPin, mobileNoteOpen } = useUiStore();
   const [isHovered, setIsHovered] = useState(false);
   const [isAsleep, setIsAsleep] = useState(false);
 
@@ -145,7 +145,7 @@ export default function SidebarNav() {
       </aside>
 
       {/* Mobile Bottom Nav */}
-      <nav className="md:hidden fixed bottom-0 left-0 w-full h-[72px] pb-[env(safe-area-inset-bottom)] bg-[#f7f5f0]/90 dark:bg-[#121212]/90 backdrop-blur-xl border-t border-[#e0ddd5] dark:border-[#2a2a2a] flex items-center justify-around z-[100]">
+      <nav className={`md:hidden fixed bottom-0 left-0 w-full h-[72px] pb-[env(safe-area-inset-bottom)] bg-[#f7f5f0]/90 dark:bg-[#121212]/90 backdrop-blur-xl border-t border-[#e0ddd5] dark:border-[#2a2a2a] flex items-center justify-around z-[100] transition-transform duration-300 ease-in-out ${mobileNoteOpen ? 'translate-y-full' : 'translate-y-0'}`}>
         {navItems.map((item) => {
           const isActive = pathname === item.href;
           return (
@@ -155,7 +155,6 @@ export default function SidebarNav() {
               onClick={(e) => {
                 if (isActive) {
                   e.preventDefault();
-                  // Custom smooth scrolling logic mapped to dynamically tagged IDs
                   const containers = ["notes-library-scroll-container", "notes-scroll-container", "main-scroll-container"];
                   for (const id of containers) {
                     const el = document.getElementById(id);
