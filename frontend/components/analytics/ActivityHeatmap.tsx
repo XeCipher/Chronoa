@@ -32,12 +32,11 @@ export default function ActivityHeatmap({ dailyMap }: { dailyMap: Record<string,
     :['#ebedf0', '#9be9a8', '#40c463', '#30a14e', '#216e39'];
 
   const { weeks, monthLabels } = useMemo(() => {
-    const endDate = new Date(endMonth.year, endMonth.month + 1, 0); // Last day of selected month
+    const endDate = new Date(endMonth.year, endMonth.month + 1, 0); 
     if (endDate > today) {
         endDate.setFullYear(today.getFullYear(), today.getMonth(), today.getDate());
     }
 
-    // Determine max count for color scaling
     const maxCount = Math.max(...Object.values(dailyMap).map(d => d.taskCount + (d.focusMinutes > 0 ? 1 : 0)), 1);
     
     const getLevel = (count: number) => {
@@ -49,7 +48,6 @@ export default function ActivityHeatmap({ dailyMap }: { dailyMap: Record<string,
     };
 
     const days =[];
-    // Go back exactly 364 days to build exactly 52 full weeks leading up to the endDate
     for (let i = 364; i >= 0; i--) {
       const d = new Date(endDate);
       d.setDate(d.getDate() - i);
@@ -68,7 +66,6 @@ export default function ActivityHeatmap({ dailyMap }: { dailyMap: Record<string,
     const grid: any[][] = [];
     let currentWeek: any[] =[];
     
-    // Pad the first week to start on Sunday
     if (days[0].dayOfWeek !== 0) {
       for (let i = 0; i < days[0].dayOfWeek; i++) currentWeek.push(null);
     }
@@ -81,13 +78,11 @@ export default function ActivityHeatmap({ dailyMap }: { dailyMap: Record<string,
       }
     });
 
-    // Pad the last week to end on Saturday
     if (currentWeek.length > 0) {
       while (currentWeek.length < 7) currentWeek.push(null);
       grid.push(currentWeek);
     }
 
-    // Map month labels correctly over the columns
     const monthLabels: { label: string; weekIndex: number }[] =[];
     let lastMonth = -1;
     grid.forEach((week, i) => {
@@ -149,24 +144,17 @@ export default function ActivityHeatmap({ dailyMap }: { dailyMap: Record<string,
         </div>
       </div>
       
-      {/* Wrapper to align axes and grid */}
       <div className="flex flex-1 w-full relative min-h-0">
-        
-        {/* Isolated Y-Axis Container (No Overlap) */}
         <div className="w-8 shrink-0 flex flex-col relative text-[9px] font-bold uppercase tracking-widest text-[#b0ad9a] dark:text-[#555] mr-2">
-           {/* 12px height + 3px gap = 15px per block. The top month row is 20px. Mon = index 1, Wed = index 3, Fri = index 5 */}
            <span className="absolute top-[35px]">Mon</span>
            <span className="absolute top-[65px]">Wed</span>
            <span className="absolute top-[95px]">Fri</span>
         </div>
 
-        {/* X-Axis & Grid Container */}
-        {/* We use dir="rtl" to keep right-side flush and naturally cut off overflowing items on the left side (like GitHub) */}
         <div className="flex-1 overflow-hidden" dir="rtl">
-          {/* Inner wrapper reverted to ltr so grid builds left-to-right correctly */}
-          <div className="flex flex-col w-max" dir="ltr">
+          {/* Added internal padding (pl-1 pr-3) to ensure no cutoff on edges */}
+          <div className="flex flex-col w-max pl-1 pr-3 pb-1" dir="ltr">
             
-            {/* Month X-Axis */}
             <div className="relative w-full h-[20px] mb-1">
                {monthLabels.map((m, i) => (
                  <span key={i} className="absolute text-[9px] font-bold uppercase tracking-widest text-[#b0ad9a] dark:text-[#7a7a7a]" style={{ left: `calc(${m.weekIndex} * 15px)` }}>
@@ -175,7 +163,6 @@ export default function ActivityHeatmap({ dailyMap }: { dailyMap: Record<string,
                ))}
             </div>
 
-            {/* The Grid Canvas */}
             <div className="flex gap-[3px] items-start w-max">
               {weeks.map((week, wIdx) => (
                 <div key={wIdx} className="flex flex-col gap-[3px]">

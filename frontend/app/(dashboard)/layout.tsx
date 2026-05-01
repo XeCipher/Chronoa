@@ -34,7 +34,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       }
       setIsLoading(false);
 
-      // Feature 6: Initial Settings Sync from DB
       const { data: profile } = await supabase.from('profiles').select('*').eq('id', session.user.id).single();
       if (profile) {
         const state = useUiStore.getState();
@@ -46,9 +45,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         if (profile.move_completed_to_bottom !== null) state.setMoveCompletedToBottom(profile.move_completed_to_bottom);
         if (profile.keep_parent_task_alive !== null) state.setKeepParentTaskAlive(profile.keep_parent_task_alive);
         if (profile.add_task_at_top !== null) state.setAddTaskAtTop(profile.add_task_at_top);
+        if (profile.show_home_task_progress !== null) state.setShowHomeTaskProgress(profile.show_home_task_progress);
       }
 
-      // Feature 6: Realtime updates for settings across tabs/devices
       const channel = supabase.channel(`profile_${session.user.id}`)
         .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'profiles', filter: `id=eq.${session.user.id}` }, (payload) => {
            const rec = payload.new;
@@ -61,6 +60,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
            if (rec.move_completed_to_bottom !== null && rec.move_completed_to_bottom !== state.moveCompletedToBottom) state.setMoveCompletedToBottom(rec.move_completed_to_bottom);
            if (rec.keep_parent_task_alive !== null && rec.keep_parent_task_alive !== state.keepParentTaskAlive) state.setKeepParentTaskAlive(rec.keep_parent_task_alive);
            if (rec.add_task_at_top !== null && rec.add_task_at_top !== state.addTaskAtTop) state.setAddTaskAtTop(rec.add_task_at_top);
+           if (rec.show_home_task_progress !== null && rec.show_home_task_progress !== state.showHomeTaskProgress) state.setShowHomeTaskProgress(rec.show_home_task_progress);
         }).subscribe();
         
       return () => { supabase.removeChannel(channel); };
@@ -68,7 +68,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     checkAuth();
   }, [router]);
 
-  // Global Hotkeys (Mnemonics)
   useEffect(() => {
     if (!hotkeysEnabled) return;
     const handleKeyDown = (e: KeyboardEvent) => {

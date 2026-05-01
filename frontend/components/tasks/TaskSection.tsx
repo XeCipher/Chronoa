@@ -7,6 +7,7 @@ import { Task } from "@/types/app.types";
 import RecursiveCheckbox from "../ui/RecursiveCheckbox";
 import { Plus, Edit3, CheckCircle2, ChevronDown, ChevronUp } from "lucide-react";
 import { useUiStore } from "@/store/uiStore";
+import { flushSync } from "react-dom";
 
 interface Props {
   type: "routine" | "normal";
@@ -29,7 +30,6 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
   const[now, setNow] = useState(Date.now());
   const sectionRef = useRef<HTMLDivElement>(null);
 
-  // Check which collapse state this section follows
   const isCollapsedMobile = type === 'routine' ? mobileRoutineCollapsed : mobileTasksCollapsed;
 
   const fetchTasks = async () => {
@@ -124,7 +124,7 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
       
       const selfMatchesMode = viewMode === 'archive' 
           ? (node.deleted_at === null && node.is_completed)
-          : (node.deleted_at === null && (!node.is_completed || isEditMode || taskArchiveDelay < 0 || (now - new Date(node.completed_at!).getTime() < delayMs)));
+          : (node.deleted_at === null && (!node.is_completed || isEditMode || taskArchiveDelay < 0 || (node.completed_at && now - new Date(node.completed_at).getTime() < delayMs)));
 
       return Boolean((selfMatchesMode && matchesSearch(node)) || hasVisibleChildren);
     };
@@ -236,11 +236,9 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
-    // Instantly expand the section on mobile to provide immediate feedback
     if (type === 'routine' && mobileRoutineCollapsed) setMobileRoutineCollapsed(false);
     if (type === 'normal' && mobileTasksCollapsed) setMobileTasksCollapsed(false);
 
-    // Open the parent immediately so the user sees the newly spawned child input
     if (parentId) {
       setTasks((prev) => prev.map((t) => t.id === parentId ? { ...t, is_collapsed: false } : t));
       supabase.from("tasks").update({ is_collapsed: false }).eq("id", parentId).then();
@@ -257,11 +255,34 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
       }
     }
 
+    const tempId = 'temp_' + Date.now();
+    const tempTask: Task = {
+      id: tempId,
+      user_id: user.id,
+      title: "",
+      task_type: type,
+      parent_id: parentId,
+      position: newPosition,
+      is_completed: false,
+      created_at: new Date().toISOString(),
+      completed_at: null,
+      deleted_at: null,
+      color: null,
+      keep_alive: false,
+      is_collapsed: false,
+      children: []
+    };
+
+    flushSync(() => {
+      setTasks((prev) => [...prev, tempTask]);
+      setNewTaskId(tempId);
+    });
+
     const { data } = await supabase
       .from("tasks")
       .insert({
         user_id: user.id,
-        title: "New Item",
+        title: "",
         task_type: type,
         parent_id: parentId,
         position: newPosition,
@@ -270,8 +291,9 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
       .single();
 
     if (data) {
-      setTasks((prev) =>[...prev, data]);
-      setNewTaskId(data.id);
+      setTasks((prev) => prev.map(t => t.id === tempId ? data : t));
+    } else {
+      setTasks((prev) => prev.filter(t => t.id !== tempId));
     }
   };
 
@@ -400,14 +422,11 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
     const index = siblings.findIndex((t) => t.id === task.id);
     
     if (index > 0) {
-      const prevTask = siblings[index - 1];
-      const currentTask = siblings[index];
-      
-      const tasksToUpdate =[
-        { id: prevTask.id, updates: { position: currentTask.position } },
-        { id: currentTask.id, updates: { position: prevTask.position } }
-      ];
-      
+      const newSiblings = [...siblings];
+      [newSiblings[index - 1], newSiblings[index]] = [newSiblings[index], newSiblings[index - 1]];
+
+      const tasksToUpdate = newSiblings.map((t, i) => ({ id: t.id, updates: { position: i } }));
+
       setTasks((prevTasks) =>
         prevTasks.map((t) => {
           const update = tasksToUpdate.find((u) => u.id === t.id);
@@ -417,9 +436,11 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
 
       try {
         await Promise.all(
-          tasksToUpdate.map((u) =>
-            supabase.from("tasks").update(u.updates).eq("id", u.id)
-          )
+          tasksToUpdate.map((u) => {
+            if (!u.id.startsWith('temp_')) {
+              return supabase.from("tasks").update(u.updates).eq("id", u.id);
+            }
+          })
         );
       } catch (err) {
         console.error("Failed to move task up", err);
@@ -434,14 +455,11 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
     const index = siblings.findIndex((t) => t.id === task.id);
     
     if (index < siblings.length - 1) {
-      const currentTask = siblings[index];
-      const nextTask = siblings[index + 1];
-      
-      const tasksToUpdate =[
-        { id: currentTask.id, updates: { position: nextTask.position } },
-        { id: nextTask.id, updates: { position: currentTask.position } }
-      ];
-      
+      const newSiblings = [...siblings];
+      [newSiblings[index + 1], newSiblings[index]] = [newSiblings[index], newSiblings[index + 1]];
+
+      const tasksToUpdate = newSiblings.map((t, i) => ({ id: t.id, updates: { position: i } }));
+
       setTasks((prevTasks) =>
         prevTasks.map((t) => {
           const update = tasksToUpdate.find((u) => u.id === t.id);
@@ -451,9 +469,11 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
 
       try {
         await Promise.all(
-          tasksToUpdate.map((u) =>
-            supabase.from("tasks").update(u.updates).eq("id", u.id)
-          )
+          tasksToUpdate.map((u) => {
+             if (!u.id.startsWith('temp_')) {
+                return supabase.from("tasks").update(u.updates).eq("id", u.id);
+             }
+          })
         );
       } catch (err) {
         console.error("Failed to move task down", err);
@@ -481,7 +501,6 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
               >
                 {title}
               </h2>
-              {/* Mobile-only collapse toggle */}
               <button 
                 onClick={toggleMobileCollapse}
                 className="md:hidden p-1.5 -ml-1 text-[#b0ad9a] dark:text-[#7a7a7a] active:bg-gray-100 dark:active:bg-[#333] rounded-lg transition-colors"

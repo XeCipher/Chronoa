@@ -1,6 +1,7 @@
+// frontend/components/analytics/TimeOfDayRadar.tsx
 "use client";
 
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { ResponsiveContainer, Radar, RadarChart, PolarGrid, PolarAngleAxis, Tooltip as RechartsTooltip } from 'recharts';
 import { useUiStore } from "@/store/uiStore";
 import { DailyRecord } from '@/app/(dashboard)/analytics/page';
@@ -8,6 +9,14 @@ import { DailyRecord } from '@/app/(dashboard)/analytics/page';
 export default function TimeOfDayRadar({ dailyMap }: { dailyMap: Record<string, DailyRecord> }) {
   const { theme } = useUiStore();
   const isDark = theme === 'dark' || (theme === 'system' && typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const { data, totalProductivity } = useMemo(() => {
     const tod = { Morning: 0, Afternoon: 0, Evening: 0, Night: 0 };
@@ -20,7 +29,6 @@ export default function TimeOfDayRadar({ dailyMap }: { dailyMap: Record<string, 
            else if (h >= 17 && h < 21) tod.Evening++; 
            else tod.Night++;
        });
-       // Weighting focus sessions as activity counts for the chronotype radar
        d.sessions.forEach(() => {
            tod.Afternoon++; 
        });
@@ -72,7 +80,7 @@ export default function TimeOfDayRadar({ dailyMap }: { dailyMap: Record<string, 
       
       <div className="flex-1 w-full min-h-0 relative">
         <ResponsiveContainer width="100%" height="100%">
-          <RadarChart cx="50%" cy="50%" outerRadius="70%" data={data}>
+          <RadarChart cx="50%" cy="50%" outerRadius={isMobile ? "50%" : "65%"} data={data}>
             <PolarGrid stroke={isDark ? '#333' : '#ebe8e2'} />
             <PolarAngleAxis 
               dataKey="subject" 

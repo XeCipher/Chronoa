@@ -6,6 +6,7 @@ import CenterClock from "@/components/home/CenterClock";
 import SceneryBackground from "@/components/home/SceneryBackground";
 import ProductivityWidgets from "@/components/home/ProductivityWidgets";
 import WeatherWidget from "@/components/home/WeatherWidget";
+import HomeTaskProgress from "@/components/home/HomeTaskProgress";
 import { useTimerStore } from "@/store/timerStore";
 
 export default function HomePage() {
@@ -21,6 +22,7 @@ export default function HomePage() {
   return (
     <div className="relative w-full h-[100dvh] overflow-hidden flex items-center justify-center touch-none overscroll-none">
       <SceneryBackground />
+      <HomeTaskProgress />
       
       <div className="absolute top-6 right-6 md:top-10 md:right-12 z-20">
         <WeatherWidget />

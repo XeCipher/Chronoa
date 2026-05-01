@@ -49,21 +49,18 @@ export default function RecursiveCheckbox({
   const isRoutine = task.task_type === 'routine';
   const isNormal = task.task_type === 'normal';
 
-  // Dynamic Truncation Logic
   useEffect(() => {
     const el = textRef.current;
     if (!el) return;
 
     const checkOverflow = () => {
       if (!isExpanded) {
-         // When clamped, if scrollHeight is greater than clientHeight, it means content is cut off
          setIsOverflowing(el.scrollHeight > el.clientHeight);
       } else {
-         // When expanded, check against a mathematical threshold of 10 lines
          const computedLineHeight = window.getComputedStyle(el).lineHeight;
          const lineHeight = computedLineHeight === 'normal' ? 22 : parseFloat(computedLineHeight) || 22; 
          const maxHeight = lineHeight * 10; 
-         setIsOverflowing(el.scrollHeight > maxHeight + 5); // +5px buffer
+         setIsOverflowing(el.scrollHeight > maxHeight + 5);
       }
     };
 
@@ -91,16 +88,15 @@ export default function RecursiveCheckbox({
   useEffect(() => {
     if (newTaskId === task.id) {
       setNewTaskId(null); 
-      setTimeout(() => {
-        if (textRef.current) {
-          textRef.current.focus();
-          const range = document.createRange();
-          range.selectNodeContents(textRef.current);
-          const sel = window.getSelection();
-          sel?.removeAllRanges();
-          sel?.addRange(range);
-        }
-      }, 50);
+      if (textRef.current) {
+        textRef.current.focus();
+        const range = document.createRange();
+        range.selectNodeContents(textRef.current);
+        range.collapse(false);
+        const sel = window.getSelection();
+        sel?.removeAllRanges();
+        sel?.addRange(range);
+      }
     }
   },[newTaskId, task.id, setNewTaskId]);
 
@@ -257,7 +253,7 @@ export default function RecursiveCheckbox({
               onInput={handleInput}
               onBlur={() => {
                 saveCurrentText();
-                setIsExpanded(false); // Instantly revert to short mode on blur
+                setIsExpanded(false); 
               }}
               onKeyDown={(e) => {
                 if (e.altKey && e.key === "ArrowUp") { e.preventDefault(); onMoveUp(task); return; }
@@ -330,16 +326,17 @@ export default function RecursiveCheckbox({
                      )}
                   </div>
 
-                  {/* Action Group 2: Core Tools (Add, Del) */}
+                  {/* Action Group 2: Core Tools */}
                   {showManagementActions && (
-                     <div className="flex items-center bg-white dark:bg-[#252525] rounded-xl p-1 border border-[#e0ddd5] dark:border-[#333] shadow-sm shrink-0">
-                        <button onClick={() => onAdd(task.id)} className="flex items-center justify-center p-1.5 rounded-lg text-[#c2956e] dark:text-[#d1a784] hover:bg-[#c2956e]/10 transition-colors" title="Add Subtask">
-                           <Plus size={15} />
-                        </button>
-                        <button onClick={() => onDelete(task.id, false)} className="flex items-center justify-center p-1.5 rounded-lg text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors" title="Delete">
-                           <Trash2 size={15} />
-                        </button>
-                     </div>
+                    <div className="flex md:hidden items-center bg-white dark:bg-[#252525] rounded-xl p-1 border border-[#e0ddd5] dark:border-[#333] shadow-sm shrink-0">
+                      <button 
+                        onClick={() => onDelete(task.id, false)} 
+                        className="flex items-center justify-center p-1.5 rounded-lg text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors" 
+                        title="Delete"
+                      >
+                        <Trash2 size={15} />
+                      </button>
+                    </div>
                   )}
 
                   {/* Action Group 3: Position & Nesting */}
@@ -377,20 +374,20 @@ export default function RecursiveCheckbox({
 
         <div className={`flex items-center shrink-0 ml-auto gap-0.5 transition-opacity duration-200 ${isMenuOpen ? 'opacity-100' : 'opacity-100 md:opacity-0 group-hover:opacity-100'}`}>
             {viewMode === 'focus' && (
-              <div className="hidden md:flex items-center gap-0.5">
+              <div className="flex items-center gap-0.5">
                   {showTimerStopwatchOutside && (
-                      <>
+                      <div className="hidden md:flex items-center gap-0.5">
                           <button onClick={() => handleSendToFocus('timer')} className="w-7 h-7 flex items-center justify-center rounded-lg text-[#c4c0b8] hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all" title="Send to Timer"><Timer size={14} /></button>
                           <button onClick={() => handleSendToFocus('stopwatch')} className="w-7 h-7 flex items-center justify-center rounded-lg text-[#c4c0b8] hover:text-orange-500 hover:bg-orange-50 dark:hover:bg-orange-900/20 transition-all" title="Send to Stopwatch"><Hourglass size={14} /></button>
-                      </>
+                      </div>
                   )}
                   {showManagementActions && (
                       <>
                         {showKeepAliveToggle && (
-                           <button onClick={() => onUpdate(task.id, { keep_alive: !task.keep_alive })} className={`w-7 h-7 flex items-center justify-center rounded-lg transition-all ${task.keep_alive ? 'text-white bg-[#7ca982] dark:bg-[#6a9a70]' : 'text-[#c4c0b8] hover:text-[#7ca982] hover:bg-[#7ca982]/10'}`} title="Keep parent task alive"><InfinityIcon size={14} /></button>
+                           <button onClick={() => onUpdate(task.id, { keep_alive: !task.keep_alive })} className={`hidden md:flex w-7 h-7 items-center justify-center rounded-lg transition-all ${task.keep_alive ? 'text-white bg-[#7ca982] dark:bg-[#6a9a70]' : 'text-[#c4c0b8] hover:text-[#7ca982] hover:bg-[#7ca982]/10'}`} title="Keep parent task alive"><InfinityIcon size={14} /></button>
                         )}
-                        <button onClick={() => onAdd(task.id)} className="w-7 h-7 flex items-center justify-center rounded-lg text-[#c4c0b8] hover:text-[#c2956e] hover:bg-[#c2956e]/10 transition-all" title="Add Subtask"><Plus size={14} /></button>
-                        <button onClick={() => onDelete(task.id, false)} className="w-7 h-7 flex items-center justify-center rounded-lg text-[#c4c0b8] hover:text-red-500 hover:bg-red-500/10 transition-all" title="Delete"><Trash2 size={14} /></button>
+                        <button onClick={() => onAdd(task.id)} className={`w-7 h-7 flex items-center justify-center rounded-lg text-[#c4c0b8] hover:text-[#c2956e] hover:bg-[#c2956e]/10 transition-all ${isMenuOpen ? 'flex md:flex' : 'hidden md:flex'}`} title="Add Subtask"><Plus size={14} /></button>
+                        <button onClick={() => onDelete(task.id, false)} className="hidden md:flex w-7 h-7 items-center justify-center rounded-lg text-[#c4c0b8] hover:text-red-500 hover:bg-red-500/10 transition-all" title="Delete"><Trash2 size={14} /></button>
                       </>
                   )}
               </div>

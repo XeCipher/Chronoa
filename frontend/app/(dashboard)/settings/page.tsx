@@ -24,7 +24,8 @@ export default function SettingsPage() {
     hotkeysEnabled, setHotkeysEnabled,
     moveCompletedToBottom, setMoveCompletedToBottom,
     keepParentTaskAlive, setKeepParentTaskAlive,
-    addTaskAtTop, setAddTaskAtTop
+    addTaskAtTop, setAddTaskAtTop,
+    showHomeTaskProgress, setShowHomeTaskProgress
   } = useUiStore();
   
   const [calendars, setCalendars] = useState<CalendarLink[]>([]);
@@ -257,6 +258,16 @@ export default function SettingsPage() {
               </div>
               <button className={`shrink-0 w-10 h-5 rounded-full transition-colors relative ${addTaskAtTop ? 'bg-[#7ca982] dark:bg-[#6a9a70]' : 'bg-[#e0ddd5] dark:bg-[#444]'}`}>
                 <div className={`w-4 h-4 bg-white rounded-full absolute top-0.5 transition-transform ${addTaskAtTop ? 'translate-x-5' : 'translate-x-0.5 shadow-sm'}`} />
+              </button>
+            </div>
+
+            <div className="flex items-center justify-between p-4 bg-[#f7f5f0]/50 dark:bg-[#222] border border-[#e0ddd5] dark:border-[#333] rounded-2xl cursor-pointer" onClick={() => { setShowHomeTaskProgress(!showHomeTaskProgress); updateRemoteSetting('show_home_task_progress', !showHomeTaskProgress); }}>
+              <div className="space-y-1 pr-4">
+                <span className="text-[13px] text-[#3d3b33] dark:text-[#f0f0f0] font-medium">Home Page Progress</span>
+                <p className="text-[10px] text-[#b0ad9a] dark:text-[#7a7a7a] leading-tight">Show task analytics gracefully on the home screen.</p>
+              </div>
+              <button className={`shrink-0 w-10 h-5 rounded-full transition-colors relative ${showHomeTaskProgress ? 'bg-[#7ca982] dark:bg-[#6a9a70]' : 'bg-[#e0ddd5] dark:bg-[#444]'}`}>
+                <div className={`w-4 h-4 bg-white rounded-full absolute top-0.5 transition-transform ${showHomeTaskProgress ? 'translate-x-5' : 'translate-x-0.5 shadow-sm'}`} />
               </button>
             </div>
           </div>

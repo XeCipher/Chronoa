@@ -22,11 +22,11 @@ interface UiState {
   moveCompletedToBottom: boolean;
   keepParentTaskAlive: boolean;
   addTaskAtTop: boolean;
+  showHomeTaskProgress: boolean;
   activeTaskIdWithMenu: string | null;
   archiveLayout: 'nested' | 'list';
   archiveSort: 'newest' | 'oldest';
   
-  // Feature 1: Mobile collapse states
   mobileRoutineCollapsed: boolean;
   mobileTasksCollapsed: boolean;
   
@@ -45,11 +45,11 @@ interface UiState {
   setMoveCompletedToBottom: (val: boolean) => void;
   setKeepParentTaskAlive: (val: boolean) => void;
   setAddTaskAtTop: (val: boolean) => void;
+  setShowHomeTaskProgress: (val: boolean) => void;
   setActiveTaskIdWithMenu: (id: string | null) => void;
   setArchiveLayout: (layout: 'nested' | 'list') => void;
   setArchiveSort: (sort: 'newest' | 'oldest') => void;
   
-  // Setters for mobile collapse states
   setMobileRoutineCollapsed: (val: boolean) => void;
   setMobileTasksCollapsed: (val: boolean) => void;
 }
@@ -72,6 +72,7 @@ export const useUiStore = create<UiState>()(
       moveCompletedToBottom: true,
       keepParentTaskAlive: false,
       addTaskAtTop: false,
+      showHomeTaskProgress: true,
       activeTaskIdWithMenu: null,
       archiveLayout: 'nested',
       archiveSort: 'newest',
@@ -93,6 +94,7 @@ export const useUiStore = create<UiState>()(
       setMoveCompletedToBottom: (val) => set({ moveCompletedToBottom: val }),
       setKeepParentTaskAlive: (val) => set({ keepParentTaskAlive: val }),
       setAddTaskAtTop: (val) => set({ addTaskAtTop: val }),
+      setShowHomeTaskProgress: (val) => set({ showHomeTaskProgress: val }),
       setActiveTaskIdWithMenu: (id) => set({ activeTaskIdWithMenu: id }),
       setArchiveLayout: (archiveLayout) => set({ archiveLayout }),
       setArchiveSort: (archiveSort) => set({ archiveSort }),
@@ -102,7 +104,6 @@ export const useUiStore = create<UiState>()(
     { 
       name: 'chronoa-settings',
       partialize: (state) => Object.fromEntries(
-        // Persist everything except menu/note popups
         Object.entries(state).filter(([key]) => !['activeTaskIdWithMenu', 'mobileNoteOpen'].includes(key))
       ),
     }

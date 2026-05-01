@@ -1,3 +1,4 @@
+// frontend/components/analytics/ProductivityChart.tsx
 "use client";
 
 import { useState, useMemo, useRef, useEffect } from 'react';
@@ -38,10 +39,8 @@ export default function ProductivityChart({ dailyMap }: { dailyMap: Record<strin
     const isToday = endDate.getTime() === today.getTime();
     const newEnd = new Date(endDate);
     if (isToday && today.getDay() !== 0) {
-      // Snap to last Sunday
       newEnd.setDate(today.getDate() - today.getDay());
     } else {
-      // Move back exactly 1 week
       newEnd.setDate(endDate.getDate() - 7);
     }
     setEndDate(newEnd);
@@ -80,6 +79,15 @@ export default function ProductivityChart({ dailyMap }: { dailyMap: Record<strin
     }
     return data;
   }, [dailyMap, endDate]);
+
+  const isSelectedWeek = (d: Date) => {
+    const chartStart = new Date(endDate);
+    chartStart.setDate(chartStart.getDate() - 6);
+    chartStart.setHours(0,0,0,0);
+    const chartEnd = new Date(endDate);
+    chartEnd.setHours(23,59,59,999);
+    return d >= chartStart && d <= chartEnd;
+  };
 
   const CustomTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
@@ -147,13 +155,16 @@ export default function ProductivityChart({ dailyMap }: { dailyMap: Record<strin
           {days.map((d, i) => {
             if (!d) return <div key={i} />;
             const isFuture = d > today;
+            const inActiveWeek = isSelectedWeek(d);
             return (
               <button 
                 key={i} 
                 onClick={() => !isFuture && handleDateSelect(d)}
                 disabled={isFuture}
                 className={`relative flex items-center justify-center h-8 rounded-lg text-xs font-medium transition-colors 
-                  ${isFuture ? 'opacity-30 cursor-not-allowed text-[#b0ad9a]' : 'hover:bg-[#c2956e]/10 hover:text-[#c2956e] text-[#3d3b33] dark:text-[#e0e0e0]'}
+                  ${isFuture ? 'opacity-30 cursor-not-allowed text-[#b0ad9a]' : 
+                    inActiveWeek ? 'bg-[#c2956e] text-white shadow-sm' : 
+                    'hover:bg-[#c2956e]/10 hover:text-[#c2956e] text-[#3d3b33] dark:text-[#e0e0e0]'}
                 `}
               >
                 {d.getDate()}
