@@ -192,10 +192,16 @@ export default function TaskSection({ type, title }: Props) {
       })
     );
 
-    // Fire and forget logic for snappy UI updates
-    supabase.from("tasks").update(updates).eq("id", id);
-    for (const bulk of tasksToUpdate) {
-      supabase.from("tasks").update(bulk.updates).eq("id", bulk.id);
+    // Ensure database processes updates correctly and concurrently
+    try {
+      await Promise.all([
+        supabase.from("tasks").update(updates).eq("id", id),
+        ...tasksToUpdate.map((bulk) =>
+          supabase.from("tasks").update(bulk.updates).eq("id", bulk.id)
+        ),
+      ]);
+    } catch (err) {
+      console.error("Failed to sync updates to database", err);
     }
   };
 
@@ -248,8 +254,15 @@ export default function TaskSection({ type, title }: Props) {
 
     const deletedTime = new Date().toISOString();
     setTasks((prev) => prev.filter((t) => !idsToDelete.includes(t.id)));
-    for (const delId of idsToDelete) {
-      supabase.from("tasks").update({ deleted_at: deletedTime }).eq("id", delId);
+    
+    try {
+      await Promise.all(
+        idsToDelete.map((delId) =>
+          supabase.from("tasks").update({ deleted_at: deletedTime }).eq("id", delId)
+        )
+      );
+    } catch (err) {
+      console.error("Failed to delete tasks", err);
     }
   };
 
@@ -258,6 +271,7 @@ export default function TaskSection({ type, title }: Props) {
       .filter((t) => t.parent_id === task.parent_id)
       .sort((a, b) => a.position - b.position);
     const index = siblings.findIndex((t) => t.id === task.id);
+    
     if (index > 0) {
       const previousSibling = siblings[index - 1];
       const newParentId = previousSibling.id;
@@ -274,7 +288,15 @@ export default function TaskSection({ type, title }: Props) {
             : t
         )
       );
-      supabase.from("tasks").update({ parent_id: newParentId, position: newPosition }).eq("id", task.id);
+      
+      try {
+        await supabase
+          .from("tasks")
+          .update({ parent_id: newParentId, position: newPosition })
+          .eq("id", task.id);
+      } catch (err) {
+        console.error("Failed to indent task", err);
+      }
     }
   };
 
@@ -304,8 +326,14 @@ export default function TaskSection({ type, title }: Props) {
       })
     );
 
-    for (const update of tasksToUpdate) {
-      supabase.from("tasks").update(update.updates).eq("id", update.id);
+    try {
+      await Promise.all(
+        tasksToUpdate.map((update) =>
+          supabase.from("tasks").update(update.updates).eq("id", update.id)
+        )
+      );
+    } catch (err) {
+      console.error("Failed to unindent task", err);
     }
   };
 
@@ -314,11 +342,16 @@ export default function TaskSection({ type, title }: Props) {
       .filter((t) => t.parent_id === task.parent_id)
       .sort((a, b) => a.position - b.position);
     const index = siblings.findIndex((t) => t.id === task.id);
+    
     if (index > 0) {
-      const newSiblings = [...siblings];
-      [newSiblings[index - 1], newSiblings[index]] = [newSiblings[index], newSiblings[index - 1]];
+      const prevTask = siblings[index - 1];
+      const currentTask = siblings[index];
       
-      const tasksToUpdate = newSiblings.map((t, i) => ({ id: t.id, updates: { position: i } }));
+      // Optimize by only swapping the positions of the two affected tasks
+      const tasksToUpdate = [
+        { id: prevTask.id, updates: { position: currentTask.position } },
+        { id: currentTask.id, updates: { position: prevTask.position } }
+      ];
       
       setTasks((prevTasks) =>
         prevTasks.map((t) => {
@@ -327,8 +360,14 @@ export default function TaskSection({ type, title }: Props) {
         })
       );
 
-      for (const u of tasksToUpdate) {
-        supabase.from("tasks").update(u.updates).eq("id", u.id);
+      try {
+        await Promise.all(
+          tasksToUpdate.map((u) =>
+            supabase.from("tasks").update(u.updates).eq("id", u.id)
+          )
+        );
+      } catch (err) {
+        console.error("Failed to move task up", err);
       }
     }
   };
@@ -338,11 +377,16 @@ export default function TaskSection({ type, title }: Props) {
       .filter((t) => t.parent_id === task.parent_id)
       .sort((a, b) => a.position - b.position);
     const index = siblings.findIndex((t) => t.id === task.id);
+    
     if (index < siblings.length - 1) {
-      const newSiblings = [...siblings];
-      [newSiblings[index + 1], newSiblings[index]] = [newSiblings[index], newSiblings[index + 1]];
+      const currentTask = siblings[index];
+      const nextTask = siblings[index + 1];
       
-      const tasksToUpdate = newSiblings.map((t, i) => ({ id: t.id, updates: { position: i } }));
+      // Optimize by only swapping the positions of the two affected tasks
+      const tasksToUpdate = [
+        { id: currentTask.id, updates: { position: nextTask.position } },
+        { id: nextTask.id, updates: { position: currentTask.position } }
+      ];
       
       setTasks((prevTasks) =>
         prevTasks.map((t) => {
@@ -351,8 +395,14 @@ export default function TaskSection({ type, title }: Props) {
         })
       );
 
-      for (const u of tasksToUpdate) {
-        supabase.from("tasks").update(u.updates).eq("id", u.id);
+      try {
+        await Promise.all(
+          tasksToUpdate.map((u) =>
+            supabase.from("tasks").update(u.updates).eq("id", u.id)
+          )
+        );
+      } catch (err) {
+        console.error("Failed to move task down", err);
       }
     }
   };
