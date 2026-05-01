@@ -57,12 +57,16 @@ export default function SettingsPage() {
     fetchProfile();
   }, [setRoutineResetHour]);
 
-  const saveCalendars = async (updatedList: CalendarLink[]) => {
-    setCalendars(updatedList);
+  const updateRemoteSetting = async (key: string, value: any) => {
     const { data: { user } } = await supabase.auth.getUser();
     if (user) {
-      await supabase.from('profiles').update({ calendar_urls: updatedList }).eq('id', user.id);
+      await supabase.from('profiles').update({ [key]: value }).eq('id', user.id);
     }
+  };
+
+  const saveCalendars = async (updatedList: CalendarLink[]) => {
+    setCalendars(updatedList);
+    updateRemoteSetting('calendar_urls', updatedList);
   };
 
   const addCalendar = () => saveCalendars([...calendars, { name: "", url: "" }]);
@@ -117,8 +121,7 @@ export default function SettingsPage() {
 
   const handleResetHourChange = async (hour: number) => {
     setRoutineResetHour(hour);
-    const { data: { user } } = await supabase.auth.getUser();
-    if (user) { await supabase.from('profiles').update({ routine_reset_hour: hour }).eq('id', user.id); }
+    updateRemoteSetting('routine_reset_hour', hour);
   };
 
   const handleLogout = async () => {
@@ -159,7 +162,7 @@ export default function SettingsPage() {
           <div className="flex bg-[#f7f5f0] dark:bg-[#121212] border border-[#e0ddd5] dark:border-[#333] p-1 rounded-2xl w-fit">
             {['system', 'light', 'dark'].map(t => (
               <button 
-                key={t} onClick={() => setTheme(t as any)}
+                key={t} onClick={() => { setTheme(t as any); updateRemoteSetting('theme', t); }}
                 className={`px-6 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all ${theme === t ? 'bg-white dark:bg-[#252525] text-[#c2956e] dark:text-[#d1a784] shadow-sm' : 'text-[#888] dark:text-[#7a7a7a] hover:text-[#3d3b33] dark:hover:text-[#ccc]'}`}
               >
                 {t}
@@ -181,7 +184,7 @@ export default function SettingsPage() {
               <p className="text-xs text-[#b0ad9a] dark:text-[#7a7a7a]">Speed up your workflow with keyboard mnemonic shortcuts.</p>
             </div>
             <button 
-              onClick={() => setHotkeysEnabled(!hotkeysEnabled)}
+              onClick={() => { setHotkeysEnabled(!hotkeysEnabled); updateRemoteSetting('hotkeys_enabled', !hotkeysEnabled); }}
               className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all shadow-sm ${hotkeysEnabled ? 'bg-[#7ca982] text-white' : 'bg-[#f7f5f0] dark:bg-[#252525] text-[#888]'}`}
             >
               {hotkeysEnabled ? <><CheckCircle2 size={14} /> Enabled</> : 'Disabled'}
@@ -227,7 +230,7 @@ export default function SettingsPage() {
           <p className="text-xs text-[#b0ad9a] dark:text-[#7a7a7a] mt-1 mb-4">Control how tasks respond automatically in your lists.</p>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="flex items-center justify-between p-4 bg-[#f7f5f0]/50 dark:bg-[#222] border border-[#e0ddd5] dark:border-[#333] rounded-2xl cursor-pointer" onClick={() => setMoveCompletedToBottom(!moveCompletedToBottom)}>
+            <div className="flex items-center justify-between p-4 bg-[#f7f5f0]/50 dark:bg-[#222] border border-[#e0ddd5] dark:border-[#333] rounded-2xl cursor-pointer" onClick={() => { setMoveCompletedToBottom(!moveCompletedToBottom); updateRemoteSetting('move_completed_to_bottom', !moveCompletedToBottom); }}>
               <div className="space-y-1 pr-4">
                 <span className="text-[13px] text-[#3d3b33] dark:text-[#f0f0f0] font-medium">Glide Completed Tasks</span>
                 <p className="text-[10px] text-[#b0ad9a] dark:text-[#7a7a7a] leading-tight">Move to the bottom instantly.</p>
@@ -237,7 +240,7 @@ export default function SettingsPage() {
               </button>
             </div>
 
-            <div className="flex items-center justify-between p-4 bg-[#f7f5f0]/50 dark:bg-[#222] border border-[#e0ddd5] dark:border-[#333] rounded-2xl cursor-pointer" onClick={() => setKeepParentTaskAlive(!keepParentTaskAlive)}>
+            <div className="flex items-center justify-between p-4 bg-[#f7f5f0]/50 dark:bg-[#222] border border-[#e0ddd5] dark:border-[#333] rounded-2xl cursor-pointer" onClick={() => { setKeepParentTaskAlive(!keepParentTaskAlive); updateRemoteSetting('keep_parent_task_alive', !keepParentTaskAlive); }}>
               <div className="space-y-1 pr-4">
                 <span className="text-[13px] text-[#3d3b33] dark:text-[#f0f0f0] font-medium">Keep Parent Tasks</span>
                 <p className="text-[10px] text-[#b0ad9a] dark:text-[#7a7a7a] leading-tight">Don't auto-complete when children finish.</p>
@@ -247,7 +250,7 @@ export default function SettingsPage() {
               </button>
             </div>
 
-            <div className="flex items-center justify-between p-4 bg-[#f7f5f0]/50 dark:bg-[#222] border border-[#e0ddd5] dark:border-[#333] rounded-2xl cursor-pointer" onClick={() => setAddTaskAtTop(!addTaskAtTop)}>
+            <div className="flex items-center justify-between p-4 bg-[#f7f5f0]/50 dark:bg-[#222] border border-[#e0ddd5] dark:border-[#333] rounded-2xl cursor-pointer" onClick={() => { setAddTaskAtTop(!addTaskAtTop); updateRemoteSetting('add_task_at_top', !addTaskAtTop); }}>
               <div className="space-y-1 pr-4">
                 <span className="text-[13px] text-[#3d3b33] dark:text-[#f0f0f0] font-medium">Add New Tasks to Top</span>
                 <p className="text-[10px] text-[#b0ad9a] dark:text-[#7a7a7a] leading-tight">New tasks appear at the top.</p>
@@ -325,7 +328,7 @@ export default function SettingsPage() {
           <section className="space-y-4">
             <div className="flex items-center gap-3 text-[#c2956e] dark:text-[#d1a784]"><Clock size={18} /><h3 className="text-lg font-medium text-[#3d3b33] dark:text-[#f0f0f0]">Vanishing Delay</h3></div>
             <p className="text-[11px] text-[#b0ad9a] dark:text-[#7a7a7a] mt-1 mb-3">Minutes before completed tasks are archived.</p>
-            <input type="number" value={taskArchiveDelay} onChange={(e) => setTaskArchiveDelay(parseInt(e.target.value) || 0)} className="w-full bg-[#f7f5f0] dark:bg-[#222] border border-[#e0ddd5] rounded-xl px-4 py-3 outline-none focus:border-[#c2956e] font-bold text-[#3d3b33] dark:text-white" />
+            <input type="number" value={taskArchiveDelay} onChange={(e) => { const v = parseInt(e.target.value) || 0; setTaskArchiveDelay(v); updateRemoteSetting('task_archive_delay', v); }} className="w-full bg-[#f7f5f0] dark:bg-[#222] border border-[#e0ddd5] rounded-xl px-4 py-3 outline-none focus:border-[#c2956e] font-bold text-[#3d3b33] dark:text-white" />
           </section>
           
           <section className="space-y-4">

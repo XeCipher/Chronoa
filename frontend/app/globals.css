@@ -1,8 +1,6 @@
 @import "tailwindcss";
 @config "../tailwind.config.ts";
 
-@custom-variant dark (&:is(.dark *));
-
 /* ─── Design Tokens ──────────────────────────────────────────────────────── */
 :root {
   --color-bg:           247, 245, 240;
@@ -38,7 +36,7 @@ h1, h2, h3, h4 { font-family: var(--font-display); font-weight: 500; }
 
 /* ─── Scrollbar ──────────────────────────────────────────────────────────── */
 ::-webkit-scrollbar { width: 5px; height: 5px; }
-::-webkit-scrollbar-thumb { background: rgb(var(--color-border)); border-radius: 10px; }
+::-webkit-scrollbar-thumb { background: #e0ddd5; border-radius: 10px; }
 .dark ::-webkit-scrollbar-thumb { background: #333333; }
 
 /* ─── CHRONOA JOURNAL EDITOR STYLING ─────────────────────────────────────── */

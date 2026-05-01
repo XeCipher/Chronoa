@@ -3,15 +3,15 @@
 
 import { useState } from "react";
 import TaskSection from "@/components/tasks/TaskSection";
-import TaskHistory from "@/components/tasks/TaskHistory";
 import ICloudTodayFeed from "@/components/tasks/ICloudTodayFeed";
-import { ListChecks, History, Trash2, ArrowLeft } from "lucide-react";
+import { ListChecks, History, Trash2, ArrowLeft, Search, LayoutGrid, List, SortAsc, SortDesc } from "lucide-react";
 import { useUiStore } from "@/store/uiStore";
 import { supabase } from "@/lib/supabase";
 
 export default function TasksPage() {
-  const { tasksView, setTasksView } = useUiStore();
+  const { tasksView, setTasksView, archiveLayout, setArchiveLayout, archiveSort, setArchiveSort } = useUiStore();
   const [isTrashOpen, setIsTrashOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
 
   const handleViewChange = (v: 'focus' | 'archive') => {
     setTasksView(v);
@@ -21,14 +21,16 @@ export default function TasksPage() {
   const handleEmptyTrash = async () => {
     if (!confirm("Permanently delete all items in trash?")) return;
     await supabase.from('tasks').delete().not('deleted_at', 'is', null);
-    window.location.reload(); // Refresh to clear local state
+    window.location.reload(); 
   };
+
+  const currentViewMode = isTrashOpen ? 'trash' : tasksView;
 
   return (
     <div className="w-full min-h-screen bg-[#f7f5f0] dark:bg-[#121212] p-4 md:p-12 lg:p-16">
       <div className="max-w-[1600px] mx-auto w-full">
         
-        <header className="mb-12 flex flex-col md:flex-row md:items-end justify-between gap-6">
+        <header className="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-6">
           <div className="flex flex-col gap-2">
             <p className="text-[10px] text-[#c2956e] dark:text-[#d1a784] tracking-[0.3em] uppercase font-bold">
               {isTrashOpen ? 'Recycle Bin' : 'Sanctuary'}
@@ -62,8 +64,7 @@ export default function TasksPage() {
                 
                 <button 
                   onClick={() => setIsTrashOpen(true)}
-                  className="p-3 text-[#b0ad9a] hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/10 rounded-2xl transition-all border border-transparent hover:border-red-100"
-                  title="View Deleted Tasks"
+                  className="p-3 text-[#b0ad9a] hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/10 rounded-2xl transition-all border border-transparent hover:border-red-100 dark:hover:border-red-900/30"
                 >
                   <Trash2 size={20} />
                 </button>
@@ -87,27 +88,43 @@ export default function TasksPage() {
           </div>
         </header>
 
-        {isTrashOpen ? (
-          <div className="max-w-4xl animate-fade-up">
-            <TaskHistory forceTrashView={true} />
+        {/* Global Toolbar */}
+        <div className="flex flex-col lg:flex-row items-center gap-4 mb-10 animate-fade-up">
+           <div className="relative flex-1 w-full max-w-xl">
+             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-[#b0ad9a]" size={16} />
+             <input 
+               value={searchQuery} onChange={e => setSearchQuery(e.target.value)} 
+               placeholder="Search sanctuary..." 
+               className="w-full bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] rounded-2xl pl-12 pr-4 py-3.5 outline-none focus:border-[#c2956e] text-sm text-[#3d3b33] dark:text-[#f0f0f0] shadow-sm" 
+             />
+           </div>
+
+           {currentViewMode === 'archive' && (
+             <div className="flex items-center gap-3 w-full lg:w-auto overflow-x-auto no-scrollbar">
+                <div className="flex bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] p-1 rounded-2xl shadow-sm shrink-0">
+                  <button onClick={() => setArchiveLayout('nested')} className={`p-2.5 rounded-xl transition-all ${archiveLayout === 'nested' ? 'bg-[#c2956e] text-white shadow-md' : 'text-[#888]'}`} title="Nested View"><LayoutGrid size={18} /></button>
+                  <button onClick={() => setArchiveLayout('list')} className={`p-2.5 rounded-xl transition-all ${archiveLayout === 'list' ? 'bg-[#c2956e] text-white shadow-md' : 'text-[#888]'}`} title="Flat List"><List size={18} /></button>
+                </div>
+                
+                <div className="flex bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] p-1 rounded-2xl shadow-sm shrink-0">
+                  <button onClick={() => setArchiveSort('newest')} className={`flex items-center gap-2 px-4 py-2 rounded-xl text-[10px] font-bold uppercase transition-all ${archiveSort === 'newest' ? 'bg-[#c2956e] text-white shadow-md' : 'text-[#888]'}`}><SortDesc size={14} /> Newest</button>
+                  <button onClick={() => setArchiveSort('oldest')} className={`flex items-center gap-2 px-4 py-2 rounded-xl text-[10px] font-bold uppercase transition-all ${archiveSort === 'oldest' ? 'bg-[#c2956e] text-white shadow-md' : 'text-[#888]'}`}><SortAsc size={14} /> Oldest</button>
+                </div>
+             </div>
+           )}
+        </div>
+
+        {tasksView === 'focus' && !isTrashOpen && <ICloudTodayFeed />}
+
+        <div className="flex flex-col lg:flex-row items-start gap-8 lg:gap-12 w-full animate-fade-up">
+          <div className="w-full lg:w-1/2 min-w-0">
+            <TaskSection type="routine" title={currentViewMode === 'trash' ? 'Routine Trash' : (currentViewMode === 'archive' ? 'Routine Archive' : "My Routine")} viewMode={currentViewMode} searchQuery={searchQuery} />
           </div>
-        ) : tasksView === 'focus' ? (
-          <div className="space-y-10 animate-fade-up">
-            <ICloudTodayFeed />
-            <div className="flex flex-col lg:flex-row items-start gap-8 lg:gap-12 w-full">
-              <div className="w-full lg:w-1/2 min-w-0">
-                <TaskSection type="routine" title="My Routine" />
-              </div>
-              <div className="w-full lg:w-1/2 min-w-0">
-                <TaskSection type="normal" title="Tasks & Ideas" />
-              </div>
-            </div>
+          <div className="w-full lg:w-1/2 min-w-0">
+            <TaskSection type="normal" title={currentViewMode === 'trash' ? 'Task Trash' : (currentViewMode === 'archive' ? 'Task Archive' : "Tasks & Ideas")} viewMode={currentViewMode} searchQuery={searchQuery} />
           </div>
-        ) : (
-          <div className="max-w-4xl animate-fade-up">
-            <TaskHistory forceTrashView={false} />
-          </div>
-        )}
+        </div>
+
       </div>
     </div>
   );

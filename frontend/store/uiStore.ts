@@ -22,8 +22,10 @@ interface UiState {
   moveCompletedToBottom: boolean;
   keepParentTaskAlive: boolean;
   addTaskAtTop: boolean;
-  collapsedTasks: Record<string, boolean>;
   activeTaskIdWithMenu: string | null;
+  // NEW: Archive specific layout settings
+  archiveLayout: 'nested' | 'list';
+  archiveSort: 'newest' | 'oldest';
   
   setTaskArchiveDelay: (delay: number) => void;
   setRoutineResetHour: (hour: number) => void;
@@ -40,8 +42,9 @@ interface UiState {
   setMoveCompletedToBottom: (val: boolean) => void;
   setKeepParentTaskAlive: (val: boolean) => void;
   setAddTaskAtTop: (val: boolean) => void;
-  toggleTaskCollapse: (id: string) => void;
   setActiveTaskIdWithMenu: (id: string | null) => void;
+  setArchiveLayout: (layout: 'nested' | 'list') => void;
+  setArchiveSort: (sort: 'newest' | 'oldest') => void;
 }
 
 export const useUiStore = create<UiState>()(
@@ -62,8 +65,9 @@ export const useUiStore = create<UiState>()(
       moveCompletedToBottom: true,
       keepParentTaskAlive: false,
       addTaskAtTop: false,
-      collapsedTasks: {},
       activeTaskIdWithMenu: null,
+      archiveLayout: 'nested',
+      archiveSort: 'newest',
 
       setTaskArchiveDelay: (delay) => set({ taskArchiveDelay: delay }),
       setRoutineResetHour: (hour) => set({ routineResetHour: hour }),
@@ -80,10 +84,9 @@ export const useUiStore = create<UiState>()(
       setMoveCompletedToBottom: (val) => set({ moveCompletedToBottom: val }),
       setKeepParentTaskAlive: (val) => set({ keepParentTaskAlive: val }),
       setAddTaskAtTop: (val) => set({ addTaskAtTop: val }),
-      toggleTaskCollapse: (id) => set((state) => ({
-        collapsedTasks: { ...state.collapsedTasks, [id]: !state.collapsedTasks[id] }
-      })),
       setActiveTaskIdWithMenu: (id) => set({ activeTaskIdWithMenu: id }),
+      setArchiveLayout: (archiveLayout) => set({ archiveLayout }),
+      setArchiveSort: (archiveSort) => set({ archiveSort }),
     }),
     { 
       name: 'chronoa-settings',

@@ -3,14 +3,12 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { useUiStore } from "@/store/uiStore";
-import { Home, CheckSquare, BarChart2, Settings, LogOut, PanelLeftClose, Sun, FileText } from "lucide-react";
-import { supabase } from "@/lib/supabase";
+import { Home, CheckSquare, BarChart2, Settings, PanelLeftClose, Sun, FileText } from "lucide-react";
 
 export default function SidebarNav() {
   const pathname = usePathname();
-  const router = useRouter();
   
   const { isSidebarPinned, toggleSidebarPin, mobileNoteOpen } = useUiStore();
   const [isHovered, setIsHovered] = useState(false);
@@ -28,11 +26,6 @@ export default function SidebarNav() {
 
   const isExpanded = isSidebarPinned || isHovered;
   const isHiddenMode = !isExpanded && isAsleep;
-
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    router.push("/login");
-  };
 
   const navItems = [
     { name: "Home", href: "/", icon: Home },
@@ -118,17 +111,6 @@ export default function SidebarNav() {
                 Settings
               </span>
             </Link>
-            <button
-              onClick={handleLogout}
-              className={`flex w-full items-center h-12 rounded-xl text-sm font-medium transition-all duration-300 overflow-hidden text-[#888888] dark:text-[#a0a0a0] hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-600 dark:hover:text-red-400
-                ${isExpanded ? "px-4 justify-start gap-4" : "justify-center"}
-              `}
-            >
-              <LogOut className="w-[18px] h-[18px] shrink-0" />
-              <span className={`transition-all duration-300 whitespace-nowrap ${isExpanded ? 'opacity-100 w-auto' : 'opacity-0 w-0'}`}>
-                Log out
-              </span>
-            </button>
           </div>
         </div>
 

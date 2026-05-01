@@ -11,14 +11,17 @@ import { useUiStore } from "@/store/uiStore";
 interface Props {
   type: "routine" | "normal";
   title: string;
+  viewMode?: 'focus' | 'archive' | 'trash';
+  searchQuery?: string;
 }
 
-export default function TaskSection({ type, title }: Props) {
+export default function TaskSection({ type, title, viewMode = 'focus', searchQuery = '' }: Props) {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [isEditMode, setIsEditMode] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [newTaskId, setNewTaskId] = useState<string | null>(null);
-  const { taskArchiveDelay, moveCompletedToBottom, keepParentTaskAlive, addTaskAtTop } = useUiStore();
+  
+  const { taskArchiveDelay, moveCompletedToBottom, keepParentTaskAlive, addTaskAtTop, archiveLayout, archiveSort } = useUiStore();
   const [now, setNow] = useState(Date.now());
   const sectionRef = useRef<HTMLDivElement>(null);
 
@@ -27,17 +30,7 @@ export default function TaskSection({ type, title }: Props) {
       .from("tasks")
       .select("*")
       .eq("task_type", type)
-      .is("deleted_at", null)
       .order("position", { ascending: true });
-
-    if (error) {
-      const fallback = await supabase
-        .from("tasks")
-        .select("*")
-        .eq("task_type", type)
-        .order("position", { ascending: true });
-      data = fallback.data;
-    }
 
     if (data) setTasks(data);
     setIsLoading(false);
@@ -87,50 +80,82 @@ export default function TaskSection({ type, title }: Props) {
 
   const delayMs = taskArchiveDelay <= 0 ? 1000 : taskArchiveDelay * 60 * 1000;
 
-  const filteredTasks = useMemo(() => {
-    if (isEditMode) return tasks;
-    if (taskArchiveDelay < 0) return tasks;
-    return tasks.filter((t) => {
-      if (!t.is_completed || !t.completed_at) return true;
-      const completedTime = new Date(t.completed_at).getTime();
-      return now - completedTime < delayMs;
-    });
-  }, [tasks, isEditMode, taskArchiveDelay, now, delayMs]);
-
-  const taskTree = useMemo(() => {
+  const displayTasks = useMemo(() => {
     const map: Record<string, Task> = {};
+    tasks.forEach((t) => (map[t.id] = { ...t, children: [] }));
     const roots: Task[] = [];
-    filteredTasks.forEach((t) => (map[t.id] = { ...t, children: [] }));
-    filteredTasks.forEach((t) => {
+    
+    tasks.forEach((t) => {
       if (t.parent_id && map[t.parent_id]) {
         map[t.parent_id].children!.push(map[t.id]);
-      } else if (!t.parent_id) {
+      } else {
         roots.push(map[t.id]);
       }
     });
 
-    const sortNodes = (nodes: Task[]) => {
-      nodes.sort((a, b) => a.position - b.position);
-      if (moveCompletedToBottom && !isEditMode) {
-        nodes.sort((a, b) =>
-          a.is_completed === b.is_completed ? 0 : a.is_completed ? 1 : -1
-        );
-      }
-      nodes.forEach((n) => {
-        if (n.children) sortNodes(n.children);
-      });
-      return nodes;
+    const matchesSearch = (t: Task) => !searchQuery || t.title.toLowerCase().includes(searchQuery.toLowerCase());
+
+    // Trash and Flat Archive logic
+    const isFlatList = viewMode === 'trash' || (viewMode === 'archive' && archiveLayout === 'list');
+    if (isFlatList) {
+       let list = tasks.filter(t => {
+          const modeMatch = viewMode === 'trash' ? t.deleted_at !== null : (t.deleted_at === null && t.is_completed);
+          return modeMatch && matchesSearch(t);
+       });
+
+       list.sort((a, b) => {
+          const timeA = new Date(viewMode === 'trash' ? a.deleted_at! : a.completed_at!).getTime();
+          const timeB = new Date(viewMode === 'trash' ? b.deleted_at! : b.completed_at!).getTime();
+          return viewMode === 'trash' || archiveSort === 'newest' ? timeB - timeA : timeA - timeB;
+       });
+       return list;
+    }
+
+    // Nested Tree logic (Focus or Nested Archive)
+    const prune = (node: Task): boolean => {
+      if (node.children) node.children = node.children.filter(c => prune(c));
+      
+      // FIX: Ensure this always resolves to a strict boolean to satisfy TypeScript
+      const hasVisibleChildren = (node.children && node.children.length > 0) || false;
+      
+      const selfMatchesMode = viewMode === 'archive' 
+          ? (node.deleted_at === null && node.is_completed)
+          : (node.deleted_at === null && (!node.is_completed || isEditMode || taskArchiveDelay < 0 || (now - new Date(node.completed_at!).getTime() < delayMs)));
+
+      return Boolean((selfMatchesMode && matchesSearch(node)) || hasVisibleChildren);
     };
 
-    return sortNodes(roots);
-  }, [filteredTasks, moveCompletedToBottom, isEditMode]);
+    const tree = roots.filter(r => prune(r));
+    
+    const sort = (nodes: Task[]) => {
+       nodes.sort((a, b) => {
+          if (viewMode === 'archive') {
+             const timeA = new Date(a.completed_at || a.created_at).getTime();
+             const timeB = new Date(b.completed_at || b.created_at).getTime();
+             return archiveSort === 'newest' ? timeB - timeA : timeA - timeB;
+          }
+          if (moveCompletedToBottom && !isEditMode) {
+             if (a.is_completed !== b.is_completed) return a.is_completed ? 1 : -1;
+          }
+          return a.position - b.position;
+       });
+       nodes.forEach(n => { if(n.children) sort(n.children); });
+       return nodes;
+    };
+    
+    return sort(tree);
+  }, [tasks, viewMode, archiveLayout, archiveSort, searchQuery, isEditMode, now, delayMs, taskArchiveDelay, moveCompletedToBottom]);
 
-  const totalTasksCount = tasks.length;
-  const totalCompletedCount = tasks.filter((t) => t.is_completed).length;
-  const progressPercent =
-    totalTasksCount > 0
-      ? Math.round((totalCompletedCount / totalTasksCount) * 100)
-      : 0;
+  // Calculate Progress specifically for Focus Mode
+  const flattenedVisibleTasks: Task[] = [];
+  const gatherVisible = (nodes: Task[]) => {
+    nodes.forEach(n => { flattenedVisibleTasks.push(n); if (n.children) gatherVisible(n.children); });
+  };
+  if (viewMode === 'focus') gatherVisible(displayTasks);
+
+  const totalTasksCount = flattenedVisibleTasks.length;
+  const totalCompletedCount = flattenedVisibleTasks.filter((t) => t.is_completed).length;
+  const progressPercent = totalTasksCount > 0 ? Math.round((totalCompletedCount / totalTasksCount) * 100) : 0;
 
   const onUpdate = async (id: string, updates: Partial<Task>) => {
     const isToggling = updates.hasOwnProperty("is_completed");
@@ -192,7 +217,6 @@ export default function TaskSection({ type, title }: Props) {
       })
     );
 
-    // Ensure database processes updates correctly and concurrently
     try {
       await Promise.all([
         supabase.from("tasks").update(updates).eq("id", id),
@@ -206,9 +230,7 @@ export default function TaskSection({ type, title }: Props) {
   };
 
   const onAdd = async (parentId: string | null = null) => {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
     const siblings = tasks.filter((t) => t.parent_id === parentId);
@@ -240,7 +262,7 @@ export default function TaskSection({ type, title }: Props) {
     }
   };
 
-  const onDelete = async (id: string) => {
+  const onDelete = async (id: string, isPermanent: boolean = false) => {
     const idsToDelete = [id];
     const findChildren = (parentId: string) => {
       tasks
@@ -252,17 +274,38 @@ export default function TaskSection({ type, title }: Props) {
     };
     findChildren(id);
 
-    const deletedTime = new Date().toISOString();
-    setTasks((prev) => prev.filter((t) => !idsToDelete.includes(t.id)));
+    if (isPermanent) {
+      setTasks((prev) => prev.filter((t) => !idsToDelete.includes(t.id)));
+      try {
+        await supabase.from("tasks").delete().in("id", idsToDelete);
+      } catch (err) { console.error("Failed to delete tasks permanently", err); }
+    } else {
+      const deletedTime = new Date().toISOString();
+      setTasks((prev) => prev.map((t) => idsToDelete.includes(t.id) ? { ...t, deleted_at: deletedTime } : t));
+      try {
+        await supabase.from("tasks").update({ deleted_at: deletedTime }).in("id", idsToDelete);
+      } catch (err) { console.error("Failed to move tasks to trash", err); }
+    }
+  };
+
+  const onRestore = async (id: string, mode: 'from_trash' | 'from_archive') => {
+    const idsToUpdate = [id];
+    let current = tasks.find(t => t.id === id);
     
-    try {
-      await Promise.all(
-        idsToDelete.map((delId) =>
-          supabase.from("tasks").update({ deleted_at: deletedTime }).eq("id", delId)
-        )
-      );
-    } catch (err) {
-      console.error("Failed to delete tasks", err);
+    while (current && current.parent_id) {
+       const parent = tasks.find(t => t.id === current!.parent_id);
+       if (parent) {
+          if (!idsToUpdate.includes(parent.id)) idsToUpdate.push(parent.id);
+          current = parent;
+       } else break;
+    }
+
+    if (mode === 'from_trash') {
+       setTasks(prev => prev.map(t => idsToUpdate.includes(t.id) ? { ...t, deleted_at: null } : t));
+       await supabase.from('tasks').update({ deleted_at: null }).in('id', idsToUpdate);
+    } else if (mode === 'from_archive') {
+       setTasks(prev => prev.map(t => idsToUpdate.includes(t.id) ? { ...t, is_completed: false, completed_at: null } : t));
+       await supabase.from('tasks').update({ is_completed: false, completed_at: null }).in('id', idsToUpdate);
     }
   };
 
@@ -347,7 +390,6 @@ export default function TaskSection({ type, title }: Props) {
       const prevTask = siblings[index - 1];
       const currentTask = siblings[index];
       
-      // Optimize by only swapping the positions of the two affected tasks
       const tasksToUpdate = [
         { id: prevTask.id, updates: { position: currentTask.position } },
         { id: currentTask.id, updates: { position: prevTask.position } }
@@ -382,7 +424,6 @@ export default function TaskSection({ type, title }: Props) {
       const currentTask = siblings[index];
       const nextTask = siblings[index + 1];
       
-      // Optimize by only swapping the positions of the two affected tasks
       const tasksToUpdate = [
         { id: currentTask.id, updates: { position: nextTask.position } },
         { id: nextTask.id, updates: { position: currentTask.position } }
@@ -421,7 +462,7 @@ export default function TaskSection({ type, title }: Props) {
             >
               {title}
             </h2>
-            {type === "routine" && totalTasksCount > 0 && (
+            {viewMode === "focus" && type === "routine" && totalTasksCount > 0 && (
               <div className="flex items-center gap-2 mt-1">
                 <div className="w-24 md:w-28 h-[3px] bg-[#ebe8e2] dark:bg-[#333] rounded-full overflow-hidden">
                   <div
@@ -435,35 +476,38 @@ export default function TaskSection({ type, title }: Props) {
               </div>
             )}
           </div>
-          <div className="flex items-center gap-2 shrink-0 pt-0.5">
-            {type === "routine" ? (
-              <button
-                onClick={() => setIsEditMode((v) => !v)}
-                className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-[11px] font-[600] tracking-[0.08em] uppercase transition-all duration-200 ${
-                  isEditMode
-                    ? "bg-[#c2956e] dark:bg-[#b0855f] text-white shadow-lg"
-                    : "bg-[#f7f5f0] dark:bg-[#222] text-[#c2956e] dark:text-[#d1a784] hover:bg-[#c2956e]/10 dark:hover:bg-[#b0855f]/20"
-                }`}
-              >
-                {isEditMode ? (
-                  <>
-                    <CheckCircle2 size={13} /> Done
-                  </>
-                ) : (
-                  <>
-                    <Edit3 size={12} /> Edit
-                  </>
-                )}
-              </button>
-            ) : (
-              <button
-                onClick={() => onAdd(null)}
-                className="w-9 h-9 flex items-center justify-center bg-[#f7f5f0] dark:bg-[#222] text-[#c2956e] dark:text-[#d1a784] rounded-full hover:bg-[#c2956e]/10 dark:hover:bg-[#b0855f]/20 transition-all"
-              >
-                <Plus size={18} strokeWidth={2} />
-              </button>
-            )}
-          </div>
+          
+          {viewMode === "focus" && (
+            <div className="flex items-center gap-2 shrink-0 pt-0.5">
+              {type === "routine" ? (
+                <button
+                  onClick={() => setIsEditMode((v) => !v)}
+                  className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-[11px] font-[600] tracking-[0.08em] uppercase transition-all duration-200 ${
+                    isEditMode
+                      ? "bg-[#c2956e] dark:bg-[#b0855f] text-white shadow-lg"
+                      : "bg-[#f7f5f0] dark:bg-[#222] text-[#c2956e] dark:text-[#d1a784] hover:bg-[#c2956e]/10 dark:hover:bg-[#b0855f]/20"
+                  }`}
+                >
+                  {isEditMode ? (
+                    <>
+                      <CheckCircle2 size={13} /> Done
+                    </>
+                  ) : (
+                    <>
+                      <Edit3 size={12} /> Edit
+                    </>
+                  )}
+                </button>
+              ) : (
+                <button
+                  onClick={() => onAdd(null)}
+                  className="w-9 h-9 flex items-center justify-center bg-[#f7f5f0] dark:bg-[#222] text-[#c2956e] dark:text-[#d1a784] rounded-full hover:bg-[#c2956e]/10 dark:hover:bg-[#b0855f]/20 transition-all"
+                >
+                  <Plus size={18} strokeWidth={2} />
+                </button>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
@@ -477,24 +521,28 @@ export default function TaskSection({ type, title }: Props) {
               </div>
             ))}
           </div>
-        ) : taskTree.length === 0 ? (
+        ) : displayTasks.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-10 gap-2">
             <span className="text-2xl opacity-20 dark:opacity-10 select-none text-[#3d3b33] dark:text-white">
               ✦
             </span>
             <p className="text-[12px] text-[#c4c0b8] dark:text-[#555] tracking-wide uppercase font-bold">
-              Clear Space
+              {viewMode === 'archive' ? 'No Completed Records' : viewMode === 'trash' ? 'Trash is Empty' : 'Clear Space'}
             </p>
           </div>
         ) : (
           <div className="space-y-[2px]">
-            {taskTree.map((t) => (
+            {displayTasks.map((t) => (
               <RecursiveCheckbox
                 key={t.id}
                 task={t}
                 isEditMode={type === "normal" ? true : isEditMode}
+                viewMode={viewMode}
+                allTasks={tasks}
+                isFlatList={viewMode === 'trash' || (viewMode === 'archive' && archiveLayout === 'list')}
                 onUpdate={onUpdate}
                 onDelete={onDelete}
+                onRestore={onRestore}
                 onAdd={onAdd}
                 onIndent={onIndent}
                 onUnindent={onUnindent}
@@ -509,7 +557,7 @@ export default function TaskSection({ type, title }: Props) {
         )}
       </div>
 
-      {isEditMode && type === "routine" && (
+      {isEditMode && type === "routine" && viewMode === "focus" && (
         <div className="px-5 pb-5">
           <button
             onClick={() => onAdd(null)}

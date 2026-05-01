@@ -12,5 +12,6 @@ export type Task = {
   deleted_at: string | null;
   color?: string | null;
   keep_alive?: boolean;
+  is_collapsed?: boolean;
   children?: Task[];
 };
