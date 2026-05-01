@@ -42,10 +42,37 @@ export default function RecursiveCheckbox({
   const { taskArchiveDelay, activeTaskIdWithMenu, setActiveTaskIdWithMenu } = useUiStore();
   const { addInstance, setTitle: setTimerTitle, setActiveTab, setForceShowWidgets } = useTimerStore();
 
-  const[initialTitle] = useState(task.title);
+  const [initialTitle] = useState(task.title);
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [isOverflowing, setIsOverflowing] = useState(false);
 
   const isRoutine = task.task_type === 'routine';
   const isNormal = task.task_type === 'normal';
+
+  // Dynamic Truncation Logic
+  useEffect(() => {
+    const el = textRef.current;
+    if (!el) return;
+
+    const checkOverflow = () => {
+      if (!isExpanded) {
+         // When clamped, if scrollHeight is greater than clientHeight, it means content is cut off
+         setIsOverflowing(el.scrollHeight > el.clientHeight);
+      } else {
+         // When expanded, check against a mathematical threshold of 10 lines
+         const computedLineHeight = window.getComputedStyle(el).lineHeight;
+         const lineHeight = computedLineHeight === 'normal' ? 22 : parseFloat(computedLineHeight) || 22; 
+         const maxHeight = lineHeight * 10; 
+         setIsOverflowing(el.scrollHeight > maxHeight + 5); // +5px buffer
+      }
+    };
+
+    checkOverflow();
+
+    const observer = new ResizeObserver(checkOverflow);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [isExpanded, task.title]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -173,10 +200,8 @@ export default function RecursiveCheckbox({
   const allowTextEdit = viewMode === 'focus' && (isEditMode || isNormal);
   const daysLeft = task.deleted_at ? Math.max(0, Math.ceil(5 - (Date.now() - new Date(task.deleted_at).getTime()) / (1000 * 60 * 60 * 24))) : 0;
 
-  // Feature 2: No strikethrough for archives
   const isStruckThrough = task.is_completed && viewMode !== 'archive';
 
-  // Feature 3: Colored Dots for Collapsed Parents
   const getDescendantColors = (node: Task): string[] => {
     const colors = new Set<string>();
     const traverse = (n: Task) => {
@@ -222,15 +247,18 @@ export default function RecursiveCheckbox({
         <div className="flex-1 flex flex-col min-w-0 py-0.5">
           {isFlatList && <div className="text-[9px] font-bold text-[#b0ad9a] uppercase truncate tracking-tighter opacity-70 mb-0.5">{getPath(task)}</div>}
           
-          {/* Feature 5: Width-expanding flex container to give wide tap targets */}
-          <div className="flex items-center gap-1.5 w-full">
+          <div className="flex items-start gap-1.5 w-full">
             <span 
               ref={textRef}
               contentEditable={allowTextEdit}
               suppressContentEditableWarning
               onMouseDown={(e) => e.stopPropagation()}
+              onFocus={() => setIsExpanded(true)}
               onInput={handleInput}
-              onBlur={() => saveCurrentText()}
+              onBlur={() => {
+                saveCurrentText();
+                setIsExpanded(false); // Instantly revert to short mode on blur
+              }}
               onKeyDown={(e) => {
                 if (e.altKey && e.key === "ArrowUp") { e.preventDefault(); onMoveUp(task); return; }
                 if (e.altKey && e.key === "ArrowDown") { e.preventDefault(); onMoveDown(task); return; }
@@ -243,15 +271,14 @@ export default function RecursiveCheckbox({
                   else onIndent(task);
                 }
               }}
-              // Added flex-1 min-w-[50px] inline-block for structural stretching
-              className={`break-words whitespace-pre-wrap flex-1 min-w-[50px] inline-block transition-all duration-200 outline-none ${titleSize} ${titleWeight} ${allowTextEdit ? "cursor-text border-b border-transparent focus:border-[#c2956e]/30 pb-[1px]" : "cursor-default"} ${isStruckThrough ? "text-[#c4c0b8] dark:text-[#555] line-through" : "text-[#3d3b33] dark:text-[#e0e0e0]"}`}
+              style={!isExpanded ? { display: '-webkit-box', WebkitLineClamp: 10, WebkitBoxOrient: 'vertical', overflow: 'hidden' } : { display: 'block' }}
+              className={`break-words whitespace-pre-wrap flex-1 min-w-[50px] transition-all duration-200 outline-none ${titleSize} ${titleWeight} ${allowTextEdit ? "cursor-text border-b border-transparent focus:border-[#c2956e]/30 pb-[1px]" : "cursor-default"} ${isStruckThrough ? "text-[#c4c0b8] dark:text-[#555] line-through" : "text-[#3d3b33] dark:text-[#e0e0e0]"}`}
             >
               {initialTitle}
             </span>
             
-            {/* Feature 3: Render dots for highlighted children in collapsed state */}
             {isCollapsed && descendantColors.length > 0 && (
-              <div className="flex items-center gap-1 shrink-0 px-1 opacity-80">
+              <div className="flex items-center gap-1 shrink-0 px-1 opacity-80 mt-[5px]">
                 {descendantColors.map(c => {
                    const colorObj = availableColors.find(ac => ac.id === c);
                    return colorObj ? <div key={c} className={`w-1.5 h-1.5 rounded-full ${colorObj.bg.split(' ')[0]}`} title={c} /> : null;
@@ -259,6 +286,15 @@ export default function RecursiveCheckbox({
               </div>
             )}
           </div>
+
+          {isOverflowing && (
+             <button 
+                onClick={(e) => { e.stopPropagation(); setIsExpanded(!isExpanded); }}
+                className="text-[10px] text-[#c2956e] dark:text-[#b0855f] font-bold uppercase tracking-wider mt-0.5 opacity-80 hover:opacity-100 transition-opacity flex items-center gap-1 w-max outline-none"
+             >
+                {isExpanded ? "Show Less" : "Read More"}
+             </button>
+          )}
 
           {(viewMode === 'archive' || (viewMode === 'trash' && task.is_completed)) && task.completed_at && (
             <div className="flex items-center gap-1.5 mt-1 text-[9px] font-bold text-[#c2956e] uppercase tracking-widest">
@@ -272,7 +308,6 @@ export default function RecursiveCheckbox({
             </div>
           )}
 
-          {/* Fully Overhauled Responsive Menu UI */}
           {isMenuOpen && viewMode === 'focus' && (
             <div className="mt-2 pt-2.5 border-t border-[#e0ddd5] dark:border-[#333] animate-fade-up w-full" onClick={e => e.stopPropagation()}>
                <div className="flex flex-wrap gap-2 items-center w-full">
@@ -286,13 +321,13 @@ export default function RecursiveCheckbox({
                         <Hourglass size={15} />
                      </button>
                      {showKeepAliveToggle && (
-    <div className="flex items-center md:hidden">
-      <div className="w-px h-4 bg-[#e0ddd5] dark:bg-[#444] mx-1" />
-      <button onClick={() => onUpdate(task.id, { keep_alive: !task.keep_alive })} className={`flex items-center justify-center p-1.5 rounded-lg transition-colors ${task.keep_alive ? 'text-white bg-[#7ca982] dark:bg-[#6a9a70]' : 'text-[#7ca982] hover:bg-[#7ca982]/10'}`} title="Keep Parent Alive">
-        <InfinityIcon size={15} />
-      </button>
-    </div>
-  )}
+                        <div className="flex items-center md:hidden">
+                          <div className="w-px h-4 bg-[#e0ddd5] dark:bg-[#444] mx-1" />
+                          <button onClick={() => onUpdate(task.id, { keep_alive: !task.keep_alive })} className={`flex items-center justify-center p-1.5 rounded-lg transition-colors ${task.keep_alive ? 'text-white bg-[#7ca982] dark:bg-[#6a9a70]' : 'text-[#7ca982] hover:bg-[#7ca982]/10'}`} title="Keep Parent Alive">
+                            <InfinityIcon size={15} />
+                          </button>
+                        </div>
+                     )}
                   </div>
 
                   {/* Action Group 2: Core Tools (Add, Del) */}

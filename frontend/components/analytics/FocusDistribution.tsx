@@ -1,3 +1,4 @@
+// frontend/components/analytics/FocusDistribution.tsx
 "use client";
 
 import { useState, useMemo } from 'react';
@@ -5,13 +6,13 @@ import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip } 
 import { useUiStore } from "@/store/uiStore";
 import { Filter } from 'lucide-react';
 
-const COLORS = ['#7ca982', '#c2956e', '#6e90c2', '#a882c2', '#5b9ea0', '#b895d1', '#d1a784', '#e0b589'];
+const COLORS =['#7ca982', '#c2956e', '#6e90c2', '#a882c2', '#5b9ea0', '#b895d1', '#d1a784', '#e0b589'];
 
 export default function FocusDistribution({ rawSessions }: { rawSessions: any[] }) {
   const { theme } = useUiStore();
   const isDark = theme === 'dark' || (theme === 'system' && typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches);
 
-  const [excludedCategories, setExcludedCategories] = useState<Set<string>>(new Set());
+  const[excludedCategories, setExcludedCategories] = useState<Set<string>>(new Set());
 
   // Process data: ensure at least 4 distinct items are shown, merge the rest < 10% into "Others"
   const { groupedData, activeData, totalActiveMinutes } = useMemo(() => {
@@ -29,7 +30,7 @@ export default function FocusDistribution({ rawSessions }: { rawSessions: any[] 
     
     const threshold = totalMinutes * 0.10;
     const MIN_VISIBLE_ITEMS = 4;
-    const finalGroups: { name: string; value: number }[] = [];
+    const finalGroups: { name: string; value: number }[] =[];
     let othersValue = 0;
 
     sortedRaw.forEach((item, index) => {
@@ -89,10 +90,10 @@ export default function FocusDistribution({ rawSessions }: { rawSessions: any[] 
   const topCategoryName = activeData[0]?.name || "N/A";
 
   return (
-    <div className="bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] rounded-[2.5rem] p-6 md:p-8 shadow-sm h-[350px] flex flex-col md:flex-row items-center transition-colors">
+    <div className="bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] rounded-[2.5rem] p-6 lg:p-8 shadow-sm h-auto lg:h-[350px] flex flex-col lg:flex-row items-center transition-colors">
       
       {/* Pie Chart Section */}
-      <div className="w-full md:w-1/2 h-48 md:h-full relative shrink-0">
+      <div className="w-full lg:w-1/2 h-56 lg:h-full relative shrink-0">
         {activeData.length > 0 ? (
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
@@ -117,7 +118,7 @@ export default function FocusDistribution({ rawSessions }: { rawSessions: any[] 
       </div>
       
       {/* Interactive Legend Section */}
-      <div className="w-full md:w-1/2 flex flex-col h-full mt-4 md:mt-0 md:pl-6">
+      <div className="w-full lg:w-1/2 flex flex-col mt-6 lg:mt-0 lg:pl-6 h-auto lg:h-full max-h-[250px] lg:max-h-none">
         <div className="flex items-center gap-2 mb-3 text-[#b0ad9a] dark:text-[#7a7a7a] shrink-0">
             <Filter size={14} />
             <span className="text-[9px] font-bold uppercase tracking-widest">Active Filters</span>

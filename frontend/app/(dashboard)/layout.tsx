@@ -89,7 +89,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [pathname, router, setNotesTab, isSidebarPinned, toggleSidebarPin, toggleFirstActive, hotkeysEnabled]);
+  },[pathname, router, setNotesTab, isSidebarPinned, toggleSidebarPin, toggleFirstActive, hotkeysEnabled]);
 
   useEffect(() => {
     if (!isLoading && !initialRestoreDone.current) {
@@ -111,7 +111,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   return (
     <div className={`flex h-screen w-full overflow-hidden ${isHomePage ? 'bg-transparent' : 'bg-[#f7f5f0] dark:bg-[#121212]'}`}>
       <SidebarNav />
-      <main id="main-scroll-container" className="flex-1 h-full overflow-y-auto relative min-w-0 pb-[72px] md:pb-0 pt-[max(1rem,env(safe-area-inset-top))] md:pt-0 scroll-smooth">
+      <main id="main-scroll-container" className="flex-1 h-full overflow-y-auto overflow-x-hidden relative min-w-0 pb-[72px] md:pb-0 pt-[max(1rem,env(safe-area-inset-top))] md:pt-0 scroll-smooth">
         {children}
       </main>
     </div>

@@ -9,7 +9,7 @@ import { useUiStore } from "@/store/uiStore";
 
 type Tab = 'notes' | 'journal';
 
-const TABS: { id: Tab; label: string; icon: React.ElementType }[] = [
+const TABS: { id: Tab; label: string; icon: React.ElementType }[] =[
   { id: 'notes', label: 'Notes', icon: FileText },
   { id: 'journal', label: 'Journal', icon: BookOpen }
 ];
@@ -28,7 +28,7 @@ const syncOfflineData = async () => {
   if (queue.length === 0) return;
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return;
-  let remaining = [];
+  let remaining =[];
   for (const item of queue) {
     try {
       if (item.type === 'notes') {
@@ -54,15 +54,15 @@ export default function NotesPage() {
   
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [editTitle, setEditTitle] = useState("");
+  const[editTitle, setEditTitle] = useState("");
   
   const [loading, setLoading] = useState(true);
   const [isListVisible, setIsListVisible] = useState(true);
-  const [isTrashOpen, setIsTrashOpen] = useState(false);
+  const[isTrashOpen, setIsTrashOpen] = useState(false);
   const [autoSelectPending, setAutoSelectPending] = useState(true);
 
   const [showCalendar, setShowCalendar] = useState(false);
-  const [calMonth, setCalMonth] = useState(new Date());
+  const[calMonth, setCalMonth] = useState(new Date());
 
   const handleTabChange = (id: Tab) => {
     setNotesTab(id);
@@ -78,11 +78,11 @@ export default function NotesPage() {
     if (!user) return setLoading(false);
 
     const { data: nData } = await supabase.from('notes').select('*').is('deleted_at', null).order('updated_at', { ascending: false });
-    setNotes(nData || []);
+    setNotes(nData ||[]);
 
     const { data: jData } = await supabase.from('journal_entries').select('*').is('deleted_at', null).order('entry_date', { ascending: false });
     const todayStr = getLocalYYYYMMDD(new Date());
-    const jList = jData || [];
+    const jList = jData ||[];
     if (!jList.some(j => j.entry_date === todayStr)) {
       jList.unshift({ entry_date: todayStr, content: "<p></p>" });
     }
@@ -92,15 +92,15 @@ export default function NotesPage() {
     const { data: jTrashData } = await supabase.from('journal_entries').select('*').not('deleted_at', 'is', null);
     
     const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-    const validTrashNotes = (tData || []).filter(note => new Date(note.deleted_at) > thirtyDaysAgo).map(n => ({ ...n, isJournal: false }));
-    const validTrashJournals = (jTrashData || []).filter(j => new Date(j.deleted_at) > thirtyDaysAgo).map(j => ({ ...j, isJournal: true }));
+    const validTrashNotes = (tData ||[]).filter(note => new Date(note.deleted_at) > thirtyDaysAgo).map(n => ({ ...n, isJournal: false }));
+    const validTrashJournals = (jTrashData ||[]).filter(j => new Date(j.deleted_at) > thirtyDaysAgo).map(j => ({ ...j, isJournal: true }));
     
     const combinedTrash = [...validTrashNotes, ...validTrashJournals].sort((a, b) => new Date(b.deleted_at).getTime() - new Date(a.deleted_at).getTime());
     
     setTrash(combinedTrash);
     setLoading(false);
     syncOfflineData();
-  }, []);
+  },[]);
 
   useEffect(() => { 
     fetchData(); 
@@ -283,7 +283,7 @@ export default function NotesPage() {
       const plain = (item.content || "").replace(/<[^>]+>/g, ' ').toLowerCase();
       return title?.toLowerCase().includes(q) || plain.includes(q);
     });
-  }, [notes, journals, trash, notesTab, searchQuery, isTrashOpen]);
+  },[notes, journals, trash, notesTab, searchQuery, isTrashOpen]);
 
   useEffect(() => {
     if (autoSelectPending && !loading && !isTrashOpen) {
@@ -322,7 +322,7 @@ export default function NotesPage() {
     if (isTrashOpen) return trash.find(t => (t.isJournal ? t.entry_date : t.id) === selectedId);
     if (notesTab === 'notes') return notes.find(n => n.id === selectedId);
     return journals.find(j => j.entry_date === selectedId);
-  }, [selectedId, notesTab, notes, journals, trash, isTrashOpen]);
+  },[selectedId, notesTab, notes, journals, trash, isTrashOpen]);
 
   // Calendar render helper
   const renderCalendar = () => {
@@ -331,7 +331,7 @@ export default function NotesPage() {
     const firstDay = new Date(year, month, 1).getDay();
     const daysInMonth = new Date(year, month + 1, 0).getDate();
     
-    const days = [];
+    const days =[];
     for (let i = 0; i < firstDay; i++) days.push(null);
     for (let i = 1; i <= daysInMonth; i++) days.push(new Date(year, month, i));
 
@@ -374,7 +374,7 @@ export default function NotesPage() {
   };
 
   return (
-    <div className="flex h-screen w-full bg-[#f7f5f0] dark:bg-[#121212] lg:pl-10 overflow-hidden selection:bg-[#c2956e]/20">
+    <div className="relative flex h-[calc(100dvh-72px)] md:h-[100dvh] w-full bg-[#f7f5f0] dark:bg-[#121212] lg:pl-10 overflow-hidden selection:bg-[#c2956e]/20">
       
       <aside className={`
         w-full lg:w-[350px] flex-shrink-0 flex flex-col border-r border-[#e0ddd5] dark:border-[#2a2a2a] bg-[#f7f5f0] dark:bg-[#121212] z-30 transition-transform duration-300 ease-in-out

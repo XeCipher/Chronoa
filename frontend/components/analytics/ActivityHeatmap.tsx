@@ -1,3 +1,4 @@
+// frontend/components/analytics/ActivityHeatmap.tsx
 "use client";
 
 import { useMemo, useState, useRef, useEffect } from 'react';
@@ -6,7 +7,7 @@ import { Tooltip } from 'react-tooltip';
 import { Calendar as CalIcon, ChevronLeft, ChevronRight } from 'lucide-react';
 import { DailyRecord } from '@/app/(dashboard)/analytics/page';
 
-const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const MONTHS =['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
 export default function ActivityHeatmap({ dailyMap }: { dailyMap: Record<string, DailyRecord> }) {
   const { theme } = useUiStore();
@@ -27,8 +28,8 @@ export default function ActivityHeatmap({ dailyMap }: { dailyMap: Record<string,
   }, []);
 
   const colors = isDark 
-    ? ['#222222', '#1e4a28', '#2d6d39', '#3b8e49', '#4bae5c']
-    : ['#ebedf0', '#9be9a8', '#40c463', '#30a14e', '#216e39'];
+    ?['#222222', '#1e4a28', '#2d6d39', '#3b8e49', '#4bae5c']
+    :['#ebedf0', '#9be9a8', '#40c463', '#30a14e', '#216e39'];
 
   const { weeks, monthLabels } = useMemo(() => {
     const endDate = new Date(endMonth.year, endMonth.month + 1, 0); // Last day of selected month
@@ -47,7 +48,7 @@ export default function ActivityHeatmap({ dailyMap }: { dailyMap: Record<string,
       return 1;
     };
 
-    const days = [];
+    const days =[];
     // Go back exactly 364 days to build exactly 52 full weeks leading up to the endDate
     for (let i = 364; i >= 0; i--) {
       const d = new Date(endDate);
@@ -65,7 +66,7 @@ export default function ActivityHeatmap({ dailyMap }: { dailyMap: Record<string,
     }
 
     const grid: any[][] = [];
-    let currentWeek: any[] = [];
+    let currentWeek: any[] =[];
     
     // Pad the first week to start on Sunday
     if (days[0].dayOfWeek !== 0) {
@@ -76,7 +77,7 @@ export default function ActivityHeatmap({ dailyMap }: { dailyMap: Record<string,
       currentWeek.push(day);
       if (currentWeek.length === 7) {
         grid.push(currentWeek);
-        currentWeek = [];
+        currentWeek =[];
       }
     });
 
@@ -87,7 +88,7 @@ export default function ActivityHeatmap({ dailyMap }: { dailyMap: Record<string,
     }
 
     // Map month labels correctly over the columns
-    const monthLabels: { label: string; weekIndex: number }[] = [];
+    const monthLabels: { label: string; weekIndex: number }[] =[];
     let lastMonth = -1;
     grid.forEach((week, i) => {
        const firstValidDay = week.find(d => d !== null);
@@ -133,8 +134,8 @@ export default function ActivityHeatmap({ dailyMap }: { dailyMap: Record<string,
   };
 
   return (
-    <div className="bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] rounded-[2.5rem] p-6 md:p-8 shadow-sm flex flex-col transition-colors min-h-[300px]">
-      <div className="flex justify-between items-start mb-6">
+    <div className="bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] rounded-[2.5rem] p-6 lg:p-8 shadow-sm flex flex-col transition-colors h-auto lg:h-[350px] min-h-[300px]">
+      <div className="flex justify-between items-start mb-6 shrink-0">
         <div>
           <h3 className="text-2xl font-medium text-[#3d3b33] dark:text-[#f0f0f0] italic font-serif">Master Canvas</h3>
           <p className="text-[10px] font-bold uppercase tracking-widest text-[#b0ad9a] dark:text-[#7a7a7a] mt-1">12 Months of Focus</p>
@@ -149,7 +150,7 @@ export default function ActivityHeatmap({ dailyMap }: { dailyMap: Record<string,
       </div>
       
       {/* Wrapper to align axes and grid */}
-      <div className="flex flex-1 w-full relative">
+      <div className="flex flex-1 w-full relative min-h-0">
         
         {/* Isolated Y-Axis Container (No Overlap) */}
         <div className="w-8 shrink-0 flex flex-col relative text-[9px] font-bold uppercase tracking-widest text-[#b0ad9a] dark:text-[#555] mr-2">
@@ -197,7 +198,7 @@ export default function ActivityHeatmap({ dailyMap }: { dailyMap: Record<string,
         </div>
       </div>
 
-      <div className="mt-4 flex items-center justify-end gap-2 text-[10px] font-bold uppercase tracking-widest text-[#b0ad9a] dark:text-[#7a7a7a]">
+      <div className="mt-4 flex items-center justify-end gap-2 text-[10px] font-bold uppercase tracking-widest text-[#b0ad9a] dark:text-[#7a7a7a] shrink-0">
         <span>Less</span>
         {colors.map((c, i) => (
           <div key={i} className="w-[12px] h-[12px] rounded-[3px] border border-black/5 dark:border-white/5" style={{ backgroundColor: c }} />
