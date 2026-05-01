@@ -236,6 +236,10 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
+    // Instantly expand the section on mobile to provide immediate feedback
+    if (type === 'routine' && mobileRoutineCollapsed) setMobileRoutineCollapsed(false);
+    if (type === 'normal' && mobileTasksCollapsed) setMobileTasksCollapsed(false);
+
     // Open the parent immediately so the user sees the newly spawned child input
     if (parentId) {
       setTasks((prev) => prev.map((t) => t.id === parentId ? { ...t, is_collapsed: false } : t));
@@ -266,12 +270,8 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
       .single();
 
     if (data) {
-      setTasks((prev) => [...prev, data]);
+      setTasks((prev) =>[...prev, data]);
       setNewTaskId(data.id);
-      
-      // Auto-expand section on mobile if they add an item
-      if (type === 'routine' && mobileRoutineCollapsed) setMobileRoutineCollapsed(false);
-      if (type === 'normal' && mobileTasksCollapsed) setMobileTasksCollapsed(false);
     }
   };
 
@@ -481,7 +481,7 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
               >
                 {title}
               </h2>
-              {/* Feature 1: Mobile-only collapse toggle */}
+              {/* Mobile-only collapse toggle */}
               <button 
                 onClick={toggleMobileCollapse}
                 className="md:hidden p-1.5 -ml-1 text-[#b0ad9a] dark:text-[#7a7a7a] active:bg-gray-100 dark:active:bg-[#333] rounded-lg transition-colors"
@@ -510,7 +510,13 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
             <div className="flex items-center gap-2 shrink-0 pt-0.5">
               {type === "routine" ? (
                 <button
-                  onClick={() => setIsEditMode((v) => !v)}
+                  onClick={() => {
+                    const nextMode = !isEditMode;
+                    setIsEditMode(nextMode);
+                    if (nextMode && type === "routine" && mobileRoutineCollapsed) {
+                      setMobileRoutineCollapsed(false);
+                    }
+                  }}
                   className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-[11px] font-[600] tracking-[0.08em] uppercase transition-all duration-200 ${
                     isEditMode
                       ? "bg-[#c2956e] dark:bg-[#b0855f] text-white shadow-lg"

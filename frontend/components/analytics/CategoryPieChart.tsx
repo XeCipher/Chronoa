@@ -1,10 +1,11 @@
+// frontend/components/analytics/CategoryPieChart.tsx
 "use client";
 
 import { useEffect, useState } from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { useUiStore } from "@/store/uiStore";
 
-const COLORS = ['#7ca982', '#c2956e', '#6e90c2', '#a882c2', '#5b9ea0', '#888888', '#d4d0c8'];
+const COLORS =['#7ca982', '#c2956e', '#6e90c2', '#a882c2', '#5b9ea0', '#888888', '#d4d0c8'];
 
 export default function CategoryPieChart({ data }: { data: any[] }) {
   const [isMounted, setIsMounted] = useState(false);
@@ -38,7 +39,7 @@ export default function CategoryPieChart({ data }: { data: any[] }) {
 
   return (
     <div className="bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] rounded-[2.5rem] p-8 md:p-10 shadow-sm h-[450px] flex flex-col overflow-hidden transition-colors">
-      <h3 className="text-2xl font-medium text-[#3d3b33] dark:text-[#f0f0f0] mb-4 italic" style={{ fontFamily: 'var(--font-cormorant), serif' }}>
+      <h3 className="text-2xl font-medium text-[#3d3b33] dark:text-[#f0f0f0] mb-4 italic shrink-0" style={{ fontFamily: 'var(--font-cormorant), serif' }}>
         Focus Distribution
       </h3>
       
@@ -50,7 +51,7 @@ export default function CategoryPieChart({ data }: { data: any[] }) {
           </span>
         </div>
 
-        <div className="h-[240px] w-full">
+        <div className="h-[240px] w-full shrink-0">
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
               <Pie
@@ -75,14 +76,15 @@ export default function CategoryPieChart({ data }: { data: any[] }) {
           </ResponsiveContainer>
         </div>
 
-        <div className="mt-auto pt-4 flex flex-wrap justify-center gap-2">
+        {/* Legend container constrained and allowed to scroll to prevent breaking mobile layouts */}
+        <div className="mt-auto pt-4 flex flex-wrap justify-center gap-2 overflow-y-auto no-scrollbar max-h-[90px] content-start shrink-0">
           {data.map((cat, i) => {
             const isDisabled = disabledCategories.includes(cat.name);
             return (
               <button
                 key={cat.name}
                 onClick={() => toggleCategory(cat.name)}
-                className={`flex items-center gap-2 px-3 py-1.5 rounded-full border text-[10px] font-bold uppercase tracking-wider transition-all duration-200
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-full border text-[10px] font-bold uppercase tracking-wider transition-all duration-200 shrink-0
                   ${isDisabled ? 'bg-gray-50 dark:bg-[#111] border-gray-200 dark:border-[#333] text-gray-400 dark:text-[#555]' : 'bg-white dark:bg-[#222] border-[#e0ddd5] dark:border-[#444] text-[#3d3b33] dark:text-[#f0f0f0] hover:border-[#c2956e] dark:hover:border-[#b0855f]'}`}
               >
                 <div className={`w-2 h-2 rounded-full ${isDisabled ? 'bg-gray-300 dark:bg-gray-700' : ''}`} style={{ backgroundColor: isDisabled ? undefined : COLORS[i % COLORS.length] }} />
