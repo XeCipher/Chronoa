@@ -30,7 +30,6 @@ export const metadata: Metadata = {
     title: "Chronoa",
     statusBarStyle: "black-translucent",
   },
-  // Correctly mapping the icons natively fixes the blank Safari tab issues on iOS
   icons: {
     icon: [
       { url: '/icon-light.svg', media: '(prefers-color-scheme: light)' },
@@ -67,6 +66,13 @@ export default function RootLayout({
                     document.documentElement.classList.add('dark');
                   } else {
                     document.documentElement.classList.remove('dark');
+                  }
+
+                  // Register Service Worker for PWA / APK Support
+                  if ('serviceWorker' in navigator) {
+                    window.addEventListener('load', function() {
+                      navigator.serviceWorker.register('/sw.js');
+                    });
                   }
                 } catch (e) {}
               })();
