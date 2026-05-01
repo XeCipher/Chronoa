@@ -1,9 +1,8 @@
 // frontend/app/(dashboard)/analytics/page.tsx
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { supabase } from "@/lib/supabase";
-import { useUiStore } from "@/store/uiStore";
 import { Sparkles, CheckCircle2, Timer, Flame, PenTool, Info, X } from "lucide-react";
 import StatCard from "@/components/analytics/StatCard";
 import ProductivityChart from "@/components/analytics/ProductivityChart";
@@ -14,14 +13,14 @@ import RankBadge from "@/components/analytics/RankBadge";
 
 export interface DailyRecord {
   date: string;
-  tasks: { title: string; completed_at: string }[];
+  tasks: { title: string; completed_at: string; task_type: string }[];
   sessions: { title: string; duration_seconds: number }[];
   taskCount: number;
   focusMinutes: number;
 }
 
 export interface AnalyticsData {
-  totalTasks: number;
+  totalFilteredTasks: number;
   totalFocusMinutes: number;
   currentStreak: number;
   bestStreak: number;
@@ -32,8 +31,7 @@ export interface AnalyticsData {
   levelInfo: { level: number; rank: string; progress: number; xp: number };
 }
 
-// XP Thresholds mapping for the modal
-export const RANKS =[
+export const RANKS = [
   { name: "Novice", minLevel: 1, minXp: 0 },
   { name: "Apprentice", minLevel: 4, minXp: 450 },
   { name: "Scholar", minLevel: 7, minXp: 1800 },
@@ -45,112 +43,128 @@ export const RANKS =[
 ];
 
 export default function AnalyticsPage() {
-  const [data, setData] = useState<AnalyticsData | null>(null);
-  const[loading, setLoading] = useState(true);
+  const [rawTasks, setRawTasks] = useState<any[]>([]);
+  const [rawSessions, setRawSessions] = useState<any[]>([]);
+  const [rawJournals, setRawJournals] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  
+  const [filterType, setFilterType] = useState<'all' | 'routine' | 'normal'>('all');
   const [isRankModalOpen, setIsRankModalOpen] = useState(false);
 
   useEffect(() => {
-    const fetchAndProcessData = async () => {
+    const fetchRawData = async () => {
       setLoading(true);
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
       const [tasksRes, sessionsRes, journalRes] = await Promise.all([
-        supabase.from('tasks').select('title, completed_at').eq('user_id', user.id).eq('is_completed', true).is('deleted_at', null),
+        // Added task_type here for filtering
+        supabase.from('tasks').select('title, completed_at, task_type').eq('user_id', user.id).eq('is_completed', true).is('deleted_at', null),
         supabase.from('time_sessions').select('duration_seconds, created_at, title').eq('user_id', user.id),
         supabase.from('journal_entries').select('entry_date').eq('user_id', user.id).is('deleted_at', null)
       ]);
 
-      const tasks = tasksRes.data ||[];
-      const sessions = sessionsRes.data || [];
-      const journals = journalRes.data ||[];
-
-      // 1. Core Totals & Gamification
-      const totalTasks = tasks.length;
-      const totalFocusSeconds = sessions.reduce((acc, s) => acc + s.duration_seconds, 0);
-      const totalFocusMinutes = Math.floor(totalFocusSeconds / 60);
-      const totalJournals = journals.length;
-
-      const xp = (totalTasks * 10) + (totalFocusMinutes * 2) + (totalJournals * 15);
-      const level = Math.floor(Math.sqrt(xp / 50)) + 1;
-      const nextLevelXp = Math.pow(level, 2) * 50;
-      const prevLevelXp = Math.pow(level - 1, 2) * 50;
-      const progress = Math.min(100, Math.max(0, ((xp - prevLevelXp) / (nextLevelXp - prevLevelXp)) * 100));
-      
-      const getRank = (lvl: number) => {
-        const rankObj =[...RANKS].reverse().find(r => lvl >= r.minLevel);
-        return rankObj ? rankObj.name : "Novice";
-      };
-
-      // 2. Build Daily Map
-      const getLocalYMD = (d: Date) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-      const dailyMap: Record<string, DailyRecord> = {};
-      const ensureDay = (ymd: string) => {
-        if (!dailyMap[ymd]) dailyMap[ymd] = { date: ymd, tasks: [], sessions:[], taskCount: 0, focusMinutes: 0 };
-      };
-
-      tasks.forEach(t => {
-        if (!t.completed_at) return;
-        const ymd = getLocalYMD(new Date(t.completed_at));
-        ensureDay(ymd);
-        dailyMap[ymd].tasks.push({ title: t.title, completed_at: t.completed_at });
-        dailyMap[ymd].taskCount++;
-      });
-
-      sessions.forEach(s => {
-        if (!s.created_at) return;
-        const ymd = getLocalYMD(new Date(s.created_at));
-        const mins = Math.floor(s.duration_seconds / 60);
-        ensureDay(ymd);
-        dailyMap[ymd].sessions.push({ title: s.title || 'Focus Session', duration_seconds: s.duration_seconds });
-        dailyMap[ymd].focusMinutes += mins;
-      });
-
-      // 3. Streaks Calculation Helper
-      const calculateStreak = (daySet: Set<string>) => {
-        let current = 0, best = 0;
-        const todayYmd = getLocalYMD(new Date());
-        const yesterdayDate = new Date(); yesterdayDate.setDate(yesterdayDate.getDate() - 1);
-        
-        let checkDate = new Date();
-        if (!daySet.has(todayYmd)) checkDate = yesterdayDate;
-
-        while(daySet.has(getLocalYMD(checkDate))) {
-            current++;
-            checkDate.setDate(checkDate.getDate() - 1);
-        }
-
-        const sorted = Array.from(daySet).sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
-        if (sorted.length > 0) {
-            let maxS = 1, curS = 1;
-            for(let i=1; i<sorted.length; i++) {
-                const diffDays = Math.round((new Date(sorted[i]).getTime() - new Date(sorted[i-1]).getTime())/(1000*60*60*24));
-                if (diffDays === 1) { curS++; if (curS > maxS) maxS = curS; } 
-                else if (diffDays > 1) { curS = 1; }
-            }
-            best = maxS;
-        }
-        return { current, best };
-      };
-
-      const activeDays = new Set(Object.keys(dailyMap));
-      const journalDays = new Set(journals.map(j => j.entry_date));
-
-      const activityStreak = calculateStreak(activeDays);
-      const journalStreak = calculateStreak(journalDays);
-
-      setData({
-        totalTasks, totalFocusMinutes, 
-        currentStreak: activityStreak.current, bestStreak: activityStreak.best,
-        journalCurrentStreak: journalStreak.current, journalBestStreak: journalStreak.best,
-        dailyMap, rawSessions: sessions,
-        levelInfo: { level, rank: getRank(level), progress, xp }
-      });
+      setRawTasks(tasksRes.data || []);
+      setRawSessions(sessionsRes.data || []);
+      setRawJournals(journalRes.data || []);
       setLoading(false);
     };
 
-    fetchAndProcessData();
-  },[]);
+    fetchRawData();
+  }, []);
+
+  const data = useMemo<AnalyticsData | null>(() => {
+    if (loading) return null;
+
+    // Filter tasks dynamically
+    const filteredTasks = rawTasks.filter(t => filterType === 'all' || t.task_type === filterType);
+
+    // 1. Core Totals & Gamification (XP always based on Global / All tasks so rank doesn't downgrade dynamically)
+    const globalTotalTasks = rawTasks.length;
+    const totalFocusSeconds = rawSessions.reduce((acc, s) => acc + s.duration_seconds, 0);
+    const totalFocusMinutes = Math.floor(totalFocusSeconds / 60);
+    const totalJournals = rawJournals.length;
+
+    const xp = (globalTotalTasks * 10) + (totalFocusMinutes * 2) + (totalJournals * 15);
+    const level = Math.floor(Math.sqrt(xp / 50)) + 1;
+    const nextLevelXp = Math.pow(level, 2) * 50;
+    const prevLevelXp = Math.pow(level - 1, 2) * 50;
+    const progress = Math.min(100, Math.max(0, ((xp - prevLevelXp) / (nextLevelXp - prevLevelXp)) * 100));
+    
+    const getRank = (lvl: number) => {
+      const rankObj = [...RANKS].reverse().find(r => lvl >= r.minLevel);
+      return rankObj ? rankObj.name : "Novice";
+    };
+
+    // 2. Build Daily Map (Using ONLY filtered tasks)
+    const getLocalYMD = (d: Date) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    const dailyMap: Record<string, DailyRecord> = {};
+    const ensureDay = (ymd: string) => {
+      if (!dailyMap[ymd]) dailyMap[ymd] = { date: ymd, tasks: [], sessions: [], taskCount: 0, focusMinutes: 0 };
+    };
+
+    filteredTasks.forEach(t => {
+      if (!t.completed_at) return;
+      const ymd = getLocalYMD(new Date(t.completed_at));
+      ensureDay(ymd);
+      dailyMap[ymd].tasks.push({ title: t.title, completed_at: t.completed_at, task_type: t.task_type });
+      dailyMap[ymd].taskCount++;
+    });
+
+    rawSessions.forEach(s => {
+      if (!s.created_at) return;
+      const ymd = getLocalYMD(new Date(s.created_at));
+      const mins = Math.floor(s.duration_seconds / 60);
+      ensureDay(ymd);
+      dailyMap[ymd].sessions.push({ title: s.title || 'Focus Session', duration_seconds: s.duration_seconds });
+      dailyMap[ymd].focusMinutes += mins;
+    });
+
+    // 3. Streaks Calculation Helper
+    const calculateStreak = (daySet: Set<string>) => {
+      let current = 0, best = 0;
+      const todayYmd = getLocalYMD(new Date());
+      const yesterdayDate = new Date(); yesterdayDate.setDate(yesterdayDate.getDate() - 1);
+      
+      let checkDate = new Date();
+      if (!daySet.has(todayYmd)) checkDate = yesterdayDate;
+
+      while(daySet.has(getLocalYMD(checkDate))) {
+          current++;
+          checkDate.setDate(checkDate.getDate() - 1);
+      }
+
+      const sorted = Array.from(daySet).sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
+      if (sorted.length > 0) {
+          let maxS = 1, curS = 1;
+          for(let i = 1; i < sorted.length; i++) {
+              const diffDays = Math.round((new Date(sorted[i]).getTime() - new Date(sorted[i-1]).getTime()) / (1000 * 60 * 60 * 24));
+              if (diffDays === 1) { curS++; if (curS > maxS) maxS = curS; } 
+              else if (diffDays > 1) { curS = 1; }
+          }
+          best = maxS;
+      }
+      return { current, best };
+    };
+
+    const activeDays = new Set(Object.keys(dailyMap));
+    const journalDays = new Set(rawJournals.map(j => j.entry_date));
+
+    const activityStreak = calculateStreak(activeDays);
+    const journalStreak = calculateStreak(journalDays);
+
+    return {
+      totalFilteredTasks: filteredTasks.length,
+      totalFocusMinutes, 
+      currentStreak: activityStreak.current, 
+      bestStreak: activityStreak.best,
+      journalCurrentStreak: journalStreak.current, 
+      journalBestStreak: journalStreak.best,
+      dailyMap, 
+      rawSessions,
+      levelInfo: { level, rank: getRank(level), progress, xp }
+    };
+  }, [rawTasks, rawSessions, rawJournals, loading, filterType]);
 
   if (loading) {
     return (
@@ -164,9 +178,24 @@ export default function AnalyticsPage() {
   return (
     <div className="w-full mx-auto p-4 md:p-10 lg:pl-20 xl:pl-28 space-y-8 pb-24 overflow-x-hidden">
       
-      <header className="mb-6 animate-fade-up" style={{ animationDelay: '0ms' }}>
-        <h1 className="text-5xl md:text-6xl text-[#3d3b33] dark:text-[#f0f0f0] font-serif italic mb-2 tracking-tight">Performance</h1>
-        <p className="text-[#b0ad9a] dark:text-[#7a7a7a] tracking-[0.25em] text-[10px] font-bold uppercase">Consistency builds empires</p>
+      <header className="mb-6 animate-fade-up flex flex-col md:flex-row md:items-end justify-between gap-6" style={{ animationDelay: '0ms' }}>
+        <div>
+          <h1 className="text-5xl md:text-6xl text-[#3d3b33] dark:text-[#f0f0f0] font-serif italic mb-2 tracking-tight">Performance</h1>
+          <p className="text-[#b0ad9a] dark:text-[#7a7a7a] tracking-[0.25em] text-[10px] font-bold uppercase">Consistency builds empires</p>
+        </div>
+        
+        {/* Added Task Filter Toggle */}
+        <div className="flex bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] p-1 rounded-2xl shadow-sm w-fit shrink-0">
+          {['all', 'routine', 'normal'].map(f => (
+            <button 
+              key={f} 
+              onClick={() => setFilterType(f as any)}
+              className={`px-5 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all ${filterType === f ? 'bg-[#c2956e] dark:bg-[#b0855f] text-white shadow-md' : 'text-[#888] hover:text-[#3d3b33] dark:hover:text-[#ccc]'}`}
+            >
+              {f}
+            </button>
+          ))}
+        </div>
       </header>
 
       {/* Level Hero Bar */}
@@ -177,7 +206,7 @@ export default function AnalyticsPage() {
           <div>
             <div className="flex items-center gap-2 mb-1">
               <p className="text-[10px] text-[#c2956e] dark:text-[#b0855f] font-bold uppercase tracking-widest">Sanctuary Rank</p>
-              <button onClick={() => setIsRankModalOpen(true)} className="outline-none">
+              <button onClick={() => setIsRankModalOpen(true)} className="outline-none p-1 -m-1">
                 <Info size={14} className="text-[#888] hover:text-[#c2956e] transition-colors" />
               </button>
             </div>
@@ -201,37 +230,33 @@ export default function AnalyticsPage() {
         </div>
       </div>
 
-      {/* Stats Grid - Now correctly configured for 2 columns closely packed on mobile */}
+      {/* Stats Grid */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6 animate-fade-up" style={{ animationDelay: '200ms' }}>
         <StatCard 
-          title="Tasks Done" 
-          value={data?.totalTasks || 0} 
+          title={filterType === 'all' ? "Tasks Done" : filterType === 'routine' ? "Routines Done" : "Normal Tasks"} 
+          value={data?.totalFilteredTasks || 0} 
           icon={CheckCircle2} 
-          color="sage" 
-          infoText="Includes both Routine and Normal tasks completed."
+          color="sage"
         />
         <StatCard 
           title="Focus Time" 
           value={`${Math.floor((data?.totalFocusMinutes || 0) / 60)}h ${(data?.totalFocusMinutes || 0) % 60}m`} 
           icon={Timer} 
-          color="amber" 
-          infoText="Total time accumulated from both timers and stopwatches."
+          color="amber"
         />
         <StatCard 
           title="Activity Streak" 
           value={`${data?.currentStreak || 0} Days`} 
           subValue={data?.bestStreak}
           icon={Flame} 
-          color="purple" 
-          infoText="Consecutive days with at least one task completed or focus session logged."
+          color="purple"
         />
         <StatCard 
           title="Journal Streak" 
           value={`${data?.journalCurrentStreak || 0} Days`} 
           subValue={data?.journalBestStreak}
           icon={PenTool} 
-          color="blue" 
-          infoText="Consecutive days with a journal entry written."
+          color="blue"
         />
       </div>
 
@@ -248,7 +273,7 @@ export default function AnalyticsPage() {
       {/* Secondary Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 animate-fade-up" style={{ animationDelay: '400ms' }}>
         <ActivityHeatmap dailyMap={data?.dailyMap || {}} />
-        <FocusDistribution rawSessions={data?.rawSessions ||[]} />
+        <FocusDistribution rawSessions={data?.rawSessions || []} />
       </div>
 
       {/* Gamification Info Modal */}

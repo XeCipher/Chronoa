@@ -109,9 +109,13 @@ function EngineCard({ engine, tab }: { engine: EngineInstance, tab: 'timer' | 's
   return (
     <div className="relative shrink-0 w-[24rem] max-w-[85vw] bg-white/20 dark:bg-black/30 backdrop-blur-3xl border border-white/40 dark:border-white/10 rounded-[2.5rem] p-6 shadow-[0_20px_50px_-10px_rgba(0,0,0,0.15)] flex flex-col gap-5 transition-colors snap-center group">
       
+      {/* 
+        Modified Delete Button: 
+        Ensured opacity is visible natively on mobile (opacity-100), but uses hover opacity specifically for desktop (md:opacity-0 md:group-hover:opacity-100).
+      */}
       <button 
         onClick={() => store.removeInstance(tab, engine.id)} 
-        className="absolute top-5 right-6 opacity-0 group-hover:opacity-100 transition-opacity text-gray-400 hover:text-red-500 dark:text-gray-500 dark:hover:text-red-400"
+        className="absolute top-5 right-6 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity text-gray-400 hover:text-red-500 dark:text-gray-500 dark:hover:text-red-400"
       >
         <Trash2 size={18} />
       </button>
@@ -131,7 +135,6 @@ function EngineCard({ engine, tab }: { engine: EngineInstance, tab: 'timer' | 's
               if (engine.isRunning) {
                 store.pause(tab, engine.id);
               } else {
-                // Request notification permission smoothly upon user initiation
                 if (tab === 'timer' && typeof Notification !== 'undefined' && Notification.permission === 'default') {
                   Notification.requestPermission();
                 }
@@ -157,11 +160,9 @@ function EngineCard({ engine, tab }: { engine: EngineInstance, tab: 'timer' | 's
             min="1"
             value={engine.targetMinutes || 1} 
             onChange={(e) => {
-              // Ensure value is at least 1 and handle empty/NaN cases
               const val = Math.max(1, parseInt(e.target.value) || 1);
               store.setTargetMinutes(engine.id, val);
             }}
-            // LOCK INPUT if running OR if progress has already been made (paused state)
             disabled={engine.isRunning || engine.accumulatedSeconds > 0} 
             className={`w-20 bg-white/40 dark:bg-black/40 border border-transparent rounded-2xl px-2 py-3 text-center text-sm font-bold text-[#3d3b33] dark:text-white outline-none focus:bg-white/70 dark:focus:bg-black/60 focus:border-white dark:focus:border-white/20 transition-all shadow-inner shadow-black/5 ${
               (engine.isRunning || engine.accumulatedSeconds > 0) 

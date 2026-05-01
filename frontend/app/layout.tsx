@@ -25,16 +25,18 @@ export const metadata: Metadata = {
     images: [{ url: '/opengraph-image.png', width: 1200, height: 630 }],
     type: 'website',
   },
-  // Configure iOS PWA behavior
   appleWebApp: {
     capable: true,
     title: "Chronoa",
     statusBarStyle: "black-translucent",
   },
-  // Force Next.js to NOT inject any default icons, but strictly define the Apple Icon
-  icons: { 
-    icon: [], 
-    apple: [{ url: '/apple-icon.png' }] // Note: Create an apple-icon.png in your public/ folder
+  // Correctly mapping the icons natively fixes the blank Safari tab issues on iOS
+  icons: {
+    icon: [
+      { url: '/icon-light.svg', media: '(prefers-color-scheme: light)' },
+      { url: '/icon-dark.svg', media: '(prefers-color-scheme: dark)' }
+    ],
+    apple: [{ url: '/apple-icon.png' }]
   }, 
 };
 
@@ -61,19 +63,11 @@ export default function RootLayout({
                   }
                   var isDark = theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
                   
-                  // 1. Set the dark mode class immediately
                   if (isDark) {
                     document.documentElement.classList.add('dark');
                   } else {
                     document.documentElement.classList.remove('dark');
                   }
-
-                  // 2. Create and inject the correct icon immediately
-                  var link = document.createElement('link');
-                  link.rel = 'icon';
-                  link.type = 'image/svg+xml';
-                  link.href = isDark ? '/icon-dark.svg' : '/icon-light.svg';
-                  document.head.appendChild(link);
                 } catch (e) {}
               })();
             `,

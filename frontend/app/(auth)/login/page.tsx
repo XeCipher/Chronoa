@@ -1,3 +1,4 @@
+// frontend/app/(auth)/login/page.tsx
 "use client";
 
 import { createBrowserClient } from '@supabase/ssr';
@@ -37,14 +38,17 @@ export default function LoginPage() {
   return (
     <div className="relative min-h-screen bg-[#f7f5f0] dark:bg-[#121212] flex flex-col items-center justify-center overflow-hidden selection:bg-[#c2956e] dark:selection:bg-[#b0855f] selection:text-white transition-colors duration-300">
       
-      {/* Soft Ambient Background Elements */}
+      {/* 
+        Optimized Background Elements: 
+        Replaced CSS blur-[100px] with CSS radial gradients to fix the massive GPU performance drop / slow loading on mobile devices (especially Safari). 
+      */}
       <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none flex items-center justify-center">
         {/* Violet ambient glow */}
-        <div className="absolute w-[500px] h-[500px] bg-[#a882c2]/20 dark:bg-[#a882c2]/10 rounded-full blur-[100px] -translate-y-48 translate-x-32"></div>
+        <div className="absolute w-[800px] h-[800px] -translate-y-48 translate-x-32" style={{ background: 'radial-gradient(circle, rgba(168,130,194,0.15) 0%, transparent 60%)' }}></div>
         {/* Sage ambient glow */}
-        <div className="absolute w-[400px] h-[400px] bg-[#7ca982]/20 dark:bg-[#7ca982]/10 rounded-full blur-[100px] translate-y-48 -translate-x-32"></div>
+        <div className="absolute w-[800px] h-[800px] translate-y-48 -translate-x-32" style={{ background: 'radial-gradient(circle, rgba(124,169,130,0.15) 0%, transparent 60%)' }}></div>
         {/* Amber ambient glow */}
-        <div className="absolute w-[600px] h-[600px] bg-[#c2956e]/10 dark:bg-[#c2956e]/5 rounded-full blur-[120px] translate-y-12"></div>
+        <div className="absolute w-[1000px] h-[1000px] translate-y-12" style={{ background: 'radial-gradient(circle, rgba(194,149,110,0.1) 0%, transparent 60%)' }}></div>
       </div>
 
       {/* Main Content */}
