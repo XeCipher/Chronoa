@@ -42,7 +42,7 @@ export default function RecursiveCheckbox({
   const { taskArchiveDelay, activeTaskIdWithMenu, setActiveTaskIdWithMenu } = useUiStore();
   const { addInstance, setTitle: setTimerTitle, setActiveTab, setForceShowWidgets } = useTimerStore();
 
-  const [initialTitle] = useState(task.title);
+  const[initialTitle] = useState(task.title);
 
   const isRoutine = task.task_type === 'routine';
   const isNormal = task.task_type === 'normal';
@@ -75,7 +75,7 @@ export default function RecursiveCheckbox({
         }
       }, 50);
     }
-  }, [newTaskId, task.id, setNewTaskId]);
+  },[newTaskId, task.id, setNewTaskId]);
 
   useEffect(() => {
     if (textRef.current && document.activeElement !== textRef.current) {
@@ -114,7 +114,7 @@ export default function RecursiveCheckbox({
   };
 
   const getPath = (t: Task) => {
-    let path: string[] = [];
+    let path: string[] =[];
     let cur = t;
     while (cur.parent_id) {
        const p = allTasks.find(x => x.id === cur.parent_id);
@@ -149,7 +149,7 @@ export default function RecursiveCheckbox({
     }
   };
 
-  const availableColors = [
+  const availableColors =[
     { id: 'none', bg: 'bg-[#e0ddd5] dark:bg-[#555]' },
     { id: 'rose', bg: 'bg-rose-400 dark:bg-rose-500' },
     { id: 'amber', bg: 'bg-amber-400 dark:bg-amber-500' },
@@ -186,7 +186,7 @@ export default function RecursiveCheckbox({
     if (node.children) node.children.forEach(traverse);
     return Array.from(colors);
   };
-  const descendantColors = isCollapsed ? getDescendantColors(task) : [];
+  const descendantColors = isCollapsed ? getDescendantColors(task) :[];
 
   return (
     <div className={`flex flex-col w-full ${isVanishingNow ? "task-vanishing-soothing" : ""}`}>
@@ -272,53 +272,67 @@ export default function RecursiveCheckbox({
             </div>
           )}
 
+          {/* Fully Overhauled Responsive Menu UI */}
           {isMenuOpen && viewMode === 'focus' && (
-            <div className="flex flex-col gap-3 mt-2 pt-3 border-t border-[#e0ddd5] dark:border-[#333] animate-fade-up w-full" onClick={e => e.stopPropagation()}>
-               <div className="hidden md:flex flex-wrap gap-3 items-center justify-between w-full">
-                  {showManagementActions && (
-                    <div className="flex items-center gap-2">
-                       <button onClick={() => handleSendToFocus('timer')} className="flex items-center justify-center w-8 h-8 rounded-lg text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 transition-colors hover:bg-blue-100 dark:hover:bg-blue-900/40" title="Send to Timer"><Timer size={14} /></button>
-                       <button onClick={() => handleSendToFocus('stopwatch')} className="flex items-center justify-center w-8 h-8 rounded-lg text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-900/20 transition-colors hover:bg-orange-100 dark:hover:bg-orange-900/40" title="Send to Stopwatch"><Hourglass size={14} /></button>
-                    </div>
-                  )}
+            <div className="mt-2 pt-2.5 border-t border-[#e0ddd5] dark:border-[#333] animate-fade-up w-full" onClick={e => e.stopPropagation()}>
+               <div className="flex flex-wrap gap-2 items-center w-full">
                   
-                  {showManagementActions && (
-                     <div className="flex items-center gap-3 md:ml-auto flex-wrap">
-                        <div className="flex items-center gap-1.5 bg-white dark:bg-[#252525] rounded-lg p-1.5 border border-[#e0ddd5] dark:border-[#333] shadow-sm">
-                           <Palette size={13} className="text-[#888] mx-1" />
-                           {availableColors.map(c => (
-                             <button
-                               key={c.id}
-                               onClick={() => { onUpdate(task.id, { color: c.id === 'none' ? null : c.id }); }}
-                               className={`w-4 h-4 rounded-full ${c.bg} transition-all ${task.color === c.id || (!task.color && c.id === 'none') ? 'ring-2 ring-offset-1 ring-[#c2956e] dark:ring-offset-[#252525] scale-110' : 'opacity-60 hover:opacity-100 hover:scale-110'}`}
-                               title={`Highlight: ${c.id}`}
-                             />
-                           ))}
-                        </div>
+                  {/* Action Group 1: Time Log & Keep Alive */}
+                  <div className="flex items-center bg-white dark:bg-[#252525] rounded-xl p-1 border border-[#e0ddd5] dark:border-[#333] shadow-sm shrink-0">
+                     <button onClick={() => handleSendToFocus('timer')} className="flex items-center justify-center p-1.5 rounded-lg text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors" title="Send to Timer">
+                        <Timer size={15} />
+                     </button>
+                     <button onClick={() => handleSendToFocus('stopwatch')} className="flex items-center justify-center p-1.5 rounded-lg text-orange-600 dark:text-orange-400 hover:bg-orange-50 dark:hover:bg-orange-900/20 transition-colors" title="Send to Stopwatch">
+                        <Hourglass size={15} />
+                     </button>
+                     {showKeepAliveToggle && (
+    <div className="flex items-center md:hidden">
+      <div className="w-px h-4 bg-[#e0ddd5] dark:bg-[#444] mx-1" />
+      <button onClick={() => onUpdate(task.id, { keep_alive: !task.keep_alive })} className={`flex items-center justify-center p-1.5 rounded-lg transition-colors ${task.keep_alive ? 'text-white bg-[#7ca982] dark:bg-[#6a9a70]' : 'text-[#7ca982] hover:bg-[#7ca982]/10'}`} title="Keep Parent Alive">
+        <InfinityIcon size={15} />
+      </button>
+    </div>
+  )}
+                  </div>
 
-                        <div className="flex items-center bg-white dark:bg-[#252525] rounded-lg p-0.5 border border-[#e0ddd5] dark:border-[#333] shadow-sm">
-                           <button onClick={() => onMoveUp(task)} className="p-1.5 text-[#888] hover:text-[#c2956e] hover:bg-[#f7f5f0] dark:hover:bg-[#1a1a1a] rounded-md transition-colors" title="Move Up"><ArrowUp size={14} /></button>
-                           <button onClick={() => onMoveDown(task)} className="p-1.5 text-[#888] hover:text-[#c2956e] hover:bg-[#f7f5f0] dark:hover:bg-[#1a1a1a] rounded-md transition-colors" title="Move Down"><ArrowDown size={14} /></button>
-                           <div className="w-px h-4 bg-[#e0ddd5] dark:bg-[#444] mx-0.5"/>
-                           <button onClick={() => onUnindent(task)} className="p-1.5 text-[#888] hover:text-[#c2956e] hover:bg-[#f7f5f0] dark:hover:bg-[#1a1a1a] rounded-md transition-colors" title="Outdent"><ChevronLeft size={14} /></button>
-                           <button onClick={() => onIndent(task)} className="p-1.5 text-[#888] hover:text-[#c2956e] hover:bg-[#f7f5f0] dark:hover:bg-[#1a1a1a] rounded-md transition-colors" title="Indent"><ChevronRight size={14} /></button>
-                        </div>
+                  {/* Action Group 2: Core Tools (Add, Del) */}
+                  {showManagementActions && (
+                     <div className="flex items-center bg-white dark:bg-[#252525] rounded-xl p-1 border border-[#e0ddd5] dark:border-[#333] shadow-sm shrink-0">
+                        <button onClick={() => onAdd(task.id)} className="flex items-center justify-center p-1.5 rounded-lg text-[#c2956e] dark:text-[#d1a784] hover:bg-[#c2956e]/10 transition-colors" title="Add Subtask">
+                           <Plus size={15} />
+                        </button>
+                        <button onClick={() => onDelete(task.id, false)} className="flex items-center justify-center p-1.5 rounded-lg text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors" title="Delete">
+                           <Trash2 size={15} />
+                        </button>
                      </div>
                   )}
-               </div>
 
-               <div className="flex md:hidden items-center justify-between w-full">
-                  <div className="flex items-center gap-2">
-                    <button onClick={() => handleSendToFocus('timer')} className="p-2 rounded-lg text-blue-600 bg-blue-50 dark:bg-blue-900/20 transition-colors" title="Send to Timer"><Timer size={16} /></button>
-                    <button onClick={() => handleSendToFocus('stopwatch')} className="p-2 rounded-lg text-orange-600 bg-orange-50 dark:bg-orange-900/20 transition-colors" title="Send to Stopwatch"><Hourglass size={16} /></button>
-                    {showKeepAliveToggle && (
-                        <button onClick={() => onUpdate(task.id, { keep_alive: !task.keep_alive })} className={`p-2 rounded-lg transition-colors ${task.keep_alive ? 'text-white bg-[#7ca982]' : 'text-[#7ca982] bg-[#7ca982]/10'}`} title="Keep parent alive"><InfinityIcon size={16} /></button>
-                    )}
-                  </div>
+                  {/* Action Group 3: Position & Nesting */}
                   {showManagementActions && (
-                     <div className="flex items-center gap-2">
-                        <button onClick={() => onAdd(task.id)} className="p-2 rounded-lg text-[#c2956e] bg-[#c2956e]/10 transition-colors" title="Add Subtask"><Plus size={16} /></button>
-                        <button onClick={() => onDelete(task.id, false)} className="p-2 rounded-lg text-red-500 bg-red-50 dark:bg-red-500/10 transition-colors" title="Delete"><Trash2 size={16} /></button>
+                     <div className="flex items-center bg-white dark:bg-[#252525] rounded-xl p-1 border border-[#e0ddd5] dark:border-[#333] shadow-sm shrink-0">
+                        <button onClick={() => onMoveUp(task)} className="p-1.5 text-[#888] hover:text-[#c2956e] hover:bg-[#f7f5f0] dark:hover:bg-[#1a1a1a] rounded-lg transition-colors" title="Move Up"><ArrowUp size={15} /></button>
+                        <button onClick={() => onMoveDown(task)} className="p-1.5 text-[#888] hover:text-[#c2956e] hover:bg-[#f7f5f0] dark:hover:bg-[#1a1a1a] rounded-lg transition-colors" title="Move Down"><ArrowDown size={15} /></button>
+                        <div className="w-px h-4 bg-[#e0ddd5] dark:bg-[#444] mx-1" />
+                        <button onClick={() => onUnindent(task)} className="p-1.5 text-[#888] hover:text-[#c2956e] hover:bg-[#f7f5f0] dark:hover:bg-[#1a1a1a] rounded-lg transition-colors" title="Outdent"><ChevronLeft size={15} /></button>
+                        <button onClick={() => onIndent(task)} className="p-1.5 text-[#888] hover:text-[#c2956e] hover:bg-[#f7f5f0] dark:hover:bg-[#1a1a1a] rounded-lg transition-colors" title="Indent"><ChevronRight size={15} /></button>
+                     </div>
+                  )}
+
+                  {/* Action Group 4: Colors */}
+                  {showManagementActions && (
+                     <div className="flex items-center bg-white dark:bg-[#252525] rounded-xl p-1.5 border border-[#e0ddd5] dark:border-[#333] shadow-sm shrink-0 max-w-full overflow-x-auto no-scrollbar">
+                        <Palette size={14} className="text-[#888] mx-1.5 shrink-0" />
+                        <div className="w-px h-4 bg-[#e0ddd5] dark:bg-[#444] mx-1 shrink-0" />
+                        <div className="flex items-center gap-2 px-1 shrink-0">
+                           {availableColors.map(c => (
+                              <button
+                                 key={c.id}
+                                 onClick={() => onUpdate(task.id, { color: c.id === 'none' ? null : c.id })}
+                                 className={`w-4 h-4 rounded-full ${c.bg} transition-all shrink-0 ${task.color === c.id || (!task.color && c.id === 'none') ? 'ring-2 ring-offset-2 ring-[#c2956e] dark:ring-offset-[#252525] scale-110' : 'opacity-60 hover:opacity-100 hover:scale-110'}`}
+                                 title={`Highlight: ${c.id}`}
+                              />
+                           ))}
+                        </div>
                      </div>
                   )}
                </div>

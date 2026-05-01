@@ -16,17 +16,17 @@ interface Props {
 }
 
 export default function TaskSection({ type, title, viewMode = 'focus', searchQuery = '' }: Props) {
-  const [tasks, setTasks] = useState<Task[]>([]);
+  const[tasks, setTasks] = useState<Task[]>([]);
   const [isEditMode, setIsEditMode] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [newTaskId, setNewTaskId] = useState<string | null>(null);
+  const[newTaskId, setNewTaskId] = useState<string | null>(null);
   
   const { 
     taskArchiveDelay, moveCompletedToBottom, keepParentTaskAlive, addTaskAtTop, archiveLayout, archiveSort,
     mobileRoutineCollapsed, mobileTasksCollapsed, setMobileRoutineCollapsed, setMobileTasksCollapsed
   } = useUiStore();
   
-  const [now, setNow] = useState(Date.now());
+  const[now, setNow] = useState(Date.now());
   const sectionRef = useRef<HTMLDivElement>(null);
 
   // Check which collapse state this section follows
@@ -89,8 +89,8 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
 
   const displayTasks = useMemo(() => {
     const map: Record<string, Task> = {};
-    tasks.forEach((t) => (map[t.id] = { ...t, children: [] }));
-    const roots: Task[] = [];
+    tasks.forEach((t) => (map[t.id] = { ...t, children:[] }));
+    const roots: Task[] =[];
     
     tasks.forEach((t) => {
       if (t.parent_id && map[t.parent_id]) {
@@ -148,9 +148,9 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
     };
     
     return sort(tree);
-  }, [tasks, viewMode, archiveLayout, archiveSort, searchQuery, isEditMode, now, delayMs, taskArchiveDelay, moveCompletedToBottom]);
+  },[tasks, viewMode, archiveLayout, archiveSort, searchQuery, isEditMode, now, delayMs, taskArchiveDelay, moveCompletedToBottom]);
 
-  const flattenedVisibleTasks: Task[] = [];
+  const flattenedVisibleTasks: Task[] =[];
   const gatherVisible = (nodes: Task[]) => {
     nodes.forEach(n => { flattenedVisibleTasks.push(n); if (n.children) gatherVisible(n.children); });
   };
@@ -164,7 +164,7 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
     const isToggling = updates.hasOwnProperty("is_completed");
     const isDone = updates.is_completed;
     const completionTime = isDone ? new Date().toISOString() : null;
-    let tasksToUpdate: { id: string; updates: Partial<Task> }[] = [];
+    let tasksToUpdate: { id: string; updates: Partial<Task> }[] =[];
 
     if (isToggling) {
       const addChildrenToUpdate = (parentId: string) => {
@@ -235,6 +235,12 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
   const onAdd = async (parentId: string | null = null) => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
+
+    // Open the parent immediately so the user sees the newly spawned child input
+    if (parentId) {
+      setTasks((prev) => prev.map((t) => t.id === parentId ? { ...t, is_collapsed: false } : t));
+      supabase.from("tasks").update({ is_collapsed: false }).eq("id", parentId).then();
+    }
 
     const siblings = tasks.filter((t) => t.parent_id === parentId);
     let newPosition = 0;
@@ -359,7 +365,7 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
     const newSiblings = tasks.filter((t) => t.parent_id === newParentId);
     const newPosition = parent.position + 1;
 
-    const tasksToUpdate: { id: string; updates: Partial<Task> }[] = [
+    const tasksToUpdate: { id: string; updates: Partial<Task> }[] =[
       { id: task.id, updates: { parent_id: newParentId, position: newPosition } },
     ];
 
@@ -397,7 +403,7 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
       const prevTask = siblings[index - 1];
       const currentTask = siblings[index];
       
-      const tasksToUpdate = [
+      const tasksToUpdate =[
         { id: prevTask.id, updates: { position: currentTask.position } },
         { id: currentTask.id, updates: { position: prevTask.position } }
       ];
@@ -431,7 +437,7 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
       const currentTask = siblings[index];
       const nextTask = siblings[index + 1];
       
-      const tasksToUpdate = [
+      const tasksToUpdate =[
         { id: currentTask.id, updates: { position: nextTask.position } },
         { id: nextTask.id, updates: { position: currentTask.position } }
       ];

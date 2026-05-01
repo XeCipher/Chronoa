@@ -24,38 +24,36 @@ export default function StatCard({ title, value, subValue, infoText, icon: Icon,
   const tooltipId = `tooltip-${title.replace(/\s+/g, '-')}`;
 
   return (
-    <div className="bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] rounded-[2rem] p-5 md:p-6 flex flex-col justify-center gap-4 hover:border-[#c2956e]/40 dark:hover:border-[#b0855f]/50 transition-colors shadow-sm group relative">
+    <div className="bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] rounded-[1.5rem] md:rounded-[2rem] p-4 md:p-6 flex flex-col justify-between gap-3 md:gap-4 hover:border-[#c2956e]/40 dark:hover:border-[#b0855f]/50 transition-colors shadow-sm group relative overflow-hidden">
       
-      {/* Info Icon & Tooltip */}
-      <div className="absolute top-5 right-5">
+      <div className="absolute top-4 right-4 md:top-5 md:right-5 z-10">
         <Info 
-          size={16} 
+          size={14} 
           data-tooltip-id={tooltipId}
           data-tooltip-content={infoText}
-          className="text-[#b0ad9a] dark:text-[#555] hover:text-[#c2956e] dark:hover:text-[#b0855f] cursor-help transition-colors outline-none" 
+          className="text-[#b0ad9a] dark:text-[#555] hover:text-[#c2956e] dark:hover:text-[#b0855f] cursor-help transition-colors outline-none md:w-[18px] md:h-[18px]" 
         />
         <Tooltip 
           id={tooltipId} 
-          className="z-50 max-w-xs text-center font-medium tracking-wide"
+          className="z-50 max-w-[200px] md:max-w-xs text-center font-medium tracking-wide"
           style={{ backgroundColor: '#3d3b33', color: '#fff', borderRadius: '12px', fontSize: '11px', padding: '8px 12px' }}
         />
       </div>
 
-      <div className="flex items-center justify-between">
-        <div className={`p-3.5 rounded-2xl transition-transform group-hover:scale-110 ${colorMaps[color]}`}>
-          <Icon size={22} strokeWidth={2.5} />
-        </div>
+      <div className={`w-fit p-2.5 md:p-3.5 rounded-xl md:rounded-2xl transition-transform group-hover:scale-110 ${colorMaps[color]}`}>
+        <Icon className="w-5 h-5 md:w-[22px] md:h-[22px]" strokeWidth={2.5} />
       </div>
-      <div>
-        <h4 className="text-3xl font-serif italic text-[#3d3b33] dark:text-[#f0f0f0] mb-1">
+
+      <div className="flex flex-col mt-1">
+        <h4 className="text-2xl md:text-3xl font-serif italic text-[#3d3b33] dark:text-[#f0f0f0] mb-0.5 md:mb-1 truncate">
           {value}
         </h4>
-        <div className="flex items-center justify-between mt-1">
-          <p className="text-[10px] font-bold uppercase tracking-widest text-[#b0ad9a] dark:text-[#7a7a7a]">
+        <div className="flex flex-col gap-0.5 md:mt-0.5">
+          <p className="text-[8px] md:text-[10px] font-bold uppercase tracking-widest text-[#b0ad9a] dark:text-[#7a7a7a] truncate">
             {title}
           </p>
-          {subValue && (
-            <span className="text-[10px] font-bold uppercase tracking-widest text-[#c2956e] dark:text-[#b0855f]">
+          {subValue !== undefined && (
+            <span className="text-[8px] md:text-[10px] font-bold uppercase tracking-wider text-[#c2956e] dark:text-[#b0855f] truncate">
               Best: {subValue}
             </span>
           )}

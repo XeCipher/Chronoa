@@ -1,3 +1,4 @@
+// frontend/app/(dashboard)/analytics/page.tsx
 "use client";
 
 import { useEffect, useState } from "react";
@@ -45,8 +46,8 @@ export const RANKS =[
 
 export default function AnalyticsPage() {
   const [data, setData] = useState<AnalyticsData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const[isRankModalOpen, setIsRankModalOpen] = useState(false);
+  const[loading, setLoading] = useState(true);
+  const [isRankModalOpen, setIsRankModalOpen] = useState(false);
 
   useEffect(() => {
     const fetchAndProcessData = async () => {
@@ -60,8 +61,8 @@ export default function AnalyticsPage() {
         supabase.from('journal_entries').select('entry_date').eq('user_id', user.id).is('deleted_at', null)
       ]);
 
-      const tasks = tasksRes.data || [];
-      const sessions = sessionsRes.data ||[];
+      const tasks = tasksRes.data ||[];
+      const sessions = sessionsRes.data || [];
       const journals = journalRes.data ||[];
 
       // 1. Core Totals & Gamification
@@ -77,7 +78,7 @@ export default function AnalyticsPage() {
       const progress = Math.min(100, Math.max(0, ((xp - prevLevelXp) / (nextLevelXp - prevLevelXp)) * 100));
       
       const getRank = (lvl: number) => {
-        const rankObj = [...RANKS].reverse().find(r => lvl >= r.minLevel);
+        const rankObj =[...RANKS].reverse().find(r => lvl >= r.minLevel);
         return rankObj ? rankObj.name : "Novice";
       };
 
@@ -200,8 +201,8 @@ export default function AnalyticsPage() {
         </div>
       </div>
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 animate-fade-up" style={{ animationDelay: '200ms' }}>
+      {/* Stats Grid - Now correctly configured for 2 columns closely packed on mobile */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6 animate-fade-up" style={{ animationDelay: '200ms' }}>
         <StatCard 
           title="Tasks Done" 
           value={data?.totalTasks || 0} 

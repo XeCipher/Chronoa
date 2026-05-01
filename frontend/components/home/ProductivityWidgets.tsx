@@ -55,7 +55,7 @@ function EngineCard({ engine, tab }: { engine: EngineInstance, tab: 'timer' | 's
       setLiveSeconds(engine.accumulatedSeconds);
     }
     return () => clearInterval(interval);
-  }, [engine.isRunning, engine.startTime, engine.accumulatedSeconds]);
+  },[engine.isRunning, engine.startTime, engine.accumulatedSeconds]);
 
   const handleStopAndSave = async (forceSaveSeconds?: number) => {
     store.pause(tab, engine.id);
@@ -92,7 +92,7 @@ function EngineCard({ engine, tab }: { engine: EngineInstance, tab: 'timer' | 's
       }
     }
     return () => clearTimeout(timeout);
-  }, [liveSeconds, engine.isRunning, engine.targetMinutes, tab]);
+  },[liveSeconds, engine.isRunning, engine.targetMinutes, tab]);
 
   const formatTime = (totalSeconds: number) => {
     const h = Math.floor(totalSeconds / 3600);
@@ -214,8 +214,9 @@ export default function ProductivityWidgets({ isVisible }: { isVisible: boolean 
         </div>
       </div>
 
-      <div className="w-full max-w-full overflow-x-auto no-scrollbar snap-x snap-mandatory flex justify-start md:justify-center px-4 pb-8 -mb-8">
-        <div className="flex gap-4 w-max px-[max(0px,calc(50vw-13rem))] md:px-0">
+      <div className="w-full max-w-full overflow-x-auto no-scrollbar snap-x snap-mandatory flex flex-row pb-8 -mb-8">
+        <div className="flex-1 min-w-0 shrink"></div>
+        <div className="flex gap-4 px-4 sm:px-8 w-max shrink-0">
           {activeList.map(engine => (
             <EngineCard key={engine.id} engine={engine} tab={store.activeTab} />
           ))}
@@ -228,6 +229,7 @@ export default function ProductivityWidgets({ isVisible }: { isVisible: boolean 
             <span className="text-[10px] font-bold uppercase tracking-widest text-[#3d3b33] dark:text-[#f0f0f0]">Add</span>
           </button>
         </div>
+        <div className="flex-1 min-w-0 shrink"></div>
       </div>
     </div>
   );

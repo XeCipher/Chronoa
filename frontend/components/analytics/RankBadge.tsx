@@ -77,7 +77,7 @@ const ApprenticeBadge = () => (
       
       {/* Spinning Internal Gear - Axis fixed at 60,60 */}
       <g>
-        <animateTransform attributeName="transform" type="rotate" from="0 60 60" to="360 60 60" dur="15s" repeatCount="indefinite" />
+        <animateTransform begin="0s" attributeName="transform" type="rotate" from="0 60 60" to="360 60 60" dur="15s" repeatCount="indefinite" />
         <circle cx="60" cy="60" r="32" fill="none" stroke="url(#app-metal)" strokeWidth="6" strokeDasharray="12 8" />
         <circle cx="60" cy="60" r="26" fill="url(#app-metal)" opacity="0.8" />
       </g>
@@ -93,7 +93,7 @@ const ApprenticeBadge = () => (
       <circle cx="60" cy="60" r="18" fill="url(#app-glow)" />
       
       {/* Corner Bolts */}
-      {[[60, 16], [98, 38], [98, 82],[60, 104], [22, 82], [22, 38]
+      {[[60, 16], [98, 38],[98, 82],[60, 104], [22, 82],[22, 38]
       ].map(([cx, cy], i) => (
         <circle key={i} cx={cx} cy={cy} r="2.5" fill="#f8f8ff" opacity="0.8" />
       ))}
@@ -134,7 +134,7 @@ const ScholarBadge = () => (
 
       {/* Magical Floating Runes - Axis fixed at 60,60 */}
       <g>
-        <animateTransform attributeName="transform" type="rotate" from="360 60 60" to="0 60 60" dur="12s" repeatCount="indefinite" />
+        <animateTransform begin="0s" attributeName="transform" type="rotate" from="360 60 60" to="0 60 60" dur="12s" repeatCount="indefinite" />
         <polygon points="60,22 64,28 60,34 56,28" fill="#ffffff" opacity="0.9" />
         <polygon points="60,86 64,92 60,98 56,92" fill="#ffffff" opacity="0.9" />
         <polygon points="22,60 28,64 34,60 28,56" fill="#ffffff" opacity="0.9" />
@@ -143,7 +143,7 @@ const ScholarBadge = () => (
       
       <circle cx="60" cy="60" r="10" fill="#ffffff" opacity="0.9" />
       <circle cx="60" cy="60" r="25" fill="none" stroke="#87cefa" strokeWidth="1" strokeDasharray="4 4">
-         <animateTransform attributeName="transform" type="rotate" from="0 60 60" to="360 60 60" dur="8s" repeatCount="indefinite" />
+         <animateTransform begin="0s" attributeName="transform" type="rotate" from="0 60 60" to="360 60 60" dur="8s" repeatCount="indefinite" />
       </circle>
     </g>
   </svg>
@@ -175,7 +175,7 @@ const AdeptBadge = () => (
     <g filter="url(#shadow-adept)">
       {/* Rotating Background Octagram - Axis fixed at 60,60 */}
       <g>
-         <animateTransform attributeName="transform" type="rotate" from="0 60 60" to="360 60 60" dur="40s" repeatCount="indefinite" />
+         <animateTransform begin="0s" attributeName="transform" type="rotate" from="0 60 60" to="360 60 60" dur="40s" repeatCount="indefinite" />
          <rect x="20" y="20" width="80" height="80" fill="url(#adept-dark)" rx="4" />
          <rect x="20" y="20" width="80" height="80" fill="url(#adept-light)" rx="4" transform="rotate(45 60 60)" />
       </g>
@@ -195,7 +195,7 @@ const AdeptBadge = () => (
 
       {/* Breathing Core */}
       <circle cx="60" cy="60" r="14" fill="#98fb98">
-        <animate attributeName="r" values="12; 15; 12" dur="3s" repeatCount="indefinite" />
+        <animate begin="0s" attributeName="r" values="12; 15; 12" dur="3s" repeatCount="indefinite" />
       </circle>
       <circle cx="60" cy="60" r="8" fill="#ffffff" />
     </g>
@@ -226,7 +226,7 @@ const MasterBadge = () => (
       
       {/* Pulsing Aura */}
       <polygon points="60,5 74,40 112,40 82,62 93,98 60,76 27,98 38,62 8,40 46,40" fill="none" stroke="#ffb6c1" strokeWidth="2">
-        <animate attributeName="opacity" values="0.2; 1; 0.2" dur="2s" repeatCount="indefinite" />
+        <animate begin="0s" attributeName="opacity" values="0.2; 1; 0.2" dur="2s" repeatCount="indefinite" />
       </polygon>
 
       {/* Inner Bright 3D Star */}
@@ -274,14 +274,14 @@ const GrandmasterBadge = () => (
       
       {/* Orbiting Orbital Rings - Axis fixed at 60,60 */}
       <g>
-        <animateTransform attributeName="transform" type="rotate" from="0 60 60" to="360 60 60" dur="10s" repeatCount="indefinite" />
+        <animateTransform begin="0s" attributeName="transform" type="rotate" from="0 60 60" to="360 60 60" dur="10s" repeatCount="indefinite" />
         <ellipse cx="60" cy="60" rx="55" ry="15" fill="none" stroke="#9932cc" strokeWidth="2" strokeDasharray="10 5" transform="rotate(45 60 60)" opacity="0.6" />
         <ellipse cx="60" cy="60" rx="55" ry="15" fill="none" stroke="#e6e6fa" strokeWidth="1.5" strokeDasharray="4 8" transform="rotate(-45 60 60)" opacity="0.8" />
       </g>
 
       {/* Orbiting Shards - Axis fixed at 60,60 */}
       <g>
-        <animateTransform attributeName="transform" type="rotate" from="360 60 60" to="0 60 60" dur="20s" repeatCount="indefinite" />
+        <animateTransform begin="0s" attributeName="transform" type="rotate" from="360 60 60" to="0 60 60" dur="20s" repeatCount="indefinite" />
         {[
           "60,2 66,16 60,22 54,16",
           "60,118 66,104 60,98 54,104",
@@ -328,7 +328,7 @@ const LegendBadge = () => (
     <g filter="url(#shadow-leg)">
       {/* Background Radiance */}
       <circle cx="60" cy="60" r="45" fill="url(#leg-glow)">
-        <animate attributeName="opacity" values="0.5; 1; 0.5" dur="3s" repeatCount="indefinite" />
+        <animate begin="0s" attributeName="opacity" values="0.5; 1; 0.5" dur="3s" repeatCount="indefinite" />
       </circle>
 
       {/* Left Back Crystal */}
@@ -384,12 +384,12 @@ const AscendantBadge = () => (
     <g filter="url(#shadow-asc)">
       {/* Divine Backlight Radiance */}
       <circle cx="60" cy="60" r="55" fill="url(#asc-light)">
-        <animate attributeName="r" values="50; 58; 50" dur="4s" repeatCount="indefinite" />
+        <animate begin="0s" attributeName="r" values="50; 58; 50" dur="4s" repeatCount="indefinite" />
       </circle>
 
       {/* Rotating Sunbursts (12 Rays) - Axis fixed at 60,60 */}
       <g>
-        <animateTransform attributeName="transform" type="rotate" from="0 60 60" to="360 60 60" dur="30s" repeatCount="indefinite" />
+        <animateTransform begin="0s" attributeName="transform" type="rotate" from="0 60 60" to="360 60 60" dur="30s" repeatCount="indefinite" />
         {Array.from({ length: 12 }).map((_, i) => (
           <polygon key={i} points="57,15 63,15 60,0" transform={`rotate(${i * 30} 60 60)`} fill="url(#asc-gold)" />
         ))}
@@ -397,11 +397,11 @@ const AscendantBadge = () => (
 
       {/* Majestic Clockwork Halos - Axis fixed at 60,60 */}
       <g>
-        <animateTransform attributeName="transform" type="rotate" from="360 60 60" to="0 60 60" dur="20s" repeatCount="indefinite" />
+        <animateTransform begin="0s" attributeName="transform" type="rotate" from="360 60 60" to="0 60 60" dur="20s" repeatCount="indefinite" />
         <circle cx="60" cy="60" r="45" fill="none" stroke="url(#asc-gold)" strokeWidth="3" strokeDasharray="15 5 5 5" />
       </g>
       <g>
-        <animateTransform attributeName="transform" type="rotate" from="0 60 60" to="360 60 60" dur="15s" repeatCount="indefinite" />
+        <animateTransform begin="0s" attributeName="transform" type="rotate" from="0 60 60" to="360 60 60" dur="15s" repeatCount="indefinite" />
         <circle cx="60" cy="60" r="38" fill="none" stroke="#fff8dc" strokeWidth="1.5" strokeDasharray="4 8" />
       </g>
 
