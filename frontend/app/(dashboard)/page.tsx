@@ -27,11 +27,7 @@ export default function HomePage() {
       </div>
 
       <div 
-        className="relative z-10 transition-all duration-[1000ms] ease-[cubic-bezier(0.16,1,0.3,1)]"
-        style={{ 
-          transform: showWidget ? 'translateY(-16vh) scale(0.9)' : 'translateY(-4vh) scale(1)',
-          opacity: showWidget ? 0.8 : 1
-        }}
+        className={`relative z-10 transition-all duration-[1000ms] ease-[cubic-bezier(0.16,1,0.3,1)] ${showWidget ? '-translate-y-[16vh] scale-90 opacity-80' : 'max-md:-translate-y-[8vh] md:-translate-y-[4vh] scale-100 opacity-100'}`}
       >
         <CenterClock />
       </div>

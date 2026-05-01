@@ -5,7 +5,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useUiStore } from "@/store/uiStore";
-import { Home, CheckSquare, BarChart2, Settings, LogOut, PanelLeftClose, Sun, Hourglass, FileText } from "lucide-react";
+import { Home, CheckSquare, BarChart2, Settings, LogOut, PanelLeftClose, Sun, FileText } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 
 export default function SidebarNav() {
@@ -38,7 +38,6 @@ export default function SidebarNav() {
     { name: "Home", href: "/", icon: Home },
     { name: "Tasks", href: "/tasks", icon: CheckSquare },
     { name: "Notes", href: "/notes", icon: FileText },
-    { name: "Time Log", href: "/sessions", icon: Hourglass },
     { name: "Analytics", href: "/analytics", icon: BarChart2 },
   ];
 

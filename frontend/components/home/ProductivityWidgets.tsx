@@ -1,9 +1,11 @@
+// frontend/components/home/ProductivityWidgets.tsx
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import { useTimerStore, EngineInstance } from "@/store/timerStore";
 import { supabase } from "@/lib/supabase";
-import { Play, Pause, Square, Pin, PinOff, Plus, Trash2 } from "lucide-react";
+import { Play, Pause, Square, Pin, PinOff, Plus, Trash2, History } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 function EngineCard({ engine, tab }: { engine: EngineInstance, tab: 'timer' | 'stopwatch' }) {
   const store = useTimerStore();
@@ -111,6 +113,7 @@ function EngineCard({ engine, tab }: { engine: EngineInstance, tab: 'timer' | 's
 
 export default function ProductivityWidgets({ isVisible }: { isVisible: boolean }) {
   const store = useTimerStore();
+  const router = useRouter();
   const activeList = store.activeTab === 'timer' ? store.timers : store.stopwatches;
 
   const isAnyRunning = (tab: 'timer' | 'stopwatch') => {
@@ -136,9 +139,14 @@ export default function ProductivityWidgets({ isVisible }: { isVisible: boolean 
             </button>
           ))}
         </div>
-        <button onClick={store.togglePin} className={`w-9 h-9 flex items-center justify-center rounded-full backdrop-blur-md hover:bg-white/50 dark:hover:bg-black/50 transition-colors ${store.isPinned ? 'text-[#c2956e] dark:text-[#d1a784] bg-white/80 dark:bg-black/60 shadow-sm border border-white/30 dark:border-white/10' : 'text-[#3d3b33] dark:text-[#a0a0a0] bg-white/30 dark:bg-black/30 border border-white/20 dark:border-white/5'}`}>
-          {store.isPinned ? <Pin size={15} /> : <PinOff size={15} />}
-        </button>
+        <div className="flex items-center gap-2">
+          <button onClick={() => router.push('/sessions')} className={`w-9 h-9 flex items-center justify-center rounded-full backdrop-blur-md hover:bg-white/50 dark:hover:bg-black/50 transition-colors text-[#3d3b33] dark:text-[#a0a0a0] bg-white/30 dark:bg-black/30 border border-white/20 dark:border-white/5 shadow-sm`}>
+            <History size={15} />
+          </button>
+          <button onClick={store.togglePin} className={`w-9 h-9 flex items-center justify-center rounded-full backdrop-blur-md hover:bg-white/50 dark:hover:bg-black/50 transition-colors ${store.isPinned ? 'text-[#c2956e] dark:text-[#d1a784] bg-white/80 dark:bg-black/60 shadow-sm border border-white/30 dark:border-white/10' : 'text-[#3d3b33] dark:text-[#a0a0a0] bg-white/30 dark:bg-black/30 border border-white/20 dark:border-white/5'}`}>
+            {store.isPinned ? <Pin size={15} /> : <PinOff size={15} />}
+          </button>
+        </div>
       </div>
 
       <div className="w-full max-w-full overflow-x-auto no-scrollbar snap-x snap-mandatory flex justify-start md:justify-center px-4 pb-8 -mb-8">

@@ -14,6 +14,13 @@ const TABS: { id: Tab; label: string; icon: React.ElementType }[] = [
   { id: 'journal', label: 'Journal', icon: BookOpen }
 ];
 
+const getLocalYYYYMMDD = (date: Date) => {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+};
+
 // Offline Queue Helper
 const syncOfflineData = async () => {
   if (!navigator.onLine) return;
@@ -25,7 +32,9 @@ const syncOfflineData = async () => {
   for (const item of queue) {
     try {
       if (item.type === 'notes') {
-        await supabase.from('notes').update({ content: item.content, updated_at: item.updated_at }).eq('id', item.id);
+        const payload: any = { content: item.content, updated_at: item.updated_at };
+        if (item.title !== undefined) payload.title = item.title;
+        await supabase.from('notes').update(payload).eq('id', item.id);
       } else {
         await supabase.from('journal_entries').upsert({ user_id: user.id, entry_date: item.id, content: item.content, updated_at: item.updated_at }, { onConflict: 'user_id,entry_date' });
       }
@@ -59,7 +68,6 @@ export default function NotesPage() {
     setNotesTab(id);
     setSelectedId(null);
     setSearchQuery("");
-    setIsTrashOpen(false);
     setAutoSelectPending(true);
     setShowCalendar(false);
   };
@@ -73,7 +81,7 @@ export default function NotesPage() {
     setNotes(nData || []);
 
     const { data: jData } = await supabase.from('journal_entries').select('*').is('deleted_at', null).order('entry_date', { ascending: false });
-    const todayStr = new Date().toISOString().split('T')[0];
+    const todayStr = getLocalYYYYMMDD(new Date());
     const jList = jData || [];
     if (!jList.some(j => j.entry_date === todayStr)) {
       jList.unshift({ entry_date: todayStr, content: "<p></p>" });
@@ -97,7 +105,11 @@ export default function NotesPage() {
   useEffect(() => { 
     fetchData(); 
     window.addEventListener('online', syncOfflineData);
-    return () => window.removeEventListener('online', syncOfflineData);
+    const interval = setInterval(syncOfflineData, 15000); // Continuous auto sync
+    return () => {
+      window.removeEventListener('online', syncOfflineData);
+      clearInterval(interval);
+    };
   }, [fetchData]);
 
   useEffect(() => {
@@ -127,6 +139,9 @@ export default function NotesPage() {
   };
 
   const createJournalForDate = async (dateStr: string) => {
+    const todayStr = getLocalYYYYMMDD(new Date());
+    if (dateStr > todayStr) return; // Future dates disabled natively
+    
     if (journals.some(j => j.entry_date === dateStr)) {
       handleSelectItem(dateStr);
       setShowCalendar(false);
@@ -146,28 +161,42 @@ export default function NotesPage() {
     setNotes(prev => prev.map(n => n.id === selectedId ? { ...n, title: t } : n));
     const updatedNow = new Date().toISOString();
     
-    if (navigator.onLine) {
-        await supabase.from('notes').update({ title: t, updated_at: updatedNow }).eq('id', selectedId);
+    // Optimistic Queue
+    const queue = JSON.parse(localStorage.getItem('chronoa_offline_queue') || '[]');
+    const itemIndex = queue.findIndex((q: any) => q.id === selectedId && q.type === 'notes');
+    const existingContent = notes.find(n => n.id === selectedId)?.content || '';
+    
+    if (itemIndex >= 0) {
+      queue[itemIndex].title = t;
+      queue[itemIndex].updated_at = updatedNow;
+    } else {
+      queue.push({ type: 'notes', id: selectedId, content: existingContent, title: t, updated_at: updatedNow });
     }
+    localStorage.setItem('chronoa_offline_queue', JSON.stringify(queue));
+    syncOfflineData();
   };
 
   const saveContent = async (html: string, id: string) => {
     if (!id || isTrashOpen) return;
     const updatedNow = new Date().toISOString();
     
-    // Update local React state instantly
     if (notesTab === 'notes') setNotes(prev => prev.map(n => n.id === id ? { ...n, content: html, updated_at: updatedNow } : n));
     else if (notesTab === 'journal') setJournals(prev => prev.map(j => j.entry_date === id ? { ...j, content: html, updated_at: updatedNow } : j));
 
-    // Save to Offline Queue
     const queue = JSON.parse(localStorage.getItem('chronoa_offline_queue') || '[]');
     const itemIndex = queue.findIndex((q: any) => q.id === id && q.type === notesTab);
-    const payload = { type: notesTab, id, content: html, updated_at: updatedNow };
+    const payload: any = { type: notesTab, id, content: html, updated_at: updatedNow };
+    
+    // Retain title mapping in offline queue for notes
+    if (notesTab === 'notes') {
+       const currNote = notes.find(n => n.id === id);
+       if (currNote) payload.title = currNote.title;
+    }
+    
     if (itemIndex >= 0) queue[itemIndex] = payload;
     else queue.push(payload);
+    
     localStorage.setItem('chronoa_offline_queue', JSON.stringify(queue));
-
-    // Trigger sync
     syncOfflineData();
   };
 
@@ -219,23 +248,33 @@ export default function NotesPage() {
   };
 
   const emptyTrash = async () => {
-    if (!confirm("Permanently delete all items in trash?")) return;
-    setTrash([]);
+    if (!confirm(`Permanently delete all items in ${notesTab} trash?`)) return;
+    
+    if (notesTab === 'journal') {
+      setTrash(prev => prev.filter(t => !t.isJournal));
+      if (navigator.onLine) await supabase.from('journal_entries').delete().not('deleted_at', 'is', null);
+    } else {
+      setTrash(prev => prev.filter(t => t.isJournal));
+      if (navigator.onLine) await supabase.from('notes').delete().not('deleted_at', 'is', null);
+    }
+    
     setSelectedId(null);
     setIsListVisible(true);
-    if (navigator.onLine) {
-        await supabase.from('notes').delete().not('deleted_at', 'is', null);
-        await supabase.from('journal_entries').delete().not('deleted_at', 'is', null);
-    }
   };
 
   const formatDateLabel = (dateStr: string) => {
     const date = new Date(dateStr);
+    // Overriding the timezone bug using UTC formatting explicitly if needed, but local string parse applies better
+    const parts = dateStr.split('-');
+    if (parts.length === 3) {
+      const obj = new Date(parseInt(parts[0]), parseInt(parts[1])-1, parseInt(parts[2]));
+      return obj.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+    }
     return date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
   };
 
   const filteredItems = useMemo(() => {
-    let list = isTrashOpen ? trash : (notesTab === 'notes' ? notes : journals);
+    let list = isTrashOpen ? trash.filter(t => t.isJournal === (notesTab === 'journal')) : (notesTab === 'notes' ? notes : journals);
     if (!searchQuery.trim()) return list;
     const q = searchQuery.toLowerCase();
     return list.filter(item => {
@@ -309,14 +348,20 @@ export default function NotesPage() {
         <div className="grid grid-cols-7 gap-1">
           {days.map((d, i) => {
             if (!d) return <div key={i} />;
-            const dateStr = d.toISOString().split('T')[0];
+            const dateStr = getLocalYYYYMMDD(d);
+            const isFuture = dateStr > getLocalYYYYMMDD(new Date());
             const hasEntry = journals.some(j => j.entry_date === dateStr);
-            const isToday = dateStr === new Date().toISOString().split('T')[0];
+            const isToday = dateStr === getLocalYYYYMMDD(new Date());
+            
             return (
               <button 
                 key={i} 
-                onClick={() => createJournalForDate(dateStr)}
-                className={`relative flex items-center justify-center h-8 rounded-lg text-xs font-medium transition-colors hover:bg-[#c2956e]/10 hover:text-[#c2956e] ${isToday ? 'bg-[#c2956e] text-white' : 'text-[#3d3b33] dark:text-[#e0e0e0]'}`}
+                onClick={() => !isFuture && createJournalForDate(dateStr)}
+                disabled={isFuture}
+                className={`relative flex items-center justify-center h-8 rounded-lg text-xs font-medium transition-colors 
+                  ${isFuture ? 'opacity-30 cursor-not-allowed text-[#b0ad9a] dark:text-[#555]' : 'hover:bg-[#c2956e]/10 hover:text-[#c2956e]'}
+                  ${isToday ? 'bg-[#c2956e] text-white' : (isFuture ? '' : 'text-[#3d3b33] dark:text-[#e0e0e0]')}
+                `}
               >
                 {d.getDate()}
                 {hasEntry && !isToday && <div className="absolute bottom-1 w-1 h-1 bg-[#c2956e] rounded-full" />}
@@ -345,27 +390,26 @@ export default function NotesPage() {
             </div>
             
             <div className="flex items-center gap-2 relative">
-              {!isTrashOpen ? (
-                <>
-                  <button onClick={() => { setIsTrashOpen(true); setSelectedId(null); setAutoSelectPending(true); setShowCalendar(false); }} className="w-8 h-8 flex items-center justify-center text-[#888] hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/10 rounded-full transition-all">
-                    <Trash size={16} />
-                  </button>
-                  {notesTab === 'notes' ? (
-                    <button onClick={createNote} className="w-8 h-8 flex items-center justify-center bg-[#3d3b33] dark:bg-[#f0f0f0] text-white dark:text-[#121212] rounded-full hover:scale-105 transition-all shadow-lg">
-                      <Plus size={18} />
-                    </button>
-                  ) : (
-                    <button onClick={() => setShowCalendar(!showCalendar)} className="w-8 h-8 flex items-center justify-center bg-[#3d3b33] dark:bg-[#f0f0f0] text-white dark:text-[#121212] rounded-full hover:scale-105 transition-all shadow-lg">
-                      {showCalendar ? <X size={16} /> : <CalendarDays size={16} />}
-                    </button>
-                  )}
-                  {showCalendar && renderCalendar()}
-                </>
-              ) : (
-                <button onClick={emptyTrash} title="Empty Trash" className="px-3 py-1.5 bg-red-50 dark:bg-red-900/20 text-red-500 rounded-xl text-[9px] font-bold uppercase tracking-widest hover:bg-red-500 hover:text-white transition-all">
-                  Empty Trash
+              <button 
+                onClick={() => { setIsTrashOpen(!isTrashOpen); setSelectedId(null); setAutoSelectPending(true); setShowCalendar(false); }} 
+                className={`w-8 h-8 flex items-center justify-center rounded-full transition-all ${isTrashOpen ? 'bg-[#ebe8e2] dark:bg-[#2a2a2a] text-[#888] hover:text-[#3d3b33] dark:hover:text-white' : 'text-[#888] hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/10'}`}
+              >
+                {isTrashOpen ? <X size={16} /> : <Trash size={16} />}
+              </button>
+              
+              {!isTrashOpen && notesTab === 'notes' && (
+                <button onClick={createNote} className="w-8 h-8 flex items-center justify-center bg-[#3d3b33] dark:bg-[#f0f0f0] text-white dark:text-[#121212] rounded-full hover:scale-105 transition-all shadow-lg">
+                  <Plus size={18} />
                 </button>
               )}
+              
+              {!isTrashOpen && notesTab === 'journal' && (
+                <button onClick={() => setShowCalendar(!showCalendar)} className="w-8 h-8 flex items-center justify-center bg-[#3d3b33] dark:bg-[#f0f0f0] text-white dark:text-[#121212] rounded-full hover:scale-105 transition-all shadow-lg">
+                  {showCalendar ? <X size={16} /> : <CalendarDays size={16} />}
+                </button>
+              )}
+              
+              {showCalendar && renderCalendar()}
             </div>
           </div>
 
@@ -378,18 +422,20 @@ export default function NotesPage() {
               />
             </div>
 
-            <div className="flex bg-[#ebe8e2] dark:bg-[#1a1a1a] p-1 rounded-xl">
-              {isTrashOpen ? (
-                <button onClick={() => { setIsTrashOpen(false); setAutoSelectPending(true); }} className="flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all bg-white dark:bg-[#2a2a2a] shadow-sm text-[#3d3b33] dark:text-[#f0f0f0]">
-                  <ArrowLeft size={14} /> Back to Library
-                </button>
-              ) : (
-                TABS.map(({ id, label, icon: Icon }) => (
+            <div className="flex flex-col gap-2">
+              <div className="flex bg-[#ebe8e2] dark:bg-[#1a1a1a] p-1 rounded-xl">
+                {TABS.map(({ id, label, icon: Icon }) => (
                   <button key={id} onClick={() => handleTabChange(id)}
                     className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all ${notesTab === id ? 'bg-white dark:bg-[#2a2a2a] shadow-sm text-[#c2956e] dark:text-[#d1a784]' : 'text-[#888] hover:text-[#3d3b33] dark:hover:text-[#ccc]'}`}>
                     <Icon size={14} /> <span className="hidden xl:inline">{label}</span>
                   </button>
-                ))
+                ))}
+              </div>
+              
+              {isTrashOpen && (
+                <button onClick={emptyTrash} className="w-full flex items-center justify-center gap-2 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all bg-red-50 dark:bg-red-900/10 text-red-500 hover:bg-red-500 hover:text-white shadow-sm border border-red-100 dark:border-red-900/30">
+                  <Trash2 size={14} /> Empty {notesTab} Trash
+                </button>
               )}
             </div>
           </div>

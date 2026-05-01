@@ -1,7 +1,7 @@
 // frontend/components/ui/RecursiveCheckbox.tsx
 "use client";
 
-import { useRef, useEffect } from "react";
+import { useRef, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Task } from "@/types/app.types";
 import { 
@@ -33,9 +33,12 @@ export default function RecursiveCheckbox({
   const router = useRouter();
   const textRef = useRef<HTMLSpanElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
   const { taskArchiveDelay, activeTaskIdWithMenu, setActiveTaskIdWithMenu, collapsedTasks, toggleTaskCollapse, keepParentTaskAlive } = useUiStore();
   const { addInstance, setTitle: setTimerTitle, setActiveTab, setForceShowWidgets } = useTimerStore();
+
+  const [initialTitle] = useState(task.title);
 
   const isRoutine = task.task_type === 'routine';
   const isNormal = task.task_type === 'normal';
@@ -55,6 +58,7 @@ export default function RecursiveCheckbox({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [activeTaskIdWithMenu, task.id, setActiveTaskIdWithMenu]);
 
+  // Handle setting focus when new task is created
   useEffect(() => {
     if (newTaskId === task.id) {
       setNewTaskId(null); 
@@ -71,12 +75,32 @@ export default function RecursiveCheckbox({
     }
   }, [newTaskId, task.id, setNewTaskId]);
 
+  // Safely update DOM node content natively if changed from database, without interrupting active typing
+  useEffect(() => {
+    if (textRef.current && document.activeElement !== textRef.current) {
+      if (textRef.current.textContent !== task.title) {
+        textRef.current.textContent = task.title;
+      }
+    }
+  }, [task.title]);
+
   const saveCurrentText = () => {
+    if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
     if (!textRef.current) return;
     const newTitle = textRef.current.textContent || '';
     if (newTitle.trim() && newTitle !== task.title) {
       onUpdate(task.id, { title: newTitle.trim() });
     }
+  };
+
+  const handleInput = () => {
+    if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+    saveTimeoutRef.current = setTimeout(() => {
+      const newTitle = textRef.current?.textContent || '';
+      if (newTitle.trim() && newTitle !== task.title) {
+        onUpdate(task.id, { title: newTitle.trim() });
+      }
+    }, 1000);
   };
 
   const handleSendToFocus = (tab: 'timer' | 'stopwatch') => {
@@ -93,8 +117,8 @@ export default function RecursiveCheckbox({
 
   const showTimerStopwatchOutside = isRoutine && !isEditMode;
   const showManagementActions = isNormal || (isRoutine && isEditMode);
-  // Show keep alive icon if it is parent and management is active.
-  const showKeepAlive = depth === 0 && showManagementActions && !keepParentTaskAlive;
+  // Unlocked Keep Alive for every task acting as a parent
+  const showKeepAlive = task.children && task.children.length > 0 && showManagementActions && !keepParentTaskAlive;
 
   const titleSize = depth === 0 ? "text-[15px]" : depth === 1 ? "text-[13.5px]" : "text-[12.5px]";
   const titleWeight = depth === 0 ? "font-[500]" : "font-[400]";
@@ -167,6 +191,7 @@ export default function RecursiveCheckbox({
             contentEditable={isEditMode || isNormal}
             suppressContentEditableWarning
             onMouseDown={(e) => e.stopPropagation()}
+            onInput={handleInput}
             onBlur={() => saveCurrentText()}
             onKeyDown={(e) => {
               if (e.altKey && e.key === "ArrowUp") { e.preventDefault(); onMoveUp(task); return; }
@@ -182,17 +207,20 @@ export default function RecursiveCheckbox({
             }}
             className={`break-words whitespace-pre-wrap transition-all duration-200 outline-none ${titleSize} ${titleWeight} ${isEditMode || isNormal ? "cursor-text border-b border-transparent focus:border-[#c2956e]/30 pb-[1px]" : "cursor-default"} ${task.is_completed ? "text-[#c4c0b8] dark:text-[#555] line-through" : "text-[#3d3b33] dark:text-[#e0e0e0]"}`}
           >
-            {task.title}
+            {initialTitle}
           </span>
 
           {/* Expanded Menu for Task Actions */}
           {isMenuOpen && (
             <div className="flex flex-col gap-3 mt-2 pt-3 border-t border-[#e0ddd5] dark:border-[#333] animate-fade-up w-full" onClick={e => e.stopPropagation()}>
                <div className="hidden md:flex flex-wrap gap-3 items-center justify-between w-full">
-                  <div className="flex items-center gap-2">
-                     <button onClick={() => handleSendToFocus('timer')} title="Send to Timer" className="flex items-center justify-center w-8 h-8 rounded-lg text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 transition-colors hover:bg-blue-100 dark:hover:bg-blue-900/40"><Timer size={14} /></button>
-                     <button onClick={() => handleSendToFocus('stopwatch')} title="Send to Stopwatch" className="flex items-center justify-center w-8 h-8 rounded-lg text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-900/20 transition-colors hover:bg-orange-100 dark:hover:bg-orange-900/40"><Hourglass size={14} /></button>
-                  </div>
+                  {/* Timer/Stopwatch only shown if showManagementActions (Since Desktop Routines don't have 3-dot) */}
+                  {showManagementActions && (
+                    <div className="flex items-center gap-2">
+                       <button onClick={() => handleSendToFocus('timer')} title="Send to Timer" className="flex items-center justify-center w-8 h-8 rounded-lg text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 transition-colors hover:bg-blue-100 dark:hover:bg-blue-900/40"><Timer size={14} /></button>
+                       <button onClick={() => handleSendToFocus('stopwatch')} title="Send to Stopwatch" className="flex items-center justify-center w-8 h-8 rounded-lg text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-900/20 transition-colors hover:bg-orange-100 dark:hover:bg-orange-900/40"><Hourglass size={14} /></button>
+                    </div>
+                  )}
                   
                   {showManagementActions && (
                      <div className="flex items-center gap-3 md:ml-auto flex-wrap">
@@ -241,36 +269,32 @@ export default function RecursiveCheckbox({
           )}
         </div>
 
-        {/* Desktop Quick Actions */}
-        <div className={`hidden md:flex items-center shrink-0 ml-auto gap-0.5 transition-opacity duration-200 ${isMenuOpen ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
-            {showTimerStopwatchOutside && (
-                <>
-                    <button onClick={() => handleSendToFocus('timer')} title="Send to Timer" className="w-7 h-7 flex items-center justify-center rounded-lg text-[#c4c0b8] hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all"><Timer size={14} /></button>
-                    <button onClick={() => handleSendToFocus('stopwatch')} title="Send to Stopwatch" className="w-7 h-7 flex items-center justify-center rounded-lg text-[#c4c0b8] hover:text-orange-500 hover:bg-orange-50 dark:hover:bg-orange-900/20 transition-all"><Hourglass size={14} /></button>
-                </>
-            )}
+        {/* Unified Quick Actions & 3-Dot (Desktop & Mobile) */}
+        <div className={`flex items-center shrink-0 ml-auto gap-0.5 transition-opacity duration-200 ${isMenuOpen ? 'opacity-100' : 'opacity-100 md:opacity-0 group-hover:opacity-100'}`}>
             
-            {showManagementActions && (
-                <>
-                  {showKeepAlive && (
-                     <button onClick={() => onUpdate(task.id, { keep_alive: !task.keep_alive })} title="Keep parent task alive" className={`w-7 h-7 flex items-center justify-center rounded-lg transition-all ${task.keep_alive ? 'text-[#7ca982] bg-[#7ca982]/10' : 'text-[#c4c0b8] hover:text-[#7ca982] hover:bg-[#7ca982]/10'}`}><InfinityIcon size={14} /></button>
-                  )}
-                  <button onClick={() => onAdd(task.id)} title="Add Subtask" className="w-7 h-7 flex items-center justify-center rounded-lg text-[#c4c0b8] hover:text-[#c2956e] hover:bg-[#c2956e]/10 transition-all"><Plus size={14} /></button>
-                  <button onClick={() => onDelete(task.id)} title="Delete" className="w-7 h-7 flex items-center justify-center rounded-lg text-[#c4c0b8] hover:text-red-500 hover:bg-red-500/10 transition-all"><Trash2 size={14} /></button>
-                </>
-            )}
+            {/* Desktop Only Tools */}
+            <div className="hidden md:flex items-center gap-0.5">
+                {showTimerStopwatchOutside && (
+                    <>
+                        <button onClick={() => handleSendToFocus('timer')} title="Send to Timer" className="w-7 h-7 flex items-center justify-center rounded-lg text-[#c4c0b8] hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all"><Timer size={14} /></button>
+                        <button onClick={() => handleSendToFocus('stopwatch')} title="Send to Stopwatch" className="w-7 h-7 flex items-center justify-center rounded-lg text-[#c4c0b8] hover:text-orange-500 hover:bg-orange-50 dark:hover:bg-orange-900/20 transition-all"><Hourglass size={14} /></button>
+                    </>
+                )}
+                {showManagementActions && (
+                    <>
+                      {showKeepAlive && (
+                         <button onClick={() => onUpdate(task.id, { keep_alive: !task.keep_alive })} title="Keep parent task alive" className={`w-7 h-7 flex items-center justify-center rounded-lg transition-all ${task.keep_alive ? 'text-[#7ca982] bg-[#7ca982]/10' : 'text-[#c4c0b8] hover:text-[#7ca982] hover:bg-[#7ca982]/10'}`}><InfinityIcon size={14} /></button>
+                      )}
+                      <button onClick={() => onAdd(task.id)} title="Add Subtask" className="w-7 h-7 flex items-center justify-center rounded-lg text-[#c4c0b8] hover:text-[#c2956e] hover:bg-[#c2956e]/10 transition-all"><Plus size={14} /></button>
+                      <button onClick={() => onDelete(task.id)} title="Delete" className="w-7 h-7 flex items-center justify-center rounded-lg text-[#c4c0b8] hover:text-red-500 hover:bg-red-500/10 transition-all"><Trash2 size={14} /></button>
+                    </>
+                )}
+            </div>
             
-            <button onClick={toggleMenu} title="More Options" className="menu-toggle-btn w-7 h-7 flex items-center justify-center rounded-lg text-[#c4c0b8] hover:text-[#3d3b33] dark:hover:text-white hover:bg-white dark:hover:bg-[#333] transition-all ml-1"><MoreVertical size={14} /></button>
-        </div>
-
-        {/* Mobile View Toggle */}
-        <div className={`md:hidden shrink-0 ml-auto flex items-center gap-0.5 ${isMenuOpen ? 'hidden' : 'flex'}`}>
-            {showTimerStopwatchOutside && (
-                <>
-                    <button onClick={() => handleSendToFocus('timer')} className="p-1.5 rounded-md text-[#c4c0b8] hover:text-blue-500 transition-colors"><Timer size={16} /></button>
-                    <button onClick={() => handleSendToFocus('stopwatch')} className="p-1.5 rounded-md text-[#c4c0b8] hover:text-orange-500 transition-colors"><Hourglass size={16} /></button>
-                </>
-            )}
+            {/* 3-Dot Menu Toggle - Hidden on desktop if !showManagementActions (i.e. Desktop Routine View) */}
+            <button onClick={toggleMenu} title="More Options" className={`menu-toggle-btn w-7 h-7 flex items-center justify-center rounded-lg text-[#c4c0b8] hover:text-[#3d3b33] dark:hover:text-white hover:bg-white dark:hover:bg-[#333] transition-all ml-1 ${!showManagementActions ? 'md:hidden' : ''}`}>
+               <MoreVertical size={14} />
+            </button>
         </div>
       </div>
 

@@ -2,10 +2,12 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
-import { Clock, Search, Trash2, Edit2, PlayCircle, Timer, AlertCircle } from "lucide-react";
+import { Clock, Search, Trash2, Edit2, PlayCircle, Timer, AlertCircle, ArrowLeft } from "lucide-react";
 import { useUiStore } from "@/store/uiStore";
+import { useRouter } from "next/navigation";
 
 export default function SessionsPage() {
+  const router = useRouter();
   const { sessionsFilter, setSessionsFilter } = useUiStore();
   const [sessions, setSessions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -68,9 +70,14 @@ export default function SessionsPage() {
           <p className="text-[10px] text-[#c2956e] dark:text-[#d1a784] tracking-[0.3em] uppercase font-bold mb-2">Chronoa Database</p>
           <h1 className="text-5xl md:text-6xl text-[#3d3b33] dark:text-[#f0f0f0] font-serif italic leading-none">Time Log</h1>
         </div>
-        <button onClick={handleDeleteAll} className="flex items-center justify-center gap-2 px-6 py-3 bg-red-50 dark:bg-red-900/10 text-red-500 dark:text-red-400 rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-red-500 hover:text-white transition-all shadow-sm">
-          <AlertCircle size={14} /> Wipe History
-        </button>
+        <div className="flex items-center gap-4">
+          <button onClick={() => router.push('/')} className="flex items-center justify-center gap-2 px-6 py-3 bg-white dark:bg-[#1a1a1a] text-[#888] rounded-xl text-[10px] font-bold uppercase tracking-widest border border-[#e0ddd5] dark:border-[#333] hover:text-[#3d3b33] dark:hover:text-[#f0f0f0] transition-all shadow-sm">
+            <ArrowLeft size={14} /> Home
+          </button>
+          <button onClick={handleDeleteAll} className="flex items-center justify-center gap-2 px-6 py-3 bg-white dark:bg-[#1a1a1a] text-[#888] dark:text-[#a0a0a0] rounded-xl text-[10px] font-bold uppercase tracking-widest border border-[#e0ddd5] dark:border-[#333] hover:text-red-500 hover:border-red-200 dark:hover:border-red-900/50 transition-all shadow-sm">
+            <Trash2 size={14} /> Clear History
+          </button>
+        </div>
       </header>
 
       <div className="bg-white dark:bg-[#1a1a1a] border border-[#ebe8e2] dark:border-[#2a2a2a] rounded-[2.5rem] p-6 md:p-12 shadow-sm space-y-8">
@@ -123,8 +130,8 @@ export default function SessionsPage() {
               <div className="flex items-center justify-between md:justify-end gap-6 w-full md:w-auto mt-2 md:mt-0">
                 <span className="text-xl font-serif italic text-[#3d3b33] dark:text-[#f0f0f0]">{formatDuration(session.duration_seconds)}</span>
                 <div className="opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 bg-[#f7f5f0] dark:bg-[#121212] p-1 rounded-lg border border-[#e0ddd5] dark:border-[#444]">
-                  <button onClick={() => {setEditingId(session.id); setEditTitle(session.title || '')}} className="p-1.5 text-gray-400 dark:text-[#7a7a7a] hover:text-[#6e90c2] dark:hover:text-[#8aaae0] rounded-md hover:bg-white dark:hover:bg-[#2a2a2a] transition-colors"><Edit2 size={16} /></button>
-                  <button onClick={() => handleDelete(session.id)} className="p-1.5 text-gray-400 dark:text-[#7a7a7a] hover:text-red-500 dark:hover:text-red-400 rounded-md hover:bg-white dark:hover:bg-[#2a2a2a] transition-colors"><Trash2 size={16} /></button>
+                  <button onClick={() => {setEditingId(session.id); setEditTitle(session.title || '')}} title="Edit" className="p-1.5 text-[#b0ad9a] dark:text-[#7a7a7a] hover:text-[#c2956e] dark:hover:text-[#b0855f] rounded-md hover:bg-white dark:hover:bg-[#2a2a2a] transition-colors"><Edit2 size={16} /></button>
+                  <button onClick={() => handleDelete(session.id)} title="Delete Forever" className="p-1.5 text-[#b0ad9a] dark:text-[#7a7a7a] hover:text-red-500 dark:hover:text-red-400 rounded-md hover:bg-white dark:hover:bg-[#2a2a2a] transition-colors"><Trash2 size={16} /></button>
                 </div>
               </div>
             </div>

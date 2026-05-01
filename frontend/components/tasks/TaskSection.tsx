@@ -315,21 +315,21 @@ export default function TaskSection({ type, title }: Props) {
       .sort((a, b) => a.position - b.position);
     const index = siblings.findIndex((t) => t.id === task.id);
     if (index > 0) {
-      const prev = siblings[index - 1];
-      const newPosTask = prev.position;
-      const newPosPrev = task.position;
-
+      const newSiblings = [...siblings];
+      [newSiblings[index - 1], newSiblings[index]] = [newSiblings[index], newSiblings[index - 1]];
+      
+      const tasksToUpdate = newSiblings.map((t, i) => ({ id: t.id, updates: { position: i } }));
+      
       setTasks((prevTasks) =>
         prevTasks.map((t) => {
-          if (t.id === task.id) return { ...t, position: newPosTask };
-          if (t.id === prev.id) return { ...t, position: newPosPrev };
-          return t;
+          const update = tasksToUpdate.find((u) => u.id === t.id);
+          return update ? { ...t, ...update.updates } : t;
         })
       );
 
-      // Optimistic update - fire and forget
-      supabase.from("tasks").update({ position: newPosTask }).eq("id", task.id);
-      supabase.from("tasks").update({ position: newPosPrev }).eq("id", prev.id);
+      for (const u of tasksToUpdate) {
+        supabase.from("tasks").update(u.updates).eq("id", u.id);
+      }
     }
   };
 
@@ -339,21 +339,21 @@ export default function TaskSection({ type, title }: Props) {
       .sort((a, b) => a.position - b.position);
     const index = siblings.findIndex((t) => t.id === task.id);
     if (index < siblings.length - 1) {
-      const next = siblings[index + 1];
-      const newPosTask = next.position;
-      const newPosNext = task.position;
-
+      const newSiblings = [...siblings];
+      [newSiblings[index + 1], newSiblings[index]] = [newSiblings[index], newSiblings[index + 1]];
+      
+      const tasksToUpdate = newSiblings.map((t, i) => ({ id: t.id, updates: { position: i } }));
+      
       setTasks((prevTasks) =>
         prevTasks.map((t) => {
-          if (t.id === task.id) return { ...t, position: newPosTask };
-          if (t.id === next.id) return { ...t, position: newPosNext };
-          return t;
+          const update = tasksToUpdate.find((u) => u.id === t.id);
+          return update ? { ...t, ...update.updates } : t;
         })
       );
 
-      // Optimistic update - fire and forget
-      supabase.from("tasks").update({ position: newPosTask }).eq("id", task.id);
-      supabase.from("tasks").update({ position: newPosNext }).eq("id", next.id);
+      for (const u of tasksToUpdate) {
+        supabase.from("tasks").update(u.updates).eq("id", u.id);
+      }
     }
   };
 
