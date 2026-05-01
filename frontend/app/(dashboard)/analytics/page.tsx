@@ -32,7 +32,7 @@ export interface AnalyticsData {
 }
 
 // XP Thresholds mapping for the modal
-export const RANKS = [
+export const RANKS =[
   { name: "Novice", minLevel: 1, minXp: 0 },
   { name: "Apprentice", minLevel: 4, minXp: 450 },
   { name: "Scholar", minLevel: 7, minXp: 1800 },
@@ -46,7 +46,7 @@ export const RANKS = [
 export default function AnalyticsPage() {
   const [data, setData] = useState<AnalyticsData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [isRankModalOpen, setIsRankModalOpen] = useState(false);
+  const[isRankModalOpen, setIsRankModalOpen] = useState(false);
 
   useEffect(() => {
     const fetchAndProcessData = async () => {
@@ -61,8 +61,8 @@ export default function AnalyticsPage() {
       ]);
 
       const tasks = tasksRes.data || [];
-      const sessions = sessionsRes.data || [];
-      const journals = journalRes.data || [];
+      const sessions = sessionsRes.data ||[];
+      const journals = journalRes.data ||[];
 
       // 1. Core Totals & Gamification
       const totalTasks = tasks.length;
@@ -85,7 +85,7 @@ export default function AnalyticsPage() {
       const getLocalYMD = (d: Date) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
       const dailyMap: Record<string, DailyRecord> = {};
       const ensureDay = (ymd: string) => {
-        if (!dailyMap[ymd]) dailyMap[ymd] = { date: ymd, tasks: [], sessions: [], taskCount: 0, focusMinutes: 0 };
+        if (!dailyMap[ymd]) dailyMap[ymd] = { date: ymd, tasks: [], sessions:[], taskCount: 0, focusMinutes: 0 };
       };
 
       tasks.forEach(t => {
@@ -149,7 +149,7 @@ export default function AnalyticsPage() {
     };
 
     fetchAndProcessData();
-  }, []);
+  },[]);
 
   if (loading) {
     return (
@@ -181,7 +181,6 @@ export default function AnalyticsPage() {
               </button>
             </div>
             <h2 className="text-2xl md:text-3xl font-medium text-[#3d3b33] dark:text-white leading-none">
-              <span className="font-serif italic mr-2 text-[#b0ad9a]">Lvl {data?.levelInfo.level}</span>
               {data?.levelInfo.rank}
             </h2>
           </div>
@@ -248,7 +247,7 @@ export default function AnalyticsPage() {
       {/* Secondary Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 animate-fade-up" style={{ animationDelay: '400ms' }}>
         <ActivityHeatmap dailyMap={data?.dailyMap || {}} />
-        <FocusDistribution rawSessions={data?.rawSessions || []} />
+        <FocusDistribution rawSessions={data?.rawSessions ||[]} />
       </div>
 
       {/* Gamification Info Modal */}
