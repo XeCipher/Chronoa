@@ -7,6 +7,39 @@ import { supabase } from "@/lib/supabase";
 import { Play, Pause, Square, Pin, PinOff, Plus, Trash2, History } from "lucide-react";
 import { useRouter } from "next/navigation";
 
+// Feature 4: Custom Web Audio Chime Function (Singing Bowl / Zen style)
+const playChime = () => {
+  try {
+    const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+    if (!AudioContextClass) return;
+    
+    const ctx = new AudioContextClass();
+
+    const playSine = (freq: number, duration: number, vol: number, delay: number = 0) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.value = freq;
+      
+      gain.gain.setValueAtTime(0, ctx.currentTime + delay);
+      gain.gain.linearRampToValueAtTime(vol, ctx.currentTime + delay + 0.1);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + delay + duration);
+      
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(ctx.currentTime + delay);
+      osc.stop(ctx.currentTime + delay + duration);
+    };
+
+    // Construct a multi-frequency relaxing chime
+    playSine(523.25, 4, 0.4, 0);       // C5 Root
+    playSine(1046.50, 3, 0.15, 0.05);  // C6 Octave
+    playSine(1569.75, 2, 0.05, 0.1);   // G6 Harmonic
+  } catch (e) {
+    console.error("Audio API not supported", e);
+  }
+};
+
 function EngineCard({ engine, tab }: { engine: EngineInstance, tab: 'timer' | 'stopwatch' }) {
   const store = useTimerStore();
   const [liveSeconds, setLiveSeconds] = useState(engine.accumulatedSeconds);
@@ -39,13 +72,22 @@ function EngineCard({ engine, tab }: { engine: EngineInstance, tab: 'timer' | 's
     store.removeInstance(tab, engine.id);
   };
 
-  // Timer auto-stop feature
+  // Timer auto-stop feature with Chime & Notification
   useEffect(() => {
     let timeout: NodeJS.Timeout;
     if (tab === 'timer' && engine.targetMinutes && engine.isRunning) {
       const targetSecs = engine.targetMinutes * 60;
       if (liveSeconds >= targetSecs) {
         store.pause(tab, engine.id);
+        
+        playChime();
+        if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+          new Notification('Chronoa', {
+            body: `Timer complete: ${engine.title || 'Timer'}`,
+            icon: '/apple-icon.png'
+          });
+        }
+        
         timeout = setTimeout(() => handleStopAndSave(targetSecs), 2000);
       }
     }
@@ -85,7 +127,17 @@ function EngineCard({ engine, tab }: { engine: EngineInstance, tab: 'timer' | 's
             </button>
           )}
           <button 
-            onClick={() => engine.isRunning ? store.pause(tab, engine.id) : store.start(tab, engine.id)}
+            onClick={() => {
+              if (engine.isRunning) {
+                store.pause(tab, engine.id);
+              } else {
+                // Request notification permission smoothly upon user initiation
+                if (tab === 'timer' && typeof Notification !== 'undefined' && Notification.permission === 'default') {
+                  Notification.requestPermission();
+                }
+                store.start(tab, engine.id);
+              }
+            }}
             className="w-14 h-14 flex items-center justify-center bg-[#3d3b33] dark:bg-[#f0f0f0] text-white dark:text-[#121212] rounded-full hover:scale-105 active:scale-95 transition-all shadow-lg hover:bg-black dark:hover:bg-white"
           >
             {engine.isRunning ? <Pause size={22} fill="currentColor" /> : <Play size={22} fill="currentColor" className="ml-1" />}
@@ -101,8 +153,21 @@ function EngineCard({ engine, tab }: { engine: EngineInstance, tab: 'timer' | 's
         />
         {tab === 'timer' && (
           <input 
-            type="number" value={engine.targetMinutes || 0} onChange={(e) => store.setTargetMinutes(engine.id, parseInt(e.target.value) || 0)}
-            className="w-20 bg-white/40 dark:bg-black/40 border border-transparent rounded-2xl px-2 py-3 text-center text-sm font-bold text-[#3d3b33] dark:text-white outline-none focus:bg-white/70 dark:focus:bg-black/60 focus:border-white dark:focus:border-white/20 transition-all shadow-inner shadow-black/5"
+            type="number" 
+            min="1"
+            value={engine.targetMinutes || 1} 
+            onChange={(e) => {
+              // Ensure value is at least 1 and handle empty/NaN cases
+              const val = Math.max(1, parseInt(e.target.value) || 1);
+              store.setTargetMinutes(engine.id, val);
+            }}
+            // LOCK INPUT if running OR if progress has already been made (paused state)
+            disabled={engine.isRunning || engine.accumulatedSeconds > 0} 
+            className={`w-20 bg-white/40 dark:bg-black/40 border border-transparent rounded-2xl px-2 py-3 text-center text-sm font-bold text-[#3d3b33] dark:text-white outline-none focus:bg-white/70 dark:focus:bg-black/60 focus:border-white dark:focus:border-white/20 transition-all shadow-inner shadow-black/5 ${
+              (engine.isRunning || engine.accumulatedSeconds > 0) 
+                ? 'opacity-40 cursor-not-allowed select-none' 
+                : ''
+            }`}
             placeholder="Min"
           />
         )}
@@ -121,7 +186,7 @@ export default function ProductivityWidgets({ isVisible }: { isVisible: boolean 
     return list?.some(i => i.isRunning);
   };
 
-  if (!activeList) return null; // Hydration guard
+  if (!activeList) return null;
 
   return (
     <div 

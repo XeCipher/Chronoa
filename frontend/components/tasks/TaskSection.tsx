@@ -5,7 +5,7 @@ import { useEffect, useState, useMemo, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import { Task } from "@/types/app.types";
 import RecursiveCheckbox from "../ui/RecursiveCheckbox";
-import { Plus, Edit3, CheckCircle2 } from "lucide-react";
+import { Plus, Edit3, CheckCircle2, ChevronDown, ChevronUp } from "lucide-react";
 import { useUiStore } from "@/store/uiStore";
 
 interface Props {
@@ -21,9 +21,16 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
   const [isLoading, setIsLoading] = useState(true);
   const [newTaskId, setNewTaskId] = useState<string | null>(null);
   
-  const { taskArchiveDelay, moveCompletedToBottom, keepParentTaskAlive, addTaskAtTop, archiveLayout, archiveSort } = useUiStore();
+  const { 
+    taskArchiveDelay, moveCompletedToBottom, keepParentTaskAlive, addTaskAtTop, archiveLayout, archiveSort,
+    mobileRoutineCollapsed, mobileTasksCollapsed, setMobileRoutineCollapsed, setMobileTasksCollapsed
+  } = useUiStore();
+  
   const [now, setNow] = useState(Date.now());
   const sectionRef = useRef<HTMLDivElement>(null);
+
+  // Check which collapse state this section follows
+  const isCollapsedMobile = type === 'routine' ? mobileRoutineCollapsed : mobileTasksCollapsed;
 
   const fetchTasks = async () => {
     let { data, error } = await supabase
@@ -95,7 +102,6 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
 
     const matchesSearch = (t: Task) => !searchQuery || t.title.toLowerCase().includes(searchQuery.toLowerCase());
 
-    // Trash and Flat Archive logic
     const isFlatList = viewMode === 'trash' || (viewMode === 'archive' && archiveLayout === 'list');
     if (isFlatList) {
        let list = tasks.filter(t => {
@@ -111,11 +117,9 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
        return list;
     }
 
-    // Nested Tree logic (Focus or Nested Archive)
     const prune = (node: Task): boolean => {
       if (node.children) node.children = node.children.filter(c => prune(c));
       
-      // FIX: Ensure this always resolves to a strict boolean to satisfy TypeScript
       const hasVisibleChildren = (node.children && node.children.length > 0) || false;
       
       const selfMatchesMode = viewMode === 'archive' 
@@ -146,7 +150,6 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
     return sort(tree);
   }, [tasks, viewMode, archiveLayout, archiveSort, searchQuery, isEditMode, now, delayMs, taskArchiveDelay, moveCompletedToBottom]);
 
-  // Calculate Progress specifically for Focus Mode
   const flattenedVisibleTasks: Task[] = [];
   const gatherVisible = (nodes: Task[]) => {
     nodes.forEach(n => { flattenedVisibleTasks.push(n); if (n.children) gatherVisible(n.children); });
@@ -259,6 +262,10 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
     if (data) {
       setTasks((prev) => [...prev, data]);
       setNewTaskId(data.id);
+      
+      // Auto-expand section on mobile if they add an item
+      if (type === 'routine' && mobileRoutineCollapsed) setMobileRoutineCollapsed(false);
+      if (type === 'normal' && mobileTasksCollapsed) setMobileTasksCollapsed(false);
     }
   };
 
@@ -448,6 +455,11 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
     }
   };
 
+  const toggleMobileCollapse = () => {
+    if (type === 'routine') setMobileRoutineCollapsed(!mobileRoutineCollapsed);
+    else setMobileTasksCollapsed(!mobileTasksCollapsed);
+  };
+
   return (
     <div
       ref={sectionRef}
@@ -456,12 +468,23 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
       <div className="px-5 md:px-8 pt-6 md:pt-8 pb-4 md:pb-5 border-b border-[#f0ede8] dark:border-[#2a2a2a]">
         <div className="flex items-start justify-between gap-4">
           <div className="flex flex-col gap-1.5">
-            <h2
-              className="text-[22px] md:text-[26px] text-[#3d3b33] dark:text-[#f0f0f0] leading-none italic font-medium"
-              style={{ fontFamily: "var(--font-cormorant), serif" }}
-            >
-              {title}
-            </h2>
+            <div className="flex items-center gap-2">
+              <h2
+                className="text-[22px] md:text-[26px] text-[#3d3b33] dark:text-[#f0f0f0] leading-none italic font-medium"
+                style={{ fontFamily: "var(--font-cormorant), serif" }}
+              >
+                {title}
+              </h2>
+              {/* Feature 1: Mobile-only collapse toggle */}
+              <button 
+                onClick={toggleMobileCollapse}
+                className="md:hidden p-1.5 -ml-1 text-[#b0ad9a] dark:text-[#7a7a7a] active:bg-gray-100 dark:active:bg-[#333] rounded-lg transition-colors"
+                title={isCollapsedMobile ? "Expand" : "Collapse"}
+              >
+                {isCollapsedMobile ? <ChevronDown size={20} /> : <ChevronUp size={20} />}
+              </button>
+            </div>
+            
             {viewMode === "focus" && type === "routine" && totalTasksCount > 0 && (
               <div className="flex items-center gap-2 mt-1">
                 <div className="w-24 md:w-28 h-[3px] bg-[#ebe8e2] dark:bg-[#333] rounded-full overflow-hidden">
@@ -511,7 +534,7 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
         </div>
       </div>
 
-      <div className="px-3 md:px-5 py-3 md:py-4 min-h-[60px]">
+      <div className={`px-3 md:px-5 py-3 md:py-4 min-h-[60px] ${isCollapsedMobile ? 'hidden md:block' : 'block'}`}>
         {isLoading ? (
           <div className="space-y-3 py-2 px-3">
             {[...Array(3)].map((_, i) => (
@@ -558,7 +581,7 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
       </div>
 
       {isEditMode && type === "routine" && viewMode === "focus" && (
-        <div className="px-5 pb-5">
+        <div className={`px-5 pb-5 ${isCollapsedMobile ? 'hidden md:block' : 'block'}`}>
           <button
             onClick={() => onAdd(null)}
             className="w-full flex items-center justify-center gap-2 py-2.5 border border-dashed border-[#d4d0c8] dark:border-[#444] rounded-xl text-[12px] text-[#b0ad9a] dark:text-[#777] hover:border-[#c2956e] dark:hover:border-[#b0855f] hover:text-[#c2956e] dark:hover:text-[#b0855f] transition-all"

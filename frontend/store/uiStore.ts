@@ -23,9 +23,12 @@ interface UiState {
   keepParentTaskAlive: boolean;
   addTaskAtTop: boolean;
   activeTaskIdWithMenu: string | null;
-  // NEW: Archive specific layout settings
   archiveLayout: 'nested' | 'list';
   archiveSort: 'newest' | 'oldest';
+  
+  // Feature 1: Mobile collapse states
+  mobileRoutineCollapsed: boolean;
+  mobileTasksCollapsed: boolean;
   
   setTaskArchiveDelay: (delay: number) => void;
   setRoutineResetHour: (hour: number) => void;
@@ -45,6 +48,10 @@ interface UiState {
   setActiveTaskIdWithMenu: (id: string | null) => void;
   setArchiveLayout: (layout: 'nested' | 'list') => void;
   setArchiveSort: (sort: 'newest' | 'oldest') => void;
+  
+  // Setters for mobile collapse states
+  setMobileRoutineCollapsed: (val: boolean) => void;
+  setMobileTasksCollapsed: (val: boolean) => void;
 }
 
 export const useUiStore = create<UiState>()(
@@ -68,6 +75,8 @@ export const useUiStore = create<UiState>()(
       activeTaskIdWithMenu: null,
       archiveLayout: 'nested',
       archiveSort: 'newest',
+      mobileRoutineCollapsed: false,
+      mobileTasksCollapsed: false,
 
       setTaskArchiveDelay: (delay) => set({ taskArchiveDelay: delay }),
       setRoutineResetHour: (hour) => set({ routineResetHour: hour }),
@@ -87,10 +96,13 @@ export const useUiStore = create<UiState>()(
       setActiveTaskIdWithMenu: (id) => set({ activeTaskIdWithMenu: id }),
       setArchiveLayout: (archiveLayout) => set({ archiveLayout }),
       setArchiveSort: (archiveSort) => set({ archiveSort }),
+      setMobileRoutineCollapsed: (val) => set({ mobileRoutineCollapsed: val }),
+      setMobileTasksCollapsed: (val) => set({ mobileTasksCollapsed: val }),
     }),
     { 
       name: 'chronoa-settings',
       partialize: (state) => Object.fromEntries(
+        // Persist everything except menu/note popups
         Object.entries(state).filter(([key]) => !['activeTaskIdWithMenu', 'mobileNoteOpen'].includes(key))
       ),
     }
