@@ -43,9 +43,6 @@ export default function TasksPage() {
         
         <header className="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-6 shrink-0">
           <div className="flex flex-col gap-2">
-            <p className="text-[10px] text-[#c2956e] dark:text-[#d1a784] tracking-[0.3em] uppercase font-bold ml-1">
-              {isTrashOpen ? 'Recycle Bin' : 'Workspace'}
-            </p>
             <div className="flex items-center gap-2.5 text-[#3d3b33] dark:text-[#f0f0f0]">
               {isTrashOpen ? <Trash2 size={24} className="text-[#c2956e]" /> : tasksView === 'focus' ? <CheckSquare size={24} className="text-[#c2956e]" /> : <History size={24} className="text-[#c2956e]" />}
               <h1 className="text-3xl md:text-4xl font-serif font-medium tracking-tight">

@@ -164,7 +164,6 @@ export default function SettingsPage() {
   return (
     <div className="max-w-4xl w-full min-h-full mx-auto p-4 md:p-12 space-y-12">
       <header className="space-y-2">
-        <p className="text-[#b0ad9a] dark:text-[#7a7a7a] tracking-[0.3em] text-[10px] font-bold uppercase ml-1">Configure your workspace environment</p>
         <div className="flex items-center gap-2.5 text-[#3d3b33] dark:text-[#f0f0f0]">
           <SettingsIcon size={24} className="text-[#c2956e]" />
           <h1 className="text-3xl md:text-4xl font-serif font-medium tracking-tight">Settings</h1>
