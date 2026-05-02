@@ -41,8 +41,9 @@ export default function HomePage() {
         <div className="w-8 h-[2px] bg-[#888]/80 dark:bg-[#a0a0a0]/80 rounded-full animate-pulse" />
       </div>
 
+      {/* FIXED: Removed the extra bottom-[calc...] offset which made it fly too high. It now correctly anchors to the padding boundary of the dashboard view */}
       <div 
-        className="absolute bottom-[calc(72px+env(safe-area-inset-bottom))] md:bottom-0 left-0 w-full h-[15vh] md:h-[25vh] z-30 flex items-end justify-center pb-6 md:pb-10 group pointer-events-none md:pointer-events-auto"
+        className="absolute bottom-0 left-0 w-full h-[15vh] md:h-[25vh] z-30 flex items-end justify-center pb-6 md:pb-10 group pointer-events-none md:pointer-events-auto"
         onMouseEnter={() => {
           if (window.matchMedia('(hover: hover)').matches) {
             setIsHovered(true);

@@ -709,7 +709,7 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
               <button 
                 onClick={toggleMobileCollapse}
                 className="md:hidden p-1.5 -ml-1 text-[#b0ad9a] dark:text-[#7a7a7a] active:bg-gray-100 dark:active:bg-[#333] rounded-lg transition-colors"
-                data-tooltip-id="global-tooltip" data-tooltip-content={isCollapsedMobile ? "Expand" : "Collapse"}
+                data-tooltip-id="task-tooltip" data-tooltip-content={isCollapsedMobile ? "Expand" : "Collapse"}
               >
                 {isCollapsedMobile ? <ChevronDown size={20} /> : <ChevronUp size={20} />}
               </button>

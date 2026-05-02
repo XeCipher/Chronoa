@@ -7,6 +7,7 @@ import ICloudTodayFeed from "@/components/tasks/ICloudTodayFeed";
 import { ListChecks, History, Trash2, ArrowLeft, Search, LayoutGrid, List, SortAsc, SortDesc, Plus, CheckSquare } from "lucide-react";
 import { useUiStore } from "@/store/uiStore";
 import { supabase } from "@/lib/supabase";
+import { Tooltip } from "react-tooltip";
 
 export default function TasksPage() {
   const { tasksView, setTasksView, archiveLayout, setArchiveLayout, archiveSort, setArchiveSort, showConfirmDialog } = useUiStore();
@@ -77,7 +78,7 @@ export default function TasksPage() {
                 
                 <button 
                   onClick={() => setIsTrashOpen(true)}
-                  data-tooltip-id="global-tooltip" data-tooltip-content="Open Trash"
+                  data-tooltip-id="task-tooltip" data-tooltip-content="Open Trash"
                   className="p-3 text-[#b0ad9a] md:hover:text-red-400 md:hover:bg-red-50 md:dark:hover:bg-red-900/10 rounded-2xl transition-all border border-transparent md:hover:border-red-100 md:dark:hover:border-red-900/30"
                 >
                   <Trash2 size={20} />
@@ -116,8 +117,8 @@ export default function TasksPage() {
            {currentViewMode === 'archive' && (
              <div className="flex items-center gap-3 w-full lg:w-auto overflow-x-auto no-scrollbar">
                 <div className="flex bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] p-1 rounded-2xl shadow-sm shrink-0">
-                  <button onClick={() => setArchiveLayout('nested')} className={`p-2.5 rounded-xl transition-all ${archiveLayout === 'nested' ? 'bg-[#c2956e] text-white shadow-md' : 'text-[#888]'}`} data-tooltip-id="global-tooltip" data-tooltip-content="Nested View"><LayoutGrid size={18} /></button>
-                  <button onClick={() => setArchiveLayout('list')} className={`p-2.5 rounded-xl transition-all ${archiveLayout === 'list' ? 'bg-[#c2956e] text-white shadow-md' : 'text-[#888]'}`} data-tooltip-id="global-tooltip" data-tooltip-content="Flat List"><List size={18} /></button>
+                  <button onClick={() => setArchiveLayout('nested')} className={`p-2.5 rounded-xl transition-all ${archiveLayout === 'nested' ? 'bg-[#c2956e] text-white shadow-md' : 'text-[#888]'}`} data-tooltip-id="task-tooltip" data-tooltip-content="Nested View"><LayoutGrid size={18} /></button>
+                  <button onClick={() => setArchiveLayout('list')} className={`p-2.5 rounded-xl transition-all ${archiveLayout === 'list' ? 'bg-[#c2956e] text-white shadow-md' : 'text-[#888]'}`} data-tooltip-id="task-tooltip" data-tooltip-content="Flat List"><List size={18} /></button>
                 </div>
                 
                 <div className="flex bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] p-1 rounded-2xl shadow-sm shrink-0">
@@ -151,6 +152,12 @@ export default function TasksPage() {
           <Plus size={24} strokeWidth={2.5} />
         </button>
       )}
+
+      {/* Centralized Task Tooltip configuration preventing mobile display */}
+      <Tooltip 
+        id="task-tooltip" 
+        className="max-md:!hidden z-[600] !bg-[#3d3b33] dark:!bg-[#2a2a2a] !text-white !rounded-xl !shadow-xl !font-semibold !text-[11px] !px-3 !py-1.5 !border-none" 
+      />
     </div>
   );
 }

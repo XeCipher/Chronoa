@@ -1,3 +1,4 @@
+// frontend/components/ui/RecursiveCheckbox.tsx
 "use client";
 
 import { useRef, useEffect, useState } from "react";
@@ -305,7 +306,7 @@ export default function RecursiveCheckbox({
            <button 
              onClick={(e) => { e.stopPropagation(); onUpdate(task.id, { is_collapsed: !isCollapsed }); }} 
              className="shrink-0 -ml-1 text-[#b0ad9a] md:hover:text-[#c2956e] md:dark:hover:text-[#d1a784] transition-colors p-1"
-             data-tooltip-id="global-tooltip"
+             data-tooltip-id="task-tooltip"
              data-tooltip-content={isCollapsed ? "Expand" : "Collapse"}
            >
               {isCollapsed ? <ChevronRight size={14} /> : <ChevronDown size={14} className="opacity-40 md:group-hover:opacity-100" />}
@@ -353,7 +354,7 @@ export default function RecursiveCheckbox({
               <div className="flex items-center gap-1 shrink-0 px-1 opacity-80 mt-[5px]">
                 {descendantColors.map(c => {
                    const colorObj = availableColors.find(ac => ac.id === c);
-                   return colorObj ? <div key={c} className={`w-1.5 h-1.5 rounded-full ${colorObj.bg.split(' ')[0]}`} data-tooltip-id="global-tooltip" data-tooltip-content={c} /> : null;
+                   return colorObj ? <div key={c} className={`w-1.5 h-1.5 rounded-full ${colorObj.bg.split(' ')[0]}`} data-tooltip-id="task-tooltip" data-tooltip-content={c} /> : null;
                 })}
               </div>
             )}
@@ -385,16 +386,16 @@ export default function RecursiveCheckbox({
                <div className="flex flex-wrap gap-2 items-center w-full">
                   
                   <div className="flex items-center bg-white dark:bg-[#252525] rounded-xl p-1 border border-[#e0ddd5] dark:border-[#333] shadow-sm shrink-0">
-                     <button onClick={() => handleSendToFocus('timer')} className="flex items-center justify-center p-1.5 rounded-lg text-blue-600 dark:text-blue-400 md:hover:bg-blue-50 md:dark:hover:bg-blue-900/20 transition-colors" data-tooltip-id="global-tooltip" data-tooltip-content="Send to Timer">
+                     <button onClick={() => handleSendToFocus('timer')} className="flex items-center justify-center p-1.5 rounded-lg text-blue-600 dark:text-blue-400 md:hover:bg-blue-50 md:dark:hover:bg-blue-900/20 transition-colors" data-tooltip-id="task-tooltip" data-tooltip-content="Send to Timer">
                         <Timer size={15} />
                      </button>
-                     <button onClick={() => handleSendToFocus('stopwatch')} className="flex items-center justify-center p-1.5 rounded-lg text-orange-600 dark:text-orange-400 md:hover:bg-orange-50 md:dark:hover:bg-orange-900/20 transition-colors" data-tooltip-id="global-tooltip" data-tooltip-content="Send to Stopwatch">
+                     <button onClick={() => handleSendToFocus('stopwatch')} className="flex items-center justify-center p-1.5 rounded-lg text-orange-600 dark:text-orange-400 md:hover:bg-orange-50 md:dark:hover:bg-orange-900/20 transition-colors" data-tooltip-id="task-tooltip" data-tooltip-content="Send to Stopwatch">
                         <Hourglass size={15} />
                      </button>
                      {showKeepAliveToggle && (
                         <div className="flex items-center md:hidden">
                           <div className="w-px h-4 bg-[#e0ddd5] dark:bg-[#444] mx-1" />
-                          <button onClick={() => onUpdate(task.id, { keep_alive: !task.keep_alive })} className={`flex items-center justify-center p-1.5 rounded-lg transition-colors ${task.keep_alive ? 'text-white bg-[#7ca982] dark:bg-[#6a9a70]' : 'text-[#7ca982] md:hover:bg-[#7ca982]/10'}`} data-tooltip-id="global-tooltip" data-tooltip-content="Keep Parent Alive">
+                          <button onClick={() => onUpdate(task.id, { keep_alive: !task.keep_alive })} className={`flex items-center justify-center p-1.5 rounded-lg transition-colors ${task.keep_alive ? 'text-white bg-[#7ca982] dark:bg-[#6a9a70]' : 'text-[#7ca982] md:hover:bg-[#7ca982]/10'}`} data-tooltip-id="task-tooltip" data-tooltip-content="Keep Parent Alive">
                             <InfinityIcon size={15} />
                           </button>
                         </div>
@@ -406,7 +407,7 @@ export default function RecursiveCheckbox({
                       <button 
                         onClick={() => onDelete(task.id, false)} 
                         className="flex items-center justify-center p-1.5 rounded-lg text-red-500 md:hover:bg-red-50 md:dark:hover:bg-red-500/10 transition-colors" 
-                        data-tooltip-id="global-tooltip" data-tooltip-content="Delete"
+                        data-tooltip-id="task-tooltip" data-tooltip-content="Delete"
                       >
                         <Trash2 size={15} />
                       </button>
@@ -415,11 +416,11 @@ export default function RecursiveCheckbox({
 
                   {showManagementActions && (
                      <div className="flex items-center bg-white dark:bg-[#252525] rounded-xl p-1 border border-[#e0ddd5] dark:border-[#333] shadow-sm shrink-0">
-                        <button onClick={() => onMoveUp(task)} className="p-1.5 text-[#888] md:hover:text-[#c2956e] md:hover:bg-[#f7f5f0] md:dark:hover:bg-[#1a1a1a] rounded-lg transition-colors" data-tooltip-id="global-tooltip" data-tooltip-content="Move Up"><ArrowUp size={15} /></button>
-                        <button onClick={() => onMoveDown(task)} className="p-1.5 text-[#888] md:hover:text-[#c2956e] md:hover:bg-[#f7f5f0] md:dark:hover:bg-[#1a1a1a] rounded-lg transition-colors" data-tooltip-id="global-tooltip" data-tooltip-content="Move Down"><ArrowDown size={15} /></button>
+                        <button onClick={() => onMoveUp(task)} className="p-1.5 text-[#888] md:hover:text-[#c2956e] md:hover:bg-[#f7f5f0] md:dark:hover:bg-[#1a1a1a] rounded-lg transition-colors" data-tooltip-id="task-tooltip" data-tooltip-content="Move Up"><ArrowUp size={15} /></button>
+                        <button onClick={() => onMoveDown(task)} className="p-1.5 text-[#888] md:hover:text-[#c2956e] md:hover:bg-[#f7f5f0] md:dark:hover:bg-[#1a1a1a] rounded-lg transition-colors" data-tooltip-id="task-tooltip" data-tooltip-content="Move Down"><ArrowDown size={15} /></button>
                         <div className="w-px h-4 bg-[#e0ddd5] dark:bg-[#444] mx-1" />
-                        <button onClick={() => onUnindent(task)} className="p-1.5 text-[#888] md:hover:text-[#c2956e] md:hover:bg-[#f7f5f0] md:dark:hover:bg-[#1a1a1a] rounded-lg transition-colors" data-tooltip-id="global-tooltip" data-tooltip-content="Outdent"><ChevronLeft size={15} /></button>
-                        <button onClick={() => onIndent(task)} className="p-1.5 text-[#888] md:hover:text-[#c2956e] md:hover:bg-[#f7f5f0] md:dark:hover:bg-[#1a1a1a] rounded-lg transition-colors" data-tooltip-id="global-tooltip" data-tooltip-content="Indent"><ChevronRight size={15} /></button>
+                        <button onClick={() => onUnindent(task)} className="p-1.5 text-[#888] md:hover:text-[#c2956e] md:hover:bg-[#f7f5f0] md:dark:hover:bg-[#1a1a1a] rounded-lg transition-colors" data-tooltip-id="task-tooltip" data-tooltip-content="Outdent"><ChevronLeft size={15} /></button>
+                        <button onClick={() => onIndent(task)} className="p-1.5 text-[#888] md:hover:text-[#c2956e] md:hover:bg-[#f7f5f0] md:dark:hover:bg-[#1a1a1a] rounded-lg transition-colors" data-tooltip-id="task-tooltip" data-tooltip-content="Indent"><ChevronRight size={15} /></button>
                      </div>
                   )}
 
@@ -433,7 +434,7 @@ export default function RecursiveCheckbox({
                                  key={c.id}
                                  onClick={() => onUpdate(task.id, { color: c.id === 'none' ? null : c.id })}
                                  className={`w-4 h-4 rounded-full ${c.bg} transition-all shrink-0 ${task.color === c.id || (!task.color && c.id === 'none') ? 'ring-2 ring-offset-2 ring-[#c2956e] dark:ring-offset-[#252525] scale-110' : 'opacity-60 md:hover:opacity-100 md:hover:scale-110'}`}
-                                 data-tooltip-id="global-tooltip" data-tooltip-content={`Highlight: ${c.id}`}
+                                 data-tooltip-id="task-tooltip" data-tooltip-content={`Highlight: ${c.id}`}
                               />
                            ))}
                         </div>
@@ -449,17 +450,17 @@ export default function RecursiveCheckbox({
               <div className="flex items-center gap-0.5">
                   {showTimerStopwatchOutside && (
                       <div className="hidden md:flex items-center gap-0.5">
-                          <button onClick={() => handleSendToFocus('timer')} className="w-7 h-7 flex items-center justify-center rounded-lg text-[#c4c0b8] md:hover:text-blue-500 md:hover:bg-blue-50 md:dark:hover:bg-blue-900/20 transition-all" data-tooltip-id="global-tooltip" data-tooltip-content="Send to Timer"><Timer size={14} /></button>
-                          <button onClick={() => handleSendToFocus('stopwatch')} className="w-7 h-7 flex items-center justify-center rounded-lg text-[#c4c0b8] md:hover:text-orange-500 md:hover:bg-orange-50 md:dark:hover:bg-orange-900/20 transition-all" data-tooltip-id="global-tooltip" data-tooltip-content="Send to Stopwatch"><Hourglass size={14} /></button>
+                          <button onClick={() => handleSendToFocus('timer')} className="w-7 h-7 flex items-center justify-center rounded-lg text-[#c4c0b8] md:hover:text-blue-500 md:hover:bg-blue-50 md:dark:hover:bg-blue-900/20 transition-all" data-tooltip-id="task-tooltip" data-tooltip-content="Send to Timer"><Timer size={14} /></button>
+                          <button onClick={() => handleSendToFocus('stopwatch')} className="w-7 h-7 flex items-center justify-center rounded-lg text-[#c4c0b8] md:hover:text-orange-500 md:hover:bg-orange-50 md:dark:hover:bg-orange-900/20 transition-all" data-tooltip-id="task-tooltip" data-tooltip-content="Send to Stopwatch"><Hourglass size={14} /></button>
                       </div>
                   )}
                   {showManagementActions && (
                       <>
                         {showKeepAliveToggle && (
-                           <button onClick={() => onUpdate(task.id, { keep_alive: !task.keep_alive })} className={`hidden md:flex w-7 h-7 items-center justify-center rounded-lg transition-all ${task.keep_alive ? 'text-white bg-[#7ca982] dark:bg-[#6a9a70]' : 'text-[#c4c0b8] md:hover:text-[#7ca982] md:hover:bg-[#7ca982]/10'}`} data-tooltip-id="global-tooltip" data-tooltip-content="Keep parent task alive"><InfinityIcon size={14} /></button>
+                           <button onClick={() => onUpdate(task.id, { keep_alive: !task.keep_alive })} className={`hidden md:flex w-7 h-7 items-center justify-center rounded-lg transition-all ${task.keep_alive ? 'text-white bg-[#7ca982] dark:bg-[#6a9a70]' : 'text-[#c4c0b8] md:hover:text-[#7ca982] md:hover:bg-[#7ca982]/10'}`} data-tooltip-id="task-tooltip" data-tooltip-content="Keep parent task alive"><InfinityIcon size={14} /></button>
                         )}
-                        <button onClick={() => onAdd(task.id)} className={`w-7 h-7 flex items-center justify-center rounded-lg text-[#c4c0b8] md:hover:text-[#c2956e] md:hover:bg-[#c2956e]/10 transition-all ${isMenuOpen ? 'flex md:flex' : 'hidden md:flex'}`} data-tooltip-id="global-tooltip" data-tooltip-content="Add Subtask"><Plus size={14} /></button>
-                        <button onClick={() => onDelete(task.id, false)} className="hidden md:flex w-7 h-7 items-center justify-center rounded-lg text-[#c4c0b8] md:hover:text-red-500 md:hover:bg-red-500/10 transition-all" data-tooltip-id="global-tooltip" data-tooltip-content="Delete"><Trash2 size={14} /></button>
+                        <button onClick={() => onAdd(task.id)} className={`w-7 h-7 flex items-center justify-center rounded-lg text-[#c4c0b8] md:hover:text-[#c2956e] md:hover:bg-[#c2956e]/10 transition-all ${isMenuOpen ? 'flex md:flex' : 'hidden md:flex'}`} data-tooltip-id="task-tooltip" data-tooltip-content="Add Subtask"><Plus size={14} /></button>
+                        <button onClick={() => onDelete(task.id, false)} className="hidden md:flex w-7 h-7 items-center justify-center rounded-lg text-[#c4c0b8] md:hover:text-red-500 md:hover:bg-red-500/10 transition-all" data-tooltip-id="task-tooltip" data-tooltip-content="Delete"><Trash2 size={14} /></button>
                       </>
                   )}
               </div>
@@ -467,20 +468,20 @@ export default function RecursiveCheckbox({
             
             {viewMode === 'archive' && (
               <div className="flex items-center gap-1.5">
-                <button onClick={() => onRestore(task.id, 'from_archive')} className="p-1.5 md:hover:bg-white md:dark:hover:bg-[#2a2a2a] rounded-lg text-gray-400 dark:text-[#888] md:hover:text-[#c2956e] transition-colors" data-tooltip-id="global-tooltip" data-tooltip-content="Restore to Focus"><RotateCcw size={15} strokeWidth={2.5} /></button>
-                <button onClick={() => onDelete(task.id, false)} className="p-1.5 md:hover:bg-white md:dark:hover:bg-[#2a2a2a] rounded-lg text-gray-400 dark:text-[#888] md:hover:text-red-500 transition-colors" data-tooltip-id="global-tooltip" data-tooltip-content="Move to Trash"><Trash2 size={15} strokeWidth={2} /></button>
+                <button onClick={() => onRestore(task.id, 'from_archive')} className="p-1.5 md:hover:bg-white md:dark:hover:bg-[#2a2a2a] rounded-lg text-gray-400 dark:text-[#888] md:hover:text-[#c2956e] transition-colors" data-tooltip-id="task-tooltip" data-tooltip-content="Restore to Focus"><RotateCcw size={15} strokeWidth={2.5} /></button>
+                <button onClick={() => onDelete(task.id, false)} className="p-1.5 md:hover:bg-white md:dark:hover:bg-[#2a2a2a] rounded-lg text-gray-400 dark:text-[#888] md:hover:text-red-500 transition-colors" data-tooltip-id="task-tooltip" data-tooltip-content="Move to Trash"><Trash2 size={15} strokeWidth={2} /></button>
               </div>
             )}
 
             {viewMode === 'trash' && (
               <div className="flex items-center gap-1.5">
-                <button onClick={() => onRestore(task.id, 'from_trash')} className="p-1.5 md:hover:bg-white md:dark:hover:bg-[#2a2a2a] rounded-lg text-gray-400 dark:text-[#888] md:hover:text-[#7ca982] transition-colors" data-tooltip-id="global-tooltip" data-tooltip-content="Restore from Trash"><RotateCcw size={15} strokeWidth={2.5} /></button>
-                <button onClick={() => onDelete(task.id, true)} className="p-1.5 md:hover:bg-white md:dark:hover:bg-[#2a2a2a] rounded-lg text-gray-400 dark:text-[#888] md:hover:text-red-500 transition-colors" data-tooltip-id="global-tooltip" data-tooltip-content="Delete Permanently"><Trash2 size={15} strokeWidth={2} /></button>
+                <button onClick={() => onRestore(task.id, 'from_trash')} className="p-1.5 md:hover:bg-white md:dark:hover:bg-[#2a2a2a] rounded-lg text-gray-400 dark:text-[#888] md:hover:text-[#7ca982] transition-colors" data-tooltip-id="task-tooltip" data-tooltip-content="Restore from Trash"><RotateCcw size={15} strokeWidth={2.5} /></button>
+                <button onClick={() => onDelete(task.id, true)} className="p-1.5 md:hover:bg-white md:dark:hover:bg-[#2a2a2a] rounded-lg text-gray-400 dark:text-[#888] md:hover:text-red-500 transition-colors" data-tooltip-id="task-tooltip" data-tooltip-content="Delete Permanently"><Trash2 size={15} strokeWidth={2} /></button>
               </div>
             )}
             
             {viewMode === 'focus' && (
-              <button onClick={toggleMenu} className={`menu-toggle-btn w-7 h-7 flex items-center justify-center rounded-lg text-[#c4c0b8] md:hover:text-[#3d3b33] md:dark:hover:text-white md:hover:bg-white md:dark:hover:bg-[#333] transition-all ml-1 ${!showManagementActions ? 'md:hidden' : ''}`} data-tooltip-id="global-tooltip" data-tooltip-content="More Options">
+              <button onClick={toggleMenu} className={`menu-toggle-btn w-7 h-7 flex items-center justify-center rounded-lg text-[#c4c0b8] md:hover:text-[#3d3b33] md:dark:hover:text-white md:hover:bg-white md:dark:hover:bg-[#333] transition-all ml-1 ${!showManagementActions ? 'md:hidden' : ''}`} data-tooltip-id="task-tooltip" data-tooltip-content="More Options">
                  <MoreVertical size={14} />
               </button>
             )}
