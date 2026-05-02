@@ -23,7 +23,7 @@ interface TimerState {
   setActiveTab: (tab: SessionType) => void;
   togglePin: () => void;
   setForceShowWidgets: (val: boolean) => void;
-  addInstance: (tab: SessionType) => string;
+  addInstance: (tab: SessionType, title?: string) => string;
   removeInstance: (tab: SessionType, id: string) => void;
   setTitle: (tab: SessionType, id: string, title: string) => void;
   setTargetMinutes: (id: string, mins: number) => void;
@@ -65,13 +65,21 @@ export const useTimerStore = create<TimerState>()(
       togglePin: () => set((state) => ({ isPinned: !state.isPinned })),
       setForceShowWidgets: (val) => set({ forceShowWidgets: val }),
 
-      addInstance: (tab) => {
+      addInstance: (tab, title) => {
         const newId = generateId();
         set((state) => {
           const listName = tab === 'timer' ? 'timers' : 'stopwatches';
+          const list = state[listName];
           const newInst = tab === 'timer' ? createDefaultTimer() : createDefaultStopwatch();
           newInst.id = newId;
-          return { [listName]: [...state[listName], newInst] };
+          if (title) newInst.title = title;
+
+          // Replace the single default item if untouched
+          if (list.length === 1 && list[0].title === 'Focus Task' && list[0].accumulatedSeconds === 0 && !list[0].isRunning) {
+            return { [listName]: [newInst] };
+          }
+
+          return { [listName]: [...list, newInst] };
         });
         return newId;
       },

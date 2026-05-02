@@ -41,6 +41,7 @@ interface UiState {
   mobileTasksCollapsed: boolean;
 
   confirmDialog: ConfirmDialogState | null;
+  isGlobalTimeWidgetExpanded: boolean;
   
   setTaskArchiveDelay: (delay: number) => void;
   setRoutineResetHour: (hour: number) => void;
@@ -68,6 +69,7 @@ interface UiState {
 
   showConfirmDialog: (options: ConfirmDialogState) => void;
   closeConfirmDialog: () => void;
+  setGlobalTimeWidgetExpanded: (val: boolean) => void;
 }
 
 export const useUiStore = create<UiState>()(
@@ -97,6 +99,7 @@ export const useUiStore = create<UiState>()(
       mobileTasksCollapsed: false,
       
       confirmDialog: null,
+      isGlobalTimeWidgetExpanded: false,
 
       setTaskArchiveDelay: (delay) => set({ taskArchiveDelay: delay }),
       setRoutineResetHour: (hour) => set({ routineResetHour: hour }),
@@ -123,11 +126,12 @@ export const useUiStore = create<UiState>()(
 
       showConfirmDialog: (options) => set({ confirmDialog: options }),
       closeConfirmDialog: () => set({ confirmDialog: null }),
+      setGlobalTimeWidgetExpanded: (val) => set({ isGlobalTimeWidgetExpanded: val }),
     }),
     { 
       name: 'chronoa-settings',
       partialize: (state) => Object.fromEntries(
-        Object.entries(state).filter(([key]) => !['activeTaskIdWithMenu', 'mobileNoteOpen', 'confirmDialog'].includes(key))
+        Object.entries(state).filter(([key]) => !['activeTaskIdWithMenu', 'mobileNoteOpen', 'confirmDialog', 'isGlobalTimeWidgetExpanded'].includes(key))
       ),
     }
   )

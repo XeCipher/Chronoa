@@ -160,11 +160,20 @@ export default function RecursiveCheckbox({
 
   const handleSendToFocus = (tab: 'timer' | 'stopwatch') => {
     saveCurrentText(); 
-    const id = addInstance(tab);
-    setTimerTitle(tab, id, textRef.current?.textContent || task.title);
+    const title = textRef.current?.textContent || task.title;
+    const id = addInstance(tab, title);
+    setTimerTitle(tab, id, title);
     setActiveTab(tab);
-    setForceShowWidgets(true);
-    router.push('/');
+    
+    if (window.innerWidth >= 768) {
+       useUiStore.getState().setGlobalTimeWidgetExpanded(true);
+       setTimeout(() => {
+          useUiStore.getState().setGlobalTimeWidgetExpanded(false);
+       }, 4000);
+    } else {
+       setForceShowWidgets(true);
+       router.push('/');
+    }
   };
 
   const getPath = (t: Task) => {

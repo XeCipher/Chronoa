@@ -27,7 +27,9 @@ const syncOfflineData = async () => {
   if (queue.length === 0) return;
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return;
-  let remaining =[];
+  
+  let remaining = [];
+  
   for (const item of queue) {
     try {
       if (item.type === 'notes') {
@@ -35,7 +37,21 @@ const syncOfflineData = async () => {
         if (item.title !== undefined) payload.title = item.title;
         await supabase.from('notes').update(payload).eq('id', item.id);
       } else {
-        await supabase.from('journal_entries').upsert({ user_id: user.id, entry_date: item.id, content: item.content, updated_at: item.updated_at }, { onConflict: 'user_id,entry_date' });
+        // Robust update logic for Journals. If created offline, it falls back to an insert.
+        const { data, error } = await supabase.from('journal_entries')
+          .update({ content: item.content, updated_at: item.updated_at })
+          .eq('entry_date', item.id)
+          .eq('user_id', user.id)
+          .select();
+        
+        if (!error && data && data.length === 0) {
+           await supabase.from('journal_entries').insert({
+             user_id: user.id,
+             entry_date: item.id,
+             content: item.content,
+             updated_at: item.updated_at
+           });
+        }
       }
     } catch (e) {
       remaining.push(item);

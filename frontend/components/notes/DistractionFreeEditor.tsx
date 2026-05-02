@@ -67,7 +67,7 @@ export default function DistractionFreeEditor({
       StarterKit.configure({ heading: { levels: [1, 2] } }),
       Underline,
     ],
-    content: initialContent,
+    content: initialContent, // Handles initial load perfectly without forcing updates mid-typing
     editorProps: {
       attributes: {
         class:
@@ -107,12 +107,6 @@ export default function DistractionFreeEditor({
       }
     };
   }, [editor]);
-
-  useEffect(() => {
-    if (editor && initialContent !== editor.getHTML()) {
-      editor.commands.setContent(initialContent);
-    }
-  }, [initialContent, editor]);
 
   const insertTimestamp = () => {
     if (!editor) return;

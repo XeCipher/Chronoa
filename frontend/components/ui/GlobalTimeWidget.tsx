@@ -7,6 +7,7 @@ import { useTimerStore, EngineInstance } from "@/store/timerStore";
 import { supabase } from "@/lib/supabase";
 import { Play, Pause, Square, Trash2, Plus, History } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useUiStore } from "@/store/uiStore";
 
 // A reusable chime for when the timer is completed.
 const playChime = () => {
@@ -167,6 +168,7 @@ function MiniEngineCard({ engine, tab }: { engine: EngineInstance, tab: 'timer' 
 export default function GlobalTimeWidget() {
   const [time, setTime] = useState<Date | null>(null);
   const [isHovered, setIsHovered] = useState(false);
+  const { isGlobalTimeWidgetExpanded, setGlobalTimeWidgetExpanded } = useUiStore();
   
   const pathname = usePathname();
   const store = useTimerStore();
@@ -187,18 +189,19 @@ export default function GlobalTimeWidget() {
   };
 
   const activeList = store.activeTab === 'timer' ? store.timers : store.stopwatches;
+  const isExpanded = isHovered || isGlobalTimeWidgetExpanded;
 
   return (
     <div 
       className="hidden md:flex fixed bottom-8 right-10 z-[150] flex-col items-end group"
-      onMouseEnter={() => setIsHovered(true)}
+      onMouseEnter={() => { setIsHovered(true); setGlobalTimeWidgetExpanded(false); }}
       onMouseLeave={() => setIsHovered(false)}
     >
       {/* Invisible bridge bridging the gap between pill and popover */}
       <div className="absolute bottom-full right-0 w-full h-[15%] bg-transparent z-[-1]" />
 
       {/* Expanded Popover */}
-      <div className={`absolute bottom-[110%] right-0 w-[400px] bg-white/90 dark:bg-[#161616]/95 backdrop-blur-2xl border border-[#e0ddd5] dark:border-[#333] rounded-[2rem] p-6 shadow-2xl transition-all duration-400 origin-bottom-right flex flex-col gap-5 ${isHovered ? 'scale-100 opacity-100 translate-y-0 pointer-events-auto' : 'scale-95 opacity-0 translate-y-4 pointer-events-none'}`}>
+      <div className={`absolute bottom-[110%] right-0 w-[400px] bg-white/90 dark:bg-[#161616]/95 backdrop-blur-2xl border border-[#e0ddd5] dark:border-[#333] rounded-[2rem] p-6 shadow-2xl transition-all duration-400 origin-bottom-right flex flex-col gap-5 ${isExpanded ? 'scale-100 opacity-100 translate-y-0 pointer-events-auto' : 'scale-95 opacity-0 translate-y-4 pointer-events-none'}`}>
         
         <div className="flex flex-col items-center border-b border-[#e0ddd5] dark:border-[#333] pb-6 pt-2">
           <div className="text-[3.25rem] text-[#3d3b33] dark:text-[#f0f0f0] font-mono font-light tracking-tighter flex items-baseline gap-1 leading-none">
@@ -242,9 +245,9 @@ export default function GlobalTimeWidget() {
       </div>
 
       {/* Persistent Pill Bottom Interface */}
-      <div className={`relative flex items-center gap-3 bg-white/70 dark:bg-[#1a1a1a]/80 backdrop-blur-xl border border-[#e0ddd5] dark:border-[#333] rounded-2xl px-6 py-3.5 transition-all duration-400 ease-out cursor-default overflow-hidden ${isHovered ? 'shadow-[0_8px_30px_rgba(194,149,110,0.2)] dark:shadow-[0_8px_30px_rgba(0,0,0,0.6)] border-[#c2956e] dark:border-[#b0855f] scale-105' : 'shadow-[0_4px_20px_rgba(0,0,0,0.05)] dark:shadow-[0_4px_20px_rgba(0,0,0,0.4)] hover:shadow-md hover:scale-[1.02]'}`}>
+      <div className={`relative flex items-center gap-3 bg-white/70 dark:bg-[#1a1a1a]/80 backdrop-blur-xl border border-[#e0ddd5] dark:border-[#333] rounded-2xl px-6 py-3.5 transition-all duration-400 ease-out cursor-default overflow-hidden ${isExpanded ? 'shadow-[0_8px_30px_rgba(194,149,110,0.2)] dark:shadow-[0_8px_30px_rgba(0,0,0,0.6)] border-[#c2956e] dark:border-[#b0855f] scale-105' : 'shadow-[0_4px_20px_rgba(0,0,0,0.05)] dark:shadow-[0_4px_20px_rgba(0,0,0,0.4)] hover:shadow-md hover:scale-[1.02]'}`}>
         {/* Soft elegant glow behind pill content when hovering */}
-        <div className={`absolute inset-0 bg-gradient-to-r from-[#c2956e]/0 via-[#c2956e]/5 dark:via-[#c2956e]/10 to-[#c2956e]/0 transition-opacity duration-500 ${isHovered ? 'opacity-100' : 'opacity-0'}`} />
+        <div className={`absolute inset-0 bg-gradient-to-r from-[#c2956e]/0 via-[#c2956e]/5 dark:via-[#c2956e]/10 to-[#c2956e]/0 transition-opacity duration-500 ${isExpanded ? 'opacity-100' : 'opacity-0'}`} />
         
         <span className="relative z-10 text-[#3d3b33] dark:text-[#f0f0f0] font-serif italic text-xl leading-none">
           {time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
