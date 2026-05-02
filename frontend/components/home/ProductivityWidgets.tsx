@@ -7,7 +7,6 @@ import { supabase } from "@/lib/supabase";
 import { Play, Pause, Square, Pin, PinOff, Plus, Trash2, History } from "lucide-react";
 import { useRouter } from "next/navigation";
 
-// Feature 4: Custom Web Audio Chime Function (Singing Bowl / Zen style)
 const playChime = () => {
   try {
     const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
@@ -31,7 +30,6 @@ const playChime = () => {
       osc.stop(ctx.currentTime + delay + duration);
     };
 
-    // Construct a multi-frequency relaxing chime
     playSine(523.25, 4, 0.4, 0);       // C5 Root
     playSine(1046.50, 3, 0.15, 0.05);  // C6 Octave
     playSine(1569.75, 2, 0.05, 0.1);   // G6 Harmonic
@@ -72,7 +70,6 @@ function EngineCard({ engine, tab }: { engine: EngineInstance, tab: 'timer' | 's
     store.removeInstance(tab, engine.id);
   };
 
-  // Timer auto-stop feature with Chime & Notification
   useEffect(() => {
     let timeout: NodeJS.Timeout;
     if (tab === 'timer' && engine.targetMinutes && engine.isRunning) {
@@ -109,10 +106,6 @@ function EngineCard({ engine, tab }: { engine: EngineInstance, tab: 'timer' | 's
   return (
     <div className="relative shrink-0 w-[24rem] max-w-[85vw] bg-white/20 dark:bg-black/30 backdrop-blur-3xl border border-white/40 dark:border-white/10 rounded-[2.5rem] p-6 shadow-[0_20px_50px_-10px_rgba(0,0,0,0.15)] flex flex-col gap-5 transition-colors snap-center group">
       
-      {/* 
-        Modified Delete Button: 
-        Ensured opacity is visible natively on mobile (opacity-100), but uses hover opacity specifically for desktop (md:opacity-0 md:group-hover:opacity-100).
-      */}
       <button 
         onClick={() => store.removeInstance(tab, engine.id)} 
         className="absolute top-5 right-6 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity text-gray-400 hover:text-red-500 dark:text-gray-500 dark:hover:text-red-400"
@@ -151,6 +144,7 @@ function EngineCard({ engine, tab }: { engine: EngineInstance, tab: 'timer' | 's
       <div className="flex gap-2">
         <input 
           type="text" value={engine.title} onChange={(e) => store.setTitle(tab, engine.id, e.target.value)}
+          spellCheck={false}
           className="flex-1 bg-white/40 dark:bg-black/40 border border-transparent rounded-2xl px-5 py-3 text-sm font-medium text-[#3d3b33] dark:text-white outline-none focus:bg-white/70 dark:focus:bg-black/60 focus:border-white dark:focus:border-white/20 transition-all placeholder:text-[#888] dark:placeholder:text-[#aaa] placeholder:font-normal shadow-inner shadow-black/5"
           placeholder="What are you focusing on?"
         />

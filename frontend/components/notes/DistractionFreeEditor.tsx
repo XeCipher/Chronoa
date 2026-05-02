@@ -72,6 +72,7 @@ export default function DistractionFreeEditor({
       attributes: {
         class:
           "chronoa-editor focus:outline-none w-full min-h-[500px] text-[#3d3b33] dark:text-[#e0e0e0] selection:bg-[#c2956e]/20 dark:selection:bg-[#b0855f]/40",
+        spellcheck: "false",
       },
     },
     onTransaction: ({ editor: ed }) => {

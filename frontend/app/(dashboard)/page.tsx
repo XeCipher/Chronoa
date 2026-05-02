@@ -20,7 +20,7 @@ export default function HomePage() {
   const showWidget = isHovered || isPinned || isTouched || forceShow;
 
   return (
-    <div className="relative w-full h-[100dvh] overflow-hidden flex items-center justify-center touch-none overscroll-none">
+    <div className="relative w-full h-full overflow-hidden flex items-center justify-center touch-none overscroll-none">
       <SceneryBackground />
       <HomeTaskProgress />
       

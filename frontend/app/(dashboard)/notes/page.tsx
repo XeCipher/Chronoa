@@ -4,7 +4,7 @@
 import { useEffect, useState, useMemo, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
 import DistractionFreeEditor from "@/components/notes/DistractionFreeEditor";
-import { Search, Plus, Trash, BookOpen, FileText, ChevronLeft, RotateCcw, Trash2, Library, Sparkles, ArrowLeft, CalendarDays, X, ChevronRight } from "lucide-react";
+import { Search, Plus, Trash, BookOpen, FileText, ChevronLeft, RotateCcw, Trash2, Library, Sparkles, CalendarDays, X, ChevronRight } from "lucide-react";
 import { useUiStore } from "@/store/uiStore";
 
 type Tab = 'notes' | 'journal';
@@ -21,7 +21,6 @@ const getLocalYYYYMMDD = (date: Date) => {
   return `${y}-${m}-${d}`;
 };
 
-// Offline Queue Helper
 const syncOfflineData = async () => {
   if (!navigator.onLine) return;
   const queue = JSON.parse(localStorage.getItem('chronoa_offline_queue') || '[]');
@@ -54,15 +53,15 @@ export default function NotesPage() {
   
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const[editTitle, setEditTitle] = useState("");
+  const [editTitle, setEditTitle] = useState("");
   
   const [loading, setLoading] = useState(true);
   const [isListVisible, setIsListVisible] = useState(true);
-  const[isTrashOpen, setIsTrashOpen] = useState(false);
+  const [isTrashOpen, setIsTrashOpen] = useState(false);
   const [autoSelectPending, setAutoSelectPending] = useState(true);
 
   const [showCalendar, setShowCalendar] = useState(false);
-  const[calMonth, setCalMonth] = useState(new Date());
+  const [calMonth, setCalMonth] = useState(new Date());
 
   const handleTabChange = (id: Tab) => {
     setNotesTab(id);
@@ -72,17 +71,27 @@ export default function NotesPage() {
     setShowCalendar(false);
   };
 
+  useEffect(() => {
+    const cachedNotes = localStorage.getItem('chronoa_cache_notes');
+    const cachedJournals = localStorage.getItem('chronoa_cache_journals');
+    const cachedTrash = localStorage.getItem('chronoa_cache_trash');
+    
+    if (cachedNotes) try { setNotes(JSON.parse(cachedNotes)); setLoading(false); } catch (e) {}
+    if (cachedJournals) try { setJournals(JSON.parse(cachedJournals)); setLoading(false); } catch (e) {}
+    if (cachedTrash) try { setTrash(JSON.parse(cachedTrash)); } catch (e) {}
+  }, []);
+
   const fetchData = useCallback(async () => {
-    setLoading(true);
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return setLoading(false);
+    if (!user) { setLoading(false); return; }
 
     const { data: nData } = await supabase.from('notes').select('*').is('deleted_at', null).order('updated_at', { ascending: false });
-    setNotes(nData ||[]);
+    const newNotes = nData || [];
+    setNotes(newNotes);
 
     const { data: jData } = await supabase.from('journal_entries').select('*').is('deleted_at', null).order('entry_date', { ascending: false });
     const todayStr = getLocalYYYYMMDD(new Date());
-    const jList = jData ||[];
+    const jList = jData || [];
     if (!jList.some(j => j.entry_date === todayStr)) {
       jList.unshift({ entry_date: todayStr, content: "<p></p>" });
     }
@@ -92,8 +101,8 @@ export default function NotesPage() {
     const { data: jTrashData } = await supabase.from('journal_entries').select('*').not('deleted_at', 'is', null);
     
     const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-    const validTrashNotes = (tData ||[]).filter(note => new Date(note.deleted_at) > thirtyDaysAgo).map(n => ({ ...n, isJournal: false }));
-    const validTrashJournals = (jTrashData ||[]).filter(j => new Date(j.deleted_at) > thirtyDaysAgo).map(j => ({ ...j, isJournal: true }));
+    const validTrashNotes = (tData || []).filter(note => new Date(note.deleted_at) > thirtyDaysAgo).map(n => ({ ...n, isJournal: false }));
+    const validTrashJournals = (jTrashData || []).filter(j => new Date(j.deleted_at) > thirtyDaysAgo).map(j => ({ ...j, isJournal: true }));
     
     const combinedTrash = [...validTrashNotes, ...validTrashJournals].sort((a, b) => new Date(b.deleted_at).getTime() - new Date(a.deleted_at).getTime());
     
@@ -105,12 +114,20 @@ export default function NotesPage() {
   useEffect(() => { 
     fetchData(); 
     window.addEventListener('online', syncOfflineData);
-    const interval = setInterval(syncOfflineData, 15000); // Continuous auto sync
+    const interval = setInterval(syncOfflineData, 15000); 
     return () => {
       window.removeEventListener('online', syncOfflineData);
       clearInterval(interval);
     };
   }, [fetchData]);
+
+  useEffect(() => {
+    if (!loading) {
+      localStorage.setItem('chronoa_cache_notes', JSON.stringify(notes));
+      localStorage.setItem('chronoa_cache_journals', JSON.stringify(journals));
+      localStorage.setItem('chronoa_cache_trash', JSON.stringify(trash));
+    }
+  }, [notes, journals, trash, loading]);
 
   useEffect(() => {
     if (selectedId) {
@@ -140,7 +157,7 @@ export default function NotesPage() {
 
   const createJournalForDate = async (dateStr: string) => {
     const todayStr = getLocalYYYYMMDD(new Date());
-    if (dateStr > todayStr) return; // Future dates disabled natively
+    if (dateStr > todayStr) return; 
     
     if (journals.some(j => j.entry_date === dateStr)) {
       handleSelectItem(dateStr);
@@ -161,7 +178,6 @@ export default function NotesPage() {
     setNotes(prev => prev.map(n => n.id === selectedId ? { ...n, title: t } : n));
     const updatedNow = new Date().toISOString();
     
-    // Optimistic Queue
     const queue = JSON.parse(localStorage.getItem('chronoa_offline_queue') || '[]');
     const itemIndex = queue.findIndex((q: any) => q.id === selectedId && q.type === 'notes');
     const existingContent = notes.find(n => n.id === selectedId)?.content || '';
@@ -187,7 +203,6 @@ export default function NotesPage() {
     const itemIndex = queue.findIndex((q: any) => q.id === id && q.type === notesTab);
     const payload: any = { type: notesTab, id, content: html, updated_at: updatedNow };
     
-    // Retain title mapping in offline queue for notes
     if (notesTab === 'notes') {
        const currNote = notes.find(n => n.id === id);
        if (currNote) payload.title = currNote.title;
@@ -264,7 +279,6 @@ export default function NotesPage() {
 
   const formatDateLabel = (dateStr: string) => {
     const date = new Date(dateStr);
-    // Overriding the timezone bug using UTC formatting explicitly if needed, but local string parse applies better
     const parts = dateStr.split('-');
     if (parts.length === 3) {
       const obj = new Date(parseInt(parts[0]), parseInt(parts[1])-1, parseInt(parts[2]));
@@ -324,7 +338,6 @@ export default function NotesPage() {
     return journals.find(j => j.entry_date === selectedId);
   },[selectedId, notesTab, notes, journals, trash, isTrashOpen]);
 
-  // Calendar render helper
   const renderCalendar = () => {
     const year = calMonth.getFullYear();
     const month = calMonth.getMonth();
@@ -374,7 +387,7 @@ export default function NotesPage() {
   };
 
   return (
-    <div className="relative flex h-[calc(100dvh-72px)] md:h-[100dvh] w-full bg-[#f7f5f0] dark:bg-[#121212] lg:pl-10 overflow-hidden selection:bg-[#c2956e]/20">
+    <div className="relative flex h-full w-full bg-[#f7f5f0] dark:bg-[#121212] lg:pl-10 overflow-hidden selection:bg-[#c2956e]/20">
       
       <aside className={`
         w-full lg:w-[350px] flex-shrink-0 flex flex-col border-r border-[#e0ddd5] dark:border-[#2a2a2a] bg-[#f7f5f0] dark:bg-[#121212] z-30 transition-transform duration-300 ease-in-out
@@ -398,13 +411,13 @@ export default function NotesPage() {
               </button>
               
               {!isTrashOpen && notesTab === 'notes' && (
-                <button onClick={createNote} className="w-8 h-8 flex items-center justify-center bg-[#3d3b33] dark:bg-[#f0f0f0] text-white dark:text-[#121212] rounded-full hover:scale-105 transition-all shadow-lg">
+                <button onClick={createNote} className="hidden lg:flex w-8 h-8 items-center justify-center bg-[#3d3b33] dark:bg-[#f0f0f0] text-white dark:text-[#121212] rounded-full hover:scale-105 transition-all shadow-lg">
                   <Plus size={18} />
                 </button>
               )}
               
               {!isTrashOpen && notesTab === 'journal' && (
-                <button onClick={() => setShowCalendar(!showCalendar)} className="w-8 h-8 flex items-center justify-center bg-[#3d3b33] dark:bg-[#f0f0f0] text-white dark:text-[#121212] rounded-full hover:scale-105 transition-all shadow-lg">
+                <button onClick={() => setShowCalendar(!showCalendar)} className="hidden lg:flex w-8 h-8 items-center justify-center bg-[#3d3b33] dark:bg-[#f0f0f0] text-white dark:text-[#121212] rounded-full hover:scale-105 transition-all shadow-lg">
                   {showCalendar ? <X size={16} /> : <CalendarDays size={16} />}
                 </button>
               )}
@@ -418,6 +431,7 @@ export default function NotesPage() {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[#b0ad9a]" size={14} />
               <input 
                 type="text" placeholder={`Search ${isTrashOpen ? 'trash' : notesTab}...`} value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
+                spellCheck={false}
                 className="w-full bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] rounded-2xl pl-9 pr-4 py-2 text-sm outline-none focus:border-[#c2956e] dark:focus:border-[#b0855f] transition-all shadow-sm"
               />
             </div>
@@ -442,7 +456,7 @@ export default function NotesPage() {
         </div>
 
         <div id="notes-library-scroll-container" className="flex-1 overflow-y-auto no-scrollbar p-4 space-y-3 scroll-smooth">
-          {loading ? (
+          {loading && notes.length === 0 && journals.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 gap-3 opacity-40">
               <Sparkles className="animate-pulse text-[#c2956e]" />
               <span className="text-[10px] font-bold uppercase tracking-widest">Opening Vault...</span>
@@ -522,6 +536,7 @@ export default function NotesPage() {
                     <input 
                       value={editTitle} onChange={e => setEditTitle(e.target.value)} onBlur={updateNoteTitle} disabled={isTrashOpen}
                       placeholder="Title..."
+                      spellCheck={false}
                       className="text-4xl lg:text-5xl text-[#3d3b33] dark:text-white font-serif italic leading-tight bg-transparent outline-none w-full placeholder:text-[#e0ddd5] dark:placeholder:text-[#2a2a2a] transition-all" 
                     />
                   )}
@@ -549,6 +564,20 @@ export default function NotesPage() {
           </div>
         )}
       </main>
+
+      {/* Mobile FAB for Notes & Journal */}
+      {isListVisible && !isTrashOpen && (
+        <button 
+          onClick={() => {
+             if (notesTab === 'notes') createNote();
+             else setShowCalendar(!showCalendar);
+          }}
+          className="lg:hidden fixed bottom-[90px] right-6 z-[100] w-14 h-14 bg-[#c2956e] text-white rounded-full shadow-[0_8px_30px_rgb(194,149,110,0.4)] flex items-center justify-center hover:scale-105 active:scale-95 transition-transform"
+        >
+          {notesTab === 'notes' ? <Plus size={24} /> : <CalendarDays size={24} />}
+        </button>
+      )}
+
     </div>
   );
 }

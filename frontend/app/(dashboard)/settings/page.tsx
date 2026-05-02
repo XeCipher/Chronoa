@@ -145,7 +145,7 @@ export default function SettingsPage() {
   const modKey = os === 'mac' ? '⌥' : 'Alt';
 
   return (
-    <div className="max-w-4xl mx-auto p-4 md:p-12 space-y-12 animate-fade-up">
+    <div className="max-w-4xl w-full min-h-full mx-auto p-4 md:p-12 space-y-12 animate-fade-up">
       <header className="space-y-2">
         <h1 className="text-5xl md:text-6xl text-[#3d3b33] dark:text-[#f0f0f0] font-serif italic leading-none">Settings</h1>
         <p className="text-[#b0ad9a] dark:text-[#7a7a7a] tracking-[0.3em] text-[10px] font-bold uppercase">Configure your sanctuary environment</p>
@@ -290,8 +290,8 @@ export default function SettingsPage() {
           <div className="space-y-3">
             {calendars.map((cal, idx) => (
               <div key={idx} className="flex flex-col md:flex-row gap-3 p-4 bg-[#f7f5f0]/50 dark:bg-[#222] border border-[#e0ddd5] dark:border-[#333] rounded-2xl group transition-all hover:border-[#c2956e]/30 dark:hover:border-[#b0855f]/50">
-                <input type="text" placeholder="Label" value={cal.name} onChange={(e) => updateCalendar(idx, 'name', e.target.value)} className="md:w-1/4 bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] text-[#3d3b33] dark:text-white rounded-xl px-4 py-2 outline-none focus:border-[#c2956e] text-sm" />
-                <input type="text" placeholder="webcal://..." value={cal.url} onChange={(e) => updateCalendar(idx, 'url', e.target.value)} className="flex-1 bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] text-[#3d3b33] dark:text-white rounded-xl px-4 py-2 outline-none focus:border-[#c2956e] text-sm font-mono" />
+                <input type="text" placeholder="Label" value={cal.name} onChange={(e) => updateCalendar(idx, 'name', e.target.value)} spellCheck={false} className="md:w-1/4 bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] text-[#3d3b33] dark:text-white rounded-xl px-4 py-2 outline-none focus:border-[#c2956e] text-sm" />
+                <input type="text" placeholder="webcal://..." value={cal.url} onChange={(e) => updateCalendar(idx, 'url', e.target.value)} spellCheck={false} className="flex-1 bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] text-[#3d3b33] dark:text-white rounded-xl px-4 py-2 outline-none focus:border-[#c2956e] text-sm font-mono" />
                 <button onClick={() => removeCalendar(idx)} className="p-2 text-gray-300 hover:text-red-500 transition-colors"><Trash2 size={18} /></button>
               </div>
             ))}
@@ -322,7 +322,7 @@ export default function SettingsPage() {
             <div className="flex flex-col md:flex-row gap-3">
               <div className="relative flex-1">
                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-[#b0ad9a]" size={16} />
-                <input type="text" placeholder="Search City..." value={cityInput} onChange={(e) => setCityInput(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleLocationSearch()} className="w-full bg-[#f7f5f0] dark:bg-[#222] text-[#3d3b33] dark:text-white border border-[#e0ddd5] rounded-2xl pl-12 pr-4 py-4 outline-none focus:border-[#c2956e] transition-all" />
+                <input type="text" placeholder="Search City..." value={cityInput} onChange={(e) => setCityInput(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleLocationSearch()} spellCheck={false} className="w-full bg-[#f7f5f0] dark:bg-[#222] text-[#3d3b33] dark:text-white border border-[#e0ddd5] rounded-2xl pl-12 pr-4 py-4 outline-none focus:border-[#c2956e] transition-all" />
               </div>
               <div className="flex gap-2">
                 <button onClick={handleAutoDetect} disabled={isSearching} title="Auto Detect Location" className="px-6 bg-[#f7f5f0] dark:bg-[#222] text-[#3d3b33] dark:text-white border border-[#e0ddd5] dark:border-[#333] rounded-2xl flex items-center justify-center hover:bg-[#ebe8e2] transition-all disabled:opacity-50"><Navigation size={18} /></button>

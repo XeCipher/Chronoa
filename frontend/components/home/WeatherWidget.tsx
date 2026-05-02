@@ -1,3 +1,4 @@
+// frontend/components/home/WeatherWidget.tsx
 "use client";
 
 import { useEffect, useState } from "react";
@@ -11,7 +12,6 @@ export default function WeatherWidget() {
   const [isToggled, setIsToggled] = useState(false);
 
   const fetchWeather = async () => {
-    setLoading(true);
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
       setLoading(false);
@@ -26,7 +26,6 @@ export default function WeatherWidget() {
 
     if (profile?.weather_lat && profile?.weather_lon) {
       try {
-        // We use the standard API but fetch cloud_cover to validate "Ghost Storms"
         const params = new URLSearchParams({
           latitude: profile.weather_lat.toString(),
           longitude: profile.weather_lon.toString(),
@@ -41,6 +40,8 @@ export default function WeatherWidget() {
         if (data?.current) {
           setWeather(data.current);
           setCity(profile.weather_city);
+          localStorage.setItem('chronoa_cache_weather', JSON.stringify(data.current));
+          localStorage.setItem('chronoa_cache_weather_city', profile.weather_city);
         }
       } catch (err) {
         console.error("Sanctuary Weather Error:", err);
@@ -50,72 +51,38 @@ export default function WeatherWidget() {
   };
 
   useEffect(() => {
+    const cached = localStorage.getItem('chronoa_cache_weather');
+    const cachedCity = localStorage.getItem('chronoa_cache_weather_city');
+    if (cached && cachedCity) {
+      try {
+        setWeather(JSON.parse(cached));
+        setCity(cachedCity);
+        setLoading(false);
+      } catch(e) {}
+    }
     fetchWeather();
-    const interval = setInterval(fetchWeather, 20 * 60 * 1000); // 20 mins
+    const interval = setInterval(fetchWeather, 20 * 60 * 1000); 
     return () => clearInterval(interval);
   }, []);
 
   const getWeatherDetails = (code: number, isDay: number, precipitation: number, cloudCover: number) => {
     const day = isDay === 1;
-    
-    /**
-     * TROPICAL CALIBRATION LOGIC
-     * Coastal cities like Mumbai often have high instability codes (95+) in models 
-     * while the actual sky is clear. We override the code based on sensors.
-     */
     let calibratedCode = code;
 
-    // If it's a "Storm" or "Rain" but there is 0 rain and few clouds, it's Sunny.
     if (precipitation <= 0 && (code >= 50)) {
-      if (cloudCover < 20) calibratedCode = 0; // Force Sunny
-      else if (cloudCover < 50) calibratedCode = 1; // Force Partly Cloudy
-      else calibratedCode = 3; // Force Overcast
+      if (cloudCover < 20) calibratedCode = 0; 
+      else if (cloudCover < 50) calibratedCode = 1; 
+      else calibratedCode = 3; 
     }
 
-    // 0: Clear/Sunny
-    if (calibratedCode === 0) {
-      return { 
-        text: day ? "Sunny" : "Clear", 
-        icon: day ? Sun : Moon, 
-        color: day ? "text-amber-500" : "text-indigo-300" 
-      };
-    }
-    
-    // 1, 2: Partly Cloudy
-    if ([1, 2].includes(calibratedCode)) {
-      return { text: "Partly Cloudy", icon: day ? CloudSun : CloudMoon, color: "text-gray-400" };
-    }
-
-    // 3: Overcast
-    if (calibratedCode === 3) {
-      return { text: "Cloudy", icon: Cloud, color: "text-gray-500" };
-    }
-    
-    // 45, 48: Fog
-    if ([45, 48].includes(calibratedCode)) {
-      return { text: "Foggy", icon: Wind, color: "text-gray-400" };
-    }
-    
-    // 51-57: Drizzle
-    if ([51, 53, 55, 56, 57].includes(calibratedCode)) {
-      return { text: "Drizzle", icon: CloudDrizzle, color: "text-blue-300" };
-    }
-
-    // 61-67, 80-82: Rain
-    if ([61, 63, 65, 66, 67, 80, 81, 82].includes(calibratedCode)) {
-      return { text: "Rainy", icon: CloudRain, color: "text-blue-500" };
-    }
-    
-    // 71-77, 85-86: Snow
-    if ([71, 73, 75, 77, 85, 86].includes(calibratedCode)) {
-      return { text: "Snowy", icon: Snowflake, color: "text-blue-100" };
-    }
-    
-    // 95-99: Storms (Now verified by precipitation check)
-    if ([95, 96, 99].includes(calibratedCode)) {
-      return { text: "Storms", icon: CloudLightning, color: "text-purple-500" };
-    }
-
+    if (calibratedCode === 0) return { text: day ? "Sunny" : "Clear", icon: day ? Sun : Moon, color: day ? "text-amber-500" : "text-indigo-300" };
+    if ([1, 2].includes(calibratedCode)) return { text: "Partly Cloudy", icon: day ? CloudSun : CloudMoon, color: "text-gray-400" };
+    if (calibratedCode === 3) return { text: "Cloudy", icon: Cloud, color: "text-gray-500" };
+    if ([45, 48].includes(calibratedCode)) return { text: "Foggy", icon: Wind, color: "text-gray-400" };
+    if ([51, 53, 55, 56, 57].includes(calibratedCode)) return { text: "Drizzle", icon: CloudDrizzle, color: "text-blue-300" };
+    if ([61, 63, 65, 66, 67, 80, 81, 82].includes(calibratedCode)) return { text: "Rainy", icon: CloudRain, color: "text-blue-500" };
+    if ([71, 73, 75, 77, 85, 86].includes(calibratedCode)) return { text: "Snowy", icon: Snowflake, color: "text-blue-100" };
+    if ([95, 96, 99].includes(calibratedCode)) return { text: "Storms", icon: CloudLightning, color: "text-purple-500" };
     return { text: day ? "Sunny" : "Clear", icon: day ? Sun : Moon, color: day ? "text-amber-500" : "text-indigo-300" };
   };
 

@@ -1,3 +1,4 @@
+// frontend/app/(dashboard)/sessions/page.tsx
 "use client";
 
 import { useEffect, useState } from "react";
@@ -29,7 +30,19 @@ export default function SessionsPage() {
     setLoading(false);
   };
 
-  useEffect(() => { fetchSessions(); }, []);
+  useEffect(() => {
+    const cached = localStorage.getItem('chronoa_cache_sessions');
+    if (cached) {
+      try { setSessions(JSON.parse(cached)); setLoading(false); } catch(e) {}
+    }
+    fetchSessions(); 
+  }, []);
+
+  useEffect(() => {
+    if (!loading) {
+      localStorage.setItem('chronoa_cache_sessions', JSON.stringify(sessions));
+    }
+  }, [sessions, loading]);
 
   const handleDelete = async (id: string) => {
     if (!confirm("Delete this session forever?")) return;
@@ -64,7 +77,7 @@ export default function SessionsPage() {
   });
 
   return (
-    <div className="max-w-5xl mx-auto p-4 md:p-12 space-y-12 animate-fade-up">
+    <div className="max-w-5xl w-full min-h-full mx-auto p-4 md:p-12 space-y-12 animate-fade-up">
       <header className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div>
           <p className="text-[10px] text-[#c2956e] dark:text-[#d1a784] tracking-[0.3em] uppercase font-bold mb-2">Chronoa Database</p>
@@ -86,6 +99,7 @@ export default function SessionsPage() {
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-[#b0ad9a] dark:text-[#7a7a7a]" size={16} />
             <input 
               type="text" placeholder="Search sessions..." value={search} onChange={(e) => setSearch(e.target.value)}
+              spellCheck={false}
               className="w-full bg-[#f7f5f0] dark:bg-[#121212] border border-[#e0ddd5] dark:border-[#333] rounded-2xl pl-12 pr-4 py-3 outline-none focus:border-[#c2956e] dark:focus:border-[#b0855f] text-sm text-[#3d3b33] dark:text-[#f0f0f0]"
             />
           </div>
@@ -102,7 +116,7 @@ export default function SessionsPage() {
         </div>
 
         <div className="space-y-3">
-          {loading ? <div className="h-32 animate-pulse bg-gray-100 dark:bg-[#222] rounded-2xl" /> : 
+          {loading && sessions.length === 0 ? <div className="h-32 animate-pulse bg-gray-100 dark:bg-[#222] rounded-2xl" /> : 
            filteredSessions.length > 0 ? filteredSessions.map(session => (
             <div key={session.id} className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-4 bg-white dark:bg-[#1e1e1e] border border-[#e0ddd5] dark:border-[#333] rounded-2xl hover:border-[#c2956e]/50 dark:hover:border-[#b0855f]/50 transition-all group">
               <div className="flex items-center gap-4">
@@ -116,6 +130,7 @@ export default function SessionsPage() {
                       onChange={(e) => setEditTitle(e.target.value)}
                       onBlur={() => handleSaveEdit(session.id)}
                       onKeyDown={(e) => e.key === 'Enter' && handleSaveEdit(session.id)}
+                      spellCheck={false}
                       className="border-b border-[#c2956e] dark:border-[#b0855f] bg-transparent outline-none text-[#3d3b33] dark:text-white font-medium pb-0.5"
                     />
                   ) : (

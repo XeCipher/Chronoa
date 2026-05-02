@@ -11,7 +11,6 @@ import {
 import { useUiStore } from "@/store/uiStore";
 import { useTimerStore } from "@/store/timerStore";
 
-// dnd-kit context logic for sortable tree handling
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
@@ -51,13 +50,11 @@ export default function RecursiveCheckbox({
   const [isExpanded, setIsExpanded] = useState(false);
   const [isOverflowing, setIsOverflowing] = useState(false);
 
-  // Setup draggable behavior gracefully enabled ONLY if we are in 'focus' mode
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ 
     id: task.id,
     disabled: viewMode !== 'focus' 
   });
   
-  // Notice we use CSS.Translate to completely prevent nested task height distortion during swap
   const sortableStyle = {
     transform: CSS.Translate.toString(transform), 
     transition,
@@ -114,7 +111,6 @@ export default function RecursiveCheckbox({
           if (typeof window.getSelection !== "undefined" && typeof document.createRange !== "undefined") {
             const range = document.createRange();
             range.selectNodeContents(el);
-            // Removing range.collapse entirely guarantees the whole word is selected natively
             const sel = window.getSelection();
             if (sel) {
               sel.removeAllRanges();
@@ -276,7 +272,6 @@ export default function RecursiveCheckbox({
         className={`group relative flex items-center gap-3 py-[7px] px-3 rounded-xl transition-all duration-150 ${activeColorStyle} ${isMenuOpen ? "z-10" : ""}`}
       >
         
-        {/* Beautiful DND Grip Handle */}
         {viewMode === 'focus' && (
           <div 
             {...attributes} 
@@ -287,7 +282,6 @@ export default function RecursiveCheckbox({
           </div>
         )}
 
-        {/* Checkbox */}
         <button 
           onClick={(e) => { 
             e.stopPropagation(); 
@@ -299,7 +293,6 @@ export default function RecursiveCheckbox({
           {task.is_completed && <Check size={depth === 0 ? 10 : 9} strokeWidth={3} className="text-white" />}
         </button>
 
-        {/* Hierarchy Toggle */}
         {!isFlatList && hasChildren && (
            <button 
              onClick={(e) => { e.stopPropagation(); onUpdate(task.id, { is_collapsed: !isCollapsed }); }} 
@@ -318,6 +311,7 @@ export default function RecursiveCheckbox({
               ref={textRef}
               contentEditable={allowTextEdit}
               suppressContentEditableWarning
+              spellCheck={false}
               onMouseDown={(e) => e.stopPropagation()}
               onFocus={() => setIsExpanded(true)}
               onInput={handleInput}
@@ -378,7 +372,6 @@ export default function RecursiveCheckbox({
             <div className="mt-2 pt-2.5 border-t border-[#e0ddd5] dark:border-[#333] animate-fade-up w-full" onClick={e => e.stopPropagation()}>
                <div className="flex flex-wrap gap-2 items-center w-full">
                   
-                  {/* Action Group 1: Time Log & Keep Alive */}
                   <div className="flex items-center bg-white dark:bg-[#252525] rounded-xl p-1 border border-[#e0ddd5] dark:border-[#333] shadow-sm shrink-0">
                      <button onClick={() => handleSendToFocus('timer')} className="flex items-center justify-center p-1.5 rounded-lg text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors" title="Send to Timer">
                         <Timer size={15} />
@@ -396,7 +389,6 @@ export default function RecursiveCheckbox({
                      )}
                   </div>
 
-                  {/* Action Group 2: Core Tools */}
                   {showManagementActions && (
                     <div className="flex md:hidden items-center bg-white dark:bg-[#252525] rounded-xl p-1 border border-[#e0ddd5] dark:border-[#333] shadow-sm shrink-0">
                       <button 
@@ -409,7 +401,6 @@ export default function RecursiveCheckbox({
                     </div>
                   )}
 
-                  {/* Action Group 3: Position & Nesting */}
                   {showManagementActions && (
                      <div className="flex items-center bg-white dark:bg-[#252525] rounded-xl p-1 border border-[#e0ddd5] dark:border-[#333] shadow-sm shrink-0">
                         <button onClick={() => onMoveUp(task)} className="p-1.5 text-[#888] hover:text-[#c2956e] hover:bg-[#f7f5f0] dark:hover:bg-[#1a1a1a] rounded-lg transition-colors" title="Move Up"><ArrowUp size={15} /></button>
@@ -420,7 +411,6 @@ export default function RecursiveCheckbox({
                      </div>
                   )}
 
-                  {/* Action Group 4: Colors */}
                   {showManagementActions && (
                      <div className="flex items-center bg-white dark:bg-[#252525] rounded-xl p-1.5 border border-[#e0ddd5] dark:border-[#333] shadow-sm shrink-0 max-w-full overflow-x-auto no-scrollbar">
                         <Palette size={14} className="text-[#888] mx-1.5 shrink-0" />

@@ -9,7 +9,6 @@ import { Plus, Edit3, CheckCircle2, ChevronDown, ChevronUp } from "lucide-react"
 import { useUiStore } from "@/store/uiStore";
 import { flushSync } from "react-dom";
 
-// dnd-kit imports for drag and drop functionality
 import {
   DndContext,
   closestCenter,
@@ -33,7 +32,6 @@ interface Props {
   searchQuery?: string;
 }
 
-// Generate a stable UUID for new tasks to avoid remount/flicker
 function generateUUID() {
   if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID();
   return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
@@ -57,7 +55,6 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
   const [now, setNow] = useState(Date.now());
   const sectionRef = useRef<HTMLDivElement>(null);
 
-  // Set up pointer sensor with distance constraint to prevent accidental drags on clicks
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
@@ -83,6 +80,14 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
   };
 
   useEffect(() => {
+    const cached = localStorage.getItem(`chronoa_cache_tasks_${type}`);
+    if (cached) {
+      try {
+        setTasks(JSON.parse(cached));
+        setIsLoading(false);
+      } catch (e) {}
+    }
+
     fetchTasks();
 
     const channelId = `rt_${type}_${Math.random().toString(36).substring(7)}`;
@@ -110,6 +115,12 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
   }, [type]);
 
   useEffect(() => {
+    if (!isLoading) {
+      localStorage.setItem(`chronoa_cache_tasks_${type}`, JSON.stringify(tasks));
+    }
+  }, [tasks, type, isLoading]);
+
+  useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (
         isEditMode &&
@@ -123,6 +134,15 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [isEditMode, type]);
+
+  const onAddRef = useRef<(parentId: string | null) => Promise<void>>(() => Promise.resolve());
+
+  useEffect(() => {
+    if (type !== 'normal') return;
+    const handleGlobalAdd = () => onAddRef.current(null);
+    window.addEventListener('chronoa-add-task', handleGlobalAdd);
+    return () => window.removeEventListener('chronoa-add-task', handleGlobalAdd);
+  }, [type]);
 
   const delayMs = taskArchiveDelay <= 0 ? 1000 : taskArchiveDelay * 60 * 1000;
 
@@ -195,8 +215,11 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
   };
   if (viewMode === 'focus') gatherVisible(displayTasks);
 
-  const totalTasksCount = flattenedVisibleTasks.length;
-  const totalCompletedCount = flattenedVisibleTasks.filter((t) => t.is_completed).length;
+  // FIX: For routines, calculate progress using the raw tasks array so vanished tasks are still counted.
+  // For normal tasks, we can keep using flattenedVisibleTasks if desired, or tasks array.
+  const baseTasksForProgress = type === 'routine' ? tasks.filter(t => t.deleted_at === null) : flattenedVisibleTasks;
+  const totalTasksCount = baseTasksForProgress.length;
+  const totalCompletedCount = baseTasksForProgress.filter((t) => t.is_completed).length;
   const progressPercent = totalTasksCount > 0 ? Math.round((totalCompletedCount / totalTasksCount) * 100) : 0;
 
   const onUpdate = async (id: string, updates: Partial<Task>) => {
@@ -294,7 +317,6 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
       }
     }
 
-    // Generate stable client-side UUID so component key never remounts/flickers
     const newId = generateUUID();
     const tempTask: Task = {
       id: newId,
@@ -334,6 +356,8 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
       setTasks((prev) => prev.filter(t => t.id !== newId));
     }
   };
+
+  useEffect(() => { onAddRef.current = onAdd; }, [onAdd]);
 
   const onDelete = async (id: string, isPermanent: boolean = false) => {
     const idsToDelete = [id];
@@ -605,7 +629,7 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
   const renderContent = () => {
     return (
       <div className={`px-3 md:px-5 py-3 md:py-4 min-h-[60px] ${isCollapsedMobile ? 'hidden md:block' : 'block'}`}>
-        {isLoading ? (
+        {isLoading && tasks.length === 0 ? (
           <div className="space-y-3 py-2 px-3">
             {[...Array(3)].map((_, i) => (
               <div key={i} className="flex items-center gap-3">
@@ -747,7 +771,7 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
               ) : (
                 <button
                   onClick={() => onAdd(null)}
-                  className="w-9 h-9 flex items-center justify-center bg-[#f7f5f0] dark:bg-[#222] text-[#c2956e] dark:text-[#d1a784] rounded-full hover:bg-[#c2956e]/10 dark:hover:bg-[#b0855f]/20 transition-all"
+                  className="hidden md:flex w-9 h-9 items-center justify-center bg-[#f7f5f0] dark:bg-[#222] text-[#c2956e] dark:text-[#d1a784] rounded-full hover:bg-[#c2956e]/10 dark:hover:bg-[#b0855f]/20 transition-all"
                 >
                   <Plus size={18} strokeWidth={2} />
                 </button>

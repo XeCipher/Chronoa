@@ -52,21 +52,44 @@ export default function AnalyticsPage() {
   const [isRankModalOpen, setIsRankModalOpen] = useState(false);
 
   useEffect(() => {
+    let hasCache = false;
+    const cachedTasks = localStorage.getItem('chronoa_cache_rawTasks');
+    const cachedSessions = localStorage.getItem('chronoa_cache_rawSessions');
+    const cachedJournals = localStorage.getItem('chronoa_cache_rawJournals');
+    
+    if (cachedTasks && cachedSessions && cachedJournals) {
+      try {
+        setRawTasks(JSON.parse(cachedTasks));
+        setRawSessions(JSON.parse(cachedSessions));
+        setRawJournals(JSON.parse(cachedJournals));
+        setLoading(false);
+        hasCache = true;
+      } catch(e) {}
+    }
+
     const fetchRawData = async () => {
-      setLoading(true);
+      if (!hasCache) setLoading(true);
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
       const [tasksRes, sessionsRes, journalRes] = await Promise.all([
-        // Added task_type here for filtering
         supabase.from('tasks').select('title, completed_at, task_type').eq('user_id', user.id).eq('is_completed', true).is('deleted_at', null),
         supabase.from('time_sessions').select('duration_seconds, created_at, title').eq('user_id', user.id),
         supabase.from('journal_entries').select('entry_date').eq('user_id', user.id).is('deleted_at', null)
       ]);
 
-      setRawTasks(tasksRes.data || []);
-      setRawSessions(sessionsRes.data || []);
-      setRawJournals(journalRes.data || []);
+      const newTasks = tasksRes.data || [];
+      const newSessions = sessionsRes.data || [];
+      const newJournals = journalRes.data || [];
+
+      setRawTasks(newTasks);
+      setRawSessions(newSessions);
+      setRawJournals(newJournals);
+      
+      localStorage.setItem('chronoa_cache_rawTasks', JSON.stringify(newTasks));
+      localStorage.setItem('chronoa_cache_rawSessions', JSON.stringify(newSessions));
+      localStorage.setItem('chronoa_cache_rawJournals', JSON.stringify(newJournals));
+      
       setLoading(false);
     };
 
@@ -74,12 +97,10 @@ export default function AnalyticsPage() {
   }, []);
 
   const data = useMemo<AnalyticsData | null>(() => {
-    if (loading) return null;
+    if (loading && rawTasks.length === 0) return null;
 
-    // Filter tasks dynamically
     const filteredTasks = rawTasks.filter(t => filterType === 'all' || t.task_type === filterType);
 
-    // 1. Core Totals & Gamification (XP always based on Global / All tasks so rank doesn't downgrade dynamically)
     const globalTotalTasks = rawTasks.length;
     const totalFocusSeconds = rawSessions.reduce((acc, s) => acc + s.duration_seconds, 0);
     const totalFocusMinutes = Math.floor(totalFocusSeconds / 60);
@@ -96,7 +117,6 @@ export default function AnalyticsPage() {
       return rankObj ? rankObj.name : "Novice";
     };
 
-    // 2. Build Daily Map (Using ONLY filtered tasks)
     const getLocalYMD = (d: Date) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
     const dailyMap: Record<string, DailyRecord> = {};
     const ensureDay = (ymd: string) => {
@@ -120,7 +140,6 @@ export default function AnalyticsPage() {
       dailyMap[ymd].focusMinutes += mins;
     });
 
-    // 3. Streaks Calculation Helper
     const calculateStreak = (daySet: Set<string>) => {
       let current = 0, best = 0;
       const todayYmd = getLocalYMD(new Date());
@@ -166,9 +185,9 @@ export default function AnalyticsPage() {
     };
   }, [rawTasks, rawSessions, rawJournals, loading, filterType]);
 
-  if (loading) {
+  if (loading && rawTasks.length === 0) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center gap-4 animate-pulse">
+      <div className="min-h-full flex flex-col items-center justify-center gap-4 animate-pulse pt-32">
         <Sparkles className="text-[#c2956e] w-8 h-8" />
         <span className="text-xs font-bold uppercase tracking-widest text-[#888]">Analyzing Sanctuary...</span>
       </div>
@@ -176,7 +195,7 @@ export default function AnalyticsPage() {
   }
 
   return (
-    <div className="w-full mx-auto p-4 md:p-10 lg:pl-20 xl:pl-28 space-y-8 pb-24 overflow-x-hidden">
+    <div className="w-full min-h-full mx-auto p-4 md:p-10 lg:pl-20 xl:pl-28 space-y-8 pb-24 overflow-x-hidden">
       
       <header className="mb-6 animate-fade-up flex flex-col md:flex-row md:items-end justify-between gap-6" style={{ animationDelay: '0ms' }}>
         <div>
@@ -184,7 +203,6 @@ export default function AnalyticsPage() {
           <p className="text-[#b0ad9a] dark:text-[#7a7a7a] tracking-[0.25em] text-[10px] font-bold uppercase">Consistency builds empires</p>
         </div>
         
-        {/* Added Task Filter Toggle */}
         <div className="flex bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] p-1 rounded-2xl shadow-sm w-fit shrink-0">
           {['all', 'routine', 'normal'].map(f => (
             <button 

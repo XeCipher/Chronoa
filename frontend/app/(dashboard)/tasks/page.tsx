@@ -4,7 +4,7 @@
 import { useState } from "react";
 import TaskSection from "@/components/tasks/TaskSection";
 import ICloudTodayFeed from "@/components/tasks/ICloudTodayFeed";
-import { ListChecks, History, Trash2, ArrowLeft, Search, LayoutGrid, List, SortAsc, SortDesc } from "lucide-react";
+import { ListChecks, History, Trash2, ArrowLeft, Search, LayoutGrid, List, SortAsc, SortDesc, Plus } from "lucide-react";
 import { useUiStore } from "@/store/uiStore";
 import { supabase } from "@/lib/supabase";
 
@@ -24,10 +24,14 @@ export default function TasksPage() {
     window.location.reload(); 
   };
 
+  const handleFabClick = () => {
+    window.dispatchEvent(new CustomEvent('chronoa-add-task'));
+  };
+
   const currentViewMode = isTrashOpen ? 'trash' : tasksView;
 
   return (
-    <div className="w-full min-h-screen bg-[#f7f5f0] dark:bg-[#121212] p-4 md:p-12 lg:p-16 selection:bg-[#c2956e]/30 dark:selection:bg-[#b0855f]/40">
+    <div className="w-full min-h-full bg-[#f7f5f0] dark:bg-[#121212] p-4 md:p-12 lg:p-16 selection:bg-[#c2956e]/30 dark:selection:bg-[#b0855f]/40 relative">
       <div className="max-w-[1600px] mx-auto w-full">
         
         <header className="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-6">
@@ -95,6 +99,7 @@ export default function TasksPage() {
              <input 
                value={searchQuery} onChange={e => setSearchQuery(e.target.value)} 
                placeholder="Search sanctuary..." 
+               spellCheck={false}
                className="w-full bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] rounded-2xl pl-12 pr-4 py-3.5 outline-none focus:border-[#c2956e] text-sm text-[#3d3b33] dark:text-[#f0f0f0] shadow-sm" 
              />
            </div>
@@ -126,6 +131,16 @@ export default function TasksPage() {
         </div>
 
       </div>
+
+      {/* Mobile FAB for adding normal task */}
+      {tasksView === 'focus' && !isTrashOpen && (
+        <button 
+          onClick={handleFabClick}
+          className="lg:hidden fixed bottom-[90px] right-6 z-[100] w-14 h-14 bg-[#c2956e] text-white rounded-full shadow-[0_8px_30px_rgb(194,149,110,0.4)] flex items-center justify-center hover:scale-105 active:scale-95 transition-transform"
+        >
+          <Plus size={24} />
+        </button>
+      )}
     </div>
   );
 }

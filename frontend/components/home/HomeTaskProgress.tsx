@@ -20,6 +20,14 @@ export default function HomeTaskProgress() {
   useEffect(() => {
     if (!showHomeTaskProgress) return;
 
+    const cachedPct = localStorage.getItem('chronoa_cache_routinePct');
+    const cachedNormal = localStorage.getItem('chronoa_cache_normalLeft');
+    if (cachedPct !== null && cachedNormal !== null) {
+       setRoutinePct(Number(cachedPct));
+       setNormalLeft(Number(cachedNormal));
+       setLoading(false);
+    }
+
     const fetchTasks = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
@@ -35,8 +43,15 @@ export default function HomeTaskProgress() {
         
         const routineTotal = routines.length;
         const routineDone = routines.filter(t => t.is_completed).length;
-        setRoutinePct(routineTotal === 0 ? 0 : Math.round((routineDone / routineTotal) * 100));
-        setNormalLeft(normals.length);
+        
+        const newPct = routineTotal === 0 ? 0 : Math.round((routineDone / routineTotal) * 100);
+        const newNormal = normals.length;
+
+        setRoutinePct(newPct);
+        setNormalLeft(newNormal);
+        
+        localStorage.setItem('chronoa_cache_routinePct', newPct.toString());
+        localStorage.setItem('chronoa_cache_normalLeft', newNormal.toString());
       }
       setLoading(false);
     };
