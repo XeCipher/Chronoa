@@ -572,9 +572,9 @@ export default function NotesPage() {
              if (notesTab === 'notes') createNote();
              else setShowCalendar(!showCalendar);
           }}
-          className="lg:hidden fixed bottom-[90px] right-6 z-[100] w-14 h-14 bg-[#c2956e] text-white rounded-full shadow-[0_8px_30px_rgb(194,149,110,0.4)] flex items-center justify-center hover:scale-105 active:scale-95 transition-transform"
+          className="lg:hidden fixed bottom-[90px] right-6 z-[100] w-14 h-14 bg-white/30 dark:bg-black/30 backdrop-blur-lg border-2 border-[#c2956e]/50 dark:border-[#b0855f]/50 text-[#c2956e] dark:text-[#b0855f] rounded-full shadow-lg shadow-black/10 dark:shadow-black/30 flex items-center justify-center hover:scale-105 active:scale-95 transition-all"
         >
-          {notesTab === 'notes' ? <Plus size={24} /> : <CalendarDays size={24} />}
+          {notesTab === 'notes' ? <Plus size={24} strokeWidth={2.5} /> : <CalendarDays size={22} />}
         </button>
       )}
 
