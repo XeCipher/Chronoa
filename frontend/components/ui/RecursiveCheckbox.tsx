@@ -86,30 +86,25 @@ export default function RecursiveCheckbox({
   }, [activeTaskIdWithMenu, task.id, setActiveTaskIdWithMenu]);
 
   useEffect(() => {
-    if (newTaskId === task.id) {
-      // Clear the ID flag immediately to avoid multiple renders
-      setNewTaskId(null);
-
-      // Perform a stable focus execution post-render for standard reliable UX.
-      // Dropping the mobile-keyboard hack guarantees stability.
-      setTimeout(() => {
-        const el = textRef.current;
-        if (el) {
-          el.focus();
-          
-          if (typeof window.getSelection !== "undefined" && typeof document.createRange !== "undefined") {
-            const range = document.createRange();
-            range.selectNodeContents(el);
-            const sel = window.getSelection();
-            if (sel) {
-              sel.removeAllRanges();
-              sel.addRange(range);
-            }
+  if (newTaskId === task.id) {
+    setTimeout(() => {
+      const el = textRef.current;
+      if (el) {
+        el.focus();
+        if (typeof window.getSelection !== "undefined" && typeof document.createRange !== "undefined") {
+          const range = document.createRange();
+          range.selectNodeContents(el);
+          const sel = window.getSelection();
+          if (sel) {
+            sel.removeAllRanges();
+            sel.addRange(range);
           }
         }
-      }, 50);
-    }
-  }, [newTaskId, task.id, setNewTaskId]);
+      }
+      setNewTaskId(null);
+    }, 50);
+  }
+}, [newTaskId, task.id, setNewTaskId]);
 
   useEffect(() => {
     if (textRef.current && document.activeElement !== textRef.current) {

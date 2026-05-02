@@ -292,6 +292,7 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
 
     if (data) {
       setTasks((prev) => prev.map(t => t.id === tempId ? data : t));
+      setNewTaskId(data.id);
     } else {
       setTasks((prev) => prev.filter(t => t.id !== tempId));
     }
