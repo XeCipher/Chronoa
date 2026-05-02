@@ -7,6 +7,8 @@ import { supabase } from "@/lib/supabase";
 import SidebarNav from "@/components/ui/SidebarNav";
 import { useUiStore } from "@/store/uiStore";
 import { useTimerStore } from "@/store/timerStore";
+import ConfirmDialog from "@/components/ui/ConfirmDialog";
+import { Tooltip } from "react-tooltip";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -115,6 +117,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <main id="main-scroll-container" className="flex-1 h-full overflow-y-auto overflow-x-hidden relative min-w-0 pb-[72px] md:pb-0 pt-[max(1rem,env(safe-area-inset-top))] md:pt-0 scroll-smooth">
         {children}
       </main>
+
+      <Tooltip 
+        id="global-tooltip" 
+        className="z-[600] !bg-[#3d3b33] dark:!bg-[#2a2a2a] !text-white !rounded-xl !shadow-xl !font-semibold !text-[11px] !px-3 !py-1.5 !border-none" 
+      />
+      <ConfirmDialog />
     </div>
   );
 }

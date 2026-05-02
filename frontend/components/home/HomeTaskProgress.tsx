@@ -1,7 +1,7 @@
 // frontend/components/home/HomeTaskProgress.tsx
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import { useUiStore } from "@/store/uiStore";
 import { CheckCircle2, ListTodo } from "lucide-react";
@@ -14,8 +14,23 @@ export default function HomeTaskProgress() {
   
   const [isExpanded, setIsExpanded] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
+  const widgetRef = useRef<HTMLDivElement>(null);
   
   const showFull = isExpanded || isHovered;
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent | TouchEvent) => {
+      if (widgetRef.current && !widgetRef.current.contains(e.target as Node)) {
+        setIsExpanded(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("touchstart", handleClickOutside);
+    return () => {
+       document.removeEventListener("mousedown", handleClickOutside);
+       document.removeEventListener("touchstart", handleClickOutside);
+    };
+  }, []);
 
   useEffect(() => {
     if (!showHomeTaskProgress) return;
@@ -71,6 +86,7 @@ export default function HomeTaskProgress() {
   return (
     <div className="fixed md:bottom-10 md:right-10 top-6 left-6 md:top-auto md:left-auto z-40 animate-fade-up">
       <div 
+        ref={widgetRef}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
         onClick={() => setIsExpanded(!isExpanded)}
@@ -80,7 +96,7 @@ export default function HomeTaskProgress() {
       >
         
         {/* ROW 1: Routine */}
-        <div className={`flex items-center transition-all duration-500 ${showFull ? 'gap-4' : 'gap-0'}`}>
+        <div className={`flex items-center transition-all duration-500`}>
           <div className="relative flex items-center justify-center w-10 h-10 md:w-12 md:h-12 shrink-0">
             <svg className="w-10 h-10 md:w-12 md:h-12 transform -rotate-90" viewBox="0 0 36 36">
               <circle cx="18" cy="18" r="16" fill="none" className="stroke-[#e0ddd5] dark:stroke-white/10" strokeWidth="3" />
@@ -88,7 +104,7 @@ export default function HomeTaskProgress() {
             </svg>
             <span className="absolute text-[9px] md:text-[10px] font-bold text-[#3d3b33] dark:text-white">{routinePct}%</span>
           </div>
-          <div className={`flex flex-col justify-center overflow-hidden whitespace-nowrap transition-all duration-500 ${showFull ? 'w-24 opacity-100 pr-2' : 'w-0 opacity-0 pr-0'}`}>
+          <div className={`flex flex-col justify-center overflow-hidden whitespace-nowrap transition-all duration-400 ease-out ${showFull ? 'max-w-[120px] opacity-100 pr-2 ml-4' : 'max-w-0 opacity-0 pr-0 ml-0'}`}>
             <span className="text-[10px] font-bold uppercase tracking-widest text-[#7ca982] dark:text-[#8cbd92] flex items-center gap-1"><CheckCircle2 size={12}/> Routine</span>
             <span className="text-sm font-medium text-[#3d3b33] dark:text-[#f0f0f0] mt-0.5">Daily Progress</span>
           </div>
@@ -98,11 +114,11 @@ export default function HomeTaskProgress() {
         <div className={`bg-[#3d3b33]/10 dark:bg-white/10 transition-all duration-500 ${showFull ? 'w-8 h-px opacity-100' : 'w-0 h-0 opacity-0'}`} />
 
         {/* ROW 2: Tasks */}
-        <div className={`flex items-center transition-all duration-500 ${showFull ? 'gap-4' : 'gap-0'}`}>
+        <div className={`flex items-center transition-all duration-500`}>
           <div className={`w-10 h-10 md:w-12 md:h-12 flex items-center justify-center rounded-full shrink-0 transition-colors duration-500 ${normalLeft >= 1 ? 'bg-[#c2956e] dark:bg-[#b0855f] text-white shadow-md' : 'bg-white/40 dark:bg-black/40 text-[#c2956e] dark:text-[#d1a784]'}`}>
             <span className="text-base md:text-lg font-serif italic">{normalLeft}</span>
           </div>
-          <div className={`flex flex-col justify-center overflow-hidden whitespace-nowrap transition-all duration-500 ${showFull ? 'w-24 opacity-100 pr-2' : 'w-0 opacity-0 pr-0'}`}>
+          <div className={`flex flex-col justify-center overflow-hidden whitespace-nowrap transition-all duration-400 ease-out ${showFull ? 'max-w-[120px] opacity-100 pr-2 ml-4' : 'max-w-0 opacity-0 pr-0 ml-0'}`}>
             <span className={`text-[10px] font-bold uppercase tracking-widest flex items-center gap-1 ${normalLeft >= 1 ? 'text-[#c2956e] dark:text-[#d1a784]' : 'text-[#c2956e] dark:text-[#d1a784]'}`}><ListTodo size={12}/> Tasks</span>
             <span className="text-sm font-medium text-[#3d3b33] dark:text-[#f0f0f0] mt-0.5">Remaining</span>
           </div>

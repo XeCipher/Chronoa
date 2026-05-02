@@ -108,6 +108,7 @@ function EngineCard({ engine, tab }: { engine: EngineInstance, tab: 'timer' | 's
       
       <button 
         onClick={() => store.removeInstance(tab, engine.id)} 
+        data-tooltip-id="global-tooltip" data-tooltip-content="Remove"
         className="absolute top-5 right-6 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity text-gray-400 hover:text-red-500 dark:text-gray-500 dark:hover:text-red-400"
       >
         <Trash2 size={18} />
@@ -119,11 +120,12 @@ function EngineCard({ engine, tab }: { engine: EngineInstance, tab: 'timer' | 's
         </div>
         <div className="flex items-center gap-3">
           {(engine.accumulatedSeconds > 0 || engine.isRunning) && (
-            <button onClick={() => handleStopAndSave()} className="w-12 h-12 flex items-center justify-center bg-white/60 dark:bg-black/60 border border-white/80 dark:border-white/10 text-red-500 rounded-full hover:scale-105 active:scale-95 transition-all shadow-sm hover:bg-white dark:hover:bg-black">
+            <button data-tooltip-id="global-tooltip" data-tooltip-content="Stop & Save" onClick={() => handleStopAndSave()} className="w-12 h-12 flex items-center justify-center bg-white/60 dark:bg-black/60 border border-white/80 dark:border-white/10 text-red-500 rounded-full hover:scale-105 active:scale-95 transition-all shadow-sm hover:bg-white dark:hover:bg-black">
               <Square size={18} fill="currentColor" />
             </button>
           )}
           <button 
+            data-tooltip-id="global-tooltip" data-tooltip-content={engine.isRunning ? "Pause" : "Start"}
             onClick={() => {
               if (engine.isRunning) {
                 store.pause(tab, engine.id);
@@ -200,10 +202,10 @@ export default function ProductivityWidgets({ isVisible }: { isVisible: boolean 
           ))}
         </div>
         <div className="flex items-center gap-2">
-          <button onClick={() => router.push('/sessions')} className={`w-9 h-9 flex items-center justify-center rounded-full backdrop-blur-md hover:bg-white/50 dark:hover:bg-black/50 transition-colors text-[#3d3b33] dark:text-[#a0a0a0] bg-white/30 dark:bg-black/30 border border-white/20 dark:border-white/5 shadow-sm`}>
+          <button data-tooltip-id="global-tooltip" data-tooltip-content="Log Book" onClick={() => router.push('/sessions')} className={`w-9 h-9 flex items-center justify-center rounded-full backdrop-blur-md hover:bg-white/50 dark:hover:bg-black/50 transition-colors text-[#3d3b33] dark:text-[#a0a0a0] bg-white/30 dark:bg-black/30 border border-white/20 dark:border-white/5 shadow-sm`}>
             <History size={15} />
           </button>
-          <button onClick={store.togglePin} className={`w-9 h-9 flex items-center justify-center rounded-full backdrop-blur-md hover:bg-white/50 dark:hover:bg-black/50 transition-colors ${store.isPinned ? 'text-[#c2956e] dark:text-[#d1a784] bg-white/80 dark:bg-black/60 shadow-sm border border-white/30 dark:border-white/10' : 'text-[#3d3b33] dark:text-[#a0a0a0] bg-white/30 dark:bg-black/30 border border-white/20 dark:border-white/5'}`}>
+          <button data-tooltip-id="global-tooltip" data-tooltip-content={store.isPinned ? "Unpin Timer" : "Pin Timer"} onClick={store.togglePin} className={`w-9 h-9 flex items-center justify-center rounded-full backdrop-blur-md hover:bg-white/50 dark:hover:bg-black/50 transition-colors ${store.isPinned ? 'text-[#c2956e] dark:text-[#d1a784] bg-white/80 dark:bg-black/60 shadow-sm border border-white/30 dark:border-white/10' : 'text-[#3d3b33] dark:text-[#a0a0a0] bg-white/30 dark:bg-black/30 border border-white/20 dark:border-white/5'}`}>
             {store.isPinned ? <Pin size={15} /> : <PinOff size={15} />}
           </button>
         </div>

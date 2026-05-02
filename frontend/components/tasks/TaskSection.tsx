@@ -115,12 +115,6 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
   }, [type]);
 
   useEffect(() => {
-    if (!isLoading) {
-      localStorage.setItem(`chronoa_cache_tasks_${type}`, JSON.stringify(tasks));
-    }
-  }, [tasks, type, isLoading]);
-
-  useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (
         isEditMode &&
@@ -215,8 +209,6 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
   };
   if (viewMode === 'focus') gatherVisible(displayTasks);
 
-  // FIX: For routines, calculate progress using the raw tasks array so vanished tasks are still counted.
-  // For normal tasks, we can keep using flattenedVisibleTasks if desired, or tasks array.
   const baseTasksForProgress = type === 'routine' ? tasks.filter(t => t.deleted_at === null) : flattenedVisibleTasks;
   const totalTasksCount = baseTasksForProgress.length;
   const totalCompletedCount = baseTasksForProgress.filter((t) => t.is_completed).length;
@@ -720,7 +712,7 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
               <button 
                 onClick={toggleMobileCollapse}
                 className="md:hidden p-1.5 -ml-1 text-[#b0ad9a] dark:text-[#7a7a7a] active:bg-gray-100 dark:active:bg-[#333] rounded-lg transition-colors"
-                title={isCollapsedMobile ? "Expand" : "Collapse"}
+                data-tooltip-id="global-tooltip" data-tooltip-content={isCollapsedMobile ? "Expand" : "Collapse"}
               >
                 {isCollapsedMobile ? <ChevronDown size={20} /> : <ChevronUp size={20} />}
               </button>

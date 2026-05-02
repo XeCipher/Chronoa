@@ -6,6 +6,15 @@ type TasksView = 'focus' | 'archive' | 'trash';
 type NotesTab = 'notes' | 'journal' | 'trash';
 type SessionsFilter = 'all' | 'timer' | 'stopwatch';
 
+export type ConfirmDialogState = {
+  title: string;
+  message: string;
+  onConfirm: () => void;
+  isDestructive?: boolean;
+  confirmText?: string;
+  cancelText?: string;
+};
+
 interface UiState {
   taskArchiveDelay: number;
   routineResetHour: number;
@@ -30,6 +39,8 @@ interface UiState {
   
   mobileRoutineCollapsed: boolean;
   mobileTasksCollapsed: boolean;
+
+  confirmDialog: ConfirmDialogState | null;
   
   setTaskArchiveDelay: (delay: number) => void;
   setRoutineResetHour: (hour: number) => void;
@@ -54,6 +65,9 @@ interface UiState {
   
   setMobileRoutineCollapsed: (val: boolean) => void;
   setMobileTasksCollapsed: (val: boolean) => void;
+
+  showConfirmDialog: (options: ConfirmDialogState) => void;
+  closeConfirmDialog: () => void;
 }
 
 export const useUiStore = create<UiState>()(
@@ -81,6 +95,8 @@ export const useUiStore = create<UiState>()(
       archiveSort: 'newest',
       mobileRoutineCollapsed: false,
       mobileTasksCollapsed: false,
+      
+      confirmDialog: null,
 
       setTaskArchiveDelay: (delay) => set({ taskArchiveDelay: delay }),
       setRoutineResetHour: (hour) => set({ routineResetHour: hour }),
@@ -104,11 +120,14 @@ export const useUiStore = create<UiState>()(
       setArchiveSort: (archiveSort) => set({ archiveSort }),
       setMobileRoutineCollapsed: (val) => set({ mobileRoutineCollapsed: val }),
       setMobileTasksCollapsed: (val) => set({ mobileTasksCollapsed: val }),
+
+      showConfirmDialog: (options) => set({ confirmDialog: options }),
+      closeConfirmDialog: () => set({ confirmDialog: null }),
     }),
     { 
       name: 'chronoa-settings',
       partialize: (state) => Object.fromEntries(
-        Object.entries(state).filter(([key]) => !['activeTaskIdWithMenu', 'mobileNoteOpen'].includes(key))
+        Object.entries(state).filter(([key]) => !['activeTaskIdWithMenu', 'mobileNoteOpen', 'confirmDialog'].includes(key))
       ),
     }
   )

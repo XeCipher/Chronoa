@@ -162,7 +162,8 @@ export default function DistractionFreeEditor({
         e.preventDefault();
         onClick();
       }}
-      title={title}
+      data-tooltip-id="global-tooltip"
+      data-tooltip-content={title}
       className={`flex items-center justify-center w-7 h-7 rounded-lg transition-all duration-150 shrink-0 ${
         isActive
           ? "bg-[#c2956e] dark:bg-[#b0855f] text-white shadow-sm"

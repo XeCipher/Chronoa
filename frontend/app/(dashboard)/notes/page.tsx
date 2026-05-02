@@ -45,7 +45,7 @@ const syncOfflineData = async () => {
 };
 
 export default function NotesPage() {
-  const { notesTab, setNotesTab, setMobileNoteOpen } = useUiStore();
+  const { notesTab, setNotesTab, setMobileNoteOpen, showConfirmDialog } = useUiStore();
   
   const [notes, setNotes] = useState<any[]>([]);
   const [journals, setJournals] = useState<any[]>([]);
@@ -263,32 +263,42 @@ export default function NotesPage() {
     setIsListVisible(true);
   };
 
-  const permanentlyDelete = async (item: any) => {
-    if (!confirm("Delete permanently?")) return;
-    const id = item.isJournal ? item.entry_date : item.id;
-    setTrash(prev => prev.filter(t => (t.isJournal ? t.entry_date : t.id) !== id));
-    
-    if (navigator.onLine) {
-       if (item.isJournal) await supabase.from('journal_entries').delete().eq('entry_date', id);
-       else await supabase.from('notes').delete().eq('id', id);
-    }
-    setSelectedId(null);
-    setIsListVisible(true);
+  const permanentlyDelete = (item: any) => {
+    showConfirmDialog({
+      title: "Permanent Deletion",
+      message: "Are you sure you want to delete this permanently? It cannot be recovered.",
+      isDestructive: true,
+      onConfirm: async () => {
+        const id = item.isJournal ? item.entry_date : item.id;
+        setTrash(prev => prev.filter(t => (t.isJournal ? t.entry_date : t.id) !== id));
+        
+        if (navigator.onLine) {
+           if (item.isJournal) await supabase.from('journal_entries').delete().eq('entry_date', id);
+           else await supabase.from('notes').delete().eq('id', id);
+        }
+        setSelectedId(null);
+        setIsListVisible(true);
+      }
+    });
   };
 
-  const emptyTrash = async () => {
-    if (!confirm(`Permanently delete all items in ${notesTab} trash?`)) return;
-    
-    if (notesTab === 'journal') {
-      setTrash(prev => prev.filter(t => !t.isJournal));
-      if (navigator.onLine) await supabase.from('journal_entries').delete().not('deleted_at', 'is', null);
-    } else {
-      setTrash(prev => prev.filter(t => t.isJournal));
-      if (navigator.onLine) await supabase.from('notes').delete().not('deleted_at', 'is', null);
-    }
-    
-    setSelectedId(null);
-    setIsListVisible(true);
+  const emptyTrash = () => {
+    showConfirmDialog({
+      title: "Empty Trash",
+      message: `Permanently delete all items in your ${notesTab} trash? This cannot be undone.`,
+      isDestructive: true,
+      onConfirm: async () => {
+        if (notesTab === 'journal') {
+          setTrash(prev => prev.filter(t => !t.isJournal));
+          if (navigator.onLine) await supabase.from('journal_entries').delete().not('deleted_at', 'is', null);
+        } else {
+          setTrash(prev => prev.filter(t => t.isJournal));
+          if (navigator.onLine) await supabase.from('notes').delete().not('deleted_at', 'is', null);
+        }
+        setSelectedId(null);
+        setIsListVisible(true);
+      }
+    });
   };
 
   const formatDateLabel = (dateStr: string) => {
@@ -423,20 +433,21 @@ export default function NotesPage() {
             <div className="flex items-center gap-2 relative">
               <button 
                 onClick={() => { setIsTrashOpen(!isTrashOpen); setSelectedId(null); setAutoSelectPending(true); setShowCalendar(false); }} 
+                data-tooltip-id="global-tooltip" data-tooltip-content={isTrashOpen ? "Exit Trash" : "Open Trash"}
                 className={`w-8 h-8 flex items-center justify-center rounded-full transition-all ${isTrashOpen ? 'bg-[#ebe8e2] dark:bg-[#2a2a2a] text-[#888] hover:text-[#3d3b33] dark:hover:text-white' : 'text-[#888] hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/10'}`}
               >
                 {isTrashOpen ? <X size={16} /> : <Trash size={16} />}
               </button>
               
               {!isTrashOpen && notesTab === 'notes' && (
-                <button onClick={createNote} className="hidden lg:flex w-8 h-8 items-center justify-center bg-[#3d3b33] dark:bg-[#f0f0f0] text-white dark:text-[#121212] rounded-full hover:scale-105 transition-all shadow-lg">
+                <button onClick={createNote} data-tooltip-id="global-tooltip" data-tooltip-content="New Note" className="hidden lg:flex w-8 h-8 items-center justify-center bg-[#3d3b33] dark:bg-[#f0f0f0] text-white dark:text-[#121212] rounded-full hover:scale-105 transition-all shadow-lg">
                   <Plus size={18} />
                 </button>
               )}
               
               {!isTrashOpen && notesTab === 'journal' && (
                 <>
-                  <button onClick={() => setShowCalendar(!showCalendar)} className="desktop-cal-toggle hidden lg:flex w-8 h-8 items-center justify-center bg-[#3d3b33] dark:bg-[#f0f0f0] text-white dark:text-[#121212] rounded-full hover:scale-105 transition-all shadow-lg">
+                  <button onClick={() => setShowCalendar(!showCalendar)} data-tooltip-id="global-tooltip" data-tooltip-content="Calendar" className="desktop-cal-toggle hidden lg:flex w-8 h-8 items-center justify-center bg-[#3d3b33] dark:bg-[#f0f0f0] text-white dark:text-[#121212] rounded-full hover:scale-105 transition-all shadow-lg">
                     {showCalendar ? <X size={16} /> : <CalendarDays size={16} />}
                   </button>
                   {showCalendar && (
@@ -485,32 +496,35 @@ export default function NotesPage() {
               <span className="text-[10px] font-bold uppercase tracking-widest">Opening Vault...</span>
             </div>
           ) : filteredItems.length > 0 ? (
-            filteredItems.map(item => {
-              const isJournal = isTrashOpen ? item.isJournal : notesTab === 'journal';
-              const id = isJournal ? item.entry_date : item.id;
-              const isSelected = selectedId === id;
-              const title = isJournal ? formatDateLabel(item.entry_date) : (item.title || 'Untitled');
-              const daysLeft = isTrashOpen ? Math.ceil(30 - (Date.now() - new Date(item.deleted_at).getTime()) / (1000 * 60 * 60 * 24)) : 0;
+            <>
+              {filteredItems.map(item => {
+                const isJournal = isTrashOpen ? item.isJournal : notesTab === 'journal';
+                const id = isJournal ? item.entry_date : item.id;
+                const isSelected = selectedId === id;
+                const title = isJournal ? formatDateLabel(item.entry_date) : (item.title || 'Untitled');
+                const daysLeft = isTrashOpen ? Math.ceil(30 - (Date.now() - new Date(item.deleted_at).getTime()) / (1000 * 60 * 60 * 24)) : 0;
 
-              return (
-                <button key={id} onClick={() => handleSelectItem(id)} 
-                  className={`w-full text-left p-4 rounded-2xl transition-all duration-200 border relative group overflow-hidden ${
-                    isSelected 
-                    ? 'bg-white dark:bg-[#1e1e1e] border-[#e0ddd5] dark:border-[#222] lg:border-[#c2956e]/40 lg:dark:border-[#b0855f]/50 shadow-sm lg:shadow-md lg:translate-x-1' 
-                    : 'bg-[#fdfbf7] dark:bg-[#161616] border-[#f0ede8] dark:border-[#222] hover:border-[#c2956e]/20 dark:hover:border-[#b0855f]/20 hover:shadow-sm'
-                  }`}>
-                  {isSelected && <div className="hidden lg:block absolute left-0 top-0 bottom-0 w-1 bg-[#c2956e]" />}
-                  <div className="flex justify-between items-baseline mb-1 gap-3">
-                    <span className={`font-semibold text-[14px] truncate ${isSelected ? 'text-[#c2956e] dark:text-[#d1a784]' : 'text-[#3d3b33] dark:text-[#f0f0f0]'}`}>{title}</span>
-                    <span className="text-[9px] font-bold text-[#b0ad9a] dark:text-[#555] uppercase shrink-0">{formatDateLabel(item.updated_at || item.entry_date)}</span>
-                  </div>
-                  <div className="text-[11px] leading-relaxed line-clamp-2 text-[#888] dark:text-[#888]">
-                    {isTrashOpen && <span className="text-red-500 font-bold block mb-1 text-[9px] uppercase tracking-tighter">Deletes in {daysLeft} days</span>}
-                    <Snippet html={item.content} query={searchQuery} />
-                  </div>
-                </button>
-              );
-            })
+                return (
+                  <button key={id} onClick={() => handleSelectItem(id)} 
+                    className={`w-full text-left p-4 rounded-2xl transition-all duration-200 border relative group overflow-hidden ${
+                      isSelected 
+                      ? 'bg-white dark:bg-[#1e1e1e] border-[#e0ddd5] dark:border-[#222] lg:border-[#c2956e]/40 lg:dark:border-[#b0855f]/50 shadow-sm lg:shadow-md lg:translate-x-1' 
+                      : 'bg-[#fdfbf7] dark:bg-[#161616] border-[#f0ede8] dark:border-[#222] hover:border-[#c2956e]/20 dark:hover:border-[#b0855f]/20 hover:shadow-sm'
+                    }`}>
+                    {isSelected && <div className="hidden lg:block absolute left-0 top-0 bottom-0 w-1 bg-[#c2956e]" />}
+                    <div className="flex justify-between items-baseline mb-1 gap-3">
+                      <span className={`font-semibold text-[14px] truncate ${isSelected ? 'text-[#c2956e] dark:text-[#d1a784]' : 'text-[#3d3b33] dark:text-[#f0f0f0]'}`}>{title}</span>
+                      <span className="text-[9px] font-bold text-[#b0ad9a] dark:text-[#555] uppercase shrink-0">{formatDateLabel(item.updated_at || item.entry_date)}</span>
+                    </div>
+                    <div className="text-[11px] leading-relaxed line-clamp-2 text-[#888] dark:text-[#888]">
+                      {isTrashOpen && <span className="text-red-500 font-bold block mb-1 text-[9px] uppercase tracking-tighter">Deletes in {daysLeft} days</span>}
+                      <Snippet html={item.content} query={searchQuery} />
+                    </div>
+                  </button>
+                );
+              })}
+              <div className="h-28 lg:h-0 w-full shrink-0 pointer-events-none" />
+            </>
           ) : (
             <div className="py-20 text-center text-[#b0ad9a] dark:text-[#555] italic text-xs">No records found</div>
           )}
@@ -529,7 +543,7 @@ export default function NotesPage() {
               </button>
               <div className="flex items-center gap-2 ml-auto">
                 {!isTrashOpen ? (
-                  <button onClick={() => moveToTrash(selectedItem.isJournal || notesTab === 'journal' ? selectedItem.entry_date : selectedItem.id)} className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 rounded-xl transition-all">
+                  <button data-tooltip-id="global-tooltip" data-tooltip-content="Move to Trash" onClick={() => moveToTrash(selectedItem.isJournal || notesTab === 'journal' ? selectedItem.entry_date : selectedItem.id)} className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 rounded-xl transition-all">
                     <Trash2 size={18} />
                   </button>
                 ) : (
@@ -537,7 +551,7 @@ export default function NotesPage() {
                     <button onClick={() => restoreNote(selectedItem)} className="flex items-center gap-2 px-4 py-2 bg-[#7ca982]/10 text-[#7ca982] rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-[#7ca982] hover:text-white transition-all">
                       <RotateCcw size={14} /> Restore
                     </button>
-                    <button onClick={() => permanentlyDelete(selectedItem)} className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 rounded-xl transition-all">
+                    <button data-tooltip-id="global-tooltip" data-tooltip-content="Delete Permanently" onClick={() => permanentlyDelete(selectedItem)} className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 rounded-xl transition-all">
                       <Trash size={18} />
                     </button>
                   </div>
@@ -575,6 +589,7 @@ export default function NotesPage() {
                   />
                 </div>
               </div>
+              <div className="h-28 lg:h-0 w-full shrink-0 pointer-events-none" />
             </div>
           </div>
         ) : (

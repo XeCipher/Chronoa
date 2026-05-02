@@ -9,7 +9,7 @@ import { useUiStore } from "@/store/uiStore";
 import { supabase } from "@/lib/supabase";
 
 export default function TasksPage() {
-  const { tasksView, setTasksView, archiveLayout, setArchiveLayout, archiveSort, setArchiveSort } = useUiStore();
+  const { tasksView, setTasksView, archiveLayout, setArchiveLayout, archiveSort, setArchiveSort, showConfirmDialog } = useUiStore();
   const [isTrashOpen, setIsTrashOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -18,10 +18,16 @@ export default function TasksPage() {
     setIsTrashOpen(false);
   };
 
-  const handleEmptyTrash = async () => {
-    if (!confirm("Permanently delete all items in trash?")) return;
-    await supabase.from('tasks').delete().not('deleted_at', 'is', null);
-    window.location.reload(); 
+  const handleEmptyTrash = () => {
+    showConfirmDialog({
+      title: "Empty Trash",
+      message: "Are you sure you want to permanently delete all tasks in the trash? This cannot be undone.",
+      isDestructive: true,
+      onConfirm: async () => {
+        await supabase.from('tasks').delete().not('deleted_at', 'is', null);
+        window.location.reload(); 
+      }
+    });
   };
 
   const handleFabClick = () => {
@@ -32,9 +38,9 @@ export default function TasksPage() {
 
   return (
     <div className="w-full min-h-full bg-[#f7f5f0] dark:bg-[#121212] p-4 md:p-12 lg:p-16 selection:bg-[#c2956e]/30 dark:selection:bg-[#b0855f]/40 relative">
-      <div className="max-w-[1600px] mx-auto w-full">
+      <div className="max-w-[1600px] mx-auto w-full flex flex-col h-full">
         
-        <header className="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-6">
+        <header className="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-6 shrink-0">
           <div className="flex flex-col gap-2">
             <p className="text-[10px] text-[#c2956e] dark:text-[#d1a784] tracking-[0.3em] uppercase font-bold">
               {isTrashOpen ? 'Recycle Bin' : 'Sanctuary'}
@@ -68,6 +74,7 @@ export default function TasksPage() {
                 
                 <button 
                   onClick={() => setIsTrashOpen(true)}
+                  data-tooltip-id="global-tooltip" data-tooltip-content="Open Trash"
                   className="p-3 text-[#b0ad9a] hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/10 rounded-2xl transition-all border border-transparent hover:border-red-100 dark:hover:border-red-900/30"
                 >
                   <Trash2 size={20} />
@@ -93,7 +100,7 @@ export default function TasksPage() {
         </header>
 
         {/* Global Toolbar */}
-        <div className="flex flex-col lg:flex-row items-center gap-4 mb-10 animate-fade-up">
+        <div className="flex flex-col lg:flex-row items-center gap-4 mb-10 animate-fade-up shrink-0">
            <div className="relative flex-1 w-full max-w-xl">
              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-[#b0ad9a]" size={16} />
              <input 
@@ -107,8 +114,8 @@ export default function TasksPage() {
            {currentViewMode === 'archive' && (
              <div className="flex items-center gap-3 w-full lg:w-auto overflow-x-auto no-scrollbar">
                 <div className="flex bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] p-1 rounded-2xl shadow-sm shrink-0">
-                  <button onClick={() => setArchiveLayout('nested')} className={`p-2.5 rounded-xl transition-all ${archiveLayout === 'nested' ? 'bg-[#c2956e] text-white shadow-md' : 'text-[#888]'}`} title="Nested View"><LayoutGrid size={18} /></button>
-                  <button onClick={() => setArchiveLayout('list')} className={`p-2.5 rounded-xl transition-all ${archiveLayout === 'list' ? 'bg-[#c2956e] text-white shadow-md' : 'text-[#888]'}`} title="Flat List"><List size={18} /></button>
+                  <button onClick={() => setArchiveLayout('nested')} className={`p-2.5 rounded-xl transition-all ${archiveLayout === 'nested' ? 'bg-[#c2956e] text-white shadow-md' : 'text-[#888]'}`} data-tooltip-id="global-tooltip" data-tooltip-content="Nested View"><LayoutGrid size={18} /></button>
+                  <button onClick={() => setArchiveLayout('list')} className={`p-2.5 rounded-xl transition-all ${archiveLayout === 'list' ? 'bg-[#c2956e] text-white shadow-md' : 'text-[#888]'}`} data-tooltip-id="global-tooltip" data-tooltip-content="Flat List"><List size={18} /></button>
                 </div>
                 
                 <div className="flex bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] p-1 rounded-2xl shadow-sm shrink-0">
@@ -129,6 +136,9 @@ export default function TasksPage() {
             <TaskSection type="normal" title={currentViewMode === 'trash' ? 'Task Trash' : (currentViewMode === 'archive' ? 'Task Archive' : "Tasks & Ideas")} viewMode={currentViewMode} searchQuery={searchQuery} />
           </div>
         </div>
+
+        {/* Dynamic spacer for mobile FABs to prevent overlaps */}
+        <div className="h-28 lg:h-0 w-full shrink-0 pointer-events-none" />
 
       </div>
 

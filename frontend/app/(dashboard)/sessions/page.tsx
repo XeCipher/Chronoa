@@ -9,7 +9,7 @@ import { useRouter } from "next/navigation";
 
 export default function SessionsPage() {
   const router = useRouter();
-  const { sessionsFilter, setSessionsFilter } = useUiStore();
+  const { sessionsFilter, setSessionsFilter, showConfirmDialog } = useUiStore();
   const [sessions, setSessions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -44,17 +44,29 @@ export default function SessionsPage() {
     }
   }, [sessions, loading]);
 
-  const handleDelete = async (id: string) => {
-    if (!confirm("Delete this session forever?")) return;
-    setSessions(prev => prev.filter(s => s.id !== id));
-    await supabase.from('time_sessions').delete().eq('id', id);
+  const handleDelete = (id: string) => {
+    showConfirmDialog({
+      title: "Delete Session",
+      message: "Delete this time log forever? This cannot be undone.",
+      isDestructive: true,
+      onConfirm: async () => {
+        setSessions(prev => prev.filter(s => s.id !== id));
+        await supabase.from('time_sessions').delete().eq('id', id);
+      }
+    });
   };
 
-  const handleDeleteAll = async () => {
-    if (!confirm("Are you sure you want to completely wipe your time tracking history? This cannot be undone.")) return;
-    const { data: { user } } = await supabase.auth.getUser();
-    setSessions([]);
-    await supabase.from('time_sessions').delete().eq('user_id', user?.id);
+  const handleDeleteAll = () => {
+    showConfirmDialog({
+      title: "Clear History",
+      message: "Are you sure you want to completely wipe your time tracking history? This cannot be undone.",
+      isDestructive: true,
+      onConfirm: async () => {
+        const { data: { user } } = await supabase.auth.getUser();
+        setSessions([]);
+        await supabase.from('time_sessions').delete().eq('user_id', user?.id);
+      }
+    });
   };
 
   const handleSaveEdit = async (id: string) => {
@@ -145,8 +157,8 @@ export default function SessionsPage() {
               <div className="flex items-center justify-between md:justify-end gap-6 w-full md:w-auto mt-2 md:mt-0">
                 <span className="text-xl font-serif italic text-[#3d3b33] dark:text-[#f0f0f0]">{formatDuration(session.duration_seconds)}</span>
                 <div className="opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 bg-[#f7f5f0] dark:bg-[#121212] p-1 rounded-lg border border-[#e0ddd5] dark:border-[#444]">
-                  <button onClick={() => {setEditingId(session.id); setEditTitle(session.title || '')}} title="Edit" className="p-1.5 text-[#b0ad9a] dark:text-[#7a7a7a] hover:text-[#c2956e] dark:hover:text-[#b0855f] rounded-md hover:bg-white dark:hover:bg-[#2a2a2a] transition-colors"><Edit2 size={16} /></button>
-                  <button onClick={() => handleDelete(session.id)} title="Delete Forever" className="p-1.5 text-[#b0ad9a] dark:text-[#7a7a7a] hover:text-red-500 dark:hover:text-red-400 rounded-md hover:bg-white dark:hover:bg-[#2a2a2a] transition-colors"><Trash2 size={16} /></button>
+                  <button onClick={() => {setEditingId(session.id); setEditTitle(session.title || '')}} data-tooltip-id="global-tooltip" data-tooltip-content="Edit Title" className="p-1.5 text-[#b0ad9a] dark:text-[#7a7a7a] hover:text-[#c2956e] dark:hover:text-[#b0855f] rounded-md hover:bg-white dark:hover:bg-[#2a2a2a] transition-colors"><Edit2 size={16} /></button>
+                  <button onClick={() => handleDelete(session.id)} data-tooltip-id="global-tooltip" data-tooltip-content="Delete Log" className="p-1.5 text-[#b0ad9a] dark:text-[#7a7a7a] hover:text-red-500 dark:hover:text-red-400 rounded-md hover:bg-white dark:hover:bg-[#2a2a2a] transition-colors"><Trash2 size={16} /></button>
                 </div>
               </div>
             </div>

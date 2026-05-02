@@ -81,7 +81,7 @@ export default function TaskHistory({ forceTrashView = false }: { forceTrashView
   if (loading) return <div className="animate-pulse h-32 bg-white/50 dark:bg-[#1a1a1a]/50 rounded-2xl border border-[#e0ddd5] dark:border-[#333]"></div>;
 
   return (
-    <div className="space-y-12 animate-fade-up pb-20">
+    <div className="space-y-12 animate-fade-up pb-32 lg:pb-20">
       <section>
         <div className="flex items-center gap-2 mb-6 text-[#7ca982] dark:text-[#8cbd92]">
           <Calendar size={20} />
@@ -94,8 +94,8 @@ export default function TaskHistory({ forceTrashView = false }: { forceTrashView
             <div key={task.id} className="bg-white dark:bg-[#1e1e1e] border border-[#e0ddd5] dark:border-[#333] px-5 py-3.5 rounded-[1rem] flex justify-between items-center group hover:border-[#7ca982]/50 dark:hover:border-[#6a9a70]/50 transition-all shadow-sm">
               <span className="text-[#3d3b33] dark:text-[#e0e0e0] font-medium text-[15px]">{getBreadcrumbPath(task)}</span>
               <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 bg-[#f7f5f0] dark:bg-[#121212] p-1 rounded-lg border border-[#e0ddd5] dark:border-[#444]">
-                <button onClick={() => handleRestore(task)} title="Restore" className="p-1.5 hover:bg-white dark:hover:bg-[#2a2a2a] rounded-md text-gray-400 dark:text-[#888] hover:text-[#7ca982] transition-colors"><RotateCcw size={16} strokeWidth={2.5} /></button>
-                <button onClick={() => handleDelete(task.id)} title="Delete Forever" className="p-1.5 hover:bg-white dark:hover:bg-[#2a2a2a] rounded-md text-gray-400 dark:text-[#888] hover:text-red-500 transition-colors"><Trash2 size={16} strokeWidth={2} /></button>
+                <button onClick={() => handleRestore(task)} data-tooltip-id="global-tooltip" data-tooltip-content="Restore" className="p-1.5 hover:bg-white dark:hover:bg-[#2a2a2a] rounded-md text-gray-400 dark:text-[#888] hover:text-[#7ca982] transition-colors"><RotateCcw size={16} strokeWidth={2.5} /></button>
+                <button onClick={() => handleDelete(task.id)} data-tooltip-id="global-tooltip" data-tooltip-content="Delete Forever" className="p-1.5 hover:bg-white dark:hover:bg-[#2a2a2a] rounded-md text-gray-400 dark:text-[#888] hover:text-red-500 transition-colors"><Trash2 size={16} strokeWidth={2} /></button>
               </div>
             </div>
           )) : <p className="text-sm text-[#b0ad9a] dark:text-[#7a7a7a] italic px-2">Clear vault.</p>}
@@ -119,8 +119,8 @@ export default function TaskHistory({ forceTrashView = false }: { forceTrashView
                 </span>
               </div>
               <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 bg-[#f7f5f0] dark:bg-[#121212] p-1 rounded-lg border border-[#e0ddd5] dark:border-[#444]">
-                <button onClick={() => handleRestore(task)} title="Restore" className="p-1.5 hover:bg-white dark:hover:bg-[#2a2a2a] rounded-md text-gray-400 dark:text-[#888] hover:text-[#c2956e] transition-colors"><RotateCcw size={16} strokeWidth={2.5} /></button>
-                <button onClick={() => handleDelete(task.id)} title="Delete Forever" className="p-1.5 hover:bg-white dark:hover:bg-[#2a2a2a] rounded-md text-gray-400 dark:text-[#888] hover:text-red-500 transition-colors"><Trash2 size={16} strokeWidth={2} /></button>
+                <button onClick={() => handleRestore(task)} data-tooltip-id="global-tooltip" data-tooltip-content="Restore" className="p-1.5 hover:bg-white dark:hover:bg-[#2a2a2a] rounded-md text-gray-400 dark:text-[#888] hover:text-[#c2956e] transition-colors"><RotateCcw size={16} strokeWidth={2.5} /></button>
+                <button onClick={() => handleDelete(task.id)} data-tooltip-id="global-tooltip" data-tooltip-content="Delete Forever" className="p-1.5 hover:bg-white dark:hover:bg-[#2a2a2a] rounded-md text-gray-400 dark:text-[#888] hover:text-red-500 transition-colors"><Trash2 size={16} strokeWidth={2} /></button>
               </div>
             </div>
           )) : <p className="text-sm text-[#b0ad9a] dark:text-[#7a7a7a] italic px-2">Clear vault.</p>}

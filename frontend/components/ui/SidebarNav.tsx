@@ -116,10 +116,10 @@ export default function SidebarNav() {
 
         <button
           onClick={toggleSidebarPin}
+          data-tooltip-id="global-tooltip" data-tooltip-content={isSidebarPinned ? "Unpin Sidebar" : "Pin Sidebar"}
           className={`hidden md:block absolute top-20 right-0 translate-x-1/2 z-50 p-2 bg-white dark:bg-[#1e1e1e] border border-[#e0ddd5] dark:border-[#333] rounded-full shadow-lg text-[#888] dark:text-[#a0a0a0] hover:text-[#c2956e] dark:hover:text-[#d1a784] transition-all duration-500 ease-in-out
             ${isHiddenMode ? 'opacity-0 scale-0 pointer-events-none' : 'opacity-100 scale-100'}
           `}
-          title={isSidebarPinned ? "Unpin Sidebar" : "Pin Sidebar"}
         >
           <PanelLeftClose size={16} className={`transition-transform duration-300 ${isSidebarPinned ? '' : 'rotate-180'}`} />
         </button>

@@ -1,7 +1,7 @@
 // frontend/components/home/WeatherWidget.tsx
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import { Cloud, Sun, Moon, CloudSun, CloudMoon, CloudRain, CloudDrizzle, Snowflake, CloudLightning, Wind, MapPin, RefreshCw } from "lucide-react";
 
@@ -10,6 +10,21 @@ export default function WeatherWidget() {
   const [city, setCity] = useState("");
   const [loading, setLoading] = useState(true);
   const [isToggled, setIsToggled] = useState(false);
+  const widgetRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent | TouchEvent) => {
+      if (widgetRef.current && !widgetRef.current.contains(e.target as Node)) {
+        setIsToggled(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("touchstart", handleClickOutside);
+    return () => {
+       document.removeEventListener("mousedown", handleClickOutside);
+       document.removeEventListener("touchstart", handleClickOutside);
+    };
+  }, []);
 
   const fetchWeather = async () => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -100,6 +115,7 @@ export default function WeatherWidget() {
 
   return (
     <div 
+      ref={widgetRef}
       onClick={() => setIsToggled(!isToggled)}
       className={`
         group flex items-center bg-white/10 dark:bg-black/20 hover:bg-white/30 dark:hover:bg-black/40 backdrop-blur-md border border-white/20 dark:border-white/10 shadow-sm rounded-full p-1.5 cursor-pointer transition-all duration-500 ease-out animate-fade-up
@@ -115,10 +131,10 @@ export default function WeatherWidget() {
       </span>
 
       <div className={`
-        grid transition-all duration-500 ease-out 
-        ${isToggled ? 'grid-cols-[1fr] opacity-100 ml-3' : 'grid-cols-[0fr] opacity-0 group-hover:grid-cols-[1fr] group-hover:opacity-100 group-hover:ml-3'}
+        flex overflow-hidden transition-all duration-400 ease-out 
+        ${isToggled ? 'max-w-[150px] opacity-100 ml-3' : 'max-w-0 opacity-0 group-hover:max-w-[150px] group-hover:opacity-100 group-hover:ml-3'}
       `}>
-        <div className="overflow-hidden whitespace-nowrap flex flex-col justify-center border-l border-[#3d3b33]/15 dark:border-white/15 pl-3 transition-colors">
+        <div className="whitespace-nowrap flex flex-col justify-center border-l border-[#3d3b33]/15 dark:border-white/15 pl-3 transition-colors">
           <span className="text-[11px] font-semibold text-[#3d3b33] dark:text-white leading-tight tracking-wide transition-colors">
             {details.text}
           </span>

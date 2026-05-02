@@ -26,7 +26,8 @@ export default function SettingsPage() {
     moveCompletedToBottom, setMoveCompletedToBottom,
     keepParentTaskAlive, setKeepParentTaskAlive,
     addTaskAtTop, setAddTaskAtTop,
-    showHomeTaskProgress, setShowHomeTaskProgress
+    showHomeTaskProgress, setShowHomeTaskProgress,
+    showConfirmDialog
   } = useUiStore();
   
   const [calendars, setCalendars] = useState<CalendarLink[]>([]);
@@ -140,16 +141,22 @@ export default function SettingsPage() {
     router.push("/login");
   };
 
-  const handleDeleteAccount = async () => {
-    if (!confirm("Are you absolutely sure? This action is irreversible.")) return;
-    const { data: { user } } = await supabase.auth.getUser();
-    if (user) {
-        try {
-            await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/delete-account?user_id=${user.id}`, { method: 'DELETE' });
-            await supabase.auth.signOut();
-            router.push("/login");
-        } catch(e) { console.error(e); }
-    }
+  const handleDeleteAccount = () => {
+    showConfirmDialog({
+      title: "Delete Account",
+      message: "Are you absolutely sure you want to delete your entire Chronoa sanctuary? This action is completely irreversible.",
+      isDestructive: true,
+      onConfirm: async () => {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+            try {
+                await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/delete-account?user_id=${user.id}`, { method: 'DELETE' });
+                await supabase.auth.signOut();
+                router.push("/login");
+            } catch(e) { console.error(e); }
+        }
+      }
+    });
   };
 
   const modKey = os === 'mac' ? '⌥' : 'Alt';
@@ -348,7 +355,7 @@ export default function SettingsPage() {
                 <input type="text" placeholder="Search City..." value={cityInput} onChange={(e) => setCityInput(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleLocationSearch()} spellCheck={false} className="w-full bg-[#f7f5f0] dark:bg-[#222] text-[#3d3b33] dark:text-white border border-[#e0ddd5] rounded-2xl pl-12 pr-4 py-4 outline-none focus:border-[#c2956e] transition-all" />
               </div>
               <div className="flex gap-2">
-                <button onClick={handleAutoDetect} disabled={isSearching} title="Auto Detect Location" className="px-6 bg-[#f7f5f0] dark:bg-[#222] text-[#3d3b33] dark:text-white border border-[#e0ddd5] dark:border-[#333] rounded-2xl flex items-center justify-center hover:bg-[#ebe8e2] transition-all disabled:opacity-50"><Navigation size={18} /></button>
+                <button onClick={handleAutoDetect} disabled={isSearching} data-tooltip-id="global-tooltip" data-tooltip-content="Auto Detect Location" className="px-6 bg-[#f7f5f0] dark:bg-[#222] text-[#3d3b33] dark:text-white border border-[#e0ddd5] dark:border-[#333] rounded-2xl flex items-center justify-center hover:bg-[#ebe8e2] transition-all disabled:opacity-50"><Navigation size={18} /></button>
                 <button onClick={handleLocationSearch} disabled={isSearching} className="flex-1 px-8 py-4 md:py-0 bg-[#3d3b33] dark:bg-[#f0f0f0] text-white dark:text-[#1a1a1a] rounded-2xl text-[10px] font-bold uppercase tracking-[0.2em] hover:bg-black transition-all disabled:opacity-50">{isSearching ? "Searching..." : "Set Location"}</button>
               </div>
             </div>

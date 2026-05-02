@@ -128,6 +128,18 @@ export default function ProductivityChart({ dailyMap }: { dailyMap: Record<strin
     return null;
   };
 
+  const CustomXAxisTick = ({ x, y, payload }: any) => {
+    const [weekday, ...dateParts] = payload.value.split(' ');
+    const date = dateParts.join(' ');
+    
+    return (
+      <g transform={`translate(${x},${y})`}>
+        <text x={0} y={0} dy={14} textAnchor="middle" fill={isDark ? '#7a7a7a' : '#b0ad9a'} fontSize={10} fontWeight={700} style={{ textTransform: 'uppercase', letterSpacing: '0.05em' }}>{weekday}</text>
+        <text x={0} y={0} dy={28} textAnchor="middle" fill={isDark ? '#f0f0f0' : '#3d3b33'} fontSize={11} fontWeight={600}>{date}</text>
+      </g>
+    );
+  };
+
   const renderCalendar = () => {
     const year = calMonth.getFullYear();
     const month = calMonth.getMonth();
@@ -204,7 +216,7 @@ export default function ProductivityChart({ dailyMap }: { dailyMap: Record<strin
 
       <div className="flex-1 w-full min-h-0">
         <ResponsiveContainer width="100%" height="100%">
-          <ComposedChart data={chartData} margin={{ top: 10, right: 0, left: -20, bottom: 0 }}>
+          <ComposedChart data={chartData} margin={{ top: 10, right: 0, left: -20, bottom: 20 }}>
             <defs>
               <linearGradient id="colorTasks" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="5%" stopColor={isDark ? '#6a9a70' : '#7ca982'} stopOpacity={0.8}/>
@@ -212,7 +224,7 @@ export default function ProductivityChart({ dailyMap }: { dailyMap: Record<strin
               </linearGradient>
             </defs>
             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDark ? '#333' : '#f0ede8'} />
-            <XAxis dataKey="display" axisLine={false} tickLine={false} tick={{ fill: isDark ? '#7a7a7a' : '#b0ad9a', fontSize: 11, fontWeight: 600 }} dy={10} />
+            <XAxis dataKey="display" axisLine={false} tickLine={false} tick={<CustomXAxisTick />} dy={10} />
             <YAxis yAxisId="left" axisLine={false} tickLine={false} tick={{ fill: isDark ? '#7a7a7a' : '#b0ad9a', fontSize: 11 }} />
             
             <YAxis yAxisId="right" orientation="right" hide={true} width={0} axisLine={false} tickLine={false} tick={false} />
