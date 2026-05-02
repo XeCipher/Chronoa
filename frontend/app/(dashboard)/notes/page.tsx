@@ -161,7 +161,7 @@ export default function NotesPage() {
 
   useEffect(() => {
     if (selectedId) {
-      const item = isTrashOpen ? trash.find(t => (t.isJournal ? t.entry_date : t.id) === selectedId) :
+      const item = isTrashOpen ? trash.find(t => (t.entry_date || t.id) === selectedId) :
                    notesTab === 'notes' ? notes.find(n => n.id === selectedId) : journals.find(j => j.entry_date === selectedId);
       if (item) setEditTitle(item.title || "");
     }
@@ -199,7 +199,22 @@ export default function NotesPage() {
     setJournals(prev => [...prev, newJournal].sort((a, b) => new Date(b.entry_date).getTime() - new Date(a.entry_date).getTime()));
     handleSelectItem(dateStr);
     setShowCalendar(false);
-    await supabase.from('journal_entries').upsert({ user_id: user?.id, entry_date: dateStr, content: "<p></p>" });
+    
+    if (navigator.onLine) {
+        const { data, error } = await supabase.from('journal_entries')
+          .update({ content: "<p></p>" })
+          .eq('entry_date', dateStr)
+          .eq('user_id', user?.id)
+          .select();
+        
+        if (!error && data && data.length === 0) {
+           await supabase.from('journal_entries').insert({
+             user_id: user?.id,
+             entry_date: dateStr,
+             content: "<p></p>"
+           });
+        }
+    }
   };
 
   const updateNoteTitle = async () => {
@@ -265,8 +280,8 @@ export default function NotesPage() {
   };
 
   const restoreNote = async (item: any) => {
-    const id = item.isJournal ? item.entry_date : item.id;
-    setTrash(prev => prev.filter(t => (t.isJournal ? t.entry_date : t.id) !== id));
+    const id = item.entry_date || item.id;
+    setTrash(prev => prev.filter(t => (t.entry_date || t.id) !== id));
     
     if (item.isJournal) {
        setJournals([{ ...item, deleted_at: null }, ...journals].sort((a, b) => new Date(b.entry_date).getTime() - new Date(a.entry_date).getTime()));
@@ -285,8 +300,8 @@ export default function NotesPage() {
       message: "Are you sure you want to delete this permanently? It cannot be recovered.",
       isDestructive: true,
       onConfirm: async () => {
-        const id = item.isJournal ? item.entry_date : item.id;
-        setTrash(prev => prev.filter(t => (t.isJournal ? t.entry_date : t.id) !== id));
+        const id = item.entry_date || item.id;
+        setTrash(prev => prev.filter(t => (t.entry_date || t.id) !== id));
         
         if (navigator.onLine) {
            if (item.isJournal) await supabase.from('journal_entries').delete().eq('entry_date', id);
@@ -344,7 +359,7 @@ export default function NotesPage() {
       if (filteredItems.length > 0) {
         if (window.innerWidth >= 1024) {
           const firstItem = filteredItems[0];
-          const firstId = notesTab === 'journal' ? firstItem.entry_date : firstItem.id;
+          const firstId = firstItem.entry_date || firstItem.id;
           setSelectedId(firstId);
         } else {
           setSelectedId(null);
@@ -377,7 +392,7 @@ export default function NotesPage() {
 
   const selectedItem = useMemo(() => {
     if (!selectedId) return null;
-    if (isTrashOpen) return trash.find(t => (t.isJournal ? t.entry_date : t.id) === selectedId);
+    if (isTrashOpen) return trash.find(t => (t.entry_date || t.id) === selectedId);
     if (notesTab === 'notes') return notes.find(n => n.id === selectedId);
     return journals.find(j => j.entry_date === selectedId);
   },[selectedId, notesTab, notes, journals, trash, isTrashOpen]);
@@ -515,7 +530,7 @@ export default function NotesPage() {
             <>
               {filteredItems.map(item => {
                 const isJournal = isTrashOpen ? item.isJournal : notesTab === 'journal';
-                const id = isJournal ? item.entry_date : item.id;
+                const id = item.entry_date || item.id;
                 const isSelected = selectedId === id;
                 const title = isJournal ? formatDateLabel(item.entry_date) : (item.title || 'Untitled');
                 const daysLeft = isTrashOpen ? Math.ceil(30 - (Date.now() - new Date(item.deleted_at).getTime()) / (1000 * 60 * 60 * 24)) : 0;
@@ -559,7 +574,7 @@ export default function NotesPage() {
               </button>
               <div className="flex items-center gap-2 ml-auto">
                 {!isTrashOpen ? (
-                  <button data-tooltip-id="global-tooltip" data-tooltip-content="Move to Trash" onClick={() => moveToTrash(selectedItem.isJournal || notesTab === 'journal' ? selectedItem.entry_date : selectedItem.id)} className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 rounded-xl transition-all">
+                  <button data-tooltip-id="global-tooltip" data-tooltip-content="Move to Trash" onClick={() => moveToTrash(selectedItem.entry_date || selectedItem.id)} className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 rounded-xl transition-all">
                     <Trash2 size={18} />
                   </button>
                 ) : (
@@ -599,7 +614,7 @@ export default function NotesPage() {
                     key={`${isTrashOpen ? 'trash' : notesTab}-${selectedId}`}
                     initialContent={selectedItem.content || '<p></p>'}
                     isEditable={!isTrashOpen}
-                    onSave={(html) => saveContent(html, selectedItem.id || selectedItem.entry_date)}
+                    onSave={(html) => saveContent(html, selectedItem.entry_date || selectedItem.id)}
                     noteType={(!isTrashOpen && notesTab === 'journal') || selectedItem.isJournal ? 'journal' : 'notes'}
                     entryDate={selectedItem.entry_date}
                   />
