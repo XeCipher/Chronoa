@@ -66,34 +66,23 @@ export default function DistractionFreeEditor({
   const [bottomOffset, setBottomOffset] = useState(0);
 
   useEffect(() => {
-    // Relying on VisualViewport API to calculate precise keyboard height, particularly needed for iOS
     if (typeof window === 'undefined' || !window.visualViewport) return;
     const vp = window.visualViewport;
-    
+
     const updateOffset = () => {
-      if (isFocused && window.innerWidth < 768) {
-        // window.innerHeight serves as the layout viewport. Subtracting visual viewport height + offset 
-        // yields the exact pixel height occupied by the virtual keyboard.
-        const offset = window.innerHeight - (vp.height + vp.offsetTop);
-        setBottomOffset(offset > 0 ? offset : 0);
-      } else {
-        setBottomOffset(0);
-      }
+      const keyboardHeight = window.innerHeight - vp.height - vp.offsetTop;
+      setBottomOffset(keyboardHeight > 0 ? keyboardHeight : 0);
     };
 
     vp.addEventListener('resize', updateOffset);
     vp.addEventListener('scroll', updateOffset);
-    
-    // Initial calculation with a slight delay to allow the keyboard animation to finish 
     updateOffset();
-    const timeout = setTimeout(updateOffset, 150);
 
     return () => {
       vp.removeEventListener('resize', updateOffset);
       vp.removeEventListener('scroll', updateOffset);
-      clearTimeout(timeout);
     };
-  }, [isFocused]);
+  }, []);
 
   const editor = useEditor({
     editable: isEditable,
@@ -248,16 +237,17 @@ export default function DistractionFreeEditor({
       {isEditable && (
         <div 
           className={
-            `z-50 flex items-center gap-2 px-2 bg-white/90 dark:bg-[#121212]/90 backdrop-blur-sm shadow-sm transition-all duration-300 ease-out ` +
+            `z-50 flex items-center gap-2 px-2 bg-white/90 dark:bg-[#121212]/90 backdrop-blur-sm shadow-sm ` +
             (isFocused
-              // When focused on mobile: lock to bottom boundary (calculating exact keyboard height dynamically)
-              ? `fixed left-0 right-0 w-full border-t border-[#e0ddd5] dark:border-[#2a2a2a] rounded-none pb-[max(env(safe-area-inset-bottom),10px)] pt-2.5 md:sticky md:top-0 md:rounded-2xl md:border md:pb-1.5 md:pt-1.5 md:w-full md:bottom-auto`
-              // Standard sticky layout
+              ? `fixed left-0 right-0 w-full border-t border-[#e0ddd5] dark:border-[#2a2a2a] rounded-none pt-2.5 pb-2.5 md:sticky md:top-0 md:rounded-2xl md:border md:py-1.5 md:w-full md:bottom-auto`
               : `sticky top-0 rounded-2xl border border-[#e0ddd5] dark:border-[#2a2a2a] py-1.5 w-full`
             )
           }
           style={{
-             bottom: isFocused && typeof window !== 'undefined' && window.innerWidth < 768 ? `${bottomOffset}px` : undefined,
+            bottom: isFocused && typeof window !== 'undefined' && window.innerWidth < 768
+              ? `${bottomOffset}px`
+              : undefined,
+            transition: 'bottom 0.15s ease-out',
           }}
         >
           <div className="flex items-center gap-0.5 overflow-x-auto no-scrollbar flex-1 min-w-0">
