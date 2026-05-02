@@ -61,6 +61,40 @@ export default function DistractionFreeEditor({
     orderedList: false,
   });
 
+  // --- Mobile Keyboard Tracking ---
+  const [isFocused, setIsFocused] = useState(false);
+  const [bottomOffset, setBottomOffset] = useState(0);
+
+  useEffect(() => {
+    // Relying on VisualViewport API to calculate precise keyboard height, particularly needed for iOS
+    if (typeof window === 'undefined' || !window.visualViewport) return;
+    const vp = window.visualViewport;
+    
+    const updateOffset = () => {
+      if (isFocused && window.innerWidth < 768) {
+        // window.innerHeight serves as the layout viewport. Subtracting visual viewport height + offset 
+        // yields the exact pixel height occupied by the virtual keyboard.
+        const offset = window.innerHeight - (vp.height + vp.offsetTop);
+        setBottomOffset(offset > 0 ? offset : 0);
+      } else {
+        setBottomOffset(0);
+      }
+    };
+
+    vp.addEventListener('resize', updateOffset);
+    vp.addEventListener('scroll', updateOffset);
+    
+    // Initial calculation with a slight delay to allow the keyboard animation to finish 
+    updateOffset();
+    const timeout = setTimeout(updateOffset, 150);
+
+    return () => {
+      vp.removeEventListener('resize', updateOffset);
+      vp.removeEventListener('scroll', updateOffset);
+      clearTimeout(timeout);
+    };
+  }, [isFocused]);
+
   const editor = useEditor({
     editable: isEditable,
     extensions: [
@@ -74,6 +108,11 @@ export default function DistractionFreeEditor({
           "chronoa-editor focus:outline-none w-full min-h-[500px] text-[#3d3b33] dark:text-[#e0e0e0]",
         spellcheck: "false",
       },
+    },
+    onFocus: () => setIsFocused(true),
+    onBlur: () => {
+      // Delay blur so clicking on the toolbar registers before the toolbar is un-fixed
+      setTimeout(() => setIsFocused(false), 150);
     },
     onTransaction: ({ editor: ed }) => {
       setActiveStates({
@@ -153,6 +192,7 @@ export default function DistractionFreeEditor({
   }) => (
     <button
       onMouseDown={(e) => {
+        // Prevent losing editor focus when clicking the toolbar buttons
         e.preventDefault();
         onClick();
       }}
@@ -201,8 +241,25 @@ export default function DistractionFreeEditor({
 
   return (
     <div className="relative w-full flex flex-col gap-4">
+      
+      {/* Ghost element to maintain layout flow and prevent content from jumping when the toolbar detaches into a fixed state */}
+      {isEditable && isFocused && <div className="h-[44px] md:hidden shrink-0 w-full" />}
+      
       {isEditable && (
-        <div className="sticky top-0 z-20 flex items-center gap-2 px-2 py-1.5 bg-white/90 dark:bg-[#121212]/90 backdrop-blur-sm border border-[#e0ddd5] dark:border-[#2a2a2a] rounded-2xl shadow-sm">
+        <div 
+          className={
+            `z-50 flex items-center gap-2 px-2 bg-white/90 dark:bg-[#121212]/90 backdrop-blur-sm shadow-sm transition-all duration-300 ease-out ` +
+            (isFocused
+              // When focused on mobile: lock to bottom boundary (calculating exact keyboard height dynamically)
+              ? `fixed left-0 right-0 w-full border-t border-[#e0ddd5] dark:border-[#2a2a2a] rounded-none pb-[max(env(safe-area-inset-bottom),10px)] pt-2.5 md:sticky md:top-0 md:rounded-2xl md:border md:pb-1.5 md:pt-1.5 md:w-full md:bottom-auto`
+              // Standard sticky layout
+              : `sticky top-0 rounded-2xl border border-[#e0ddd5] dark:border-[#2a2a2a] py-1.5 w-full`
+            )
+          }
+          style={{
+             bottom: isFocused && typeof window !== 'undefined' && window.innerWidth < 768 ? `${bottomOffset}px` : undefined,
+          }}
+        >
           <div className="flex items-center gap-0.5 overflow-x-auto no-scrollbar flex-1 min-w-0">
             <ToolbarButton title="Bold" onClick={() => editor.chain().focus().toggleBold().run()} isActive={activeStates.bold}><Bold size={14} /></ToolbarButton>
             <ToolbarButton title="Italic" onClick={() => editor.chain().focus().toggleItalic().run()} isActive={activeStates.italic}><Italic size={14} /></ToolbarButton>

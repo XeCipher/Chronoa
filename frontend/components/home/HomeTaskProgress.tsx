@@ -90,8 +90,11 @@ export default function HomeTaskProgress() {
         onMouseEnter={() => { if (window.matchMedia('(hover: hover)').matches) setIsHovered(true); }}
         onMouseLeave={() => { if (window.matchMedia('(hover: hover)').matches) setIsHovered(false); }}
         onClick={() => setIsExpanded(!isExpanded)}
-        className={`flex flex-col items-start bg-white/20 dark:bg-black/30 backdrop-blur-xl border border-white/40 dark:border-white/10 transition-all duration-500 ease-in-out shadow-[0_8px_30px_rgb(0,0,0,0.08)] cursor-pointer overflow-hidden
-          ${showFull ? 'p-4 md:p-5 rounded-[2rem] gap-3' : 'p-2 rounded-full gap-2'}
+        // Hard-set to 'rounded-[2rem]' permanently.
+        // It provides enough curvature to appear fully circular when the widget's bounds are minimal (collapsed)
+        // and expands seamlessly into a pill-shape layout without glitchy border-radius interpolation snaps.
+        className={`flex flex-col items-start bg-white/20 dark:bg-black/30 backdrop-blur-xl border border-white/40 dark:border-white/10 transition-all duration-500 ease-in-out shadow-[0_8px_30px_rgb(0,0,0,0.08)] cursor-pointer overflow-hidden rounded-[2rem]
+          ${showFull ? 'p-4 md:p-5 gap-3' : 'p-2 gap-2'}
         `}
       >
         
