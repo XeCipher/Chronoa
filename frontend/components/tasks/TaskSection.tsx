@@ -728,8 +728,9 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
       className="relative flex flex-col bg-white/70 dark:bg-[#1a1a1a]/80 backdrop-blur-sm border border-[#ebe8e2] dark:border-[#333] rounded-[28px] overflow-hidden shadow-[0_2px_16px_rgba(44,43,39,0.05)] transition-all duration-300"
     >
       <div className="px-5 md:px-8 pt-6 md:pt-8 pb-4 md:pb-5 border-b border-[#f0ede8] dark:border-[#2a2a2a]">
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex flex-col gap-1.5">
+        <div className="flex flex-col gap-2">
+          
+          <div className="flex items-center justify-between gap-4 w-full">
             <div className="flex items-center gap-2">
               <h2 className="text-[22px] md:text-[26px] text-[#3d3b33] dark:text-[#f0f0f0] leading-none font-medium font-serif tracking-tight">
                 {title}
@@ -742,74 +743,75 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
                 {isCollapsedMobile ? <ChevronDown size={20} /> : <ChevronUp size={20} />}
               </button>
             </div>
-            
-            {viewMode === "focus" && type === "routine" && totalTasksCount > 0 && (
-              <div className="flex items-center gap-2 mt-1">
-                <div className="w-24 md:w-28 h-[3px] bg-[#ebe8e2] dark:bg-[#333] rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-[#7ca982] dark:bg-[#6a9a70] rounded-full transition-all duration-500"
-                    style={{ width: `${progressPercent}%` }}
-                  />
-                </div>
-                <span className="text-[11px] text-[#b0ad9a] dark:text-[#7a7a7a] tracking-wide">
-                  {progressPercent}%
-                </span>
+
+            {viewMode === "focus" && (
+              <div className="flex items-center gap-2 shrink-0">
+                {type === "normal" && (
+                  <button
+                    onClick={() => onAdd(null)}
+                    className="flex w-8 h-8 md:w-9 md:h-9 items-center justify-center bg-[#f7f5f0] dark:bg-[#252525] text-[#c2956e] dark:text-[#d1a784] rounded-full hover:bg-[#c2956e]/10 dark:hover:bg-[#b0855f]/20 transition-all shadow-sm border border-[#e0ddd5] dark:border-[#333]"
+                    data-tooltip-id="task-tooltip" data-tooltip-content="Add Task"
+                  >
+                    <Plus size={18} strokeWidth={2.5} />
+                  </button>
+                )}
+                
+                {type === "routine" && isEditMode && (
+                  <button
+                    onClick={() => onAdd(null)}
+                    className="flex w-8 h-8 md:w-9 md:h-9 items-center justify-center bg-[#f7f5f0] dark:bg-[#252525] text-[#c2956e] dark:text-[#d1a784] rounded-full hover:bg-[#c2956e]/10 dark:hover:bg-[#b0855f]/20 transition-all shadow-sm border border-[#e0ddd5] dark:border-[#333]"
+                    data-tooltip-id="task-tooltip" data-tooltip-content="Add Routine Item"
+                  >
+                    <Plus size={18} strokeWidth={2.5} />
+                  </button>
+                )}
+
+                {type === "routine" && (
+                  <button
+                    onClick={() => {
+                      const nextMode = !isEditMode;
+                      setIsEditMode(nextMode);
+                      if (nextMode && type === "routine" && mobileRoutineCollapsed) {
+                        setMobileRoutineCollapsed(false);
+                      }
+                    }}
+                    className={`flex items-center justify-center gap-1.5 px-3 py-1.5 md:px-4 md:py-2 rounded-full text-[10px] md:text-[11px] font-[600] tracking-[0.08em] uppercase transition-all duration-200 shadow-sm border ${
+                      isEditMode
+                        ? "bg-[#c2956e] dark:bg-[#b0855f] text-white border-[#c2956e] dark:border-[#b0855f] shadow-md"
+                        : "bg-[#f7f5f0] dark:bg-[#252525] text-[#c2956e] dark:text-[#d1a784] border-[#e0ddd5] dark:border-[#333] hover:bg-[#c2956e]/10 dark:hover:bg-[#b0855f]/20"
+                    }`}
+                  >
+                    {isEditMode ? (
+                      <>
+                        <CheckCircle2 size={14} className="md:w-[15px] md:h-[15px]" /> 
+                        <span className="hidden sm:inline">Done</span>
+                      </>
+                    ) : (
+                      <>
+                        <Edit3 size={14} className="md:w-[15px] md:h-[15px]" /> 
+                        <span className="hidden sm:inline">Edit</span>
+                      </>
+                    )}
+                  </button>
+                )}
               </div>
             )}
           </div>
-          
-          {viewMode === "focus" && (
-            <div className="flex items-center gap-2 shrink-0 pt-0.5">
-              {type === "normal" && (
-                <button
-                  onClick={() => onAdd(null)}
-                  className="flex w-8 h-8 md:w-9 md:h-9 items-center justify-center bg-[#f7f5f0] dark:bg-[#252525] text-[#c2956e] dark:text-[#d1a784] rounded-full hover:bg-[#c2956e]/10 dark:hover:bg-[#b0855f]/20 transition-all shadow-sm border border-[#e0ddd5] dark:border-[#333]"
-                  data-tooltip-id="task-tooltip" data-tooltip-content="Add Task"
-                >
-                  <Plus size={18} strokeWidth={2.5} />
-                </button>
-              )}
-              
-              {type === "routine" && isEditMode && (
-                <button
-                  onClick={() => onAdd(null)}
-                  className="flex w-8 h-8 md:w-9 md:h-9 items-center justify-center bg-[#f7f5f0] dark:bg-[#252525] text-[#c2956e] dark:text-[#d1a784] rounded-full hover:bg-[#c2956e]/10 dark:hover:bg-[#b0855f]/20 transition-all shadow-sm border border-[#e0ddd5] dark:border-[#333]"
-                  data-tooltip-id="task-tooltip" data-tooltip-content="Add Routine Item"
-                >
-                  <Plus size={18} strokeWidth={2.5} />
-                </button>
-              )}
 
-              {type === "routine" && (
-                <button
-                  onClick={() => {
-                    const nextMode = !isEditMode;
-                    setIsEditMode(nextMode);
-                    if (nextMode && type === "routine" && mobileRoutineCollapsed) {
-                      setMobileRoutineCollapsed(false);
-                    }
-                  }}
-                  className={`flex items-center justify-center gap-1.5 px-3 py-1.5 md:px-4 md:py-2 rounded-full text-[10px] md:text-[11px] font-[600] tracking-[0.08em] uppercase transition-all duration-200 shadow-sm border ${
-                    isEditMode
-                      ? "bg-[#c2956e] dark:bg-[#b0855f] text-white border-[#c2956e] dark:border-[#b0855f] shadow-md"
-                      : "bg-[#f7f5f0] dark:bg-[#252525] text-[#c2956e] dark:text-[#d1a784] border-[#e0ddd5] dark:border-[#333] hover:bg-[#c2956e]/10 dark:hover:bg-[#b0855f]/20"
-                  }`}
-                >
-                  {isEditMode ? (
-                    <>
-                      <CheckCircle2 size={14} className="md:w-[15px] md:h-[15px]" /> 
-                      <span className="hidden sm:inline">Done</span>
-                    </>
-                  ) : (
-                    <>
-                      <Edit3 size={14} className="md:w-[15px] md:h-[15px]" /> 
-                      <span className="hidden sm:inline">Edit</span>
-                    </>
-                  )}
-                </button>
-              )}
+          {viewMode === "focus" && type === "routine" && totalTasksCount > 0 && (
+            <div className="flex items-center gap-2 mt-0.5">
+              <div className="w-24 md:w-28 h-[3px] bg-[#ebe8e2] dark:bg-[#333] rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-[#7ca982] dark:bg-[#6a9a70] rounded-full transition-all duration-500"
+                  style={{ width: `${progressPercent}%` }}
+                />
+              </div>
+              <span className="text-[11px] text-[#b0ad9a] dark:text-[#7a7a7a] tracking-wide">
+                {progressPercent}%
+              </span>
             </div>
           )}
+          
         </div>
       </div>
 
