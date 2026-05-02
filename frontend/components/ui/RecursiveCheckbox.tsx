@@ -316,7 +316,7 @@ export default function RecursiveCheckbox({
         <div className="flex-1 flex flex-col min-w-0 py-0.5">
           {isFlatList && <div className="text-[9px] font-bold text-[#b0ad9a] uppercase truncate tracking-tighter opacity-70 mb-0.5">{getPath(task)}</div>}
           
-          <div className="flex items-start gap-1.5 w-full">
+          <div className="flex items-center gap-1.5 w-full">
             <span 
               ref={textRef}
               contentEditable={allowTextEdit}
@@ -351,7 +351,7 @@ export default function RecursiveCheckbox({
             </span>
             
             {isCollapsed && descendantColors.length > 0 && (
-              <div className="flex items-center gap-1 shrink-0 px-1 opacity-80 mt-[5px]">
+              <div className="flex items-center gap-1 shrink-0 px-1 opacity-80">
                 {descendantColors.map(c => {
                    const colorObj = availableColors.find(ac => ac.id === c);
                    return colorObj ? <div key={c} className={`w-1.5 h-1.5 rounded-full ${colorObj.bg.split(' ')[0]}`} data-tooltip-id="task-tooltip" data-tooltip-content={c} /> : null;
