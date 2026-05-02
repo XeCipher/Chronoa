@@ -38,7 +38,7 @@ export default function TasksPage() {
   const currentViewMode = isTrashOpen ? 'trash' : tasksView;
 
   return (
-    <div className="w-full min-h-full bg-[#f7f5f0] dark:bg-[#121212] p-4 md:p-12 lg:p-16 selection:bg-[#c2956e]/30 dark:selection:bg-[#b0855f]/40 relative">
+    <div className="w-full min-h-full bg-[#f7f5f0] dark:bg-[#121212] p-4 md:p-12 lg:p-16 relative">
       <div className="max-w-[1600px] mx-auto w-full flex flex-col h-full">
         
         <header className="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-6 shrink-0">

@@ -36,7 +36,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="relative min-h-screen bg-[#f7f5f0] dark:bg-[#121212] flex flex-col items-center justify-center overflow-hidden selection:bg-[#c2956e] dark:selection:bg-[#b0855f] selection:text-white transition-colors duration-300">
+    <div className="relative min-h-screen bg-[#f7f5f0] dark:bg-[#121212] flex flex-col items-center justify-center overflow-hidden transition-colors duration-300">
       
       <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none flex items-center justify-center">
         <div className="absolute w-[800px] h-[800px] -translate-y-48 translate-x-32" style={{ background: 'radial-gradient(circle, rgba(168,130,194,0.15) 0%, transparent 60%)' }}></div>

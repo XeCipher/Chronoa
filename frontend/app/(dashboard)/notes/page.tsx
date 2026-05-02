@@ -445,7 +445,7 @@ export default function NotesPage() {
   };
 
   return (
-    <div className="relative flex h-full w-full bg-[#f7f5f0] dark:bg-[#121212] lg:pl-10 overflow-hidden selection:bg-[#c2956e]/20">
+    <div className="relative flex h-full w-full bg-[#f7f5f0] dark:bg-[#121212] lg:pl-10 overflow-hidden">
       
       <aside className={`
         w-full lg:w-[350px] flex-shrink-0 flex flex-col border-r border-[#e0ddd5] dark:border-[#2a2a2a] bg-[#f7f5f0] dark:bg-[#121212] z-30 transition-transform duration-300 ease-in-out
