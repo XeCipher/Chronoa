@@ -18,10 +18,10 @@ const dmSans = DM_Sans({
 
 export const metadata: Metadata = {
   title: "Chronoa",
-  description: "Your personal sanctuary.",
+  description: "Your personal workspace.",
   openGraph: {
     title: "Chronoa",
-    description: "Your personal sanctuary.",
+    description: "Your personal workspace.",
     images: [{ url: '/opengraph-image.png', width: 1200, height: 630 }],
     type: 'website',
   },

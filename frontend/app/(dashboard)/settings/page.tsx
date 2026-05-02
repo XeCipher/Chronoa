@@ -7,7 +7,7 @@ import { useUiStore } from "@/store/uiStore";
 import { supabase } from "@/lib/supabase";
 import { 
   Plus, Trash2, MapPin, Search, Calendar, Clock, Sparkles, 
-  X, Monitor, LogOut, Navigation, AlertTriangle, Keyboard, CheckCircle2 
+  X, Monitor, LogOut, Navigation, AlertTriangle, Keyboard, CheckCircle2, Settings as SettingsIcon 
 } from "lucide-react";
 
 interface CalendarLink {
@@ -144,7 +144,7 @@ export default function SettingsPage() {
   const handleDeleteAccount = () => {
     showConfirmDialog({
       title: "Delete Account",
-      message: "Are you absolutely sure you want to delete your entire Chronoa sanctuary? This action is completely irreversible.",
+      message: "Are you absolutely sure you want to delete your entire Chronoa account? This action is completely irreversible.",
       isDestructive: true,
       onConfirm: async () => {
         const { data: { user } } = await supabase.auth.getUser();
@@ -162,10 +162,13 @@ export default function SettingsPage() {
   const modKey = os === 'mac' ? '⌥' : 'Alt';
 
   return (
-    <div className="max-w-4xl w-full min-h-full mx-auto p-4 md:p-12 space-y-12 animate-fade-up">
+    <div className="max-w-4xl w-full min-h-full mx-auto p-4 md:p-12 space-y-12">
       <header className="space-y-2">
-        <h1 className="text-5xl md:text-6xl text-[#3d3b33] dark:text-[#f0f0f0] font-serif italic leading-none">Settings</h1>
-        <p className="text-[#b0ad9a] dark:text-[#7a7a7a] tracking-[0.3em] text-[10px] font-bold uppercase">Configure your sanctuary environment</p>
+        <p className="text-[#b0ad9a] dark:text-[#7a7a7a] tracking-[0.3em] text-[10px] font-bold uppercase ml-1">Configure your workspace environment</p>
+        <div className="flex items-center gap-2.5 text-[#3d3b33] dark:text-[#f0f0f0]">
+          <SettingsIcon size={24} className="text-[#c2956e]" />
+          <h1 className="text-3xl md:text-4xl font-serif font-medium tracking-tight">Settings</h1>
+        </div>
       </header>
 
       <div className="bg-white dark:bg-[#1a1a1a] border border-[#ebe8e2] dark:border-[#2a2a2a] rounded-[2.5rem] p-6 md:p-10 shadow-sm space-y-12 transition-all">
@@ -176,7 +179,7 @@ export default function SettingsPage() {
             <Monitor size={20} />
             <h3 className="text-xl font-medium text-[#3d3b33] dark:text-[#f0f0f0]">Appearance</h3>
           </div>
-          <p className="text-xs text-[#b0ad9a] dark:text-[#7a7a7a] mt-1 mb-4">Choose the visual theme for your sanctuary.</p>
+          <p className="text-xs text-[#b0ad9a] dark:text-[#7a7a7a] mt-1 mb-4">Choose the visual theme for your workspace.</p>
           <div className="flex bg-[#f7f5f0] dark:bg-[#121212] border border-[#e0ddd5] dark:border-[#333] p-1 rounded-2xl w-fit">
             {['system', 'light', 'dark'].map(t => (
               <button 
@@ -342,8 +345,8 @@ export default function SettingsPage() {
               <div className="flex items-center gap-4">
                 <div className="w-12 h-12 bg-white dark:bg-[#253828] rounded-2xl flex items-center justify-center text-[#7ca982] shadow-sm"><MapPin size={24} /></div>
                 <div>
-                  <p className="text-[10px] text-[#7ca982] font-bold uppercase tracking-[0.2em]">Active Sanctuary</p>
-                  <p className="text-2xl font-serif italic text-[#3d3b33] dark:text-[#f0f0f0]">{currentCity}</p>
+                  <p className="text-[10px] text-[#7ca982] font-bold uppercase tracking-[0.2em]">Active Location</p>
+                  <p className="text-2xl font-serif text-[#3d3b33] dark:text-[#f0f0f0]">{currentCity}</p>
                 </div>
               </div>
               <button onClick={removeLocation} className="flex items-center gap-2 px-5 py-2.5 bg-white dark:bg-[#1a1a1a] text-red-500 border border-red-100 dark:border-red-900/30 rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-red-50 transition-all shadow-sm"><X size={14} /> Remove</button>

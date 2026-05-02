@@ -4,7 +4,7 @@
 import { useState } from "react";
 import TaskSection from "@/components/tasks/TaskSection";
 import ICloudTodayFeed from "@/components/tasks/ICloudTodayFeed";
-import { ListChecks, History, Trash2, ArrowLeft, Search, LayoutGrid, List, SortAsc, SortDesc, Plus } from "lucide-react";
+import { ListChecks, History, Trash2, ArrowLeft, Search, LayoutGrid, List, SortAsc, SortDesc, Plus, CheckSquare } from "lucide-react";
 import { useUiStore } from "@/store/uiStore";
 import { supabase } from "@/lib/supabase";
 
@@ -42,12 +42,15 @@ export default function TasksPage() {
         
         <header className="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-6 shrink-0">
           <div className="flex flex-col gap-2">
-            <p className="text-[10px] text-[#c2956e] dark:text-[#d1a784] tracking-[0.3em] uppercase font-bold">
-              {isTrashOpen ? 'Recycle Bin' : 'Sanctuary'}
+            <p className="text-[10px] text-[#c2956e] dark:text-[#d1a784] tracking-[0.3em] uppercase font-bold ml-1">
+              {isTrashOpen ? 'Recycle Bin' : 'Workspace'}
             </p>
-            <h1 className="text-5xl md:text-6xl text-[#3d3b33] dark:text-[#f0f0f0] font-serif italic font-medium leading-none">
-              {isTrashOpen ? 'Trash' : tasksView === 'focus' ? 'Daily Focus' : 'Archive'}
-            </h1>
+            <div className="flex items-center gap-2.5 text-[#3d3b33] dark:text-[#f0f0f0]">
+              {isTrashOpen ? <Trash2 size={24} className="text-[#c2956e]" /> : tasksView === 'focus' ? <CheckSquare size={24} className="text-[#c2956e]" /> : <History size={24} className="text-[#c2956e]" />}
+              <h1 className="text-3xl md:text-4xl font-serif font-medium tracking-tight">
+                {isTrashOpen ? 'Trash' : tasksView === 'focus' ? 'Daily Focus' : 'Archive'}
+              </h1>
+            </div>
           </div>
 
           <div className="flex items-center gap-4 self-start md:self-end">
@@ -99,13 +102,12 @@ export default function TasksPage() {
           </div>
         </header>
 
-        {/* Global Toolbar */}
-        <div className="flex flex-col lg:flex-row items-center gap-4 mb-10 animate-fade-up shrink-0">
+        <div className="flex flex-col lg:flex-row items-center gap-4 mb-10 shrink-0">
            <div className="relative flex-1 w-full max-w-xl">
              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-[#b0ad9a]" size={16} />
              <input 
                value={searchQuery} onChange={e => setSearchQuery(e.target.value)} 
-               placeholder="Search sanctuary..." 
+               placeholder="Search tasks..." 
                spellCheck={false}
                className="w-full bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] rounded-2xl pl-12 pr-4 py-3.5 outline-none focus:border-[#c2956e] text-sm text-[#3d3b33] dark:text-[#f0f0f0] shadow-sm" 
              />
@@ -128,7 +130,7 @@ export default function TasksPage() {
 
         {tasksView === 'focus' && !isTrashOpen && <ICloudTodayFeed />}
 
-        <div className="flex flex-col lg:flex-row items-start gap-8 lg:gap-12 w-full animate-fade-up">
+        <div className="flex flex-col lg:flex-row items-start gap-8 lg:gap-12 w-full">
           <div className="w-full lg:w-1/2 min-w-0">
             <TaskSection type="routine" title={currentViewMode === 'trash' ? 'Routine Trash' : (currentViewMode === 'archive' ? 'Routine Archive' : "My Routine")} viewMode={currentViewMode} searchQuery={searchQuery} />
           </div>
@@ -137,12 +139,10 @@ export default function TasksPage() {
           </div>
         </div>
 
-        {/* Dynamic spacer for mobile FABs to prevent overlaps */}
         <div className="h-28 lg:h-0 w-full shrink-0 pointer-events-none" />
 
       </div>
 
-      {/* Mobile FAB for adding normal task */}
       {tasksView === 'focus' && !isTrashOpen && (
         <button 
           onClick={handleFabClick}

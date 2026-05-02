@@ -59,7 +59,7 @@ export default function WeatherWidget() {
           localStorage.setItem('chronoa_cache_weather_city', profile.weather_city);
         }
       } catch (err) {
-        console.error("Sanctuary Weather Error:", err);
+        console.error("Workspace Weather Error:", err);
       }
     }
     setLoading(false);

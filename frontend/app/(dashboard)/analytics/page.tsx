@@ -3,7 +3,7 @@
 
 import { useEffect, useState, useMemo } from "react";
 import { supabase } from "@/lib/supabase";
-import { Sparkles, CheckCircle2, Timer, Flame, PenTool, Info, X } from "lucide-react";
+import { Sparkles, CheckCircle2, Timer, Flame, PenTool, Info, X, BarChart2 } from "lucide-react";
 import StatCard from "@/components/analytics/StatCard";
 import ProductivityChart from "@/components/analytics/ProductivityChart";
 import FocusDistribution from "@/components/analytics/FocusDistribution";
@@ -189,7 +189,7 @@ export default function AnalyticsPage() {
     return (
       <div className="min-h-full flex flex-col items-center justify-center gap-4 animate-pulse pt-32">
         <Sparkles className="text-[#c2956e] w-8 h-8" />
-        <span className="text-xs font-bold uppercase tracking-widest text-[#888]">Analyzing Sanctuary...</span>
+        <span className="text-xs font-bold uppercase tracking-widest text-[#888]">Analyzing Data...</span>
       </div>
     );
   }
@@ -197,10 +197,13 @@ export default function AnalyticsPage() {
   return (
     <div className="w-full min-h-full mx-auto p-4 md:p-10 lg:pl-20 xl:pl-28 space-y-8 pb-24 overflow-x-hidden">
       
-      <header className="mb-6 animate-fade-up flex flex-col md:flex-row md:items-end justify-between gap-6" style={{ animationDelay: '0ms' }}>
+      <header className="mb-6 flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div>
-          <h1 className="text-5xl md:text-6xl text-[#3d3b33] dark:text-[#f0f0f0] font-serif italic mb-2 tracking-tight">Performance</h1>
-          <p className="text-[#b0ad9a] dark:text-[#7a7a7a] tracking-[0.25em] text-[10px] font-bold uppercase">Consistency builds empires</p>
+          <div className="flex items-center gap-2.5 text-[#3d3b33] dark:text-[#f0f0f0] mb-2">
+            <BarChart2 size={20} className="text-[#c2956e]" />
+            <h1 className="text-2xl font-serif font-medium tracking-tight">Performance</h1>
+          </div>
+          <p className="text-[#b0ad9a] dark:text-[#7a7a7a] tracking-[0.25em] text-[10px] font-bold uppercase ml-1">Consistency builds empires</p>
         </div>
         
         <div className="flex bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] p-1 rounded-2xl shadow-sm w-fit shrink-0">
@@ -217,18 +220,18 @@ export default function AnalyticsPage() {
       </header>
 
       {/* Level Hero Bar */}
-      <div className="w-full bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] rounded-[2rem] p-6 md:p-8 shadow-sm flex flex-col md:flex-row items-center gap-6 md:gap-10 animate-fade-up" style={{ animationDelay: '100ms' }}>
+      <div className="w-full bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] rounded-[2rem] p-6 md:p-8 shadow-sm flex flex-col md:flex-row items-center gap-6 md:gap-10">
         
         <div className="flex items-center gap-6 shrink-0">
           <RankBadge rank={data?.levelInfo.rank || "Novice"} className="w-20 h-20" />
           <div>
             <div className="flex items-center gap-2 mb-1">
-              <p className="text-[10px] text-[#c2956e] dark:text-[#b0855f] font-bold uppercase tracking-widest">Sanctuary Rank</p>
+              <p className="text-[10px] text-[#c2956e] dark:text-[#b0855f] font-bold uppercase tracking-widest">Chronoa Rank</p>
               <button onClick={() => setIsRankModalOpen(true)} className="outline-none p-1 -m-1">
                 <Info size={14} className="text-[#888] hover:text-[#c2956e] transition-colors" />
               </button>
             </div>
-            <h2 className="text-2xl md:text-3xl font-medium text-[#3d3b33] dark:text-white leading-none">
+            <h2 className="text-2xl md:text-3xl font-medium text-[#3d3b33] dark:text-white leading-none font-serif">
               {data?.levelInfo.rank}
             </h2>
           </div>
@@ -249,7 +252,7 @@ export default function AnalyticsPage() {
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6 animate-fade-up" style={{ animationDelay: '200ms' }}>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
         <StatCard 
           title={filterType === 'all' ? "Tasks Done" : filterType === 'routine' ? "Routines Done" : "Normal Tasks"} 
           value={data?.totalFilteredTasks || 0} 
@@ -279,7 +282,7 @@ export default function AnalyticsPage() {
       </div>
 
       {/* Main Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-fade-up" style={{ animationDelay: '300ms' }}>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2">
           <ProductivityChart dailyMap={data?.dailyMap || {}} />
         </div>
@@ -289,7 +292,7 @@ export default function AnalyticsPage() {
       </div>
 
       {/* Secondary Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 animate-fade-up" style={{ animationDelay: '400ms' }}>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <ActivityHeatmap dailyMap={data?.dailyMap || {}} />
         <FocusDistribution rawSessions={data?.rawSessions || []} />
       </div>
@@ -298,11 +301,11 @@ export default function AnalyticsPage() {
       {isRankModalOpen && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center px-4">
           <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setIsRankModalOpen(false)} />
-          <div className="bg-[#f7f5f0] dark:bg-[#161616] border border-[#e0ddd5] dark:border-[#333] w-full max-w-3xl rounded-[2.5rem] shadow-2xl relative z-10 flex flex-col overflow-hidden animate-fade-up max-h-[85vh]">
+          <div className="bg-[#f7f5f0] dark:bg-[#161616] border border-[#e0ddd5] dark:border-[#333] w-full max-w-3xl rounded-[2.5rem] shadow-2xl relative z-10 flex flex-col overflow-hidden max-h-[85vh]">
             
             <header className="px-8 py-6 border-b border-[#e0ddd5] dark:border-[#2a2a2a] flex justify-between items-center bg-white dark:bg-[#1a1a1a]">
               <div>
-                <h3 className="text-3xl font-serif italic text-[#3d3b33] dark:text-white">Sanctuary Ranks</h3>
+                <h3 className="text-3xl font-serif text-[#3d3b33] dark:text-white">Chronoa Ranks</h3>
                 <p className="text-[10px] text-[#b0ad9a] dark:text-[#7a7a7a] font-bold uppercase tracking-widest mt-1">Evolve through consistency</p>
               </div>
               <button onClick={() => setIsRankModalOpen(false)} className="p-2 rounded-full bg-[#f0ede8] dark:bg-[#222] hover:bg-[#e0ddd5] dark:hover:bg-[#333] transition-colors text-[#3d3b33] dark:text-white">

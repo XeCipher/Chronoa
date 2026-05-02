@@ -58,7 +58,7 @@ export default function AnalyticsGrid({ data, title, themeColors, darkThemeColor
   return (
     <div className="bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] rounded-[2.5rem] p-6 md:p-10 shadow-sm w-full overflow-hidden transition-colors">
       <div className="flex justify-between items-center mb-8">
-        <h3 className="text-xl font-medium text-[#3d3b33] dark:text-[#f0f0f0] italic" style={{ fontFamily: 'var(--font-cormorant), serif' }}>
+        <h3 className="text-xl font-medium text-[#3d3b33] dark:text-[#f0f0f0] font-serif tracking-tight">
           {title}
         </h3>
         <div className="flex items-center gap-2">

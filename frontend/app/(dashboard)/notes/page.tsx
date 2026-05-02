@@ -37,7 +37,6 @@ const syncOfflineData = async () => {
         if (item.title !== undefined) payload.title = item.title;
         await supabase.from('notes').update(payload).eq('id', item.id);
       } else {
-        // Robust update logic for Journals. If created offline, it falls back to an insert.
         const { data, error } = await supabase.from('journal_entries')
           .update({ content: item.content, updated_at: item.updated_at })
           .eq('entry_date', item.id)
@@ -456,7 +455,7 @@ export default function NotesPage() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2.5 text-[#3d3b33] dark:text-[#f0f0f0]">
               <Library size={20} className="text-[#c2956e]" />
-              <h1 className="text-2xl font-serif italic font-medium tracking-tight">
+              <h1 className="text-2xl font-serif font-medium tracking-tight">
                 {isTrashOpen ? 'Trash' : 'Library'}
               </h1>
             </div>
@@ -495,7 +494,7 @@ export default function NotesPage() {
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[#b0ad9a]" size={14} />
               <input 
-                type="text" placeholder={`Search ${isTrashOpen ? 'trash' : notesTab}...`} value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
+                type="text" placeholder={`Search ${isTrashOpen ? 'trash' : 'library'}...`} value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
                 spellCheck={false}
                 className="w-full bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] rounded-2xl pl-9 pr-4 py-2 text-sm outline-none focus:border-[#c2956e] dark:focus:border-[#b0855f] transition-all shadow-sm"
               />
@@ -524,7 +523,7 @@ export default function NotesPage() {
           {loading && notes.length === 0 && journals.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 gap-3 opacity-40">
               <Sparkles className="animate-pulse text-[#c2956e]" />
-              <span className="text-[10px] font-bold uppercase tracking-widest">Opening Vault...</span>
+              <span className="text-[10px] font-bold uppercase tracking-widest">Opening Library...</span>
             </div>
           ) : filteredItems.length > 0 ? (
             <>
@@ -591,12 +590,12 @@ export default function NotesPage() {
             </header>
             
             <div id="notes-scroll-container" className="flex-1 overflow-y-auto no-scrollbar scroll-smooth">
-              <div className="max-w-[1000px] mx-auto px-6 py-8 lg:py-10 lg:px-12 w-full animate-fade-up">
+              <div className="max-w-[1000px] mx-auto px-6 py-8 lg:py-10 lg:px-12 w-full">
                 <div className="mb-6">
                   {(!isTrashOpen && notesTab === 'journal') || selectedItem.isJournal ? (
                     <div className="space-y-1">
                       <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#c2956e]">Daily Entry</p>
-                      <h1 className="text-4xl lg:text-5xl text-[#3d3b33] dark:text-white font-serif italic leading-tight">
+                      <h1 className="text-4xl lg:text-5xl text-[#3d3b33] dark:text-white font-serif leading-tight">
                         {formatDateLabel(selectedItem.entry_date)}
                       </h1>
                     </div>
@@ -605,7 +604,7 @@ export default function NotesPage() {
                       value={editTitle} onChange={e => setEditTitle(e.target.value)} onBlur={updateNoteTitle} disabled={isTrashOpen}
                       placeholder="Title..."
                       spellCheck={false}
-                      className="text-4xl lg:text-5xl text-[#3d3b33] dark:text-white font-serif italic leading-tight bg-transparent outline-none w-full placeholder:text-[#e0ddd5] dark:placeholder:text-[#2a2a2a] transition-all" 
+                      className="text-4xl lg:text-5xl text-[#3d3b33] dark:text-white font-serif leading-tight bg-transparent outline-none w-full placeholder:text-[#e0ddd5] dark:placeholder:text-[#2a2a2a] transition-all" 
                     />
                   )}
                 </div>

@@ -14,7 +14,6 @@ export default function FocusDistribution({ rawSessions }: { rawSessions: any[] 
 
   const[excludedCategories, setExcludedCategories] = useState<Set<string>>(new Set());
 
-  // Process data: ensure at least 4 distinct items are shown, merge the rest < 10% into "Others"
   const { groupedData, activeData, totalActiveMinutes } = useMemo(() => {
     const map: Record<string, number> = {};
     let totalMinutes = 0;
@@ -34,11 +33,9 @@ export default function FocusDistribution({ rawSessions }: { rawSessions: any[] 
     let othersValue = 0;
 
     sortedRaw.forEach((item, index) => {
-      // Keep category separate if it's within the top 4 OR if it meets the 10% threshold
       if (index < MIN_VISIBLE_ITEMS || item.value >= threshold) {
         finalGroups.push(item);
       } else {
-        // Otherwise, add its value to "Others"
         othersValue += item.value;
       }
     });
@@ -47,7 +44,6 @@ export default function FocusDistribution({ rawSessions }: { rawSessions: any[] 
       finalGroups.push({ name: "Others", value: othersValue });
     }
 
-    // Filter out excluded categories from user clicking the legend
     const active = finalGroups.filter(c => !excludedCategories.has(c.name));
     const activeTotal = active.reduce((acc, curr) => acc + curr.value, 0);
 
@@ -78,7 +74,7 @@ export default function FocusDistribution({ rawSessions }: { rawSessions: any[] 
         <div className="bg-[#3d3b33] border border-white/10 px-4 py-2.5 rounded-xl shadow-xl flex items-center gap-3">
           <div className="w-3 h-3 rounded-full" style={{ backgroundColor: payload[0].payload.fill || payload[0].color }} />
           <span className="text-xs font-bold text-white uppercase tracking-wider">{payload[0].name}</span>
-          <span className="text-sm font-serif italic text-[#c2956e] ml-2">
+          <span className="text-sm font-serif text-[#c2956e] ml-2">
             {payload[0].value}m <span className="text-[10px] text-[#b0ad9a] ml-1">({pct}%)</span>
           </span>
         </div>
@@ -92,7 +88,6 @@ export default function FocusDistribution({ rawSessions }: { rawSessions: any[] 
   return (
     <div className="bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] rounded-[2.5rem] p-6 lg:p-8 shadow-sm h-auto lg:h-[350px] flex flex-col lg:flex-row items-center transition-colors">
       
-      {/* Pie Chart Section */}
       <div className="w-full lg:w-1/2 h-56 lg:h-full relative shrink-0">
         {activeData.length > 0 ? (
           <ResponsiveContainer width="100%" height="100%">
@@ -110,14 +105,12 @@ export default function FocusDistribution({ rawSessions }: { rawSessions: any[] 
         )}
         <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none p-4">
           <span className="text-[9px] font-bold uppercase tracking-widest text-[#b0ad9a] mb-1">Top Focus</span>
-          {/* Using whitespace-normal to prevent truncation with ... */}
-          <span className="text-sm md:text-base font-serif italic text-[#3d3b33] dark:text-[#f0f0f0] text-center leading-tight whitespace-normal break-words max-w-[120px]">
+          <span className="text-sm md:text-base font-serif text-[#3d3b33] dark:text-[#f0f0f0] text-center leading-tight whitespace-normal break-words max-w-[120px]">
             {topCategoryName}
           </span>
         </div>
       </div>
       
-      {/* Interactive Legend Section */}
       <div className="w-full lg:w-1/2 flex flex-col mt-6 lg:mt-0 lg:pl-6 h-auto lg:h-full max-h-[250px] lg:max-h-none">
         <div className="flex items-center gap-2 mb-3 text-[#b0ad9a] dark:text-[#7a7a7a] shrink-0">
             <Filter size={14} />

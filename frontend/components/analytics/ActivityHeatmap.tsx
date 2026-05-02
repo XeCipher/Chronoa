@@ -98,7 +98,7 @@ export default function ActivityHeatmap({ dailyMap }: { dailyMap: Record<string,
 
   const renderMonthPicker = () => {
     return (
-      <div ref={pickerRef} className="absolute top-12 right-0 mt-2 p-4 bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] rounded-2xl shadow-xl z-50 w-[240px] animate-fade-up">
+      <div ref={pickerRef} className="absolute top-12 right-0 mt-2 p-4 bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] rounded-2xl shadow-xl z-50 w-[240px]">
         <div className="flex justify-between items-center mb-4">
           <button onClick={() => setPickerYear(y => y - 1)} className="p-1 text-[#888] hover:text-[#c2956e]"><ChevronLeft size={16}/></button>
           <span className="text-sm font-bold text-[#3d3b33] dark:text-[#f0f0f0]">{pickerYear}</span>
@@ -132,7 +132,7 @@ export default function ActivityHeatmap({ dailyMap }: { dailyMap: Record<string,
     <div className="bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] rounded-[2.5rem] p-6 lg:p-8 shadow-sm flex flex-col transition-colors h-auto lg:h-[350px] min-h-[300px]">
       <div className="flex justify-between items-start mb-6 shrink-0">
         <div>
-          <h3 className="text-2xl font-medium text-[#3d3b33] dark:text-[#f0f0f0] italic font-serif">Master Canvas</h3>
+          <h3 className="text-2xl font-medium text-[#3d3b33] dark:text-[#f0f0f0] font-serif tracking-tight">Master Canvas</h3>
           <p className="text-[10px] font-bold uppercase tracking-widest text-[#b0ad9a] dark:text-[#7a7a7a] mt-1">12 Months of Focus</p>
         </div>
         
@@ -152,9 +152,7 @@ export default function ActivityHeatmap({ dailyMap }: { dailyMap: Record<string,
         </div>
 
         <div className="flex-1 overflow-hidden" dir="rtl">
-          {/* Added internal padding (pl-1 pr-3) to ensure no cutoff on edges */}
           <div className="flex flex-col w-max pl-1 pr-3 pb-1" dir="ltr">
-            
             <div className="relative w-full h-[20px] mb-1">
                {monthLabels.map((m, i) => (
                  <span key={i} className="absolute text-[9px] font-bold uppercase tracking-widest text-[#b0ad9a] dark:text-[#7a7a7a]" style={{ left: `calc(${m.weekIndex} * 15px)` }}>

@@ -5,7 +5,7 @@ export default function manifest(): MetadataRoute.Manifest {
   return {
     name: 'Chronoa',
     short_name: 'Chronoa',
-    description: 'Your personal sanctuary for productivity, focus, and reflection.',
+    description: 'Your personal workspace for productivity, focus, and reflection.',
     start_url: '/',
     display: 'standalone',
     background_color: '#f7f5f0',

@@ -10,7 +10,7 @@ export default function StreakCounter({ streak }: { streak: number }) {
       </div>
       <div>
         <p className="text-[10px] text-[#b0ad9a] dark:text-[#7a7a7a] font-bold uppercase tracking-[0.2em]">Current Streak</p>
-        <h4 className="text-4xl text-[#3d3b33] dark:text-[#f0f0f0] font-serif italic">
+        <h4 className="text-4xl text-[#3d3b33] dark:text-[#f0f0f0] font-serif tracking-tight">
           {streak} {streak === 1 ? 'Day' : 'Days'}
         </h4>
       </div>

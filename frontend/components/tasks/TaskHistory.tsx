@@ -85,7 +85,7 @@ export default function TaskHistory({ forceTrashView = false }: { forceTrashView
       <section>
         <div className="flex items-center gap-2 mb-6 text-[#7ca982] dark:text-[#8cbd92]">
           <Calendar size={20} />
-          <h3 className="text-2xl font-medium italic" style={{ fontFamily: 'var(--font-cormorant), serif' }}>
+          <h3 className="text-2xl font-medium font-serif tracking-tight">
             {forceTrashView ? 'Deleted Routines' : "Today's Routines"}
           </h3>
         </div>
@@ -105,7 +105,7 @@ export default function TaskHistory({ forceTrashView = false }: { forceTrashView
       <section>
         <div className="flex items-center gap-2 mb-6 text-[#c2956e] dark:text-[#d1a784]">
           <CheckCircle size={20} />
-          <h3 className="text-2xl font-medium italic" style={{ fontFamily: 'var(--font-cormorant), serif' }}>
+          <h3 className="text-2xl font-medium font-serif tracking-tight">
              {forceTrashView ? 'Deleted Tasks' : 'Completed Tasks'}
           </h3>
         </div>

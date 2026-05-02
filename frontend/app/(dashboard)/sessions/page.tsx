@@ -3,7 +3,7 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
-import { Clock, Search, Trash2, Edit2, PlayCircle, Timer, AlertCircle, ArrowLeft } from "lucide-react";
+import { Clock, Search, Trash2, Edit2, PlayCircle, Timer, ArrowLeft, History } from "lucide-react";
 import { useUiStore } from "@/store/uiStore";
 import { useRouter } from "next/navigation";
 
@@ -89,11 +89,14 @@ export default function SessionsPage() {
   });
 
   return (
-    <div className="max-w-5xl w-full min-h-full mx-auto p-4 md:p-12 space-y-12 animate-fade-up">
+    <div className="max-w-5xl w-full min-h-full mx-auto p-4 md:p-12 space-y-12">
       <header className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div>
-          <p className="text-[10px] text-[#c2956e] dark:text-[#d1a784] tracking-[0.3em] uppercase font-bold mb-2">Chronoa Database</p>
-          <h1 className="text-5xl md:text-6xl text-[#3d3b33] dark:text-[#f0f0f0] font-serif italic leading-none">Time Log</h1>
+          <p className="text-[10px] text-[#c2956e] dark:text-[#d1a784] tracking-[0.3em] uppercase font-bold mb-2 ml-1">Chronoa Database</p>
+          <div className="flex items-center gap-2.5 text-[#3d3b33] dark:text-[#f0f0f0]">
+            <Clock size={24} className="text-[#c2956e]" />
+            <h1 className="text-3xl md:text-4xl font-serif font-medium tracking-tight">Time Log</h1>
+          </div>
         </div>
         <div className="flex items-center gap-4">
           <button onClick={() => router.push('/')} className="flex items-center justify-center gap-2 px-6 py-3 bg-white dark:bg-[#1a1a1a] text-[#888] rounded-xl text-[10px] font-bold uppercase tracking-widest border border-[#e0ddd5] dark:border-[#333] hover:text-[#3d3b33] dark:hover:text-[#f0f0f0] transition-all shadow-sm">
@@ -155,7 +158,7 @@ export default function SessionsPage() {
               </div>
               
               <div className="flex items-center justify-between md:justify-end gap-6 w-full md:w-auto mt-2 md:mt-0">
-                <span className="text-xl font-serif italic text-[#3d3b33] dark:text-[#f0f0f0]">{formatDuration(session.duration_seconds)}</span>
+                <span className="text-xl font-serif text-[#3d3b33] dark:text-[#f0f0f0]">{formatDuration(session.duration_seconds)}</span>
                 <div className="opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 bg-[#f7f5f0] dark:bg-[#121212] p-1 rounded-lg border border-[#e0ddd5] dark:border-[#444]">
                   <button onClick={() => {setEditingId(session.id); setEditTitle(session.title || '')}} data-tooltip-id="global-tooltip" data-tooltip-content="Edit Title" className="p-1.5 text-[#b0ad9a] dark:text-[#7a7a7a] hover:text-[#c2956e] dark:hover:text-[#b0855f] rounded-md hover:bg-white dark:hover:bg-[#2a2a2a] transition-colors"><Edit2 size={16} /></button>
                   <button onClick={() => handleDelete(session.id)} data-tooltip-id="global-tooltip" data-tooltip-content="Delete Log" className="p-1.5 text-[#b0ad9a] dark:text-[#7a7a7a] hover:text-red-500 dark:hover:text-red-400 rounded-md hover:bg-white dark:hover:bg-[#2a2a2a] transition-colors"><Trash2 size={16} /></button>

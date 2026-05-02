@@ -74,7 +74,7 @@ export default function TimeOfDayRadar({ dailyMap }: { dailyMap: Record<string, 
   return (
     <div className="bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] rounded-[2.5rem] p-6 md:p-8 shadow-sm h-[400px] flex flex-col transition-colors">
       <div className="mb-2 text-center">
-        <h3 className="text-2xl font-medium text-[#3d3b33] dark:text-[#f0f0f0] italic font-serif">Chronotype</h3>
+        <h3 className="text-2xl font-medium text-[#3d3b33] dark:text-[#f0f0f0] font-serif tracking-tight">Chronotype</h3>
         <p className="text-[10px] font-bold uppercase tracking-widest text-[#b0ad9a] dark:text-[#7a7a7a] mt-1">Peak Performance Zones</p>
       </div>
       

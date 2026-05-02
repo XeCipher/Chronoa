@@ -112,7 +112,7 @@ h1, h2, h3, h4 { font-family: var(--font-display); font-weight: 500; }
 
 /* ─── Soothing Task Vanishing Animation ────────────────────────────────── */
 
-@keyframes sanctuaryExit {
+@keyframes workspaceExit {
   0% {
     opacity: 1;
     transform: translateX(0) scale(1);
@@ -138,6 +138,6 @@ h1, h2, h3, h4 { font-family: var(--font-display); font-weight: 500; }
 }
 
 .task-vanishing-soothing {
-  animation: sanctuaryExit 0.8s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  animation: workspaceExit 0.8s cubic-bezier(0.4, 0, 0.2, 1) forwards;
   overflow: hidden;
 }

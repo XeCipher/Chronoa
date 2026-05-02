@@ -703,10 +703,7 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
         <div className="flex items-start justify-between gap-4">
           <div className="flex flex-col gap-1.5">
             <div className="flex items-center gap-2">
-              <h2
-                className="text-[22px] md:text-[26px] text-[#3d3b33] dark:text-[#f0f0f0] leading-none italic font-medium"
-                style={{ fontFamily: "var(--font-cormorant), serif" }}
-              >
+              <h2 className="text-[22px] md:text-[26px] text-[#3d3b33] dark:text-[#f0f0f0] leading-none font-medium font-serif tracking-tight">
                 {title}
               </h2>
               <button 

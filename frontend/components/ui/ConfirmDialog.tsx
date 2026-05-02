@@ -17,7 +17,7 @@ export default function ConfirmDialog() {
            {confirmDialog.isDestructive ? <AlertTriangle size={28} /> : <Info size={28} />}
         </div>
         
-        <h3 className="text-3xl font-serif italic text-[#3d3b33] dark:text-[#f0f0f0] mb-2 leading-tight">
+        <h3 className="text-3xl font-serif text-[#3d3b33] dark:text-[#f0f0f0] mb-2 leading-tight">
           {confirmDialog.title}
         </h3>
         

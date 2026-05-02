@@ -39,14 +39,14 @@ export default function CategoryPieChart({ data }: { data: any[] }) {
 
   return (
     <div className="bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] rounded-[2.5rem] p-8 md:p-10 shadow-sm h-[450px] flex flex-col overflow-hidden transition-colors">
-      <h3 className="text-2xl font-medium text-[#3d3b33] dark:text-[#f0f0f0] mb-4 italic shrink-0" style={{ fontFamily: 'var(--font-cormorant), serif' }}>
+      <h3 className="text-2xl font-medium text-[#3d3b33] dark:text-[#f0f0f0] mb-4 shrink-0 font-serif tracking-tight">
         Focus Distribution
       </h3>
       
       <div className="flex-1 w-full relative min-h-0 flex flex-col">
         <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none pb-16">
           <span className="text-[10px] text-[#b0ad9a] dark:text-[#7a7a7a] font-bold uppercase tracking-widest">Total</span>
-          <span className="text-3xl font-serif italic text-[#3d3b33] dark:text-[#f0f0f0] leading-none mt-1">
+          <span className="text-3xl font-serif text-[#3d3b33] dark:text-[#f0f0f0] leading-none mt-1">
             {hours > 0 ? `${hours}h ${mins}m` : `${mins}m`}
           </span>
         </div>
@@ -76,7 +76,6 @@ export default function CategoryPieChart({ data }: { data: any[] }) {
           </ResponsiveContainer>
         </div>
 
-        {/* Legend container constrained and allowed to scroll to prevent breaking mobile layouts */}
         <div className="mt-auto pt-4 flex flex-wrap justify-center gap-2 overflow-y-auto no-scrollbar max-h-[90px] content-start shrink-0">
           {data.map((cat, i) => {
             const isDisabled = disabledCategories.includes(cat.name);
