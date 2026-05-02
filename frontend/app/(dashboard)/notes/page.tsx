@@ -148,11 +148,11 @@ export default function NotesPage() {
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
-      if (desktopCalRef.current && !desktopCalRef.current.contains(e.target as Node)) {
-        const target = e.target as HTMLElement;
-        if (target.closest('.desktop-cal-toggle')) return;
-        setShowCalendar(false);
+      const target = e.target as HTMLElement;
+      if (target.closest('.chronoa-calendar-container') || target.closest('.desktop-cal-toggle') || target.closest('.mobile-cal-toggle')) {
+        return;
       }
+      setShowCalendar(false);
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
@@ -369,8 +369,8 @@ export default function NotesPage() {
   }, [autoSelectPending, loading, filteredItems, isTrashOpen, notesTab]);
 
   const Snippet = ({ html, query }: { html: string, query: string }) => {
-    const plain = (html || "").replace(/<[^>]+>/g, ' ').replace(/\s+/g, 'Im ').trim();
-    if (!plain) return <span className="text-[#b0ad9a] dark:text-[#555] italic">Start typing...</span>;
+    const plain = (html || "").replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+    if (!plain) return <span className="text-[#b0ad9a] dark:text-[#555] opacity-50 italic">No content.</span>;
     if (!query.trim()) return <span className="opacity-70">{plain.slice(0, 80)}</span>;
     const idx = plain.toLowerCase().indexOf(query.toLowerCase());
     if (idx === -1) return <span className="opacity-70">{plain.slice(0, 80)}</span>;
@@ -407,7 +407,7 @@ export default function NotesPage() {
     for (let i = 1; i <= daysInMonth; i++) days.push(new Date(year, month, i));
 
     return (
-      <div ref={isMobilePopover ? null : desktopCalRef} className={isMobilePopover ? 'p-4 bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] rounded-2xl shadow-xl z-50 w-[260px]' : 'absolute top-12 right-0 mt-2 p-4 bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] rounded-2xl shadow-xl z-50 w-[260px] animate-fade-up'}>
+      <div ref={isMobilePopover ? null : desktopCalRef} className={`chronoa-calendar-container ${isMobilePopover ? 'p-4 bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] rounded-2xl shadow-xl z-50 w-[260px]' : 'absolute top-12 right-0 mt-2 p-4 bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] rounded-2xl shadow-xl z-50 w-[260px] animate-fade-up'}`}>
         <div className="flex justify-between items-center mb-4">
           <button onClick={() => setCalMonth(new Date(year, month - 1, 1))} className="p-1 text-[#888] hover:text-[#c2956e]"><ChevronLeft size={16}/></button>
           <span className="text-sm font-bold text-[#3d3b33] dark:text-[#f0f0f0] uppercase tracking-widest">{calMonth.toLocaleString('default', { month: 'short' })} {year}</span>
@@ -649,7 +649,7 @@ export default function NotesPage() {
                if (notesTab === 'notes') createNote();
                else setShowCalendar(!showCalendar);
             }}
-            className="relative z-50 w-14 h-14 bg-white/30 dark:bg-black/30 backdrop-blur-lg border-2 border-[#c2956e]/50 dark:border-[#b0855f]/50 text-[#c2956e] dark:text-[#b0855f] rounded-full shadow-lg shadow-black/10 dark:shadow-black/30 flex items-center justify-center md:hover:scale-105 active:scale-95 transition-all"
+            className="mobile-cal-toggle relative z-50 w-14 h-14 bg-white/30 dark:bg-black/30 backdrop-blur-lg border-2 border-[#c2956e]/50 dark:border-[#b0855f]/50 text-[#c2956e] dark:text-[#b0855f] rounded-full shadow-lg shadow-black/10 dark:shadow-black/30 flex items-center justify-center md:hover:scale-105 active:scale-95 transition-all"
           >
             {notesTab === 'notes' ? <Plus size={24} strokeWidth={2.5} /> : (showCalendar ? <X size={22} /> : <CalendarDays size={22} />)}
           </button>

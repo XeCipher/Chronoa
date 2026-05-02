@@ -114,6 +114,13 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
     };
   }, [type]);
 
+  // Sync tasks state to cache whenever it changes (after initial load)
+  useEffect(() => {
+    if (!isLoading) {
+      localStorage.setItem(`chronoa_cache_tasks_${type}`, JSON.stringify(tasks));
+    }
+  }, [tasks, isLoading, type]);
+
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (
