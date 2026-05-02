@@ -6,10 +6,15 @@ import { useRouter } from "next/navigation";
 import { Task } from "@/types/app.types";
 import { 
   Plus, Trash2, Check, Timer, Hourglass, ChevronRight, ChevronLeft, 
-  MoreVertical, ArrowUp, ArrowDown, Palette, ChevronDown, Infinity as InfinityIcon, RotateCcw, Clock
+  MoreVertical, ArrowUp, ArrowDown, Palette, ChevronDown, Infinity as InfinityIcon, RotateCcw, Clock, GripVertical
 } from "lucide-react";
 import { useUiStore } from "@/store/uiStore";
 import { useTimerStore } from "@/store/timerStore";
+
+// dnd-kit context logic for sortable tree handling
+import { useSortable } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 
 interface Props {
   task: Task;
@@ -45,6 +50,21 @@ export default function RecursiveCheckbox({
   const [initialTitle] = useState(task.title);
   const [isExpanded, setIsExpanded] = useState(false);
   const [isOverflowing, setIsOverflowing] = useState(false);
+
+  // Setup draggable behavior gracefully enabled ONLY if we are in 'focus' mode
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ 
+    id: task.id,
+    disabled: viewMode !== 'focus' 
+  });
+  
+  // Notice we use CSS.Translate to completely prevent nested task height distortion during swap
+  const sortableStyle = {
+    transform: CSS.Translate.toString(transform), 
+    transition,
+    opacity: isDragging ? 0.4 : undefined,
+    zIndex: isDragging ? 50 : undefined,
+    position: isDragging ? "relative" as const : undefined,
+  };
 
   const isRoutine = task.task_type === 'routine';
   const isNormal = task.task_type === 'normal';
@@ -86,25 +106,26 @@ export default function RecursiveCheckbox({
   }, [activeTaskIdWithMenu, task.id, setActiveTaskIdWithMenu]);
 
   useEffect(() => {
-  if (newTaskId === task.id) {
-    setTimeout(() => {
-      const el = textRef.current;
-      if (el) {
-        el.focus();
-        if (typeof window.getSelection !== "undefined" && typeof document.createRange !== "undefined") {
-          const range = document.createRange();
-          range.selectNodeContents(el);
-          const sel = window.getSelection();
-          if (sel) {
-            sel.removeAllRanges();
-            sel.addRange(range);
+    if (newTaskId === task.id) {
+      setTimeout(() => {
+        const el = textRef.current;
+        if (el) {
+          el.focus();
+          if (typeof window.getSelection !== "undefined" && typeof document.createRange !== "undefined") {
+            const range = document.createRange();
+            range.selectNodeContents(el);
+            // Removing range.collapse entirely guarantees the whole word is selected natively
+            const sel = window.getSelection();
+            if (sel) {
+              sel.removeAllRanges();
+              sel.addRange(range);
+            }
           }
         }
-      }
-      setNewTaskId(null);
-    }, 50);
-  }
-}, [newTaskId, task.id, setNewTaskId]);
+        setNewTaskId(null);
+      }, 100); 
+    }
+  }, [newTaskId, task.id, setNewTaskId]);
 
   useEffect(() => {
     if (textRef.current && document.activeElement !== textRef.current) {
@@ -223,14 +244,49 @@ export default function RecursiveCheckbox({
   };
   const descendantColors = isCollapsed ? getDescendantColors(task) : [];
 
+  const renderChildren = () => (
+    task.children!.map((child) => (
+      <RecursiveCheckbox 
+        key={child.id} 
+        task={child} 
+        isEditMode={isEditMode} 
+        viewMode={viewMode}
+        allTasks={allTasks}
+        isFlatList={isFlatList}
+        onUpdate={onUpdate} 
+        onDelete={onDelete} 
+        onRestore={onRestore}
+        onAdd={onAdd} 
+        onIndent={onIndent} 
+        onUnindent={onUnindent} 
+        onMoveUp={onMoveUp}
+        onMoveDown={onMoveDown}
+        depth={depth + 1} 
+        newTaskId={newTaskId} 
+        setNewTaskId={setNewTaskId} 
+      />
+    ))
+  );
+
   return (
-    <div className={`flex flex-col w-full ${isVanishingNow ? "task-vanishing-soothing" : ""}`}>
+    <div ref={setNodeRef} style={sortableStyle} className={`flex flex-col w-full ${isVanishingNow ? "task-vanishing-soothing" : ""}`}>
       <div 
         ref={containerRef}
         onClick={handleRowClick}
         className={`group relative flex items-center gap-3 py-[7px] px-3 rounded-xl transition-all duration-150 ${activeColorStyle} ${isMenuOpen ? "z-10" : ""}`}
       >
         
+        {/* Beautiful DND Grip Handle */}
+        {viewMode === 'focus' && (
+          <div 
+            {...attributes} 
+            {...listeners} 
+            className={`cursor-grab active:cursor-grabbing text-[#c4c0b8] dark:text-[#555] hover:text-[#c2956e] dark:hover:text-[#b0855f] p-1 -ml-2 -mr-1 md:mr-1 transition-opacity touch-none ${isDragging ? 'opacity-100' : 'opacity-30 md:opacity-0 md:group-hover:opacity-100'}`}
+          >
+            <GripVertical size={14} />
+          </div>
+        )}
+
         {/* Checkbox */}
         <button 
           onClick={(e) => { 
@@ -431,27 +487,13 @@ export default function RecursiveCheckbox({
 
       {!isFlatList && !isCollapsed && hasChildren && (
         <div className="ml-[34px] mt-[1px] mb-[2px] pl-4 border-l border-[#ebe8e2] dark:border-[#2a2a2a] space-y-[1px]">
-          {task.children!.map((child) => (
-            <RecursiveCheckbox 
-              key={child.id} 
-              task={child} 
-              isEditMode={isEditMode} 
-              viewMode={viewMode}
-              allTasks={allTasks}
-              isFlatList={isFlatList}
-              onUpdate={onUpdate} 
-              onDelete={onDelete} 
-              onRestore={onRestore}
-              onAdd={onAdd} 
-              onIndent={onIndent} 
-              onUnindent={onUnindent} 
-              onMoveUp={onMoveUp}
-              onMoveDown={onMoveDown}
-              depth={depth + 1} 
-              newTaskId={newTaskId} 
-              setNewTaskId={setNewTaskId} 
-            />
-          ))}
+          {viewMode === 'focus' ? (
+            <SortableContext items={task.children!.map(c => c.id)} strategy={verticalListSortingStrategy}>
+              {renderChildren()}
+            </SortableContext>
+          ) : (
+            renderChildren()
+          )}
         </div>
       )}
     </div>

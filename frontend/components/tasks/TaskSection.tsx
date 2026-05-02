@@ -9,11 +9,38 @@ import { Plus, Edit3, CheckCircle2, ChevronDown, ChevronUp } from "lucide-react"
 import { useUiStore } from "@/store/uiStore";
 import { flushSync } from "react-dom";
 
+// dnd-kit imports for drag and drop functionality
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  verticalListSortingStrategy,
+  arrayMove,
+  sortableKeyboardCoordinates,
+} from "@dnd-kit/sortable";
+
 interface Props {
   type: "routine" | "normal";
   title: string;
   viewMode?: 'focus' | 'archive' | 'trash';
   searchQuery?: string;
+}
+
+// Generate a stable UUID for new tasks to avoid remount/flicker
+function generateUUID() {
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID();
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    const r = Math.random() * 16 | 0;
+    const v = c === 'x' ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
 }
 
 export default function TaskSection({ type, title, viewMode = 'focus', searchQuery = '' }: Props) {
@@ -30,10 +57,22 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
   const [now, setNow] = useState(Date.now());
   const sectionRef = useRef<HTMLDivElement>(null);
 
+  // Set up pointer sensor with distance constraint to prevent accidental drags on clicks
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 5,
+      },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
   const isCollapsedMobile = type === 'routine' ? mobileRoutineCollapsed : mobileTasksCollapsed;
 
   const fetchTasks = async () => {
-    let { data, error } = await supabase
+    let { data } = await supabase
       .from("tasks")
       .select("*")
       .eq("task_type", type)
@@ -255,11 +294,12 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
       }
     }
 
-    const tempId = 'temp_' + Date.now();
+    // Generate stable client-side UUID so component key never remounts/flickers
+    const newId = generateUUID();
     const tempTask: Task = {
-      id: tempId,
+      id: newId,
       user_id: user.id,
-      title: "New Item",
+      title: "New Item", 
       task_type: type,
       parent_id: parentId,
       position: newPosition,
@@ -275,26 +315,23 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
 
     flushSync(() => {
       setTasks((prev) => [...prev, tempTask]);
-      setNewTaskId(tempId);
+      setNewTaskId(newId);
     });
 
-    const { data } = await supabase
+    const { error } = await supabase
       .from("tasks")
       .insert({
+        id: newId,
         user_id: user.id,
         title: "New Item",
         task_type: type,
         parent_id: parentId,
         position: newPosition,
-      })
-      .select()
-      .single();
+      });
 
-    if (data) {
-      setTasks((prev) => prev.map(t => t.id === tempId ? data : t));
-      setNewTaskId(data.id);
-    } else {
-      setTasks((prev) => prev.filter(t => t.id !== tempId));
+    if (error) {
+      console.error("Failed inserting new task", error);
+      setTasks((prev) => prev.filter(t => t.id !== newId));
     }
   };
 
@@ -460,9 +497,7 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
       try {
         await Promise.all(
           tasksToUpdate.map((u) => {
-            if (!u.id.startsWith('temp_')) {
-              return supabase.from("tasks").update(u.updates).eq("id", u.id);
-            }
+            return supabase.from("tasks").update(u.updates).eq("id", u.id);
           })
         );
       } catch (err) {
@@ -515,9 +550,7 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
       try {
         await Promise.all(
           tasksToUpdate.map((u) => {
-            if (!u.id.startsWith('temp_')) {
-              return supabase.from("tasks").update(u.updates).eq("id", u.id);
-            }
+            return supabase.from("tasks").update(u.updates).eq("id", u.id);
           })
         );
       } catch (err) {
@@ -526,9 +559,123 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
     }
   };
 
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+
+    const activeTask = tasks.find((t) => t.id === active.id);
+    const overTask = tasks.find((t) => t.id === over.id);
+
+    if (activeTask && overTask && activeTask.parent_id === overTask.parent_id) {
+      const siblings = tasks
+        .filter((t) => t.parent_id === activeTask.parent_id)
+        .sort((a, b) => a.position - b.position);
+
+      const oldIndex = siblings.findIndex((t) => t.id === active.id);
+      const newIndex = siblings.findIndex((t) => t.id === over.id);
+
+      const newSiblings = arrayMove(siblings, oldIndex, newIndex);
+      const tasksToUpdate = newSiblings.map((t, i) => ({
+        id: t.id,
+        updates: { position: i },
+      }));
+
+      setTasks((prev) =>
+        prev.map((t) => {
+          const update = tasksToUpdate.find((u) => u.id === t.id);
+          return update ? { ...t, ...update.updates } : t;
+        })
+      );
+
+      try {
+        await Promise.all(
+          tasksToUpdate.map((u) => supabase.from("tasks").update(u.updates).eq("id", u.id))
+        );
+      } catch (err) {
+        console.error("Failed to reorder tasks", err);
+      }
+    }
+  };
+
   const toggleMobileCollapse = () => {
     if (type === 'routine') setMobileRoutineCollapsed(!mobileRoutineCollapsed);
     else setMobileTasksCollapsed(!mobileTasksCollapsed);
+  };
+
+  const renderContent = () => {
+    return (
+      <div className={`px-3 md:px-5 py-3 md:py-4 min-h-[60px] ${isCollapsedMobile ? 'hidden md:block' : 'block'}`}>
+        {isLoading ? (
+          <div className="space-y-3 py-2 px-3">
+            {[...Array(3)].map((_, i) => (
+              <div key={i} className="flex items-center gap-3">
+                <div className="w-[18px] h-[18px] rounded-[5px] bg-[#ebe8e2] dark:bg-[#333] animate-pulse" />
+                <div className="h-3 bg-[#ebe8e2] dark:bg-[#333] rounded-full animate-pulse w-full" />
+              </div>
+            ))}
+          </div>
+        ) : displayTasks.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-10 gap-2">
+            <span className="text-2xl opacity-20 dark:opacity-10 select-none text-[#3d3b33] dark:text-white">
+              ✦
+            </span>
+            <p className="text-[12px] text-[#c4c0b8] dark:text-[#555] tracking-wide uppercase font-bold">
+              {viewMode === 'archive' ? 'No Completed Records' : viewMode === 'trash' ? 'Trash is Empty' : 'Clear Space'}
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-[2px]">
+            {viewMode === "focus" ? (
+              <SortableContext items={displayTasks.map((t) => t.id)} strategy={verticalListSortingStrategy}>
+                {displayTasks.map((t) => (
+                  <RecursiveCheckbox
+                    key={t.id}
+                    task={t}
+                    isEditMode={type === "normal" ? true : isEditMode}
+                    viewMode={viewMode}
+                    allTasks={tasks}
+                    isFlatList={false}
+                    onUpdate={onUpdate}
+                    onDelete={onDelete}
+                    onRestore={onRestore}
+                    onAdd={onAdd}
+                    onIndent={onIndent}
+                    onUnindent={onUnindent}
+                    onMoveUp={onMoveUp}
+                    onMoveDown={onMoveDown}
+                    depth={0}
+                    newTaskId={newTaskId}
+                    setNewTaskId={setNewTaskId}
+                  />
+                ))}
+              </SortableContext>
+            ) : (
+              displayTasks.map((t) => (
+                <RecursiveCheckbox
+                  key={t.id}
+                  task={t}
+                  isEditMode={type === "normal" ? true : isEditMode}
+                  viewMode={viewMode}
+                  allTasks={tasks}
+                  isFlatList={viewMode === 'trash' || (viewMode === 'archive' && archiveLayout === 'list')}
+                  onUpdate={onUpdate}
+                  onDelete={onDelete}
+                  onRestore={onRestore}
+                  onAdd={onAdd}
+                  onIndent={onIndent}
+                  onUnindent={onUnindent}
+                  onMoveUp={onMoveUp}
+                  onMoveDown={onMoveDown}
+                  depth={0}
+                  newTaskId={newTaskId}
+                  setNewTaskId={setNewTaskId}
+                />
+              ))
+            )}
+          </div>
+        )}
+      </div>
+    );
   };
 
   return (
@@ -610,51 +757,13 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
         </div>
       </div>
 
-      <div className={`px-3 md:px-5 py-3 md:py-4 min-h-[60px] ${isCollapsedMobile ? 'hidden md:block' : 'block'}`}>
-        {isLoading ? (
-          <div className="space-y-3 py-2 px-3">
-            {[...Array(3)].map((_, i) => (
-              <div key={i} className="flex items-center gap-3">
-                <div className="w-[18px] h-[18px] rounded-[5px] bg-[#ebe8e2] dark:bg-[#333] animate-pulse" />
-                <div className="h-3 bg-[#ebe8e2] dark:bg-[#333] rounded-full animate-pulse w-full" />
-              </div>
-            ))}
-          </div>
-        ) : displayTasks.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-10 gap-2">
-            <span className="text-2xl opacity-20 dark:opacity-10 select-none text-[#3d3b33] dark:text-white">
-              ✦
-            </span>
-            <p className="text-[12px] text-[#c4c0b8] dark:text-[#555] tracking-wide uppercase font-bold">
-              {viewMode === 'archive' ? 'No Completed Records' : viewMode === 'trash' ? 'Trash is Empty' : 'Clear Space'}
-            </p>
-          </div>
-        ) : (
-          <div className="space-y-[2px]">
-            {displayTasks.map((t) => (
-              <RecursiveCheckbox
-                key={t.id}
-                task={t}
-                isEditMode={type === "normal" ? true : isEditMode}
-                viewMode={viewMode}
-                allTasks={tasks}
-                isFlatList={viewMode === 'trash' || (viewMode === 'archive' && archiveLayout === 'list')}
-                onUpdate={onUpdate}
-                onDelete={onDelete}
-                onRestore={onRestore}
-                onAdd={onAdd}
-                onIndent={onIndent}
-                onUnindent={onUnindent}
-                onMoveUp={onMoveUp}
-                onMoveDown={onMoveDown}
-                depth={0}
-                newTaskId={newTaskId}
-                setNewTaskId={setNewTaskId}
-              />
-            ))}
-          </div>
-        )}
-      </div>
+      {viewMode === "focus" ? (
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+          {renderContent()}
+        </DndContext>
+      ) : (
+        renderContent()
+      )}
 
       {isEditMode && type === "routine" && viewMode === "focus" && (
         <div className={`px-5 pb-5 ${isCollapsedMobile ? 'hidden md:block' : 'block'}`}>
