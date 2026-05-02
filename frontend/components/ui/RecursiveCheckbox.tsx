@@ -87,18 +87,32 @@ export default function RecursiveCheckbox({
 
   useEffect(() => {
     if (newTaskId === task.id) {
-      setNewTaskId(null); 
-      if (textRef.current) {
-        textRef.current.focus();
-        const range = document.createRange();
-        range.selectNodeContents(textRef.current);
-        range.collapse(false);
-        const sel = window.getSelection();
-        sel?.removeAllRanges();
-        sel?.addRange(range);
-      }
+      // 1. Immediately clear the ID so this doesn't run twice
+      setNewTaskId(null);
+
+      const el = textRef.current;
+      if (!el) return;
+
+      // 2. Wait for the browser to finish all current paints and click events
+      requestAnimationFrame(() => {
+        setTimeout(() => {
+          // Force focus
+          el.focus();
+
+          // Safely apply selection to the entire text
+          if (typeof window.getSelection !== "undefined" && typeof document.createRange !== "undefined") {
+            const range = document.createRange();
+            range.selectNodeContents(el);
+            const sel = window.getSelection();
+            if (sel) {
+              sel.removeAllRanges();
+              sel.addRange(range);
+            }
+          }
+        }, 10); // 10ms delay breaks out of React's synchronous event loop
+      });
     }
-  },[newTaskId, task.id, setNewTaskId]);
+  }, [newTaskId, task.id, setNewTaskId]);
 
   useEffect(() => {
     if (textRef.current && document.activeElement !== textRef.current) {
@@ -111,9 +125,17 @@ export default function RecursiveCheckbox({
   const saveCurrentText = () => {
     if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
     if (!textRef.current) return;
-    const newTitle = textRef.current.textContent || '';
-    if (newTitle.trim() && newTitle !== task.title) {
-      onUpdate(task.id, { title: newTitle.trim() });
+    
+    let newTitle = textRef.current.textContent || '';
+    if (!newTitle.trim()) {
+      newTitle = "New Item";
+      textRef.current.textContent = newTitle;
+    } else {
+      newTitle = newTitle.trim();
+    }
+
+    if (newTitle !== task.title) {
+      onUpdate(task.id, { title: newTitle });
     }
   };
 
@@ -121,7 +143,9 @@ export default function RecursiveCheckbox({
     if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
     saveTimeoutRef.current = setTimeout(() => {
       const newTitle = textRef.current?.textContent || '';
-      if (newTitle.trim() && newTitle !== task.title) {
+      // We only execute auto-save internally if text exists to prevent visual glitching 
+      // where it immediately switches back. The onBlur fallback will elegantly handle empty situations.
+      if (newTitle.trim() && newTitle.trim() !== task.title) {
         onUpdate(task.id, { title: newTitle.trim() });
       }
     }, 1000);
@@ -137,7 +161,7 @@ export default function RecursiveCheckbox({
   };
 
   const getPath = (t: Task) => {
-    let path: string[] =[];
+    let path: string[] = [];
     let cur = t;
     while (cur.parent_id) {
        const p = allTasks.find(x => x.id === cur.parent_id);
@@ -172,7 +196,7 @@ export default function RecursiveCheckbox({
     }
   };
 
-  const availableColors =[
+  const availableColors = [
     { id: 'none', bg: 'bg-[#e0ddd5] dark:bg-[#555]' },
     { id: 'rose', bg: 'bg-rose-400 dark:bg-rose-500' },
     { id: 'amber', bg: 'bg-amber-400 dark:bg-amber-500' },
@@ -207,7 +231,7 @@ export default function RecursiveCheckbox({
     if (node.children) node.children.forEach(traverse);
     return Array.from(colors);
   };
-  const descendantColors = isCollapsed ? getDescendantColors(task) :[];
+  const descendantColors = isCollapsed ? getDescendantColors(task) : [];
 
   return (
     <div className={`flex flex-col w-full ${isVanishingNow ? "task-vanishing-soothing" : ""}`}>

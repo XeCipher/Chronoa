@@ -17,17 +17,17 @@ interface Props {
 }
 
 export default function TaskSection({ type, title, viewMode = 'focus', searchQuery = '' }: Props) {
-  const[tasks, setTasks] = useState<Task[]>([]);
+  const [tasks, setTasks] = useState<Task[]>([]);
   const [isEditMode, setIsEditMode] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const[newTaskId, setNewTaskId] = useState<string | null>(null);
+  const [newTaskId, setNewTaskId] = useState<string | null>(null);
   
   const { 
     taskArchiveDelay, moveCompletedToBottom, keepParentTaskAlive, addTaskAtTop, archiveLayout, archiveSort,
     mobileRoutineCollapsed, mobileTasksCollapsed, setMobileRoutineCollapsed, setMobileTasksCollapsed
   } = useUiStore();
   
-  const[now, setNow] = useState(Date.now());
+  const [now, setNow] = useState(Date.now());
   const sectionRef = useRef<HTMLDivElement>(null);
 
   const isCollapsedMobile = type === 'routine' ? mobileRoutineCollapsed : mobileTasksCollapsed;
@@ -89,8 +89,8 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
 
   const displayTasks = useMemo(() => {
     const map: Record<string, Task> = {};
-    tasks.forEach((t) => (map[t.id] = { ...t, children:[] }));
-    const roots: Task[] =[];
+    tasks.forEach((t) => (map[t.id] = { ...t, children: [] }));
+    const roots: Task[] = [];
     
     tasks.forEach((t) => {
       if (t.parent_id && map[t.parent_id]) {
@@ -148,9 +148,9 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
     };
     
     return sort(tree);
-  },[tasks, viewMode, archiveLayout, archiveSort, searchQuery, isEditMode, now, delayMs, taskArchiveDelay, moveCompletedToBottom]);
+  }, [tasks, viewMode, archiveLayout, archiveSort, searchQuery, isEditMode, now, delayMs, taskArchiveDelay, moveCompletedToBottom]);
 
-  const flattenedVisibleTasks: Task[] =[];
+  const flattenedVisibleTasks: Task[] = [];
   const gatherVisible = (nodes: Task[]) => {
     nodes.forEach(n => { flattenedVisibleTasks.push(n); if (n.children) gatherVisible(n.children); });
   };
@@ -164,7 +164,7 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
     const isToggling = updates.hasOwnProperty("is_completed");
     const isDone = updates.is_completed;
     const completionTime = isDone ? new Date().toISOString() : null;
-    let tasksToUpdate: { id: string; updates: Partial<Task> }[] =[];
+    let tasksToUpdate: { id: string; updates: Partial<Task> }[] = [];
 
     if (isToggling) {
       const addChildrenToUpdate = (parentId: string) => {
@@ -259,7 +259,7 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
     const tempTask: Task = {
       id: tempId,
       user_id: user.id,
-      title: "",
+      title: "New Item",
       task_type: type,
       parent_id: parentId,
       position: newPosition,
@@ -282,7 +282,7 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
       .from("tasks")
       .insert({
         user_id: user.id,
-        title: "",
+        title: "New Item",
         task_type: type,
         parent_id: parentId,
         position: newPosition,
@@ -387,7 +387,7 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
     const newSiblings = tasks.filter((t) => t.parent_id === newParentId);
     const newPosition = parent.position + 1;
 
-    const tasksToUpdate: { id: string; updates: Partial<Task> }[] =[
+    const tasksToUpdate: { id: string; updates: Partial<Task> }[] = [
       { id: task.id, updates: { parent_id: newParentId, position: newPosition } },
     ];
 
@@ -416,16 +416,41 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
   };
 
   const onMoveUp = async (task: Task) => {
-    const siblings = tasks
-      .filter((t) => t.parent_id === task.parent_id)
-      .sort((a, b) => a.position - b.position);
-    const index = siblings.findIndex((t) => t.id === task.id);
-    
-    if (index > 0) {
-      const newSiblings = [...siblings];
-      [newSiblings[index - 1], newSiblings[index]] = [newSiblings[index], newSiblings[index - 1]];
+    // 1. Identify visually active siblings exactly as they render
+    const visibleSiblings = tasks
+      .filter((t) => 
+        t.parent_id === task.parent_id &&
+        t.deleted_at === null &&
+        (!t.is_completed || isEditMode || taskArchiveDelay < 0 || (t.completed_at && (now - new Date(t.completed_at).getTime() < delayMs)))
+      )
+      .sort((a, b) => {
+        if (moveCompletedToBottom && !isEditMode) {
+          if (a.is_completed !== b.is_completed) return a.is_completed ? 1 : -1;
+        }
+        return a.position - b.position;
+      });
 
-      const tasksToUpdate = newSiblings.map((t, i) => ({ id: t.id, updates: { position: i } }));
+    const visibleIndex = visibleSiblings.findIndex((t) => t.id === task.id);
+    
+    // 2. Perform raw swap with true visual target
+    if (visibleIndex > 0) {
+      const swapTarget = visibleSiblings[visibleIndex - 1];
+
+      const rawSiblings = tasks
+        .filter(t => t.parent_id === task.parent_id)
+        .sort((a, b) => a.position - b.position);
+
+      const rawTaskIndex = rawSiblings.findIndex(t => t.id === task.id);
+      
+      const newRawSiblings = [...rawSiblings];
+      const [removedTask] = newRawSiblings.splice(rawTaskIndex, 1);
+      
+      const adjustedTargetIndex = newRawSiblings.findIndex(t => t.id === swapTarget.id);
+      
+      // Insert just before the target
+      newRawSiblings.splice(adjustedTargetIndex, 0, removedTask);
+
+      const tasksToUpdate = newRawSiblings.map((t, i) => ({ id: t.id, updates: { position: i } }));
 
       setTasks((prevTasks) =>
         prevTasks.map((t) => {
@@ -449,16 +474,41 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
   };
 
   const onMoveDown = async (task: Task) => {
-    const siblings = tasks
-      .filter((t) => t.parent_id === task.parent_id)
-      .sort((a, b) => a.position - b.position);
-    const index = siblings.findIndex((t) => t.id === task.id);
-    
-    if (index < siblings.length - 1) {
-      const newSiblings = [...siblings];
-      [newSiblings[index + 1], newSiblings[index]] = [newSiblings[index], newSiblings[index + 1]];
+    // 1. Identify visually active siblings exactly as they render
+    const visibleSiblings = tasks
+      .filter((t) => 
+        t.parent_id === task.parent_id &&
+        t.deleted_at === null &&
+        (!t.is_completed || isEditMode || taskArchiveDelay < 0 || (t.completed_at && (now - new Date(t.completed_at).getTime() < delayMs)))
+      )
+      .sort((a, b) => {
+        if (moveCompletedToBottom && !isEditMode) {
+          if (a.is_completed !== b.is_completed) return a.is_completed ? 1 : -1;
+        }
+        return a.position - b.position;
+      });
 
-      const tasksToUpdate = newSiblings.map((t, i) => ({ id: t.id, updates: { position: i } }));
+    const visibleIndex = visibleSiblings.findIndex((t) => t.id === task.id);
+    
+    // 2. Perform raw swap with true visual target
+    if (visibleIndex > -1 && visibleIndex < visibleSiblings.length - 1) {
+      const swapTarget = visibleSiblings[visibleIndex + 1];
+
+      const rawSiblings = tasks
+        .filter(t => t.parent_id === task.parent_id)
+        .sort((a, b) => a.position - b.position);
+
+      const rawTaskIndex = rawSiblings.findIndex(t => t.id === task.id);
+      
+      const newRawSiblings = [...rawSiblings];
+      const [removedTask] = newRawSiblings.splice(rawTaskIndex, 1);
+      
+      const adjustedTargetIndex = newRawSiblings.findIndex(t => t.id === swapTarget.id);
+      
+      // Insert just after the target
+      newRawSiblings.splice(adjustedTargetIndex + 1, 0, removedTask);
+
+      const tasksToUpdate = newRawSiblings.map((t, i) => ({ id: t.id, updates: { position: i } }));
 
       setTasks((prevTasks) =>
         prevTasks.map((t) => {
@@ -470,9 +520,9 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
       try {
         await Promise.all(
           tasksToUpdate.map((u) => {
-             if (!u.id.startsWith('temp_')) {
-                return supabase.from("tasks").update(u.updates).eq("id", u.id);
-             }
+            if (!u.id.startsWith('temp_')) {
+              return supabase.from("tasks").update(u.updates).eq("id", u.id);
+            }
           })
         );
       } catch (err) {
