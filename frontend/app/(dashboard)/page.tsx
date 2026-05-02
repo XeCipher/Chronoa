@@ -17,6 +17,10 @@ export default function HomePage() {
   const forceShow = useTimerStore((state: any) => state.forceShowWidgets);
   const setForceShow = useTimerStore((state: any) => state.setForceShowWidgets);
   
+  const timers = useTimerStore((state: any) => state.timers);
+  const stopwatches = useTimerStore((state: any) => state.stopwatches);
+  const isAnyRunning = timers?.some((t: any) => t.isRunning) || stopwatches?.some((s: any) => s.isRunning);
+  
   const showWidget = isHovered || isPinned || isTouched || forceShow;
 
   return (
@@ -38,10 +42,9 @@ export default function HomePage() {
         className="hidden md:flex absolute bottom-8 left-1/2 -translate-x-1/2 flex-col items-center gap-2 pointer-events-none transition-all duration-700 z-20" 
         style={{ opacity: showWidget ? 0 : 0.5, transform: showWidget ? 'translateY(10px)' : 'translateY(0)' }}
       >
-        <div className="w-8 h-[2px] bg-[#888]/80 dark:bg-[#a0a0a0]/80 rounded-full animate-pulse" />
+        <div className={`transition-all duration-500 rounded-full animate-pulse ${isAnyRunning ? 'w-16 h-1.5 bg-red-500 shadow-[0_0_12px_rgba(239,68,68,0.8)]' : 'w-8 h-[2px] bg-[#888]/80 dark:bg-[#a0a0a0]/80'}`} />
       </div>
 
-      {/* FIXED: Removed the extra bottom-[calc...] offset which made it fly too high. It now correctly anchors to the padding boundary of the dashboard view */}
       <div 
         className="absolute bottom-0 left-0 w-full h-[15vh] md:h-[25vh] z-30 flex items-end justify-center pb-6 md:pb-10 group pointer-events-none md:pointer-events-auto"
         onMouseEnter={() => {
@@ -64,7 +67,7 @@ export default function HomePage() {
             if (forceShow) setForceShow(false);
           }}
         >
-          <div className="w-12 h-1.5 bg-[#3d3b33]/20 dark:bg-[#e0e0e0]/20 rounded-full" />
+          <div className={`transition-all duration-500 rounded-full ${isAnyRunning ? 'w-16 h-1.5 bg-red-500 shadow-[0_0_12px_rgba(239,68,68,0.8)] animate-pulse' : 'w-12 h-1.5 bg-[#3d3b33]/20 dark:bg-[#e0e0e0]/20'}`} />
         </div>
 
         {isTouched && !isPinned && (

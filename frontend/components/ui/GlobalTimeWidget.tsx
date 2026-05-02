@@ -186,6 +186,7 @@ export default function GlobalTimeWidget() {
     return list?.some(i => i.isRunning);
   };
 
+  const hasRunning = isAnyRunning('timer') || isAnyRunning('stopwatch');
   const activeList = store.activeTab === 'timer' ? store.timers : store.stopwatches;
   const isExpanded = isHovered || isGlobalTimeWidgetExpanded;
 
@@ -246,7 +247,9 @@ export default function GlobalTimeWidget() {
         <span className="relative z-10 text-[#3d3b33] dark:text-[#f0f0f0] font-serif text-xl leading-none">
           {time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
         </span>
-        <div className="relative z-10 w-[3px] h-3.5 bg-[#c2956e] dark:bg-[#b0855f] rounded-full" />
+        
+        <div className={`relative z-10 rounded-full transition-all duration-500 ${hasRunning ? 'w-2.5 h-2.5 bg-red-500 animate-pulse shadow-[0_0_8px_rgba(239,68,68,0.8)]' : 'w-[3px] h-3.5 bg-[#c2956e] dark:bg-[#b0855f]'}`} />
+        
         <span className="relative z-10 text-[#b0ad9a] dark:text-[#888] font-bold text-[10px] uppercase tracking-[0.2em] leading-none mt-0.5">
           {time.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' })}
         </span>
