@@ -80,6 +80,17 @@ export default function NotesPage() {
 
   const desktopCalRef = useRef<HTMLDivElement>(null);
 
+  const prevNotesTab = useRef(notesTab);
+  useEffect(() => {
+    if (prevNotesTab.current !== notesTab) {
+      setSelectedId(null);
+      setSearchQuery("");
+      setAutoSelectPending(true);
+      setShowCalendar(false);
+      prevNotesTab.current = notesTab;
+    }
+  }, [notesTab]);
+
   const handleTabChange = (id: Tab) => {
     setNotesTab(id);
     setSelectedId(null);
