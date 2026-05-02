@@ -162,7 +162,7 @@ export default function SettingsPage() {
   const modKey = os === 'mac' ? '⌥' : 'Alt';
 
   return (
-    <div className="max-w-4xl w-full min-h-full mx-auto p-4 md:p-12 space-y-12">
+    <div className="max-w-4xl w-full min-h-full mx-auto p-4 md:p-12 space-y-12 pb-32 md:pb-12">
       <header className="space-y-2">
         <div className="flex items-center gap-2.5 text-[#3d3b33] dark:text-[#f0f0f0]">
           <SettingsIcon size={24} className="text-[#c2956e]" />

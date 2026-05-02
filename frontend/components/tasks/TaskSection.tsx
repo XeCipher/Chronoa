@@ -129,7 +129,7 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [isEditMode, type]);
 
-  const onAddRef = useRef<(parentId: string | null) => Promise<void>>(() => Promise.resolve());
+  const onAddRef = useRef<(parentId: string | null, relativeToTask?: Task) => Promise<void>>(() => Promise.resolve());
 
   useEffect(() => {
     if (type !== 'normal') return;
@@ -286,7 +286,7 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
     }
   };
 
-  const onAdd = async (parentId: string | null = null) => {
+  const onAdd = async (parentId: string | null = null, relativeToTask?: Task) => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
@@ -298,14 +298,25 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
       supabase.from("tasks").update({ is_collapsed: false }).eq("id", parentId).then();
     }
 
-    const siblings = tasks.filter((t) => t.parent_id === parentId);
     let newPosition = 0;
-    
-    if (siblings.length > 0) {
-      if (addTaskAtTop) {
-        newPosition = Math.min(...siblings.map((t) => t.position)) - 1;
-      } else {
-        newPosition = Math.max(...siblings.map((t) => t.position)) + 1;
+    let shiftUpdates: { id: string, updates: Partial<Task> }[] = [];
+
+    if (relativeToTask) {
+      // Add just below the specific task
+      newPosition = relativeToTask.position + 1;
+      // Shift all siblings that currently occupy this or later positions
+      tasks
+        .filter(t => t.parent_id === parentId && t.position >= newPosition)
+        .forEach(t => shiftUpdates.push({ id: t.id, updates: { position: t.position + 1 } }));
+    } else {
+      // Default top/bottom logic for when parent is known but specific location isn't (like adding subtask)
+      const siblings = tasks.filter((t) => t.parent_id === parentId);
+      if (siblings.length > 0) {
+        if (addTaskAtTop) {
+          newPosition = Math.min(...siblings.map((t) => t.position)) - 1;
+        } else {
+          newPosition = Math.max(...siblings.map((t) => t.position)) + 1;
+        }
       }
     }
 
@@ -328,24 +339,34 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
     };
 
     flushSync(() => {
-      setTasks((prev) => [...prev, tempTask]);
+      // Apply shifts and new task locally
+      setTasks((prev) => {
+        const updatedList = prev.map(t => {
+          const shift = shiftUpdates.find(s => s.id === t.id);
+          return shift ? { ...t, ...shift.updates } : t;
+        });
+        return [...updatedList, tempTask];
+      });
       setNewTaskId(newId);
     });
 
-    const { error } = await supabase
-      .from("tasks")
-      .insert({
+    // Sync to DB
+    const results = await Promise.all([
+      supabase.from("tasks").insert({
         id: newId,
         user_id: user.id,
         title: "New Item",
         task_type: type,
         parent_id: parentId,
         position: newPosition,
-      });
+      }),
+      ...shiftUpdates.map(u => supabase.from("tasks").update(u.updates).eq("id", u.id))
+    ]);
 
+    const error = results.find(r => r.error);
     if (error) {
-      console.error("Failed inserting new task", error);
-      setTasks((prev) => prev.filter(t => t.id !== newId));
+      console.error("Failed adding task or shifting siblings", error);
+      fetchTasks(); // Re-sync if atomic operation failed
     }
   };
 

@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { Task } from "@/types/app.types";
 import { 
   Plus, Trash2, Check, Timer, Hourglass, ChevronRight, ChevronLeft, 
-  MoreVertical, ArrowUp, ArrowDown, Palette, ChevronDown, Infinity as InfinityIcon, RotateCcw, Clock, GripVertical
+  MoreVertical, ArrowUp, ArrowDown, Palette, ChevronDown, Infinity as InfinityIcon, RotateCcw, Clock, GripVertical, CornerDownRight
 } from "lucide-react";
 import { useUiStore } from "@/store/uiStore";
 import { useTimerStore } from "@/store/timerStore";
@@ -24,7 +24,7 @@ interface Props {
   onUpdate: (id: string, updates: Partial<Task>) => void;
   onDelete: (id: string, isPermanent: boolean) => void;
   onRestore: (id: string, mode: 'from_trash' | 'from_archive') => void;
-  onAdd: (parentId: string | null) => void;
+  onAdd: (parentId: string | null, relativeToTask?: Task) => void;
   onIndent: (task: Task) => void;
   onUnindent: (task: Task) => void;
   onMoveUp: (task: Task) => void;
@@ -402,11 +402,20 @@ export default function RecursiveCheckbox({
                      )}
                   </div>
 
+                  {/* Mobile Only: Add Subtask and Delete */}
                   {showManagementActions && (
                     <div className="flex md:hidden items-center bg-white dark:bg-[#252525] rounded-xl p-1 border border-[#e0ddd5] dark:border-[#333] shadow-sm shrink-0">
                       <button 
+                        onClick={() => onAdd(task.id)} 
+                        className="flex items-center justify-center p-1.5 rounded-lg text-[#888] hover:bg-[#f0ede8] dark:hover:bg-[#111] transition-colors" 
+                        data-tooltip-id="task-tooltip" data-tooltip-content="Add Subtask"
+                      >
+                        <CornerDownRight size={15} />
+                      </button>
+                      <div className="w-px h-4 bg-[#e0ddd5] dark:bg-[#444] mx-1" />
+                      <button 
                         onClick={() => onDelete(task.id, false)} 
-                        className="flex items-center justify-center p-1.5 rounded-lg text-red-500 md:hover:bg-red-50 md:dark:hover:bg-red-500/10 transition-colors" 
+                        className="flex items-center justify-center p-1.5 rounded-lg text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors" 
                         data-tooltip-id="task-tooltip" data-tooltip-content="Delete"
                       >
                         <Trash2 size={15} />
@@ -459,7 +468,11 @@ export default function RecursiveCheckbox({
                         {showKeepAliveToggle && (
                            <button onClick={() => onUpdate(task.id, { keep_alive: !task.keep_alive })} className={`hidden md:flex w-7 h-7 items-center justify-center rounded-lg transition-all ${task.keep_alive ? 'text-white bg-[#7ca982] dark:bg-[#6a9a70]' : 'text-[#c4c0b8] md:hover:text-[#7ca982] md:hover:bg-[#7ca982]/10'}`} data-tooltip-id="task-tooltip" data-tooltip-content="Keep parent task alive"><InfinityIcon size={14} /></button>
                         )}
-                        <button onClick={() => onAdd(task.id)} className={`w-7 h-7 flex items-center justify-center rounded-lg text-[#c4c0b8] md:hover:text-[#c2956e] md:hover:bg-[#c2956e]/10 transition-all ${isMenuOpen ? 'flex md:flex' : 'hidden md:flex'}`} data-tooltip-id="task-tooltip" data-tooltip-content="Add Subtask"><Plus size={14} /></button>
+                        {/* Desktop ONLY: Add Child */}
+                        <button onClick={() => onAdd(task.id)} className="hidden md:flex w-7 h-7 items-center justify-center rounded-lg text-[#c4c0b8] md:hover:text-[#c2956e] md:hover:bg-[#c2956e]/10 transition-all" data-tooltip-id="task-tooltip" data-tooltip-content="Add Subtask"><CornerDownRight size={14} /></button>
+                        {/* Add Sibling: Always on desktop hover, visible on mobile when menu open */}
+                        <button onClick={() => onAdd(task.parent_id, task)} className={`w-7 h-7 flex items-center justify-center rounded-lg text-[#c4c0b8] md:hover:text-[#c2956e] md:hover:bg-[#c2956e]/10 transition-all ${isMenuOpen ? 'flex' : 'hidden md:flex'}`} data-tooltip-id="task-tooltip" data-tooltip-content="Add Sibling Below"><Plus size={14} /></button>
+                        {/* Desktop ONLY: Delete */}
                         <button onClick={() => onDelete(task.id, false)} className="hidden md:flex w-7 h-7 items-center justify-center rounded-lg text-[#c4c0b8] md:hover:text-red-500 md:hover:bg-red-500/10 transition-all" data-tooltip-id="task-tooltip" data-tooltip-content="Delete"><Trash2 size={14} /></button>
                       </>
                   )}

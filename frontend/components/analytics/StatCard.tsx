@@ -34,7 +34,7 @@ const textColorMaps = {
 
 export default function StatCard({ title, value, subValue, icon: Icon, color }: Props) {
   return (
-    <div className="bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] rounded-[1.5rem] p-4 md:p-5 flex flex-col justify-between hover:border-[#c2956e]/40 dark:hover:border-[#b0855f]/50 transition-all duration-300 shadow-sm hover:shadow-md group relative overflow-hidden h-full min-h-[110px] md:min-h-[120px]">
+    <div className="bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] rounded-[1.5rem] p-4 md:p-5 flex flex-col justify-between hover:border-[#c2956e]/40 dark:hover:border-[#b0855f]/50 transition-all duration-300 shadow-sm hover:shadow-md group relative overflow-hidden isolate transform-gpu [mask-image:radial-gradient(white,black)] h-full min-h-[110px] md:min-h-[120px]">
       
       <div className={`absolute -right-6 -top-6 w-24 h-24 rounded-full blur-[40px] opacity-10 dark:opacity-20 transition-opacity duration-500 group-hover:opacity-30 dark:group-hover:opacity-40 ${bgGradients[color]} pointer-events-none`} />
 
