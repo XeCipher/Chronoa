@@ -181,64 +181,127 @@ const AdeptBadge = () => (
 const BlossomBadge = () => (
   <svg viewBox="0 0 120 120" className="w-full h-full drop-shadow-xl" xmlns="http://www.w3.org/2000/svg">
     <defs>
+      <style>{`
+        @keyframes blossom-cw   { to   { transform: rotate(360deg);  } }
+        @keyframes blossom-ccw  { to   { transform: rotate(-360deg); } }
+        @keyframes blossom-cw45 { from { transform: rotate(45deg);   }
+                                   to   { transform: rotate(405deg);  } }
+      `}</style>
+
       <linearGradient id="blossom-pink" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" stopColor="#ffb6c1" />
-        <stop offset="50%" stopColor="#ff69b4" />
+        <stop offset="0%"   stopColor="#ffc0cb" />
+        <stop offset="40%"  stopColor="#ff69b4" />
         <stop offset="100%" stopColor="#c71585" />
       </linearGradient>
+      <linearGradient id="blossom-petal-a" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%"   stopColor="#ffe4e1" />
+        <stop offset="100%" stopColor="#ff1493" />
+      </linearGradient>
+      <linearGradient id="blossom-petal-b" x1="0%" y1="100%" x2="100%" y2="0%">
+        <stop offset="0%"   stopColor="#ff69b4" />
+        <stop offset="100%" stopColor="#ffb6c1" />
+      </linearGradient>
       <radialGradient id="blossom-glow" cx="50%" cy="50%" r="50%">
-        <stop offset="0%" stopColor="#ffffff" stopOpacity="0.9" />
-        <stop offset="50%" stopColor="#ff69b4" stopOpacity="0.5" />
-        <stop offset="100%" stopColor="#ff1493" stopOpacity="0" />
+        <stop offset="0%"   stopColor="#ffffff" stopOpacity="1"   />
+        <stop offset="40%"  stopColor="#ff69b4" stopOpacity="0.6" />
+        <stop offset="100%" stopColor="#ff1493" stopOpacity="0"   />
+      </radialGradient>
+      <radialGradient id="blossom-gem" cx="40%" cy="30%" r="65%">
+        <stop offset="0%"   stopColor="#fff0f5" />
+        <stop offset="50%"  stopColor="#ff69b4" />
+        <stop offset="100%" stopColor="#8b0045" />
       </radialGradient>
       <filter id="shadow-blossom">
-        <feDropShadow dx="0" dy="6" stdDeviation="5" floodOpacity="0.6" floodColor="#ff69b4" />
+        <feDropShadow dx="0" dy="6" stdDeviation="5" floodOpacity="0.7" floodColor="#ff1493" />
       </filter>
     </defs>
+
     <g filter="url(#shadow-blossom)">
-      {/* Glowing Aura */}
-      <circle cx="60" cy="60" r="45" fill="url(#blossom-glow)">
-        <animate begin="0s" attributeName="opacity" values="0.5; 1; 0.5" dur="3s" repeatCount="indefinite" />
+
+      {/* Pulsing outer glow — opacity only, no rotation needed */}
+      <circle cx="60" cy="60" r="52" fill="url(#blossom-glow)">
+        <animate attributeName="opacity" values="0.3; 0.85; 0.3" dur="3s" repeatCount="indefinite" />
       </circle>
 
-      {/* Outer Blooming Stars - Rotating clockwise */}
-      <g>
-        <animateTransform begin="0s" attributeName="transform" type="rotate" from="0 60 60" to="360 60 60" dur="24s" repeatCount="indefinite" />
-        <path d="M60 5 L68 40 L103 40 L76 60 L85 95 L60 75 L35 95 L44 60 L17 40 L52 40 Z" fill="url(#blossom-pink)" opacity="0.7" />
-        <path d="M60 5 L68 40 L103 40 L76 60 L85 95 L60 75 L35 95 L44 60 L17 40 L52 40 Z" fill="url(#blossom-pink)" transform="rotate(36 60 60)" opacity="0.4" />
+      {/* Outer star — CW 28 s */}
+      <g style={{ transformOrigin: '50% 50%', animation: 'blossom-cw 28s linear infinite' }}>
+        <polygon
+          points="60,10 72,44 108,45 79,66 89,100 60,80 31,100 41,66 12,45 48,44"
+          fill="url(#blossom-pink)" opacity="0.75"
+        />
+        <polygon
+          points="60,10 72,44 108,45 79,66 89,100 60,80 31,100 41,66 12,45 48,44"
+          fill="url(#blossom-petal-a)" transform="rotate(36 60 60)" opacity="0.38"
+        />
       </g>
 
-      {/* Inner Heart/Flower - Rotating counter-clockwise */}
-      <g>
-        <animateTransform begin="0s" attributeName="transform" type="rotate" from="360 60 60" to="0 60 60" dur="18s" repeatCount="indefinite" />
+      {/* Inner petals A — CCW 20 s */}
+      <g style={{ transformOrigin: '50% 50%', animation: 'blossom-ccw 20s linear infinite' }}>
         {Array.from({ length: 5 }).map((_, i) => (
-          <path key={i} d="M60 25 C80 25, 80 60, 60 60 C40 60, 40 25, 60 25 Z" transform={`rotate(${i * 72} 60 60)`} fill="#ff1493" opacity="0.8" />
-        ))}
-        {Array.from({ length: 5 }).map((_, i) => (
-          <path key={i} d="M60 30 C72 30, 72 60, 60 60 C48 60, 48 30, 60 30 Z" transform={`rotate(${i * 72} 60 60)`} fill="#ffb6c1" opacity="0.9" />
+          <path
+            key={i}
+            d="M60 26 C80 26, 80 60, 60 60 C40 60, 40 26, 60 26 Z"
+            transform={`rotate(${i * 72} 60 60)`}
+            fill="url(#blossom-petal-a)"
+            opacity="0.85"
+          />
         ))}
       </g>
 
-      {/* Core Gem */}
-      <polygon points="60,45 70,60 60,75 50,60" fill="#ffffff" />
-      <polygon points="60,45 70,60 60,60" fill="#ff69b4" opacity="0.4" />
-      <polygon points="70,60 60,75 60,60" fill="#c71585" opacity="0.3" />
-      <polygon points="60,75 50,60 60,60" fill="#c71585" opacity="0.6" />
-      <polygon points="50,60 60,45 60,60" fill="#ffffff" opacity="0.8" />
+      {/* Inner petals B — CW 15 s, offset 36° */}
+      <g style={{ transformOrigin: '50% 50%', animation: 'blossom-cw 15s linear infinite' }}>
+        {Array.from({ length: 5 }).map((_, i) => (
+          <path
+            key={i}
+            d="M60 33 C73 33, 73 60, 60 60 C47 60, 47 33, 60 33 Z"
+            transform={`rotate(${i * 72 + 36} 60 60)`}
+            fill="url(#blossom-petal-b)"
+            opacity="0.9"
+          />
+        ))}
+      </g>
 
-      {/* Shimmering Center Spark */}
-      <circle cx="60" cy="60" r="3" fill="#ffffff">
-        <animate begin="0s" attributeName="r" values="2; 4; 2" dur="1.5s" repeatCount="indefinite" />
+      {/* Shimmer ring — CW 7 s */}
+      <circle
+        cx="60" cy="60" r="30"
+        fill="none" stroke="#ffffff" strokeWidth="1" strokeDasharray="5 7" opacity="0.45"
+        style={{ transformOrigin: '50% 50%', animation: 'blossom-cw 7s linear infinite' }}
+      />
+
+      {/* Core faceted diamond gem — static */}
+      <polygon points="60,44 74,60 60,76 46,60" fill="url(#blossom-gem)" />
+      <polygon points="60,44 74,60 60,60" fill="#ffffff" opacity="0.55" />
+      <polygon points="74,60 60,76 60,60" fill="#c71585" opacity="0.3"  />
+      <polygon points="60,76 46,60 60,60" fill="#8b0045" opacity="0.5"  />
+      <polygon points="46,60 60,44 60,60" fill="#ffffff" opacity="0.85" />
+      <polygon points="60,44 67,52 60,52" fill="#ffffff" opacity="0.8"  />
+
+      {/* Cross-sparkle on gem — static */}
+      <polygon points="60,48 62,58 60,68 58,58" fill="#ffffff" opacity="0.6" />
+      <polygon points="52,60 58,58 68,60 58,62" fill="#ffffff" opacity="0.6" />
+
+      {/* Centre pulse — radius + opacity only */}
+      <circle cx="60" cy="60" r="4" fill="#ffffff">
+        <animate attributeName="r"       values="3; 5.5; 3"   dur="2s" repeatCount="indefinite" />
+        <animate attributeName="opacity" values="0.7; 1; 0.7" dur="2s" repeatCount="indefinite" />
       </circle>
-      
-      {/* Floating Magic Dust */}
-      <g>
-        <animateTransform begin="0s" attributeName="transform" type="rotate" from="0 60 60" to="360 60 60" dur="8s" repeatCount="indefinite" />
-        <circle cx="60" cy="18" r="2.5" fill="#ffffff" opacity="0.9" />
-        <circle cx="60" cy="102" r="2.5" fill="#ffffff" opacity="0.9" />
-        <circle cx="18" cy="60" r="2.5" fill="#ffffff" opacity="0.9" />
-        <circle cx="102" cy="60" r="2.5" fill="#ffffff" opacity="0.9" />
+
+      {/* Cardinal sparkle dots — CW 9 s */}
+      <g style={{ transformOrigin: '50% 50%', animation: 'blossom-cw 9s linear infinite' }}>
+        <circle cx="60"  cy="15"  r="2.8" fill="#ffffff" opacity="0.95" />
+        <circle cx="105" cy="60"  r="2.8" fill="#ffffff" opacity="0.95" />
+        <circle cx="60"  cy="105" r="2.8" fill="#ffffff" opacity="0.95" />
+        <circle cx="15"  cy="60"  r="2.8" fill="#ffffff" opacity="0.95" />
       </g>
+
+      {/* Diagonal sparkle dots — CW 14 s, starting at 45° */}
+      <g style={{ transformOrigin: '50% 50%', animation: 'blossom-cw45 14s linear infinite' }}>
+        <circle cx="60"  cy="15"  r="1.8" fill="#ffb6c1" opacity="0.9" />
+        <circle cx="105" cy="60"  r="1.8" fill="#ffb6c1" opacity="0.9" />
+        <circle cx="60"  cy="105" r="1.8" fill="#ffb6c1" opacity="0.9" />
+        <circle cx="15"  cy="60"  r="1.8" fill="#ffb6c1" opacity="0.9" />
+      </g>
+
     </g>
   </svg>
 );
