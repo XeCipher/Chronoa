@@ -87,19 +87,16 @@ export default function RecursiveCheckbox({
 
   useEffect(() => {
     if (newTaskId === task.id) {
-      // 1. Immediately clear the ID so this doesn't run twice
+      // Clear the ID flag immediately to avoid multiple renders
       setNewTaskId(null);
 
-      const el = textRef.current;
-      if (!el) return;
-
-      // 2. Wait for the browser to finish all current paints and click events
-      requestAnimationFrame(() => {
-        setTimeout(() => {
-          // Force focus
+      // Perform a stable focus execution post-render for standard reliable UX.
+      // Dropping the mobile-keyboard hack guarantees stability.
+      setTimeout(() => {
+        const el = textRef.current;
+        if (el) {
           el.focus();
-
-          // Safely apply selection to the entire text
+          
           if (typeof window.getSelection !== "undefined" && typeof document.createRange !== "undefined") {
             const range = document.createRange();
             range.selectNodeContents(el);
@@ -109,8 +106,8 @@ export default function RecursiveCheckbox({
               sel.addRange(range);
             }
           }
-        }, 10); // 10ms delay breaks out of React's synchronous event loop
-      });
+        }
+      }, 50);
     }
   }, [newTaskId, task.id, setNewTaskId]);
 
@@ -143,8 +140,6 @@ export default function RecursiveCheckbox({
     if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
     saveTimeoutRef.current = setTimeout(() => {
       const newTitle = textRef.current?.textContent || '';
-      // We only execute auto-save internally if text exists to prevent visual glitching 
-      // where it immediately switches back. The onBlur fallback will elegantly handle empty situations.
       if (newTitle.trim() && newTitle.trim() !== task.title) {
         onUpdate(task.id, { title: newTitle.trim() });
       }

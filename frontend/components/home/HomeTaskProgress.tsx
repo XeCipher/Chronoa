@@ -59,7 +59,7 @@ export default function HomeTaskProgress() {
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
         onClick={() => setIsExpanded(!isExpanded)}
-        className={`flex flex-row md:flex-col items-center bg-white/20 dark:bg-black/30 backdrop-blur-xl border border-white/40 dark:border-white/10 transition-all duration-500 shadow-[0_8px_30px_rgb(0,0,0,0.08)] cursor-pointer
+        className={`flex flex-col items-center bg-white/20 dark:bg-black/30 backdrop-blur-xl border border-white/40 dark:border-white/10 transition-all duration-500 shadow-[0_8px_30px_rgb(0,0,0,0.08)] cursor-pointer
           ${showFull ? 'gap-3 p-4 md:p-5 rounded-3xl' : 'gap-2 p-2 rounded-full'}
         `}
       >
@@ -80,7 +80,7 @@ export default function HomeTaskProgress() {
         </div>
 
         {/* Divider */}
-        <div className={`bg-[#3d3b33]/10 dark:bg-white/10 transition-all duration-500 ${showFull ? 'w-px h-6 md:w-8 md:h-px opacity-100' : 'w-0 h-6 md:w-0 md:h-0 opacity-0'}`} />
+        <div className={`bg-[#3d3b33]/10 dark:bg-white/10 transition-all duration-500 ${showFull ? 'w-8 h-px opacity-100' : 'w-0 h-0 opacity-0'}`} />
 
         {/* ROW 2: Tasks */}
         <div className={`flex items-center transition-all duration-500 ${showFull ? 'gap-4' : 'gap-0'}`}>

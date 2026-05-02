@@ -416,7 +416,6 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
   };
 
   const onMoveUp = async (task: Task) => {
-    // 1. Identify visually active siblings exactly as they render
     const visibleSiblings = tasks
       .filter((t) => 
         t.parent_id === task.parent_id &&
@@ -432,7 +431,6 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
 
     const visibleIndex = visibleSiblings.findIndex((t) => t.id === task.id);
     
-    // 2. Perform raw swap with true visual target
     if (visibleIndex > 0) {
       const swapTarget = visibleSiblings[visibleIndex - 1];
 
@@ -447,7 +445,6 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
       
       const adjustedTargetIndex = newRawSiblings.findIndex(t => t.id === swapTarget.id);
       
-      // Insert just before the target
       newRawSiblings.splice(adjustedTargetIndex, 0, removedTask);
 
       const tasksToUpdate = newRawSiblings.map((t, i) => ({ id: t.id, updates: { position: i } }));
@@ -474,7 +471,6 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
   };
 
   const onMoveDown = async (task: Task) => {
-    // 1. Identify visually active siblings exactly as they render
     const visibleSiblings = tasks
       .filter((t) => 
         t.parent_id === task.parent_id &&
@@ -490,7 +486,6 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
 
     const visibleIndex = visibleSiblings.findIndex((t) => t.id === task.id);
     
-    // 2. Perform raw swap with true visual target
     if (visibleIndex > -1 && visibleIndex < visibleSiblings.length - 1) {
       const swapTarget = visibleSiblings[visibleIndex + 1];
 
@@ -505,7 +500,6 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
       
       const adjustedTargetIndex = newRawSiblings.findIndex(t => t.id === swapTarget.id);
       
-      // Insert just after the target
       newRawSiblings.splice(adjustedTargetIndex + 1, 0, removedTask);
 
       const tasksToUpdate = newRawSiblings.map((t, i) => ({ id: t.id, updates: { position: i } }));
