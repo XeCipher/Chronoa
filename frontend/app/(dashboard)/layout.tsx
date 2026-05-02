@@ -8,6 +8,7 @@ import SidebarNav from "@/components/ui/SidebarNav";
 import { useUiStore } from "@/store/uiStore";
 import { useTimerStore } from "@/store/timerStore";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
+import GlobalTimeWidget from "@/components/ui/GlobalTimeWidget";
 import { Tooltip } from "react-tooltip";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -92,7 +93,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  },[pathname, router, setNotesTab, isSidebarPinned, toggleSidebarPin, toggleFirstActive, hotkeysEnabled, disabledHotkeys]);
+  }, [pathname, router, setNotesTab, isSidebarPinned, toggleSidebarPin, toggleFirstActive, hotkeysEnabled, disabledHotkeys]);
 
   useEffect(() => {
     if (!isLoading && !initialRestoreDone.current) {
@@ -122,7 +123,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         id="global-tooltip" 
         className="z-[600] !bg-[#3d3b33] dark:!bg-[#2a2a2a] !text-white !rounded-xl !shadow-xl !font-semibold !text-[11px] !px-3 !py-1.5 !border-none" 
       />
+      
       <ConfirmDialog />
+      <GlobalTimeWidget />
     </div>
   );
 }
