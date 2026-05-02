@@ -89,10 +89,9 @@ export default function SessionsPage() {
   });
 
   return (
-    <div className="max-w-5xl w-full min-h-full mx-auto p-4 md:p-12 space-y-12">
+    <div className="max-w-5xl w-full min-h-full mx-auto p-4 md:p-12 pb-32 md:pb-12 space-y-12">
       <header className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div>
-          <p className="text-[10px] text-[#c2956e] dark:text-[#d1a784] tracking-[0.3em] uppercase font-bold mb-2 ml-1">Chronoa Database</p>
           <div className="flex items-center gap-2.5 text-[#3d3b33] dark:text-[#f0f0f0]">
             <Clock size={24} className="text-[#c2956e]" />
             <h1 className="text-3xl md:text-4xl font-serif font-medium tracking-tight">Time Log</h1>

@@ -1,3 +1,4 @@
+// frontend/app/(dashboard)/layout.tsx
 "use client";
 
 import { useEffect, useState, useRef } from "react";
@@ -120,7 +121,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
       <Tooltip 
         id="global-tooltip" 
-        className="z-[600] !bg-[#3d3b33] dark:!bg-[#2a2a2a] !text-white !rounded-xl !shadow-xl !font-semibold !text-[11px] !px-3 !py-1.5 !border-none" 
+        className="max-md:!hidden z-[600] !bg-[#3d3b33] dark:!bg-[#2a2a2a] !text-white !rounded-xl !shadow-xl !font-semibold !text-[11px] !px-3 !py-1.5 !border-none" 
       />
       
       <ConfirmDialog />

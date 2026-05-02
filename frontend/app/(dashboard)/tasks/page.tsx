@@ -3,7 +3,6 @@
 
 import { useState } from "react";
 import TaskSection from "@/components/tasks/TaskSection";
-import ICloudTodayFeed from "@/components/tasks/ICloudTodayFeed";
 import { ListChecks, History, Trash2, ArrowLeft, Search, LayoutGrid, List, SortAsc, SortDesc, Plus, CheckSquare } from "lucide-react";
 import { useUiStore } from "@/store/uiStore";
 import { supabase } from "@/lib/supabase";
@@ -125,8 +124,6 @@ export default function TasksPage() {
              </div>
            )}
         </div>
-
-        {tasksView === 'focus' && !isTrashOpen && <ICloudTodayFeed />}
 
         <div className="flex flex-col lg:flex-row items-start gap-8 lg:gap-12 w-full">
           <div className="w-full lg:w-1/2 min-w-0">

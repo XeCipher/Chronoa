@@ -6,14 +6,9 @@ import { useRouter } from "next/navigation";
 import { useUiStore } from "@/store/uiStore";
 import { supabase } from "@/lib/supabase";
 import { 
-  Plus, Trash2, MapPin, Search, Calendar, Clock, Sparkles, 
+  MapPin, Search, Clock, Sparkles, 
   X, Monitor, LogOut, Navigation, AlertTriangle, Keyboard, CheckCircle2, Settings as SettingsIcon 
 } from "lucide-react";
-
-interface CalendarLink {
-  name: string;
-  url: string;
-}
 
 export default function SettingsPage() {
   const router = useRouter();
@@ -30,7 +25,6 @@ export default function SettingsPage() {
     showConfirmDialog
   } = useUiStore();
   
-  const [calendars, setCalendars] = useState<CalendarLink[]>([]);
   const [cityInput, setCityInput] = useState("");
   const [currentCity, setCurrentCity] = useState("");
   const [isSearching, setIsSearching] = useState(false);
@@ -45,11 +39,10 @@ export default function SettingsPage() {
       if (user) {
         const { data } = await supabase
           .from('profiles')
-          .select('calendar_urls, routine_reset_hour, weather_city, disabled_hotkeys')
+          .select('routine_reset_hour, weather_city, disabled_hotkeys')
           .eq('id', user.id)
           .single();
         
-        if (data?.calendar_urls) setCalendars(data.calendar_urls);
         if (data?.routine_reset_hour !== undefined) setRoutineResetHour(data.routine_reset_hour);
         if (data?.disabled_hotkeys) setDisabledHotkeys(data.disabled_hotkeys);
         if (data?.weather_city) {
@@ -66,19 +59,6 @@ export default function SettingsPage() {
     if (user) {
       await supabase.from('profiles').update({ [key]: value }).eq('id', user.id);
     }
-  };
-
-  const saveCalendars = async (updatedList: CalendarLink[]) => {
-    setCalendars(updatedList);
-    updateRemoteSetting('calendar_urls', updatedList);
-  };
-
-  const addCalendar = () => saveCalendars([...calendars, { name: "", url: "" }]);
-  const removeCalendar = (index: number) => saveCalendars(calendars.filter((_, i) => i !== index));
-  const updateCalendar = (index: number, field: keyof CalendarLink, value: string) => {
-    const newList = [...calendars];
-    newList[index][field] = value;
-    saveCalendars(newList);
   };
 
   const handleLocationSearch = async () => {
@@ -302,31 +282,6 @@ export default function SettingsPage() {
                 <div className={`w-4 h-4 bg-white rounded-full absolute top-0.5 transition-transform ${showHomeTaskProgress ? 'translate-x-5' : 'translate-x-0.5 shadow-sm'}`} />
               </button>
             </div>
-          </div>
-        </section>
-
-        <hr className="border-[#f0ede8] dark:border-[#2a2a2a]" />
-
-        {/* iCloud Calendars */}
-        <section className="space-y-4">
-          <div className="flex justify-between items-end">
-            <div className="flex items-center gap-3 text-[#6e90c2] dark:text-[#8aaae0]">
-              <Calendar size={20} />
-              <h3 className="text-xl font-medium text-[#3d3b33] dark:text-[#f0f0f0]">iCloud Calendars</h3>
-            </div>
-            <button onClick={addCalendar} className="flex items-center gap-2 px-4 py-2 bg-[#f7f5f0] dark:bg-[#252525] text-[#c2956e] dark:text-[#d1a784] rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-[#c2956e] hover:text-white transition-all shadow-sm">
-              <Plus size={14} /> Add Feed
-            </button>
-          </div>
-          <p className="text-xs text-[#b0ad9a] dark:text-[#7a7a7a] mt-1 mb-4">Sync your schedule directly into your Daily Focus view.</p>
-          <div className="space-y-3">
-            {calendars.map((cal, idx) => (
-              <div key={idx} className="flex flex-col md:flex-row gap-3 p-4 bg-[#f7f5f0]/50 dark:bg-[#222] border border-[#e0ddd5] dark:border-[#333] rounded-2xl group transition-all hover:border-[#c2956e]/30 dark:hover:border-[#b0855f]/50">
-                <input type="text" placeholder="Label" value={cal.name} onChange={(e) => updateCalendar(idx, 'name', e.target.value)} spellCheck={false} className="md:w-1/4 bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] text-[#3d3b33] dark:text-white rounded-xl px-4 py-2 outline-none focus:border-[#c2956e] text-sm" />
-                <input type="text" placeholder="webcal://..." value={cal.url} onChange={(e) => updateCalendar(idx, 'url', e.target.value)} spellCheck={false} className="flex-1 bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] text-[#3d3b33] dark:text-white rounded-xl px-4 py-2 outline-none focus:border-[#c2956e] text-sm font-mono" />
-                <button onClick={() => removeCalendar(idx)} className="p-2 text-gray-300 hover:text-red-500 transition-colors"><Trash2 size={18} /></button>
-              </div>
-            ))}
           </div>
         </section>
 
