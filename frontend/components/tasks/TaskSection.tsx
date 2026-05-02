@@ -760,7 +760,27 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
           
           {viewMode === "focus" && (
             <div className="flex items-center gap-2 shrink-0 pt-0.5">
-              {type === "routine" ? (
+              {type === "normal" && (
+                <button
+                  onClick={() => onAdd(null)}
+                  className="flex w-8 h-8 md:w-9 md:h-9 items-center justify-center bg-[#f7f5f0] dark:bg-[#252525] text-[#c2956e] dark:text-[#d1a784] rounded-full hover:bg-[#c2956e]/10 dark:hover:bg-[#b0855f]/20 transition-all shadow-sm border border-[#e0ddd5] dark:border-[#333]"
+                  data-tooltip-id="task-tooltip" data-tooltip-content="Add Task"
+                >
+                  <Plus size={18} strokeWidth={2.5} />
+                </button>
+              )}
+              
+              {type === "routine" && isEditMode && (
+                <button
+                  onClick={() => onAdd(null)}
+                  className="flex w-8 h-8 md:w-9 md:h-9 items-center justify-center bg-[#f7f5f0] dark:bg-[#252525] text-[#c2956e] dark:text-[#d1a784] rounded-full hover:bg-[#c2956e]/10 dark:hover:bg-[#b0855f]/20 transition-all shadow-sm border border-[#e0ddd5] dark:border-[#333]"
+                  data-tooltip-id="task-tooltip" data-tooltip-content="Add Routine Item"
+                >
+                  <Plus size={18} strokeWidth={2.5} />
+                </button>
+              )}
+
+              {type === "routine" && (
                 <button
                   onClick={() => {
                     const nextMode = !isEditMode;
@@ -769,28 +789,23 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
                       setMobileRoutineCollapsed(false);
                     }
                   }}
-                  className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-[11px] font-[600] tracking-[0.08em] uppercase transition-all duration-200 ${
+                  className={`flex items-center justify-center gap-1.5 px-3 py-1.5 md:px-4 md:py-2 rounded-full text-[10px] md:text-[11px] font-[600] tracking-[0.08em] uppercase transition-all duration-200 shadow-sm border ${
                     isEditMode
-                      ? "bg-[#c2956e] dark:bg-[#b0855f] text-white shadow-lg"
-                      : "bg-[#f7f5f0] dark:bg-[#222] text-[#c2956e] dark:text-[#d1a784] md:hover:bg-[#c2956e]/10 md:dark:hover:bg-[#b0855f]/20"
+                      ? "bg-[#c2956e] dark:bg-[#b0855f] text-white border-[#c2956e] dark:border-[#b0855f] shadow-md"
+                      : "bg-[#f7f5f0] dark:bg-[#252525] text-[#c2956e] dark:text-[#d1a784] border-[#e0ddd5] dark:border-[#333] hover:bg-[#c2956e]/10 dark:hover:bg-[#b0855f]/20"
                   }`}
                 >
                   {isEditMode ? (
                     <>
-                      <CheckCircle2 size={13} /> Done
+                      <CheckCircle2 size={14} className="md:w-[15px] md:h-[15px]" /> 
+                      <span className="hidden sm:inline">Done</span>
                     </>
                   ) : (
                     <>
-                      <Edit3 size={12} /> Edit
+                      <Edit3 size={14} className="md:w-[15px] md:h-[15px]" /> 
+                      <span className="hidden sm:inline">Edit</span>
                     </>
                   )}
-                </button>
-              ) : (
-                <button
-                  onClick={() => onAdd(null)}
-                  className="hidden md:flex w-9 h-9 items-center justify-center bg-[#f7f5f0] dark:bg-[#222] text-[#c2956e] dark:text-[#d1a784] rounded-full md:hover:bg-[#c2956e]/10 md:dark:hover:bg-[#b0855f]/20 transition-all"
-                >
-                  <Plus size={18} strokeWidth={2} />
                 </button>
               )}
             </div>
@@ -806,27 +821,6 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
         renderContent()
       )}
 
-      {viewMode === "focus" && type === "routine" && isEditMode && (
-        <div className={`px-5 pb-5 ${isCollapsedMobile ? 'hidden md:block' : 'block'}`}>
-          <button
-            onClick={() => onAdd(null)}
-            className="w-full flex items-center justify-center gap-2 py-2.5 border border-dashed border-[#d4d0c8] dark:border-[#444] rounded-xl text-[12px] text-[#b0ad9a] dark:text-[#777] md:hover:border-[#c2956e] md:dark:hover:border-[#b0855f] md:hover:text-[#c2956e] md:dark:hover:text-[#b0855f] transition-all"
-          >
-            <Plus size={14} /> Add routine item
-          </button>
-        </div>
-      )}
-
-      {viewMode === "focus" && type === "normal" && (
-        <div className={`px-5 pb-5 ${isCollapsedMobile ? 'hidden md:block' : 'block'}`}>
-          <button
-            onClick={() => onAdd(null)}
-            className="w-full flex items-center justify-center gap-2 py-2.5 border border-dashed border-[#d4d0c8] dark:border-[#444] rounded-xl text-[12px] text-[#b0ad9a] dark:text-[#777] md:hover:border-[#c2956e] md:dark:hover:border-[#b0855f] md:hover:text-[#c2956e] md:dark:hover:text-[#b0855f] transition-all"
-          >
-            <Plus size={14} /> Add task
-          </button>
-        </div>
-      )}
     </div>
   );
 }

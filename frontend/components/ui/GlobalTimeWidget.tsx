@@ -106,7 +106,7 @@ function MiniEngineCard({ engine, tab }: { engine: EngineInstance, tab: 'timer' 
     : liveSeconds;
 
   return (
-    <div className="bg-[#f7f5f0]/50 dark:bg-[#222]/50 border border-[#e0ddd5] dark:border-[#444] rounded-[1.5rem] p-5 flex flex-col gap-3 group relative transition-colors hover:border-[#c2956e]/50 dark:hover:border-[#b0855f]/50 shadow-sm">
+    <div className="bg-[#f7f5f0]/50 dark:bg-[#222]/50 border border-[#e0ddd5] dark:border-[#444] rounded-[1.5rem] p-5 flex flex-col gap-3 group relative transition-colors hover:border-[#c2956e]/50 dark:hover:border-[#b0855f]/50 shadow-sm shrink-0">
       <button 
         onClick={() => store.removeInstance(tab, engine.id)} 
         data-tooltip-id="global-tooltip" data-tooltip-content="Remove"
@@ -212,31 +212,48 @@ export default function GlobalTimeWidget() {
         </div>
 
         <div className="flex justify-between items-center w-full">
-          <div className="flex bg-[#f7f5f0] dark:bg-[#121212] p-1 rounded-xl border border-[#e0ddd5] dark:border-[#333] w-full max-w-[220px]">
-            {(['stopwatch', 'timer'] as const).map(tab => (
-              <button 
-                key={tab} 
-                onClick={() => store.setActiveTab(tab)}
-                className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all ${store.activeTab === tab ? 'bg-white dark:bg-[#252525] text-[#c2956e] dark:text-[#d1a784] shadow-sm border border-[#e0ddd5] dark:border-[#444]' : 'text-[#888] hover:text-[#3d3b33] dark:hover:text-[#f0f0f0]'}`}
-              >
-                {tab} {isAnyRunning(tab) && <span className="w-1.5 h-1.5 bg-[#c2956e] dark:bg-[#b0855f] rounded-full animate-ping"/>}
-              </button>
-            ))}
+          {/* Sleek Segmented Control Tab Switcher */}
+          <div className="relative flex bg-[#ebe8e2]/50 dark:bg-[#1a1a1a] p-1.5 rounded-[1.25rem] border border-[#e0ddd5] dark:border-[#333] w-full max-w-[240px] shadow-inner">
+            {(['stopwatch', 'timer'] as const).map(tab => {
+              const isActive = store.activeTab === tab;
+              return (
+                <button 
+                  key={tab} 
+                  onClick={() => store.setActiveTab(tab)}
+                  className={`relative flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all duration-300 z-10
+                    ${isActive 
+                      ? 'text-[#3d3b33] dark:text-[#f0f0f0]' 
+                      : 'text-[#888] hover:text-[#3d3b33] dark:hover:text-[#ccc]'}`}
+                >
+                  {isActive && (
+                    <div className="absolute inset-0 bg-white dark:bg-[#2a2a2a] rounded-xl shadow-[0_2px_8px_rgba(0,0,0,0.08)] dark:shadow-[0_2px_8px_rgba(0,0,0,0.4)] border border-[#f0ede8] dark:border-[#3a3a3a] -z-10 transition-all duration-300" />
+                  )}
+                  <span className={`transition-colors duration-300 ${isActive ? 'text-[#c2956e] dark:text-[#d1a784]' : ''}`}>
+                    {tab}
+                  </span>
+                  {isAnyRunning(tab) && <span className="w-1.5 h-1.5 bg-[#c2956e] dark:bg-[#b0855f] rounded-full animate-ping shadow-[0_0_4px_#c2956e]"/>}
+                </button>
+              );
+            })}
           </div>
           
-          <button data-tooltip-id="global-tooltip" data-tooltip-content="Sessions Log Book" onClick={() => router.push('/sessions')} className="w-9 h-9 flex items-center justify-center rounded-xl hover:bg-[#f7f5f0] dark:hover:bg-[#222] transition-colors text-[#b0ad9a] dark:text-[#888] hover:text-[#3d3b33] dark:hover:text-[#f0f0f0] border border-transparent hover:border-[#e0ddd5] dark:hover:border-[#444]">
+          <button data-tooltip-id="global-tooltip" data-tooltip-content="Sessions Log Book" onClick={() => router.push('/sessions')} className="w-10 h-10 flex items-center justify-center rounded-[1rem] hover:bg-[#ebe8e2]/50 dark:hover:bg-[#222] transition-colors text-[#b0ad9a] dark:text-[#888] hover:text-[#3d3b33] dark:hover:text-[#f0f0f0] border border-[#e0ddd5] dark:border-[#333] shadow-sm">
             <History size={16} />
           </button>
         </div>
 
-        <div className="flex flex-col gap-3 max-h-[42vh] overflow-y-auto no-scrollbar">
+        <div className="flex flex-col gap-3 max-h-[42vh] overflow-y-auto no-scrollbar px-1 -mx-1">
           {activeList && activeList.map(engine => (
             <MiniEngineCard key={engine.id} engine={engine} tab={store.activeTab} />
           ))}
           
-          <button onClick={() => store.addInstance(store.activeTab)} className="w-full flex items-center justify-center gap-2 py-4 border border-dashed border-[#d4d0c8] dark:border-[#444] rounded-[1.25rem] text-[11px] font-bold uppercase tracking-widest text-[#b0ad9a] dark:text-[#7a7a7a] hover:text-[#c2956e] dark:hover:text-[#b0855f] hover:border-[#c2956e] dark:hover:border-[#b0855f] transition-colors hover:bg-white/50 dark:hover:bg-[#222]/50">
+          {/* Prevent cut-off issue with shrink-0 and adding a spacer block */}
+          <button onClick={() => store.addInstance(store.activeTab)} className="w-full shrink-0 flex items-center justify-center gap-2 py-4 border border-dashed border-[#d4d0c8] dark:border-[#444] rounded-[1.25rem] text-[11px] font-bold uppercase tracking-widest text-[#b0ad9a] dark:text-[#7a7a7a] hover:text-[#c2956e] dark:hover:text-[#b0855f] hover:border-[#c2956e] dark:hover:border-[#b0855f] transition-colors hover:bg-white/50 dark:hover:bg-[#222]/50">
             <Plus size={16} /> Add {store.activeTab}
           </button>
+          
+          {/* Extra spacer at bottom to ensure completely smooth scrolling to bottom edge */}
+          <div className="h-2 w-full shrink-0 pointer-events-none" />
         </div>
 
       </div>
