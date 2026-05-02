@@ -6,13 +6,13 @@ import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip } 
 import { useUiStore } from "@/store/uiStore";
 import { Filter } from 'lucide-react';
 
-const COLORS =['#7ca982', '#c2956e', '#6e90c2', '#a882c2', '#5b9ea0', '#b895d1', '#d1a784', '#e0b589'];
+const COLORS = ['#7ca982', '#c2956e', '#6e90c2', '#a882c2', '#5b9ea0', '#b895d1', '#d1a784', '#e0b589'];
 
 export default function FocusDistribution({ rawSessions }: { rawSessions: any[] }) {
   const { theme } = useUiStore();
   const isDark = theme === 'dark' || (theme === 'system' && typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches);
 
-  const[excludedCategories, setExcludedCategories] = useState<Set<string>>(new Set());
+  const [excludedCategories, setExcludedCategories] = useState<Set<string>>(new Set());
 
   const { groupedData, activeData, totalActiveMinutes } = useMemo(() => {
     const map: Record<string, number> = {};
@@ -29,7 +29,7 @@ export default function FocusDistribution({ rawSessions }: { rawSessions: any[] 
     
     const threshold = totalMinutes * 0.10;
     const MIN_VISIBLE_ITEMS = 4;
-    const finalGroups: { name: string; value: number }[] =[];
+    const finalGroups: { name: string; value: number }[] = [];
     let othersValue = 0;
 
     sortedRaw.forEach((item, index) => {
@@ -67,6 +67,12 @@ export default function FocusDistribution({ rawSessions }: { rawSessions: any[] 
     });
   };
 
+  const formatMins = (minutes: number) => {
+    const h = Math.floor(minutes / 60);
+    const m = minutes % 60;
+    return h > 0 ? `${h}h ${m}m` : `${m}m`;
+  };
+
   const CustomTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
       const pct = Math.round((payload[0].value / totalActiveMinutes) * 100);
@@ -75,7 +81,7 @@ export default function FocusDistribution({ rawSessions }: { rawSessions: any[] 
           <div className="w-3 h-3 rounded-full" style={{ backgroundColor: payload[0].payload.fill || payload[0].color }} />
           <span className="text-xs font-bold text-white uppercase tracking-wider">{payload[0].name}</span>
           <span className="text-sm font-serif text-[#c2956e] ml-2">
-            {payload[0].value}m <span className="text-[10px] text-[#b0ad9a] ml-1">({pct}%)</span>
+            {formatMins(payload[0].value)} <span className="text-[10px] text-[#b0ad9a] ml-1">({pct}%)</span>
           </span>
         </div>
       );
@@ -132,7 +138,7 @@ export default function FocusDistribution({ rawSessions }: { rawSessions: any[] 
                   <span className={`text-xs font-medium truncate ${isExcluded ? 'text-[#888]' : 'text-[#3d3b33] dark:text-[#e0e0e0]'}`}>{cat.name}</span>
                 </div>
                 <div className="flex items-center gap-1.5 shrink-0 ml-auto">
-                  <span className="text-[11px] text-[#b0ad9a] dark:text-[#7a7a7a] font-bold tabular-nums">{cat.value}m</span>
+                  <span className="text-[11px] text-[#b0ad9a] dark:text-[#7a7a7a] font-bold tabular-nums">{formatMins(cat.value)}</span>
                   {!isExcluded && <span className="text-[9px] font-bold text-[#c2956e] dark:text-[#b0855f] w-7 text-right">{pct}%</span>}
                 </div>
               </button>

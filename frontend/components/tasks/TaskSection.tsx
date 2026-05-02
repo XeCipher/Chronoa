@@ -806,13 +806,24 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
         renderContent()
       )}
 
-      {isEditMode && type === "routine" && viewMode === "focus" && (
+      {viewMode === "focus" && type === "routine" && isEditMode && (
         <div className={`px-5 pb-5 ${isCollapsedMobile ? 'hidden md:block' : 'block'}`}>
           <button
             onClick={() => onAdd(null)}
             className="w-full flex items-center justify-center gap-2 py-2.5 border border-dashed border-[#d4d0c8] dark:border-[#444] rounded-xl text-[12px] text-[#b0ad9a] dark:text-[#777] md:hover:border-[#c2956e] md:dark:hover:border-[#b0855f] md:hover:text-[#c2956e] md:dark:hover:text-[#b0855f] transition-all"
           >
             <Plus size={14} /> Add routine item
+          </button>
+        </div>
+      )}
+
+      {viewMode === "focus" && type === "normal" && (
+        <div className={`px-5 pb-5 ${isCollapsedMobile ? 'hidden md:block' : 'block'}`}>
+          <button
+            onClick={() => onAdd(null)}
+            className="w-full flex items-center justify-center gap-2 py-2.5 border border-dashed border-[#d4d0c8] dark:border-[#444] rounded-xl text-[12px] text-[#b0ad9a] dark:text-[#777] md:hover:border-[#c2956e] md:dark:hover:border-[#b0855f] md:hover:text-[#c2956e] md:dark:hover:text-[#b0855f] transition-all"
+          >
+            <Plus size={14} /> Add task
           </button>
         </div>
       )}

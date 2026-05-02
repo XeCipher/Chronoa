@@ -96,6 +96,16 @@ export default function AnalyticsPage() {
     fetchRawData();
   }, []);
 
+  // Handle modal scroll locking to prevent background bleeding
+  useEffect(() => {
+    if (isRankModalOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => { document.body.style.overflow = ''; };
+  }, [isRankModalOpen]);
+
   const data = useMemo<AnalyticsData | null>(() => {
     if (loading && rawTasks.length === 0) return null;
 
@@ -313,7 +323,7 @@ export default function AnalyticsPage() {
               </button>
             </header>
 
-            <div className="p-8 overflow-y-auto no-scrollbar space-y-8">
+            <div className="p-8 overflow-y-auto overscroll-y-contain no-scrollbar space-y-8">
               <div className="flex gap-4 p-4 bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#2a2a2a] rounded-2xl">
                 <Info className="text-[#c2956e] shrink-0 mt-0.5" size={20} />
                 <div className="text-sm text-[#3d3b33] dark:text-[#e0e0e0] leading-relaxed">

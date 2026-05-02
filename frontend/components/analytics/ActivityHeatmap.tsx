@@ -7,7 +7,7 @@ import { Tooltip } from 'react-tooltip';
 import { Calendar as CalIcon, ChevronLeft, ChevronRight } from 'lucide-react';
 import { DailyRecord } from '@/app/(dashboard)/analytics/page';
 
-const MONTHS =['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
 export default function ActivityHeatmap({ dailyMap }: { dailyMap: Record<string, DailyRecord> }) {
   const { theme } = useUiStore();
@@ -28,8 +28,8 @@ export default function ActivityHeatmap({ dailyMap }: { dailyMap: Record<string,
   }, []);
 
   const colors = isDark 
-    ?['#222222', '#1e4a28', '#2d6d39', '#3b8e49', '#4bae5c']
-    :['#ebedf0', '#9be9a8', '#40c463', '#30a14e', '#216e39'];
+    ? ['#222222', '#1e4a28', '#2d6d39', '#3b8e49', '#4bae5c']
+    : ['#ebedf0', '#9be9a8', '#40c463', '#30a14e', '#216e39'];
 
   const { weeks, monthLabels } = useMemo(() => {
     const endDate = new Date(endMonth.year, endMonth.month + 1, 0); 
@@ -47,7 +47,7 @@ export default function ActivityHeatmap({ dailyMap }: { dailyMap: Record<string,
       return 1;
     };
 
-    const days =[];
+    const days = [];
     for (let i = 364; i >= 0; i--) {
       const d = new Date(endDate);
       d.setDate(d.getDate() - i);
@@ -64,7 +64,7 @@ export default function ActivityHeatmap({ dailyMap }: { dailyMap: Record<string,
     }
 
     const grid: any[][] = [];
-    let currentWeek: any[] =[];
+    let currentWeek: any[] = [];
     
     if (days[0].dayOfWeek !== 0) {
       for (let i = 0; i < days[0].dayOfWeek; i++) currentWeek.push(null);
@@ -74,7 +74,7 @@ export default function ActivityHeatmap({ dailyMap }: { dailyMap: Record<string,
       currentWeek.push(day);
       if (currentWeek.length === 7) {
         grid.push(currentWeek);
-        currentWeek =[];
+        currentWeek = [];
       }
     });
 
@@ -83,7 +83,7 @@ export default function ActivityHeatmap({ dailyMap }: { dailyMap: Record<string,
       grid.push(currentWeek);
     }
 
-    const monthLabels: { label: string; weekIndex: number }[] =[];
+    const monthLabels: { label: string; weekIndex: number }[] = [];
     let lastMonth = -1;
     grid.forEach((week, i) => {
        const firstValidDay = week.find(d => d !== null);
@@ -145,10 +145,14 @@ export default function ActivityHeatmap({ dailyMap }: { dailyMap: Record<string,
       </div>
       
       <div className="flex flex-1 w-full relative min-h-0">
-        <div className="w-8 shrink-0 flex flex-col relative text-[9px] font-bold uppercase tracking-widest text-[#b0ad9a] dark:text-[#555] mr-2">
-           <span className="absolute top-[35px]">Mon</span>
-           <span className="absolute top-[65px]">Wed</span>
-           <span className="absolute top-[95px]">Fri</span>
+        <div className="w-8 shrink-0 flex flex-col relative text-[9px] font-bold uppercase tracking-widest text-[#b0ad9a] dark:text-[#555] mr-2 mt-[24px]">
+           <span className="absolute top-[1px]">Sun</span>
+           <span className="absolute top-[16px]">Mon</span>
+           <span className="absolute top-[31px]">Tue</span>
+           <span className="absolute top-[46px]">Wed</span>
+           <span className="absolute top-[61px]">Thu</span>
+           <span className="absolute top-[76px]">Fri</span>
+           <span className="absolute top-[91px]">Sat</span>
         </div>
 
         <div className="flex-1 overflow-hidden" dir="rtl">

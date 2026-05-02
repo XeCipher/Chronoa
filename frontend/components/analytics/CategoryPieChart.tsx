@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { useUiStore } from "@/store/uiStore";
 
-const COLORS =['#7ca982', '#c2956e', '#6e90c2', '#a882c2', '#5b9ea0', '#888888', '#d4d0c8'];
+const COLORS = ['#7ca982', '#c2956e', '#6e90c2', '#a882c2', '#5b9ea0', '#888888', '#d4d0c8'];
 
 export default function CategoryPieChart({ data }: { data: any[] }) {
   const [isMounted, setIsMounted] = useState(false);
@@ -33,6 +33,12 @@ export default function CategoryPieChart({ data }: { data: any[] }) {
 
   const toggleCategory = (name: string) => {
     setDisabledCategories(prev => prev.includes(name) ? prev.filter(c => c !== name) : [...prev, name]);
+  };
+
+  const formatMins = (minutes: number) => {
+    const h = Math.floor(minutes / 60);
+    const m = minutes % 60;
+    return h > 0 ? `${h}h ${m}m` : `${m}m`;
   };
 
   if (!isMounted) return <div className="h-[450px] bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] rounded-[2rem] animate-pulse transition-colors" />;
@@ -70,7 +76,7 @@ export default function CategoryPieChart({ data }: { data: any[] }) {
               </Pie>
               <Tooltip 
                 contentStyle={{ backgroundColor: isDark ? '#2a2a2a' : '#fff', color: isDark ? '#f0f0f0' : '#333', borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)', fontSize: '12px' }}
-                formatter={(value: any) => [`${value}m`, 'Focus Time']}
+                formatter={(value: any) => [formatMins(value), 'Focus Time']}
               />
             </PieChart>
           </ResponsiveContainer>

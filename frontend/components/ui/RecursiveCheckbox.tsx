@@ -334,9 +334,12 @@ export default function RecursiveCheckbox({
                 if (e.altKey && e.key === "ArrowDown" && !disabledHotkeys?.includes('down')) { e.preventDefault(); onMoveDown(task); return; }
                 
                 if (e.key === "Enter") {
-                  if (e.shiftKey) {
+                  if (e.ctrlKey || e.metaKey) {
                     e.preventDefault();
-                    // Using native execCommand correctly advances the cursor visually in pre-wrap elements
+                    saveCurrentText();
+                    onAdd(task.parent_id, task);
+                  } else if (e.shiftKey) {
+                    e.preventDefault();
                     document.execCommand('insertText', false, '\n');
                     handleInput();
                   } else {

@@ -224,7 +224,7 @@ export default function ProductivityChart({ dailyMap }: { dailyMap: Record<strin
               </linearGradient>
             </defs>
             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDark ? '#333' : '#f0ede8'} />
-            <XAxis dataKey="display" axisLine={false} tickLine={false} tick={<CustomXAxisTick />} dy={10} />
+            <XAxis dataKey="display" axisLine={false} tickLine={false} tick={<CustomXAxisTick />} dy={10} interval={0} />
             <YAxis yAxisId="left" axisLine={false} tickLine={false} tick={{ fill: isDark ? '#7a7a7a' : '#b0ad9a', fontSize: 11 }} />
             
             <YAxis yAxisId="right" orientation="right" hide={true} width={0} axisLine={false} tickLine={false} tick={false} />

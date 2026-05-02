@@ -74,8 +74,8 @@ export const useTimerStore = create<TimerState>()(
           newInst.id = newId;
           if (title) newInst.title = title;
 
-          // Replace the single default item if untouched
-          if (list.length === 1 && list[0].title === 'Focus Task' && list[0].accumulatedSeconds === 0 && !list[0].isRunning) {
+          // Replace the single default item if untouched AND a title is provided (meaning it came from "Send to timer" context)
+          if (title && list.length === 1 && list[0].title === 'Focus Task' && list[0].accumulatedSeconds === 0 && !list[0].isRunning) {
             return { [listName]: [newInst] };
           }
 

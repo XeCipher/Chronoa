@@ -30,10 +30,6 @@ export default function TasksPage() {
     });
   };
 
-  const handleFabClick = () => {
-    window.dispatchEvent(new CustomEvent('chronoa-add-task'));
-  };
-
   const currentViewMode = isTrashOpen ? 'trash' : tasksView;
 
   return (
@@ -138,16 +134,6 @@ export default function TasksPage() {
 
       </div>
 
-      {tasksView === 'focus' && !isTrashOpen && (
-        <button 
-          onClick={handleFabClick}
-          className="lg:hidden fixed bottom-[calc(90px+env(safe-area-inset-bottom))] right-6 z-[100] w-14 h-14 bg-white/30 dark:bg-black/30 backdrop-blur-lg border-2 border-[#c2956e]/50 dark:border-[#b0855f]/50 text-[#c2956e] dark:text-[#b0855f] rounded-full shadow-lg shadow-black/10 dark:shadow-black/30 flex items-center justify-center md:hover:scale-105 active:scale-95 transition-all"
-        >
-          <Plus size={24} strokeWidth={2.5} />
-        </button>
-      )}
-
-      {/* Centralized Task Tooltip configuration preventing mobile display */}
       <Tooltip 
         id="task-tooltip" 
         className="max-md:!hidden z-[600] !bg-[#3d3b33] dark:!bg-[#2a2a2a] !text-white !rounded-xl !shadow-xl !font-semibold !text-[11px] !px-3 !py-1.5 !border-none" 

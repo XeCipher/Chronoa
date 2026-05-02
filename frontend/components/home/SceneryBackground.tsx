@@ -43,10 +43,10 @@ export default function SceneryBackground() {
       orb3: "bg-[#c2956e] dark:bg-[#7d4628]", 
     },
     night: {
-      bg: "bg-[#0d1321] dark:bg-[#050810]",
-      orb1: "bg-[#1d2a40] dark:bg-[#1f2b45]", 
-      orb2: "bg-[#182336] dark:bg-[#111926]", 
-      orb3: "bg-[#293652] dark:bg-[#172033]", 
+      bg: "bg-[#f2f4f8] dark:bg-[#050810]",
+      orb1: "bg-[#c8d4e6] dark:bg-[#1f2b45]", 
+      orb2: "bg-[#dce3f0] dark:bg-[#111926]", 
+      orb3: "bg-[#b0c0d9] dark:bg-[#172033]", 
     },
   };
 
