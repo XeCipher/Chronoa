@@ -139,7 +139,8 @@ export default function SettingsPage() {
     });
   };
 
-  const modKey = os === 'mac' ? '⌥' : 'Alt';
+  const altKeyDisplay = os === 'mac' ? '⌥' : 'Alt';
+  const ctrlKeyDisplay = os === 'mac' ? '⌘' : 'Ctrl';
 
   return (
     <div className="max-w-4xl w-full min-h-full mx-auto p-4 md:p-12 space-y-12 pb-32 md:pb-12">
@@ -193,16 +194,17 @@ export default function SettingsPage() {
 
           <div className={`grid grid-cols-1 lg:grid-cols-2 gap-4 transition-opacity duration-300 ${hotkeysEnabled ? 'opacity-100' : 'opacity-40 pointer-events-none'}`}>
             {[
-              { id: 'home', keys: [modKey, 'H'], desc: 'Go to Home' },
-              { id: 'tasks', keys: [modKey, 'T'], desc: 'Go to Tasks' },
-              { id: 'notes', keys: [modKey, 'N'], desc: 'Go to Notes' },
-              { id: 'journal', keys: [modKey, 'J'], desc: 'Jump to Journal' },
-              { id: 'analytics', keys: [modKey, 'A'], desc: 'Go to Analytics' },
-              { id: 'settings', keys: [modKey, 'S'], desc: 'Go to Settings' },
-              { id: 'up', keys: [modKey, '↑'], desc: 'Move Task Up' },
-              { id: 'down', keys: [modKey, '↓'], desc: 'Move Task Down' },
+              { id: 'home', keys: [altKeyDisplay, 'H'], desc: 'Go to Home' },
+              { id: 'tasks', keys: [altKeyDisplay, 'T'], desc: 'Go to Tasks' },
+              { id: 'notes', keys: [altKeyDisplay, 'N'], desc: 'Go to Notes' },
+              { id: 'journal', keys: [altKeyDisplay, 'J'], desc: 'Jump to Journal' },
+              { id: 'analytics', keys: [altKeyDisplay, 'A'], desc: 'Go to Analytics' },
+              { id: 'settings', keys: [altKeyDisplay, 'S'], desc: 'Go to Settings' },
+              { id: 'up', keys: [altKeyDisplay, '↑'], desc: 'Move Task Up' },
+              { id: 'down', keys: [altKeyDisplay, '↓'], desc: 'Move Task Down' },
               { id: 'indent', keys: ['Tab'], desc: 'Indent Task' },
               { id: 'unindent', keys: ['Shift', 'Tab'], desc: 'Unindent Task' },
+              { id: 'new_sibling', keys: [ctrlKeyDisplay, 'Enter'], desc: 'New Sibling Task' },
               { id: 'space', keys: ['Space'], desc: 'Play/Pause Timer' },
               { id: 'escape', keys: ['Esc'], desc: 'Collapse Sidebar' },
             ].map((hk) => {

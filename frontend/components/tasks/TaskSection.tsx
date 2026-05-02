@@ -745,7 +745,7 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
             </div>
 
             {viewMode === "focus" && (
-              <div className="flex items-center gap-2 shrink-0">
+              <div className="flex items-center gap-2 shrink-0 h-8 md:h-9">
                 {type === "normal" && (
                   <button
                     onClick={() => onAdd(null)}
@@ -775,7 +775,7 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
                         setMobileRoutineCollapsed(false);
                       }
                     }}
-                    className={`flex items-center justify-center gap-1.5 px-3 py-1.5 md:px-4 md:py-2 rounded-full text-[10px] md:text-[11px] font-[600] tracking-[0.08em] uppercase transition-all duration-200 shadow-sm border ${
+                    className={`flex items-center justify-center gap-1.5 px-3 md:px-4 h-8 md:h-9 rounded-full text-[10px] md:text-[11px] font-[600] tracking-[0.08em] uppercase transition-all duration-200 shadow-sm border ${
                       isEditMode
                         ? "bg-[#c2956e] dark:bg-[#b0855f] text-white border-[#c2956e] dark:border-[#b0855f] shadow-md"
                         : "bg-[#f7f5f0] dark:bg-[#252525] text-[#c2956e] dark:text-[#d1a784] border-[#e0ddd5] dark:border-[#333] hover:bg-[#c2956e]/10 dark:hover:bg-[#b0855f]/20"

@@ -36,7 +36,7 @@ export const RANKS = [
   { name: "Apprentice", minLevel: 4, minXp: 450 },
   { name: "Scholar", minLevel: 7, minXp: 1800 },
   { name: "Adept", minLevel: 10, minXp: 4050 },
-  { name: "Master", minLevel: 15, minXp: 11250 },
+  { name: "Blossom", minLevel: 15, minXp: 11111 },
   { name: "Grandmaster", minLevel: 20, minXp: 20000 },
   { name: "Legend", minLevel: 30, minXp: 45000 },
   { name: "Chronoa Ascendant", minLevel: 50, minXp: 125000 }
