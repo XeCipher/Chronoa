@@ -19,6 +19,7 @@ interface UiState {
   notesTab: NotesTab;
   sessionsFilter: SessionsFilter;
   hotkeysEnabled: boolean;
+  disabledHotkeys: string[];
   moveCompletedToBottom: boolean;
   keepParentTaskAlive: boolean;
   addTaskAtTop: boolean;
@@ -42,6 +43,7 @@ interface UiState {
   setNotesTab: (tab: NotesTab) => void;
   setSessionsFilter: (filter: SessionsFilter) => void;
   setHotkeysEnabled: (enabled: boolean) => void;
+  setDisabledHotkeys: (keys: string[]) => void;
   setMoveCompletedToBottom: (val: boolean) => void;
   setKeepParentTaskAlive: (val: boolean) => void;
   setAddTaskAtTop: (val: boolean) => void;
@@ -69,6 +71,7 @@ export const useUiStore = create<UiState>()(
       notesTab: 'notes',
       sessionsFilter: 'all',
       hotkeysEnabled: true,
+      disabledHotkeys: [],
       moveCompletedToBottom: true,
       keepParentTaskAlive: false,
       addTaskAtTop: false,
@@ -91,6 +94,7 @@ export const useUiStore = create<UiState>()(
       setNotesTab: (tab) => set({ notesTab: tab }),
       setSessionsFilter: (filter) => set({ sessionsFilter: filter }),
       setHotkeysEnabled: (hotkeysEnabled) => set({ hotkeysEnabled }),
+      setDisabledHotkeys: (keys) => set({ disabledHotkeys: keys }),
       setMoveCompletedToBottom: (val) => set({ moveCompletedToBottom: val }),
       setKeepParentTaskAlive: (val) => set({ keepParentTaskAlive: val }),
       setAddTaskAtTop: (val) => set({ addTaskAtTop: val }),

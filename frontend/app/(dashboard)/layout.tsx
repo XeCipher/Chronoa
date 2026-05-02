@@ -19,7 +19,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     setNotesTab, 
     isSidebarPinned, 
     toggleSidebarPin,
-    hotkeysEnabled 
+    hotkeysEnabled,
+    disabledHotkeys
   } = useUiStore();
   
   const toggleFirstActive = useTimerStore((state) => state.toggleFirstActive);
@@ -42,6 +43,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         if (profile.routine_reset_hour !== null) state.setRoutineResetHour(profile.routine_reset_hour);
         if (profile.journal_zoom !== null) state.setJournalZoom(profile.journal_zoom);
         if (profile.hotkeys_enabled !== null) state.setHotkeysEnabled(profile.hotkeys_enabled);
+        if (profile.disabled_hotkeys) state.setDisabledHotkeys(profile.disabled_hotkeys);
         if (profile.move_completed_to_bottom !== null) state.setMoveCompletedToBottom(profile.move_completed_to_bottom);
         if (profile.keep_parent_task_alive !== null) state.setKeepParentTaskAlive(profile.keep_parent_task_alive);
         if (profile.add_task_at_top !== null) state.setAddTaskAtTop(profile.add_task_at_top);
@@ -57,6 +59,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
            if (rec.routine_reset_hour !== null && rec.routine_reset_hour !== state.routineResetHour) state.setRoutineResetHour(rec.routine_reset_hour);
            if (rec.journal_zoom !== null && rec.journal_zoom !== state.journalZoom) state.setJournalZoom(rec.journal_zoom);
            if (rec.hotkeys_enabled !== null && rec.hotkeys_enabled !== state.hotkeysEnabled) state.setHotkeysEnabled(rec.hotkeys_enabled);
+           if (rec.disabled_hotkeys && JSON.stringify(rec.disabled_hotkeys) !== JSON.stringify(state.disabledHotkeys)) state.setDisabledHotkeys(rec.disabled_hotkeys);
            if (rec.move_completed_to_bottom !== null && rec.move_completed_to_bottom !== state.moveCompletedToBottom) state.setMoveCompletedToBottom(rec.move_completed_to_bottom);
            if (rec.keep_parent_task_alive !== null && rec.keep_parent_task_alive !== state.keepParentTaskAlive) state.setKeepParentTaskAlive(rec.keep_parent_task_alive);
            if (rec.add_task_at_top !== null && rec.add_task_at_top !== state.addTaskAtTop) state.setAddTaskAtTop(rec.add_task_at_top);
@@ -75,20 +78,19 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       const isTyping = ['INPUT', 'TEXTAREA'].includes((e.target as HTMLElement).tagName) || (e.target as HTMLElement).isContentEditable;
       if (isAlt) {
         const key = e.key.toLowerCase();
-        if (key === 'h') { e.preventDefault(); router.push('/'); }
-        if (key === 't') { e.preventDefault(); router.push('/tasks'); }
-        if (key === 'n') { e.preventDefault(); setNotesTab('notes'); router.push('/notes'); }
-        if (key === 'j') { e.preventDefault(); setNotesTab('journal'); router.push('/notes'); }
-        if (key === 'l') { e.preventDefault(); router.push('/sessions'); }
-        if (key === 'a') { e.preventDefault(); router.push('/analytics'); }
-        if (key === 's') { e.preventDefault(); router.push('/settings'); }
+        if (key === 'h' && !disabledHotkeys?.includes('home')) { e.preventDefault(); router.push('/'); }
+        if (key === 't' && !disabledHotkeys?.includes('tasks')) { e.preventDefault(); router.push('/tasks'); }
+        if (key === 'n' && !disabledHotkeys?.includes('notes')) { e.preventDefault(); setNotesTab('notes'); router.push('/notes'); }
+        if (key === 'j' && !disabledHotkeys?.includes('journal')) { e.preventDefault(); setNotesTab('journal'); router.push('/notes'); }
+        if (key === 'a' && !disabledHotkeys?.includes('analytics')) { e.preventDefault(); router.push('/analytics'); }
+        if (key === 's' && !disabledHotkeys?.includes('settings')) { e.preventDefault(); router.push('/settings'); }
       }
-      if (e.code === 'Space' && pathname === '/' && !isTyping) { e.preventDefault(); toggleFirstActive(); }
-      if (e.key === 'Escape' && isSidebarPinned) toggleSidebarPin();
+      if (e.code === 'Space' && pathname === '/' && !isTyping && !disabledHotkeys?.includes('space')) { e.preventDefault(); toggleFirstActive(); }
+      if (e.key === 'Escape' && isSidebarPinned && !disabledHotkeys?.includes('escape')) toggleSidebarPin();
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  },[pathname, router, setNotesTab, isSidebarPinned, toggleSidebarPin, toggleFirstActive, hotkeysEnabled]);
+  },[pathname, router, setNotesTab, isSidebarPinned, toggleSidebarPin, toggleFirstActive, hotkeysEnabled, disabledHotkeys]);
 
   useEffect(() => {
     if (!isLoading && !initialRestoreDone.current) {

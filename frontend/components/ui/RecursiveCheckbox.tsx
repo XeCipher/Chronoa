@@ -43,7 +43,7 @@ export default function RecursiveCheckbox({
   const containerRef = useRef<HTMLDivElement>(null);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
-  const { taskArchiveDelay, activeTaskIdWithMenu, setActiveTaskIdWithMenu } = useUiStore();
+  const { taskArchiveDelay, activeTaskIdWithMenu, setActiveTaskIdWithMenu, disabledHotkeys } = useUiStore();
   const { addInstance, setTitle: setTimerTitle, setActiveTab, setForceShowWidgets } = useTimerStore();
 
   const [initialTitle] = useState(task.title);
@@ -320,15 +320,18 @@ export default function RecursiveCheckbox({
                 setIsExpanded(false); 
               }}
               onKeyDown={(e) => {
-                if (e.altKey && e.key === "ArrowUp") { e.preventDefault(); onMoveUp(task); return; }
-                if (e.altKey && e.key === "ArrowDown") { e.preventDefault(); onMoveDown(task); return; }
+                if (e.altKey && e.key === "ArrowUp" && !disabledHotkeys?.includes('up')) { e.preventDefault(); onMoveUp(task); return; }
+                if (e.altKey && e.key === "ArrowDown" && !disabledHotkeys?.includes('down')) { e.preventDefault(); onMoveDown(task); return; }
                 if (e.key === "Enter") { e.preventDefault(); e.currentTarget.blur(); }
                 if (e.key === "Escape") { e.currentTarget.textContent = task.title; e.currentTarget.blur(); }
                 if (e.key === "Tab") {
-                  e.preventDefault();
-                  saveCurrentText();
-                  if (e.shiftKey) onUnindent(task);
-                  else onIndent(task);
+                  const isDisabled = e.shiftKey ? disabledHotkeys?.includes('unindent') : disabledHotkeys?.includes('indent');
+                  if (!isDisabled) {
+                    e.preventDefault();
+                    saveCurrentText();
+                    if (e.shiftKey) onUnindent(task);
+                    else onIndent(task);
+                  }
                 }
               }}
               style={!isExpanded ? { display: '-webkit-box', WebkitLineClamp: 10, WebkitBoxOrient: 'vertical', overflow: 'hidden' } : { display: 'block' }}
@@ -364,7 +367,7 @@ export default function RecursiveCheckbox({
 
           {viewMode === 'trash' && (
             <div className={`text-[9px] font-bold uppercase mt-1 tracking-widest flex items-center gap-1 ${daysLeft <= 1 ? 'text-red-500' : 'text-[#b0ad9a]'}`}>
-               {daysLeft > 0 ? `${daysLeft} days until permanent deletion` : 'Deletes soon'}
+               {daysLeft > 0 ? `Deletes in ${daysLeft} days` : 'Deletes soon'}
             </div>
           )}
 

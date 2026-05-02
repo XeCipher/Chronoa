@@ -7,10 +7,10 @@ import { useUiStore } from "@/store/uiStore";
 import { ChevronLeft, ChevronRight, Calendar as CalIcon, X } from 'lucide-react';
 import { DailyRecord } from '@/app/(dashboard)/analytics/page';
 
-const getSunday = (date: Date) => {
+const getSaturday = (date: Date) => {
   const d = new Date(date);
   const day = d.getDay();
-  const diff = day === 0 ? 0 : 7 - day;
+  const diff = 6 - day; 
   d.setDate(d.getDate() + diff);
   return d;
 };
@@ -21,8 +21,10 @@ export default function ProductivityChart({ dailyMap }: { dailyMap: Record<strin
 
   const today = new Date();
   today.setHours(0,0,0,0);
+  
+  const currentSaturday = getSaturday(today);
 
-  const [endDate, setEndDate] = useState<Date>(today);
+  const [endDate, setEndDate] = useState<Date>(currentSaturday);
   const [showCalendar, setShowCalendar] = useState(false);
   const [calMonth, setCalMonth] = useState<Date>(new Date());
   const calRef = useRef<HTMLDivElement>(null);
@@ -36,26 +38,21 @@ export default function ProductivityChart({ dailyMap }: { dailyMap: Record<strin
   }, []);
 
   const handlePrev = () => {
-    const isToday = endDate.getTime() === today.getTime();
     const newEnd = new Date(endDate);
-    if (isToday && today.getDay() !== 0) {
-      newEnd.setDate(today.getDate() - today.getDay());
-    } else {
-      newEnd.setDate(endDate.getDate() - 7);
-    }
+    newEnd.setDate(endDate.getDate() - 7);
     setEndDate(newEnd);
   };
 
   const handleNext = () => {
     const newEnd = new Date(endDate);
     newEnd.setDate(endDate.getDate() + 7);
-    if (newEnd > today) setEndDate(today);
+    if (newEnd > currentSaturday) setEndDate(currentSaturday);
     else setEndDate(newEnd);
   };
 
   const handleDateSelect = (date: Date) => {
-    let weekEnd = getSunday(date);
-    if (weekEnd > today) weekEnd = today;
+    let weekEnd = getSaturday(date);
+    if (weekEnd > currentSaturday) weekEnd = currentSaturday;
     setEndDate(weekEnd);
     setShowCalendar(false);
   };
@@ -69,7 +66,7 @@ export default function ProductivityChart({ dailyMap }: { dailyMap: Record<strin
       const record = dailyMap[ymd];
       
       data.push({
-        display: d.toLocaleDateString('en-US', { weekday: 'short' }),
+        display: `${d.toLocaleDateString('en-US', { weekday: 'short' })} ${d.getDate()}`,
         fullDate: d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
         tasks: record ? record.taskCount : 0,
         focus: record ? record.focusMinutes : 0,
@@ -187,6 +184,11 @@ export default function ProductivityChart({ dailyMap }: { dailyMap: Record<strin
         </div>
         
         <div className="flex items-center gap-2 relative">
+           {endDate.getTime() !== currentSaturday.getTime() && (
+             <button onClick={() => setEndDate(currentSaturday)} className="hidden md:block px-3 py-1.5 rounded-xl bg-[#c2956e]/10 text-[#c2956e] text-[10px] font-bold uppercase tracking-widest hover:bg-[#c2956e] hover:text-white transition-colors">
+               Present
+             </button>
+           )}
            <button onClick={() => setShowCalendar(!showCalendar)} className={`p-2 rounded-xl border transition-colors ${showCalendar ? 'bg-[#c2956e] text-white border-[#c2956e]' : 'bg-[#f7f5f0] dark:bg-[#222] text-[#888] border-[#e0ddd5] dark:border-[#333] hover:text-[#c2956e]'}`}>
               {showCalendar ? <X size={16} /> : <CalIcon size={16}/>}
            </button>
@@ -195,7 +197,7 @@ export default function ProductivityChart({ dailyMap }: { dailyMap: Record<strin
            <div className="flex items-center bg-[#f7f5f0] dark:bg-[#222] rounded-xl p-0.5 border border-[#e0ddd5] dark:border-[#333]">
               <button onClick={handlePrev} className="p-1.5 text-[#888] hover:text-[#3d3b33] dark:hover:text-white transition-colors"><ChevronLeft size={16} /></button>
               <div className="w-px h-4 bg-[#e0ddd5] dark:bg-[#444] mx-1" />
-              <button onClick={handleNext} disabled={endDate.getTime() === today.getTime()} className="p-1.5 text-[#888] hover:text-[#3d3b33] dark:hover:text-white transition-colors disabled:opacity-30"><ChevronRight size={16} /></button>
+              <button onClick={handleNext} disabled={endDate.getTime() === currentSaturday.getTime()} className="p-1.5 text-[#888] hover:text-[#3d3b33] dark:hover:text-white transition-colors disabled:opacity-30"><ChevronRight size={16} /></button>
            </div>
         </div>
       </div>
@@ -212,7 +214,9 @@ export default function ProductivityChart({ dailyMap }: { dailyMap: Record<strin
             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDark ? '#333' : '#f0ede8'} />
             <XAxis dataKey="display" axisLine={false} tickLine={false} tick={{ fill: isDark ? '#7a7a7a' : '#b0ad9a', fontSize: 11, fontWeight: 600 }} dy={10} />
             <YAxis yAxisId="left" axisLine={false} tickLine={false} tick={{ fill: isDark ? '#7a7a7a' : '#b0ad9a', fontSize: 11 }} />
-            <YAxis yAxisId="right" orientation="right" axisLine={false} tickLine={false} tick={false} />
+            
+            <YAxis yAxisId="right" orientation="right" hide={true} width={0} axisLine={false} tickLine={false} tick={false} />
+            
             <RechartsTooltip content={<CustomTooltip />} cursor={{ fill: isDark ? '#2a2a2a' : '#f7f5f0' }} />
             <Bar yAxisId="left" dataKey="tasks" name="Tasks Done" fill="url(#colorTasks)" radius={[6, 6, 0, 0]} maxBarSize={40} />
             <Line yAxisId="right" type="monotone" dataKey="focus" name="Focus Time" stroke={isDark ? '#b0855f' : '#c2956e'} strokeWidth={4} dot={{ r: 4, strokeWidth: 2, fill: isDark ? '#1a1a1a' : '#fff' }} activeDot={{ r: 7 }} />

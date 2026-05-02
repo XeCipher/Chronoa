@@ -116,11 +116,13 @@ export default function DistractionFreeEditor({
 
   const insertTimestamp = () => {
     if (!editor) return;
-    const timeString = new Date().toLocaleTimeString([], {
+    
+    const todayObj = new Date();
+    const timeString = todayObj.toLocaleTimeString([], {
       hour: "2-digit",
       minute: "2-digit",
     });
-    const dateString = new Date().toLocaleDateString("en-US", {
+    const dateString = todayObj.toLocaleDateString("en-US", {
       month: "short",
       day: "numeric",
       year: "numeric"
@@ -129,8 +131,8 @@ export default function DistractionFreeEditor({
     let displayString = `${dateString}, ${timeString}`;
     
     if (noteType === 'journal' && entryDate) {
-        const todayStr = new Date().toISOString().split('T')[0];
-        if (entryDate === todayStr) {
+        const localTodayStr = `${todayObj.getFullYear()}-${String(todayObj.getMonth()+1).padStart(2,'0')}-${String(todayObj.getDate()).padStart(2,'0')}`;
+        if (entryDate === localTodayStr) {
             displayString = timeString; 
         }
     }

@@ -22,6 +22,7 @@ export default function SettingsPage() {
     routineResetHour, setRoutineResetHour, 
     theme, setTheme,
     hotkeysEnabled, setHotkeysEnabled,
+    disabledHotkeys, setDisabledHotkeys,
     moveCompletedToBottom, setMoveCompletedToBottom,
     keepParentTaskAlive, setKeepParentTaskAlive,
     addTaskAtTop, setAddTaskAtTop,
@@ -43,12 +44,13 @@ export default function SettingsPage() {
       if (user) {
         const { data } = await supabase
           .from('profiles')
-          .select('calendar_urls, routine_reset_hour, weather_city')
+          .select('calendar_urls, routine_reset_hour, weather_city, disabled_hotkeys')
           .eq('id', user.id)
           .single();
         
         if (data?.calendar_urls) setCalendars(data.calendar_urls);
         if (data?.routine_reset_hour !== undefined) setRoutineResetHour(data.routine_reset_hour);
+        if (data?.disabled_hotkeys) setDisabledHotkeys(data.disabled_hotkeys);
         if (data?.weather_city) {
           setCityInput(data.weather_city);
           setCurrentCity(data.weather_city);
@@ -56,7 +58,7 @@ export default function SettingsPage() {
       }
     };
     fetchProfile();
-  }, [setRoutineResetHour]);
+  }, [setRoutineResetHour, setDisabledHotkeys]);
 
   const updateRemoteSetting = async (key: string, value: any) => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -123,6 +125,14 @@ export default function SettingsPage() {
   const handleResetHourChange = async (hour: number) => {
     setRoutineResetHour(hour);
     updateRemoteSetting('routine_reset_hour', hour);
+  };
+
+  const toggleHotkey = (id: string) => {
+    const newDisabled = disabledHotkeys.includes(id) 
+      ? disabledHotkeys.filter(k => k !== id) 
+      : [...disabledHotkeys, id];
+    setDisabledHotkeys(newDisabled);
+    updateRemoteSetting('disabled_hotkeys', newDisabled);
   };
 
   const handleLogout = async () => {
@@ -194,29 +204,42 @@ export default function SettingsPage() {
 
           <div className={`grid grid-cols-1 lg:grid-cols-2 gap-4 transition-opacity duration-300 ${hotkeysEnabled ? 'opacity-100' : 'opacity-40 pointer-events-none'}`}>
             {[
-              { keys: [modKey, 'H'], desc: 'Go to Home' },
-              { keys: [modKey, 'T'], desc: 'Go to Tasks' },
-              { keys: [modKey, 'N'], desc: 'Go to Notes' },
-              { keys: [modKey, 'J'], desc: 'Jump to Journal' },
-              { keys: [modKey, 'L'], desc: 'Go to Time Log' },
-              { keys: [modKey, 'A'], desc: 'Go to Analytics' },
-              { keys: [modKey, 'S'], desc: 'Go to Settings' },
-              { keys: [modKey, '↑'], desc: 'Move Task Up' },
-              { keys: [modKey, '↓'], desc: 'Move Task Down' },
-              { keys: ['Space'], desc: 'Play/Pause Timer & Stopwatch' },
-              { keys: ['Esc'], desc: 'Collapse Sidebar' },
-            ].map((hk, i) => (
-              <div key={i} className="flex items-center justify-between p-4 bg-[#f7f5f0]/50 dark:bg-[#222] border border-[#e0ddd5] dark:border-[#333] rounded-2xl">
-                <span className="text-[12px] text-[#3d3b33] dark:text-[#f0f0f0] font-medium">{hk.desc}</span>
-                <div className="flex gap-1.5">
-                  {hk.keys.map(k => (
-                    <kbd key={k} className="px-2 py-1 bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#444] rounded-lg text-[10px] font-bold text-[#b0ad9a] dark:text-[#777] shadow-sm min-w-[28px] text-center">
-                      {k}
-                    </kbd>
-                  ))}
+              { id: 'home', keys: [modKey, 'H'], desc: 'Go to Home' },
+              { id: 'tasks', keys: [modKey, 'T'], desc: 'Go to Tasks' },
+              { id: 'notes', keys: [modKey, 'N'], desc: 'Go to Notes' },
+              { id: 'journal', keys: [modKey, 'J'], desc: 'Jump to Journal' },
+              { id: 'analytics', keys: [modKey, 'A'], desc: 'Go to Analytics' },
+              { id: 'settings', keys: [modKey, 'S'], desc: 'Go to Settings' },
+              { id: 'up', keys: [modKey, '↑'], desc: 'Move Task Up' },
+              { id: 'down', keys: [modKey, '↓'], desc: 'Move Task Down' },
+              { id: 'indent', keys: ['Tab'], desc: 'Indent Task' },
+              { id: 'unindent', keys: ['Shift', 'Tab'], desc: 'Unindent Task' },
+              { id: 'space', keys: ['Space'], desc: 'Play/Pause Timer' },
+              { id: 'escape', keys: ['Esc'], desc: 'Collapse Sidebar' },
+            ].map((hk) => {
+              const isDisabled = disabledHotkeys?.includes(hk.id);
+              return (
+                <div 
+                  key={hk.id} 
+                  onClick={() => toggleHotkey(hk.id)}
+                  className={`flex items-center justify-between p-4 bg-[#f7f5f0]/50 dark:bg-[#222] border border-[#e0ddd5] dark:border-[#333] rounded-2xl cursor-pointer transition-all hover:border-[#c2956e]/50 dark:hover:border-[#b0855f]/50 ${isDisabled ? 'opacity-50 grayscale' : ''}`}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className={`w-4 h-4 rounded-full border flex items-center justify-center transition-colors ${!isDisabled ? 'bg-[#7ca982] border-[#7ca982]' : 'bg-transparent border-[#c4c0b8] dark:border-[#555]'}`}>
+                      {!isDisabled && <CheckCircle2 size={10} className="text-white" strokeWidth={4} />}
+                    </div>
+                    <span className="text-[12px] text-[#3d3b33] dark:text-[#f0f0f0] font-medium select-none">{hk.desc}</span>
+                  </div>
+                  <div className="flex gap-1.5 pointer-events-none">
+                    {hk.keys.map(k => (
+                      <kbd key={k} className="px-2 py-1 bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#444] rounded-lg text-[10px] font-bold text-[#b0ad9a] dark:text-[#777] shadow-sm min-w-[28px] text-center">
+                        {k}
+                      </kbd>
+                    ))}
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </section>
 

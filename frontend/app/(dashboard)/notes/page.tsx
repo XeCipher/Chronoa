@@ -1,7 +1,7 @@
 // frontend/app/(dashboard)/notes/page.tsx
 "use client";
 
-import { useEffect, useState, useMemo, useCallback } from "react";
+import { useEffect, useState, useMemo, useCallback, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import DistractionFreeEditor from "@/components/notes/DistractionFreeEditor";
 import { Search, Plus, Trash, BookOpen, FileText, ChevronLeft, RotateCcw, Trash2, Library, Sparkles, CalendarDays, X, ChevronRight } from "lucide-react";
@@ -62,6 +62,8 @@ export default function NotesPage() {
 
   const [showCalendar, setShowCalendar] = useState(false);
   const [calMonth, setCalMonth] = useState(new Date());
+
+  const desktopCalRef = useRef<HTMLDivElement>(null);
 
   const handleTabChange = (id: Tab) => {
     setNotesTab(id);
@@ -128,6 +130,18 @@ export default function NotesPage() {
       localStorage.setItem('chronoa_cache_trash', JSON.stringify(trash));
     }
   }, [notes, journals, trash, loading]);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (desktopCalRef.current && !desktopCalRef.current.contains(e.target as Node)) {
+        const target = e.target as HTMLElement;
+        if (target.closest('.desktop-cal-toggle')) return;
+        setShowCalendar(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   useEffect(() => {
     if (selectedId) {
@@ -302,9 +316,13 @@ export default function NotesPage() {
   useEffect(() => {
     if (autoSelectPending && !loading && !isTrashOpen) {
       if (filteredItems.length > 0) {
-        const firstItem = filteredItems[0];
-        const firstId = notesTab === 'journal' ? firstItem.entry_date : firstItem.id;
-        setSelectedId(firstId);
+        if (window.innerWidth >= 1024) {
+          const firstItem = filteredItems[0];
+          const firstId = notesTab === 'journal' ? firstItem.entry_date : firstItem.id;
+          setSelectedId(firstId);
+        } else {
+          setSelectedId(null);
+        }
       }
       setAutoSelectPending(false);
     }
@@ -338,7 +356,7 @@ export default function NotesPage() {
     return journals.find(j => j.entry_date === selectedId);
   },[selectedId, notesTab, notes, journals, trash, isTrashOpen]);
 
-  const renderCalendar = () => {
+  const renderCalendar = (isMobilePopover = false) => {
     const year = calMonth.getFullYear();
     const month = calMonth.getMonth();
     const firstDay = new Date(year, month, 1).getDay();
@@ -349,7 +367,7 @@ export default function NotesPage() {
     for (let i = 1; i <= daysInMonth; i++) days.push(new Date(year, month, i));
 
     return (
-      <div className="absolute top-12 right-0 mt-2 p-4 bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] rounded-2xl shadow-xl z-50 w-[260px] animate-fade-up">
+      <div ref={isMobilePopover ? null : desktopCalRef} className={isMobilePopover ? 'p-4 bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] rounded-2xl shadow-xl z-50 w-[260px]' : 'absolute top-12 right-0 mt-2 p-4 bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] rounded-2xl shadow-xl z-50 w-[260px] animate-fade-up'}>
         <div className="flex justify-between items-center mb-4">
           <button onClick={() => setCalMonth(new Date(year, month - 1, 1))} className="p-1 text-[#888] hover:text-[#c2956e]"><ChevronLeft size={16}/></button>
           <span className="text-sm font-bold text-[#3d3b33] dark:text-[#f0f0f0] uppercase tracking-widest">{calMonth.toLocaleString('default', { month: 'short' })} {year}</span>
@@ -417,12 +435,17 @@ export default function NotesPage() {
               )}
               
               {!isTrashOpen && notesTab === 'journal' && (
-                <button onClick={() => setShowCalendar(!showCalendar)} className="hidden lg:flex w-8 h-8 items-center justify-center bg-[#3d3b33] dark:bg-[#f0f0f0] text-white dark:text-[#121212] rounded-full hover:scale-105 transition-all shadow-lg">
-                  {showCalendar ? <X size={16} /> : <CalendarDays size={16} />}
-                </button>
+                <>
+                  <button onClick={() => setShowCalendar(!showCalendar)} className="desktop-cal-toggle hidden lg:flex w-8 h-8 items-center justify-center bg-[#3d3b33] dark:bg-[#f0f0f0] text-white dark:text-[#121212] rounded-full hover:scale-105 transition-all shadow-lg">
+                    {showCalendar ? <X size={16} /> : <CalendarDays size={16} />}
+                  </button>
+                  {showCalendar && (
+                     <div className="hidden lg:block relative">
+                        {renderCalendar(false)}
+                     </div>
+                  )}
+                </>
               )}
-              
-              {showCalendar && renderCalendar()}
             </div>
           </div>
 
@@ -473,10 +496,10 @@ export default function NotesPage() {
                 <button key={id} onClick={() => handleSelectItem(id)} 
                   className={`w-full text-left p-4 rounded-2xl transition-all duration-200 border relative group overflow-hidden ${
                     isSelected 
-                    ? 'bg-white dark:bg-[#1e1e1e] border-[#c2956e]/40 dark:border-[#b0855f]/50 shadow-md translate-x-1' 
+                    ? 'bg-white dark:bg-[#1e1e1e] border-[#e0ddd5] dark:border-[#222] lg:border-[#c2956e]/40 lg:dark:border-[#b0855f]/50 shadow-sm lg:shadow-md lg:translate-x-1' 
                     : 'bg-[#fdfbf7] dark:bg-[#161616] border-[#f0ede8] dark:border-[#222] hover:border-[#c2956e]/20 dark:hover:border-[#b0855f]/20 hover:shadow-sm'
                   }`}>
-                  {isSelected && <div className="absolute left-0 top-0 bottom-0 w-1 bg-[#c2956e]" />}
+                  {isSelected && <div className="hidden lg:block absolute left-0 top-0 bottom-0 w-1 bg-[#c2956e]" />}
                   <div className="flex justify-between items-baseline mb-1 gap-3">
                     <span className={`font-semibold text-[14px] truncate ${isSelected ? 'text-[#c2956e] dark:text-[#d1a784]' : 'text-[#3d3b33] dark:text-[#f0f0f0]'}`}>{title}</span>
                     <span className="text-[9px] font-bold text-[#b0ad9a] dark:text-[#555] uppercase shrink-0">{formatDateLabel(item.updated_at || item.entry_date)}</span>
@@ -567,15 +590,25 @@ export default function NotesPage() {
 
       {/* Mobile FAB for Notes & Journal */}
       {isListVisible && !isTrashOpen && (
-        <button 
-          onClick={() => {
-             if (notesTab === 'notes') createNote();
-             else setShowCalendar(!showCalendar);
-          }}
-          className="lg:hidden fixed bottom-[90px] right-6 z-[100] w-14 h-14 bg-white/30 dark:bg-black/30 backdrop-blur-lg border-2 border-[#c2956e]/50 dark:border-[#b0855f]/50 text-[#c2956e] dark:text-[#b0855f] rounded-full shadow-lg shadow-black/10 dark:shadow-black/30 flex items-center justify-center hover:scale-105 active:scale-95 transition-all"
-        >
-          {notesTab === 'notes' ? <Plus size={24} strokeWidth={2.5} /> : <CalendarDays size={22} />}
-        </button>
+        <div className="lg:hidden fixed bottom-[90px] right-6 z-[100] flex flex-col items-end">
+          {showCalendar && notesTab === 'journal' && (
+            <>
+              <div className="fixed inset-0 z-40" onClick={() => setShowCalendar(false)} />
+              <div className="relative z-50 mb-4 animate-fade-up origin-bottom-right">
+                {renderCalendar(true)}
+              </div>
+            </>
+          )}
+          <button 
+            onClick={() => {
+               if (notesTab === 'notes') createNote();
+               else setShowCalendar(!showCalendar);
+            }}
+            className="relative z-50 w-14 h-14 bg-white/30 dark:bg-black/30 backdrop-blur-lg border-2 border-[#c2956e]/50 dark:border-[#b0855f]/50 text-[#c2956e] dark:text-[#b0855f] rounded-full shadow-lg shadow-black/10 dark:shadow-black/30 flex items-center justify-center hover:scale-105 active:scale-95 transition-all"
+          >
+            {notesTab === 'notes' ? <Plus size={24} strokeWidth={2.5} /> : (showCalendar ? <X size={22} /> : <CalendarDays size={22} />)}
+          </button>
+        </div>
       )}
 
     </div>
