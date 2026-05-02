@@ -1,3 +1,4 @@
+// frontend/components/tasks/ICloudTodayFeed.tsx
 "use client";
 
 import { useEffect, useState } from "react";
@@ -84,8 +85,8 @@ export default function ICloudTodayFeed() {
       {events.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {events.map((event, i) => (
-            <div key={i} className="bg-white/60 dark:bg-[#1a1a1a]/60 backdrop-blur-md border border-[#ebe8e2] dark:border-[#333] p-4 rounded-2xl flex items-start gap-4 hover:border-[#6e90c2]/30 dark:hover:border-[#8aaae0]/40 transition-all group shadow-sm">
-              <div className="w-1.5 h-10 bg-[#6e90c2]/40 dark:bg-[#8aaae0]/40 rounded-full shrink-0 mt-0.5 group-hover:bg-[#6e90c2] dark:group-hover:bg-[#8aaae0] transition-colors" />
+            <div key={i} className="bg-white/60 dark:bg-[#1a1a1a]/60 backdrop-blur-md border border-[#ebe8e2] dark:border-[#333] p-4 rounded-2xl flex items-start gap-4 md:hover:border-[#6e90c2]/30 md:dark:hover:border-[#8aaae0]/40 transition-all group shadow-sm">
+              <div className="w-1.5 h-10 bg-[#6e90c2]/40 dark:bg-[#8aaae0]/40 rounded-full shrink-0 mt-0.5 md:group-hover:bg-[#6e90c2] md:dark:group-hover:bg-[#8aaae0] transition-colors" />
               <div className="flex-1 min-w-0">
                 <div className="flex justify-between items-start gap-2 mb-1">
                   <p className="text-[#3d3b33] dark:text-[#f0f0f0] font-semibold text-[14px] leading-tight truncate">{event.title}</p>

@@ -1,3 +1,4 @@
+// frontend/components/home/HomeTaskProgress.tsx
 "use client";
 
 import { useEffect, useState, useRef } from "react";
@@ -83,11 +84,11 @@ export default function HomeTaskProgress() {
   if (!showHomeTaskProgress || loading) return null;
 
   return (
-    <div className="fixed md:bottom-10 md:right-10 top-6 left-6 md:top-auto md:left-auto z-40 animate-fade-up">
+    <div className="fixed md:bottom-10 md:right-10 top-[calc(1.5rem+env(safe-area-inset-top))] left-6 md:top-auto md:left-auto z-40 animate-fade-up">
       <div 
         ref={widgetRef}
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
+        onMouseEnter={() => { if (window.matchMedia('(hover: hover)').matches) setIsHovered(true); }}
+        onMouseLeave={() => { if (window.matchMedia('(hover: hover)').matches) setIsHovered(false); }}
         onClick={() => setIsExpanded(!isExpanded)}
         className={`flex flex-col items-start bg-white/20 dark:bg-black/30 backdrop-blur-xl border border-white/40 dark:border-white/10 transition-all duration-500 ease-in-out shadow-[0_8px_30px_rgb(0,0,0,0.08)] cursor-pointer overflow-hidden
           ${showFull ? 'p-4 md:p-5 rounded-[2rem] gap-3' : 'p-2 rounded-full gap-2'}

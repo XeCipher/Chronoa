@@ -109,7 +109,7 @@ function EngineCard({ engine, tab }: { engine: EngineInstance, tab: 'timer' | 's
       <button 
         onClick={() => store.removeInstance(tab, engine.id)} 
         data-tooltip-id="global-tooltip" data-tooltip-content="Remove"
-        className="absolute top-5 right-6 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity text-gray-400 hover:text-red-500 dark:text-gray-500 dark:hover:text-red-400"
+        className="absolute top-5 right-6 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity text-gray-400 md:hover:text-red-500 dark:text-gray-500 md:dark:hover:text-red-400"
       >
         <Trash2 size={18} />
       </button>
@@ -120,7 +120,7 @@ function EngineCard({ engine, tab }: { engine: EngineInstance, tab: 'timer' | 's
         </div>
         <div className="flex items-center gap-3">
           {(engine.accumulatedSeconds > 0 || engine.isRunning) && (
-            <button data-tooltip-id="global-tooltip" data-tooltip-content="Stop & Save" onClick={() => handleStopAndSave()} className="w-12 h-12 flex items-center justify-center bg-white/60 dark:bg-black/60 border border-white/80 dark:border-white/10 text-red-500 rounded-full hover:scale-105 active:scale-95 transition-all shadow-sm hover:bg-white dark:hover:bg-black">
+            <button data-tooltip-id="global-tooltip" data-tooltip-content="Stop & Save" onClick={() => handleStopAndSave()} className="w-12 h-12 flex items-center justify-center bg-white/60 dark:bg-black/60 border border-white/80 dark:border-white/10 text-red-500 rounded-full md:hover:scale-105 active:scale-95 transition-all shadow-sm md:hover:bg-white md:dark:hover:bg-black">
               <Square size={18} fill="currentColor" />
             </button>
           )}
@@ -136,7 +136,7 @@ function EngineCard({ engine, tab }: { engine: EngineInstance, tab: 'timer' | 's
                 store.start(tab, engine.id);
               }
             }}
-            className="w-14 h-14 flex items-center justify-center bg-[#3d3b33] dark:bg-[#f0f0f0] text-white dark:text-[#121212] rounded-full hover:scale-105 active:scale-95 transition-all shadow-lg hover:bg-black dark:hover:bg-white"
+            className="w-14 h-14 flex items-center justify-center bg-[#3d3b33] dark:bg-[#f0f0f0] text-white dark:text-[#121212] rounded-full md:hover:scale-105 active:scale-95 transition-all shadow-lg md:hover:bg-black md:dark:hover:bg-white"
           >
             {engine.isRunning ? <Pause size={22} fill="currentColor" /> : <Play size={22} fill="currentColor" className="ml-1" />}
           </button>
@@ -195,17 +195,17 @@ export default function ProductivityWidgets({ isVisible }: { isVisible: boolean 
           {(['stopwatch', 'timer'] as const).map(tab => (
             <button 
               key={tab} onClick={() => store.setActiveTab(tab)}
-              className={`px-5 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all flex items-center gap-1.5 ${store.activeTab === tab ? 'bg-white dark:bg-[#222] text-[#c2956e] dark:text-[#d1a784] shadow-sm' : 'text-[#888] dark:text-[#a0a0a0] hover:text-[#3d3b33] dark:hover:text-[#f0f0f0]'}`}
+              className={`px-5 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all flex items-center gap-1.5 ${store.activeTab === tab ? 'bg-white dark:bg-[#222] text-[#c2956e] dark:text-[#d1a784] shadow-sm' : 'text-[#888] dark:text-[#a0a0a0] md:hover:text-[#3d3b33] md:dark:hover:text-[#f0f0f0]'}`}
             >
               {tab} {isAnyRunning(tab) && <span className="w-1.5 h-1.5 bg-[#c2956e] dark:bg-[#b0855f] rounded-full animate-ping"/>}
             </button>
           ))}
         </div>
         <div className="flex items-center gap-2">
-          <button data-tooltip-id="global-tooltip" data-tooltip-content="Log Book" onClick={() => router.push('/sessions')} className={`w-9 h-9 flex items-center justify-center rounded-full backdrop-blur-md hover:bg-white/50 dark:hover:bg-black/50 transition-colors text-[#3d3b33] dark:text-[#a0a0a0] bg-white/30 dark:bg-black/30 border border-white/20 dark:border-white/5 shadow-sm`}>
+          <button data-tooltip-id="global-tooltip" data-tooltip-content="Log Book" onClick={() => router.push('/sessions')} className={`w-9 h-9 flex items-center justify-center rounded-full backdrop-blur-md md:hover:bg-white/50 md:dark:hover:bg-black/50 transition-colors text-[#3d3b33] dark:text-[#a0a0a0] bg-white/30 dark:bg-black/30 border border-white/20 dark:border-white/5 shadow-sm`}>
             <History size={15} />
           </button>
-          <button data-tooltip-id="global-tooltip" data-tooltip-content={store.isPinned ? "Unpin Timer" : "Pin Timer"} onClick={store.togglePin} className={`w-9 h-9 flex items-center justify-center rounded-full backdrop-blur-md hover:bg-white/50 dark:hover:bg-black/50 transition-colors ${store.isPinned ? 'text-[#c2956e] dark:text-[#d1a784] bg-white/80 dark:bg-black/60 shadow-sm border border-white/30 dark:border-white/10' : 'text-[#3d3b33] dark:text-[#a0a0a0] bg-white/30 dark:bg-black/30 border border-white/20 dark:border-white/5'}`}>
+          <button data-tooltip-id="global-tooltip" data-tooltip-content={store.isPinned ? "Unpin Timer" : "Pin Timer"} onClick={store.togglePin} className={`w-9 h-9 flex items-center justify-center rounded-full backdrop-blur-md md:hover:bg-white/50 md:dark:hover:bg-black/50 transition-colors ${store.isPinned ? 'text-[#c2956e] dark:text-[#d1a784] bg-white/80 dark:bg-black/60 shadow-sm border border-white/30 dark:border-white/10' : 'text-[#3d3b33] dark:text-[#a0a0a0] bg-white/30 dark:bg-black/30 border border-white/20 dark:border-white/5'}`}>
             {store.isPinned ? <Pin size={15} /> : <PinOff size={15} />}
           </button>
         </div>
@@ -220,7 +220,7 @@ export default function ProductivityWidgets({ isVisible }: { isVisible: boolean 
           
           <button 
             onClick={() => store.addInstance(store.activeTab)} 
-            className="shrink-0 w-[6rem] sm:w-[8rem] bg-white/10 dark:bg-black/20 hover:bg-white/30 dark:hover:bg-black/40 backdrop-blur-3xl border border-white/40 dark:border-white/10 rounded-[2.5rem] flex flex-col items-center justify-center gap-3 transition-colors snap-center cursor-pointer shadow-[0_20px_50px_-10px_rgba(0,0,0,0.1)]"
+            className="shrink-0 w-[6rem] sm:w-[8rem] bg-white/10 dark:bg-black/20 md:hover:bg-white/30 md:dark:hover:bg-black/40 backdrop-blur-3xl border border-white/40 dark:border-white/10 rounded-[2.5rem] flex flex-col items-center justify-center gap-3 transition-colors snap-center cursor-pointer shadow-[0_20px_50px_-10px_rgba(0,0,0,0.1)]"
           >
             <Plus size={28} className="text-[#3d3b33] dark:text-[#f0f0f0]" />
             <span className="text-[10px] font-bold uppercase tracking-widest text-[#3d3b33] dark:text-[#f0f0f0]">Add</span>

@@ -42,16 +42,22 @@ export default function HomePage() {
       </div>
 
       <div 
-        className="absolute bottom-[72px] md:bottom-0 left-0 w-full h-[15vh] md:h-[25vh] z-30 flex items-end justify-center pb-6 md:pb-10 group"
+        className="absolute bottom-[calc(72px+env(safe-area-inset-bottom))] md:bottom-0 left-0 w-full h-[15vh] md:h-[25vh] z-30 flex items-end justify-center pb-6 md:pb-10 group pointer-events-none md:pointer-events-auto"
         onMouseEnter={() => {
-          setIsHovered(true);
-          if (forceShow) setForceShow(false);
+          if (window.matchMedia('(hover: hover)').matches) {
+            setIsHovered(true);
+            if (forceShow) setForceShow(false);
+          }
         }}
-        onMouseLeave={() => setIsHovered(false)}
+        onMouseLeave={() => {
+          if (window.matchMedia('(hover: hover)').matches) {
+            setIsHovered(false);
+          }
+        }}
       >
         <div
-          className="md:hidden absolute bottom-4 left-1/2 -translate-x-1/2 flex flex-col items-center justify-center p-4 z-40 transition-opacity"
-          style={{ opacity: showWidget ? 0 : 1, pointerEvents: showWidget ? 'none' : 'auto' }}
+          className="md:hidden absolute bottom-4 left-1/2 -translate-x-1/2 flex flex-col items-center justify-center p-4 z-40 transition-opacity pointer-events-auto"
+          style={{ opacity: showWidget ? 0 : 1 }}
           onClick={() => {
             setIsTouched(true);
             if (forceShow) setForceShow(false);
@@ -62,13 +68,13 @@ export default function HomePage() {
 
         {isTouched && !isPinned && (
           <button
-            className="md:hidden fixed inset-0 w-full h-full z-0 cursor-default outline-none"
-            onClick={() => setIsTouched(false)}
+            className="md:hidden fixed inset-0 w-full h-full z-0 cursor-default outline-none pointer-events-auto"
+            onClick={(e) => { e.stopPropagation(); setIsTouched(false); }}
             tabIndex={-1}
           />
         )}
 
-        <div className="relative z-10 w-full">
+        <div className="relative z-10 w-full pointer-events-auto">
           <ProductivityWidgets isVisible={showWidget} />
         </div>
       </div>

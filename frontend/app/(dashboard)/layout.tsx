@@ -1,4 +1,3 @@
-// frontend/app/(dashboard)/layout.tsx
 "use client";
 
 import { useEffect, useState, useRef } from "react";
@@ -115,7 +114,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   return (
     <div className={`flex h-screen w-full overflow-hidden ${isHomePage ? 'bg-transparent' : 'bg-[#f7f5f0] dark:bg-[#121212]'}`}>
       <SidebarNav />
-      <main id="main-scroll-container" className="flex-1 h-full overflow-y-auto overflow-x-hidden relative min-w-0 pb-[72px] md:pb-0 pt-[max(1rem,env(safe-area-inset-top))] md:pt-0 scroll-smooth">
+      <main id="main-scroll-container" className="flex-1 h-full overflow-y-auto overflow-x-hidden relative min-w-0 pb-[calc(72px+env(safe-area-inset-bottom))] md:pb-0 pt-[max(1rem,env(safe-area-inset-top))] md:pt-0 scroll-smooth">
         {children}
       </main>
 

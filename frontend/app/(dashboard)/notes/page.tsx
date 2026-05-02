@@ -369,7 +369,7 @@ export default function NotesPage() {
   }, [autoSelectPending, loading, filteredItems, isTrashOpen, notesTab]);
 
   const Snippet = ({ html, query }: { html: string, query: string }) => {
-    const plain = (html || "").replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+    const plain = (html || "").replace(/<[^>]+>/g, ' ').replace(/\s+/g, 'Im ').trim();
     if (!plain) return <span className="text-[#b0ad9a] dark:text-[#555] italic">Start typing...</span>;
     if (!query.trim()) return <span className="opacity-70">{plain.slice(0, 80)}</span>;
     const idx = plain.toLowerCase().indexOf(query.toLowerCase());
@@ -464,20 +464,20 @@ export default function NotesPage() {
               <button 
                 onClick={() => { setIsTrashOpen(!isTrashOpen); setSelectedId(null); setAutoSelectPending(true); setShowCalendar(false); }} 
                 data-tooltip-id="global-tooltip" data-tooltip-content={isTrashOpen ? "Exit Trash" : "Open Trash"}
-                className={`w-8 h-8 flex items-center justify-center rounded-full transition-all ${isTrashOpen ? 'bg-[#ebe8e2] dark:bg-[#2a2a2a] text-[#888] hover:text-[#3d3b33] dark:hover:text-white' : 'text-[#888] hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/10'}`}
+                className={`w-8 h-8 flex items-center justify-center rounded-full transition-all ${isTrashOpen ? 'bg-[#ebe8e2] dark:bg-[#2a2a2a] text-[#888] md:hover:text-[#3d3b33] md:dark:hover:text-white' : 'text-[#888] md:hover:text-red-400 md:hover:bg-red-50 md:dark:hover:bg-red-900/10'}`}
               >
                 {isTrashOpen ? <X size={16} /> : <Trash size={16} />}
               </button>
               
               {!isTrashOpen && notesTab === 'notes' && (
-                <button onClick={createNote} data-tooltip-id="global-tooltip" data-tooltip-content="New Note" className="hidden lg:flex w-8 h-8 items-center justify-center bg-[#3d3b33] dark:bg-[#f0f0f0] text-white dark:text-[#121212] rounded-full hover:scale-105 transition-all shadow-lg">
+                <button onClick={createNote} data-tooltip-id="global-tooltip" data-tooltip-content="New Note" className="hidden lg:flex w-8 h-8 items-center justify-center bg-[#3d3b33] dark:bg-[#f0f0f0] text-white dark:text-[#121212] rounded-full md:hover:scale-105 transition-all shadow-lg">
                   <Plus size={18} />
                 </button>
               )}
               
               {!isTrashOpen && notesTab === 'journal' && (
                 <>
-                  <button onClick={() => setShowCalendar(!showCalendar)} data-tooltip-id="global-tooltip" data-tooltip-content="Calendar" className="desktop-cal-toggle hidden lg:flex w-8 h-8 items-center justify-center bg-[#3d3b33] dark:bg-[#f0f0f0] text-white dark:text-[#121212] rounded-full hover:scale-105 transition-all shadow-lg">
+                  <button onClick={() => setShowCalendar(!showCalendar)} data-tooltip-id="global-tooltip" data-tooltip-content="Calendar" className="desktop-cal-toggle hidden lg:flex w-8 h-8 items-center justify-center bg-[#3d3b33] dark:bg-[#f0f0f0] text-white dark:text-[#121212] rounded-full md:hover:scale-105 transition-all shadow-lg">
                     {showCalendar ? <X size={16} /> : <CalendarDays size={16} />}
                   </button>
                   {showCalendar && (
@@ -504,14 +504,14 @@ export default function NotesPage() {
               <div className="flex bg-[#ebe8e2] dark:bg-[#1a1a1a] p-1 rounded-xl">
                 {TABS.map(({ id, label, icon: Icon }) => (
                   <button key={id} onClick={() => handleTabChange(id)}
-                    className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all ${notesTab === id ? 'bg-white dark:bg-[#2a2a2a] shadow-sm text-[#c2956e] dark:text-[#d1a784]' : 'text-[#888] hover:text-[#3d3b33] dark:hover:text-[#ccc]'}`}>
+                    className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all ${notesTab === id ? 'bg-white dark:bg-[#2a2a2a] shadow-sm text-[#c2956e] dark:text-[#d1a784]' : 'text-[#888] md:hover:text-[#3d3b33] md:dark:hover:text-[#ccc]'}`}>
                     <Icon size={14} /> <span className="hidden xl:inline">{label}</span>
                   </button>
                 ))}
               </div>
               
               {isTrashOpen && (
-                <button onClick={emptyTrash} className="w-full flex items-center justify-center gap-2 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all bg-red-50 dark:bg-red-900/10 text-red-500 hover:bg-red-500 hover:text-white shadow-sm border border-red-100 dark:border-red-900/30">
+                <button onClick={emptyTrash} className="w-full flex items-center justify-center gap-2 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all bg-red-50 dark:bg-red-900/10 text-red-500 md:hover:bg-red-500 md:hover:text-white shadow-sm border border-red-100 dark:border-red-900/30">
                   <Trash2 size={14} /> Empty {notesTab} Trash
                 </button>
               )}
@@ -539,7 +539,7 @@ export default function NotesPage() {
                     className={`w-full text-left p-4 rounded-2xl transition-all duration-200 border relative group overflow-hidden ${
                       isSelected 
                       ? 'bg-white dark:bg-[#1e1e1e] border-[#e0ddd5] dark:border-[#222] lg:border-[#c2956e]/40 lg:dark:border-[#b0855f]/50 shadow-sm lg:shadow-md lg:translate-x-1' 
-                      : 'bg-[#fdfbf7] dark:bg-[#161616] border-[#f0ede8] dark:border-[#222] hover:border-[#c2956e]/20 dark:hover:border-[#b0855f]/20 hover:shadow-sm'
+                      : 'bg-[#fdfbf7] dark:bg-[#161616] border-[#f0ede8] dark:border-[#222] md:hover:border-[#c2956e]/20 md:dark:hover:border-[#b0855f]/20 md:hover:shadow-sm'
                     }`}>
                     {isSelected && <div className="hidden lg:block absolute left-0 top-0 bottom-0 w-1 bg-[#c2956e]" />}
                     <div className="flex justify-between items-baseline mb-1 gap-3">
@@ -573,15 +573,15 @@ export default function NotesPage() {
               </button>
               <div className="flex items-center gap-2 ml-auto">
                 {!isTrashOpen ? (
-                  <button data-tooltip-id="global-tooltip" data-tooltip-content="Move to Trash" onClick={() => moveToTrash(selectedItem.entry_date || selectedItem.id)} className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 rounded-xl transition-all">
+                  <button data-tooltip-id="global-tooltip" data-tooltip-content="Move to Trash" onClick={() => moveToTrash(selectedItem.entry_date || selectedItem.id)} className="p-2 text-gray-400 md:hover:text-red-500 md:hover:bg-red-50 md:dark:hover:bg-red-900/10 rounded-xl transition-all">
                     <Trash2 size={18} />
                   </button>
                 ) : (
                   <div className="flex items-center gap-2">
-                    <button onClick={() => restoreNote(selectedItem)} className="flex items-center gap-2 px-4 py-2 bg-[#7ca982]/10 text-[#7ca982] rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-[#7ca982] hover:text-white transition-all">
+                    <button onClick={() => restoreNote(selectedItem)} className="flex items-center gap-2 px-4 py-2 bg-[#7ca982]/10 text-[#7ca982] rounded-xl text-[10px] font-bold uppercase tracking-widest md:hover:bg-[#7ca982] md:hover:text-white transition-all">
                       <RotateCcw size={14} /> Restore
                     </button>
-                    <button data-tooltip-id="global-tooltip" data-tooltip-content="Delete Permanently" onClick={() => permanentlyDelete(selectedItem)} className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 rounded-xl transition-all">
+                    <button data-tooltip-id="global-tooltip" data-tooltip-content="Delete Permanently" onClick={() => permanentlyDelete(selectedItem)} className="p-2 text-red-500 md:hover:bg-red-50 md:dark:hover:bg-red-900/10 rounded-xl transition-all">
                       <Trash size={18} />
                     </button>
                   </div>
@@ -635,7 +635,7 @@ export default function NotesPage() {
 
       {/* Mobile FAB for Notes & Journal */}
       {isListVisible && !isTrashOpen && (
-        <div className="lg:hidden fixed bottom-[90px] right-6 z-[100] flex flex-col items-end">
+        <div className="lg:hidden fixed bottom-[calc(90px+env(safe-area-inset-bottom))] right-6 z-[100] flex flex-col items-end">
           {showCalendar && notesTab === 'journal' && (
             <>
               <div className="fixed inset-0 z-40" onClick={() => setShowCalendar(false)} />
@@ -649,7 +649,7 @@ export default function NotesPage() {
                if (notesTab === 'notes') createNote();
                else setShowCalendar(!showCalendar);
             }}
-            className="relative z-50 w-14 h-14 bg-white/30 dark:bg-black/30 backdrop-blur-lg border-2 border-[#c2956e]/50 dark:border-[#b0855f]/50 text-[#c2956e] dark:text-[#b0855f] rounded-full shadow-lg shadow-black/10 dark:shadow-black/30 flex items-center justify-center hover:scale-105 active:scale-95 transition-all"
+            className="relative z-50 w-14 h-14 bg-white/30 dark:bg-black/30 backdrop-blur-lg border-2 border-[#c2956e]/50 dark:border-[#b0855f]/50 text-[#c2956e] dark:text-[#b0855f] rounded-full shadow-lg shadow-black/10 dark:shadow-black/30 flex items-center justify-center md:hover:scale-105 active:scale-95 transition-all"
           >
             {notesTab === 'notes' ? <Plus size={24} strokeWidth={2.5} /> : (showCalendar ? <X size={22} /> : <CalendarDays size={22} />)}
           </button>

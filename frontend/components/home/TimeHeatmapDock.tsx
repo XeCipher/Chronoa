@@ -1,3 +1,4 @@
+// frontend/components/home/TimeHeatmapDock.tsx
 "use client";
 
 import { useState, useEffect } from "react";
@@ -23,9 +24,9 @@ export default function TimeHeatmapDock({ data }: { data: any[] }) {
 
   return (
     <div 
-      className="fixed bottom-[72px] md:bottom-0 left-1/2 -translate-x-1/2 z-40 w-full max-w-4xl px-4 md:px-8"
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
+      className="fixed bottom-[calc(72px+env(safe-area-inset-bottom))] md:bottom-0 left-1/2 -translate-x-1/2 z-40 w-full max-w-4xl px-4 md:px-8"
+      onMouseEnter={() => { if (window.matchMedia('(hover: hover)').matches) setIsHovered(true); }}
+      onMouseLeave={() => { if (window.matchMedia('(hover: hover)').matches) setIsHovered(false); }}
     >
       {/* Touch dismiss overlay */}
       {isTouched && (

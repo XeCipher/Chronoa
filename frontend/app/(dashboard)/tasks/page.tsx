@@ -60,7 +60,7 @@ export default function TasksPage() {
                   <button 
                     onClick={() => handleViewChange('focus')}
                     className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-xs font-bold uppercase tracking-widest transition-all ${
-                      tasksView === 'focus' ? 'bg-[#c2956e] dark:bg-[#b0855f] text-white shadow-md' : 'text-[#b0ad9a] dark:text-[#7a7a7a] hover:text-[#3d3b33] dark:hover:text-white'
+                      tasksView === 'focus' ? 'bg-[#c2956e] dark:bg-[#b0855f] text-white shadow-md' : 'text-[#b0ad9a] dark:text-[#7a7a7a] md:hover:text-[#3d3b33] md:dark:hover:text-white'
                     }`}
                   >
                     <ListChecks size={14} /> Focus
@@ -68,7 +68,7 @@ export default function TasksPage() {
                   <button 
                     onClick={() => handleViewChange('archive')}
                     className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-xs font-bold uppercase tracking-widest transition-all ${
-                      tasksView === 'archive' ? 'bg-[#c2956e] dark:bg-[#b0855f] text-white shadow-md' : 'text-[#b0ad9a] dark:text-[#7a7a7a] hover:text-[#3d3b33] dark:hover:text-white'
+                      tasksView === 'archive' ? 'bg-[#c2956e] dark:bg-[#b0855f] text-white shadow-md' : 'text-[#b0ad9a] dark:text-[#7a7a7a] md:hover:text-[#3d3b33] md:dark:hover:text-white'
                     }`}
                   >
                     <History size={14} /> Archive
@@ -78,7 +78,7 @@ export default function TasksPage() {
                 <button 
                   onClick={() => setIsTrashOpen(true)}
                   data-tooltip-id="global-tooltip" data-tooltip-content="Open Trash"
-                  className="p-3 text-[#b0ad9a] hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/10 rounded-2xl transition-all border border-transparent hover:border-red-100 dark:hover:border-red-900/30"
+                  className="p-3 text-[#b0ad9a] md:hover:text-red-400 md:hover:bg-red-50 md:dark:hover:bg-red-900/10 rounded-2xl transition-all border border-transparent md:hover:border-red-100 md:dark:hover:border-red-900/30"
                 >
                   <Trash2 size={20} />
                 </button>
@@ -87,13 +87,13 @@ export default function TasksPage() {
               <div className="flex items-center gap-3">
                 <button 
                   onClick={() => setIsTrashOpen(false)}
-                  className="flex items-center gap-2 px-6 py-3 bg-white dark:bg-[#1e1e1e] border border-[#e0ddd5] dark:border-[#333] rounded-2xl text-[10px] font-bold uppercase tracking-widest text-[#3d3b33] dark:text-[#f0f0f0] shadow-sm hover:border-[#c2956e] transition-all"
+                  className="flex items-center gap-2 px-6 py-3 bg-white dark:bg-[#1e1e1e] border border-[#e0ddd5] dark:border-[#333] rounded-2xl text-[10px] font-bold uppercase tracking-widest text-[#3d3b33] dark:text-[#f0f0f0] shadow-sm md:hover:border-[#c2956e] transition-all"
                 >
                   <ArrowLeft size={14} /> Back to Tasks
                 </button>
                 <button 
                   onClick={handleEmptyTrash}
-                  className="px-6 py-3 bg-red-50 dark:bg-red-900/10 text-red-500 rounded-2xl text-[10px] font-bold uppercase tracking-widest hover:bg-red-500 hover:text-white transition-all shadow-sm"
+                  className="px-6 py-3 bg-red-50 dark:bg-red-900/10 text-red-500 rounded-2xl text-[10px] font-bold uppercase tracking-widest md:hover:bg-red-500 md:hover:text-white transition-all shadow-sm"
                 >
                   Empty Trash
                 </button>
@@ -146,7 +146,7 @@ export default function TasksPage() {
       {tasksView === 'focus' && !isTrashOpen && (
         <button 
           onClick={handleFabClick}
-          className="lg:hidden fixed bottom-[90px] right-6 z-[100] w-14 h-14 bg-white/30 dark:bg-black/30 backdrop-blur-lg border-2 border-[#c2956e]/50 dark:border-[#b0855f]/50 text-[#c2956e] dark:text-[#b0855f] rounded-full shadow-lg shadow-black/10 dark:shadow-black/30 flex items-center justify-center hover:scale-105 active:scale-95 transition-all"
+          className="lg:hidden fixed bottom-[calc(90px+env(safe-area-inset-bottom))] right-6 z-[100] w-14 h-14 bg-white/30 dark:bg-black/30 backdrop-blur-lg border-2 border-[#c2956e]/50 dark:border-[#b0855f]/50 text-[#c2956e] dark:text-[#b0855f] rounded-full shadow-lg shadow-black/10 dark:shadow-black/30 flex items-center justify-center md:hover:scale-105 active:scale-95 transition-all"
         >
           <Plus size={24} strokeWidth={2.5} />
         </button>

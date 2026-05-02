@@ -744,7 +744,7 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
                   className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-[11px] font-[600] tracking-[0.08em] uppercase transition-all duration-200 ${
                     isEditMode
                       ? "bg-[#c2956e] dark:bg-[#b0855f] text-white shadow-lg"
-                      : "bg-[#f7f5f0] dark:bg-[#222] text-[#c2956e] dark:text-[#d1a784] hover:bg-[#c2956e]/10 dark:hover:bg-[#b0855f]/20"
+                      : "bg-[#f7f5f0] dark:bg-[#222] text-[#c2956e] dark:text-[#d1a784] md:hover:bg-[#c2956e]/10 md:dark:hover:bg-[#b0855f]/20"
                   }`}
                 >
                   {isEditMode ? (
@@ -760,7 +760,7 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
               ) : (
                 <button
                   onClick={() => onAdd(null)}
-                  className="hidden md:flex w-9 h-9 items-center justify-center bg-[#f7f5f0] dark:bg-[#222] text-[#c2956e] dark:text-[#d1a784] rounded-full hover:bg-[#c2956e]/10 dark:hover:bg-[#b0855f]/20 transition-all"
+                  className="hidden md:flex w-9 h-9 items-center justify-center bg-[#f7f5f0] dark:bg-[#222] text-[#c2956e] dark:text-[#d1a784] rounded-full md:hover:bg-[#c2956e]/10 md:dark:hover:bg-[#b0855f]/20 transition-all"
                 >
                   <Plus size={18} strokeWidth={2} />
                 </button>
@@ -782,7 +782,7 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
         <div className={`px-5 pb-5 ${isCollapsedMobile ? 'hidden md:block' : 'block'}`}>
           <button
             onClick={() => onAdd(null)}
-            className="w-full flex items-center justify-center gap-2 py-2.5 border border-dashed border-[#d4d0c8] dark:border-[#444] rounded-xl text-[12px] text-[#b0ad9a] dark:text-[#777] hover:border-[#c2956e] dark:hover:border-[#b0855f] hover:text-[#c2956e] dark:hover:text-[#b0855f] transition-all"
+            className="w-full flex items-center justify-center gap-2 py-2.5 border border-dashed border-[#d4d0c8] dark:border-[#444] rounded-xl text-[12px] text-[#b0ad9a] dark:text-[#777] md:hover:border-[#c2956e] md:dark:hover:border-[#b0855f] md:hover:text-[#c2956e] md:dark:hover:text-[#b0855f] transition-all"
           >
             <Plus size={14} /> Add routine item
           </button>

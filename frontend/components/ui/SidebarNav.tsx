@@ -85,7 +85,7 @@ export default function SidebarNav() {
                     ${isExpanded ? "mx-6 px-4 justify-start gap-4" : "mx-4 justify-center"}
                     ${isActive 
                       ? "bg-white dark:bg-[#252525] text-[#c2956e] dark:text-[#d1a784] shadow-sm border border-[#e0ddd5] dark:border-[#333]" 
-                      : "text-[#888888] dark:text-[#a0a0a0] hover:bg-white/50 dark:hover:bg-[#2a2a2a] hover:text-[#3d3b33] dark:hover:text-[#fff]"
+                      : "text-[#888888] dark:text-[#a0a0a0] md:hover:bg-white/50 md:dark:hover:bg-[#2a2a2a] md:hover:text-[#3d3b33] md:dark:hover:text-[#fff]"
                     }
                   `}
                 >
@@ -103,7 +103,7 @@ export default function SidebarNav() {
               href="/settings"
               className={`flex items-center h-12 rounded-xl text-sm font-medium transition-all duration-300 overflow-hidden
                 ${isExpanded ? "px-4 justify-start gap-4" : "justify-center"}
-                ${pathname === "/settings" ? "bg-white dark:bg-[#252525] text-[#3d3b33] dark:text-[#fff] shadow-sm border border-[#e0ddd5] dark:border-[#333]" : "text-[#888888] dark:text-[#a0a0a0] hover:bg-white/50 dark:hover:bg-[#2a2a2a] hover:text-[#3d3b33] dark:hover:text-[#fff]"}
+                ${pathname === "/settings" ? "bg-white dark:bg-[#252525] text-[#3d3b33] dark:text-[#fff] shadow-sm border border-[#e0ddd5] dark:border-[#333]" : "text-[#888888] dark:text-[#a0a0a0] md:hover:bg-white/50 md:dark:hover:bg-[#2a2a2a] md:hover:text-[#3d3b33] md:dark:hover:text-[#fff]"}
               `}
             >
               <Settings className="w-[18px] h-[18px] shrink-0" />
@@ -117,7 +117,7 @@ export default function SidebarNav() {
         <button
           onClick={toggleSidebarPin}
           data-tooltip-id="global-tooltip" data-tooltip-content={isSidebarPinned ? "Unpin Sidebar" : "Pin Sidebar"}
-          className={`hidden md:block absolute top-20 right-0 translate-x-1/2 z-50 p-2 bg-white dark:bg-[#1e1e1e] border border-[#e0ddd5] dark:border-[#333] rounded-full shadow-lg text-[#888] dark:text-[#a0a0a0] hover:text-[#c2956e] dark:hover:text-[#d1a784] transition-all duration-500 ease-in-out
+          className={`hidden md:block absolute top-20 right-0 translate-x-1/2 z-50 p-2 bg-white dark:bg-[#1e1e1e] border border-[#e0ddd5] dark:border-[#333] rounded-full shadow-lg text-[#888] dark:text-[#a0a0a0] md:hover:text-[#c2956e] md:dark:hover:text-[#d1a784] transition-all duration-500 ease-in-out
             ${isHiddenMode ? 'opacity-0 scale-0 pointer-events-none' : 'opacity-100 scale-100'}
           `}
         >
@@ -126,7 +126,7 @@ export default function SidebarNav() {
       </aside>
 
       {/* Mobile Bottom Nav */}
-      <nav className={`md:hidden fixed bottom-0 left-0 w-full h-[72px] pb-[env(safe-area-inset-bottom)] bg-[#f7f5f0]/90 dark:bg-[#121212]/90 backdrop-blur-xl border-t border-[#e0ddd5] dark:border-[#2a2a2a] flex items-center justify-around z-[100] transition-transform duration-300 ease-in-out ${mobileNoteOpen ? 'translate-y-full' : 'translate-y-0'}`}>
+      <nav className={`md:hidden fixed bottom-0 left-0 w-full h-[calc(72px+env(safe-area-inset-bottom))] pb-[env(safe-area-inset-bottom)] bg-[#f7f5f0]/90 dark:bg-[#121212]/90 backdrop-blur-xl border-t border-[#e0ddd5] dark:border-[#2a2a2a] flex items-center justify-around z-[100] transition-transform duration-300 ease-in-out ${mobileNoteOpen ? 'translate-y-full' : 'translate-y-0'}`}>
         {navItems.map((item) => {
           const isActive = pathname === item.href;
           return (
@@ -144,7 +144,7 @@ export default function SidebarNav() {
                 }
               }}
               className={`flex flex-col items-center justify-center w-16 h-full gap-1 transition-all ${
-                isActive ? "text-[#c2956e] dark:text-[#d1a784]" : "text-[#888888] dark:text-[#a0a0a0] hover:text-[#3d3b33] dark:hover:text-[#fff]"
+                isActive ? "text-[#c2956e] dark:text-[#d1a784]" : "text-[#888888] dark:text-[#a0a0a0] active:text-[#3d3b33] dark:active:text-[#fff]"
               }`}
             >
               <item.icon className="w-[20px] h-[20px]" strokeWidth={isActive ? 2.5 : 2} />
@@ -164,7 +164,7 @@ export default function SidebarNav() {
             }
           }}
           className={`flex flex-col items-center justify-center w-16 h-full gap-1 transition-all ${
-            pathname === "/settings" ? "text-[#3d3b33] dark:text-[#fff]" : "text-[#888888] dark:text-[#a0a0a0] hover:text-[#3d3b33] dark:hover:text-[#fff]"
+            pathname === "/settings" ? "text-[#3d3b33] dark:text-[#fff]" : "text-[#888888] dark:text-[#a0a0a0] active:text-[#3d3b33] dark:active:text-[#fff]"
           }`}
         >
           <Settings className="w-[20px] h-[20px]" strokeWidth={pathname === "/settings" ? 2.5 : 2} />
