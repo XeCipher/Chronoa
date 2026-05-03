@@ -298,7 +298,6 @@ export default function WeekView({ currentDate, events, onEventClick, onTimeRang
                   onEventMove(ev, newStart, newEnd);
                 }}
               >
-                {/* Fixed line 8: Dimming of red-line on non-today days */}
                 <div 
                    className={`absolute left-0 right-0 z-30 pointer-events-none border-t-[2px] ${isTodayDate ? 'border-red-500 opacity-90' : 'border-red-500/60 opacity-60 dark:border-red-500/70 dark:opacity-40'}`} 
                    style={{ top: `${currentMins}px` }}

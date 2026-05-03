@@ -6,7 +6,7 @@ import { supabase } from "@/lib/supabase";
 import { CalendarEvent } from "@/types/app.types";
 import { useUiStore } from "@/store/uiStore";
 import { CalendarDays, ChevronLeft, ChevronRight, Plus, Search } from "lucide-react";
-import { format, addMonths, subMonths, addDays, startOfDay, endOfDay, startOfWeek, addWeeks, addYears, isSameDay, startOfMonth, isToday } from "date-fns";
+import { format, addMonths, subMonths, addDays, startOfDay, endOfDay, startOfWeek, endOfWeek, addWeeks, addYears, subYears, isSameDay, startOfMonth, isToday } from "date-fns";
 
 import MonthView from "@/components/calendar/MonthView";
 import WeekView from "@/components/calendar/WeekView";
@@ -222,11 +222,20 @@ export default function CalendarPage() {
         await supabase.from('calendar_events').delete().eq('series_id', updates.series_id).gte('start_time', currentStartTime.toISOString());
         
         const newInstanceId = crypto.randomUUID();
-        const updatedCurrent = { ...baseEvent, id: newInstanceId } as CalendarEvent;
+        const isNowStandalone = !updates.repeat_pattern || updates.repeat_pattern === 'none';
+
+        const updatedCurrent = { 
+          ...baseEvent, 
+          id: newInstanceId,
+          series_id: isNowStandalone ? null : updates.series_id 
+        } as CalendarEvent;
+        
         setEvents(prev => [...prev, updatedCurrent]);
         await supabase.from('calendar_events').insert(updatedCurrent);
 
-        await generateRecurringEvents(updatedCurrent, updates.series_id);
+        if (!isNowStandalone && updatedCurrent.series_id) {
+          await generateRecurringEvents(updatedCurrent, updates.series_id);
+        }
       }
     } else {
       if (updates.repeat_pattern && updates.repeat_pattern !== 'none') {
@@ -310,15 +319,59 @@ export default function CalendarPage() {
   };
 
   const renderDatePicker = () => {
+    if (calendarView === 'month') {
+      return (
+        <div ref={datePickerRef} className="absolute top-[calc(100%+8px)] left-0 w-[240px] bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] rounded-[1.5rem] shadow-xl z-[200] p-4 animate-fade-up cursor-default" onClick={e => e.stopPropagation()}>
+          <div className="flex justify-between items-center mb-4">
+            <button onClick={(e) => { e.stopPropagation(); setReferenceDate(subYears(referenceDate, 1)); }} className="p-1.5 text-[#888] bg-[#f7f5f0] dark:bg-[#252525] rounded-lg hover:text-[#c2956e] transition-colors"><ChevronLeft size={16}/></button>
+            <span className="text-sm font-bold text-[#3d3b33] dark:text-[#f0f0f0] uppercase tracking-widest">{format(referenceDate, 'yyyy')}</span>
+            <button onClick={(e) => { e.stopPropagation(); setReferenceDate(addYears(referenceDate, 1)); }} className="p-1.5 text-[#888] bg-[#f7f5f0] dark:bg-[#252525] rounded-lg hover:text-[#c2956e] transition-colors"><ChevronRight size={16}/></button>
+          </div>
+          <div className="grid grid-cols-3 gap-2">
+            {['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'].map((m, i) => {
+              const isSelected = referenceDate.getMonth() === i;
+              return (
+                <button 
+                  key={m} 
+                  onClick={(e) => { 
+                    e.stopPropagation();
+                    const d = new Date(referenceDate); 
+                    d.setMonth(i); 
+                    setReferenceDate(d); 
+                    setIsDatePickerOpen(false); 
+                  }}
+                  className={`py-2 rounded-lg text-xs font-bold uppercase tracking-widest transition-colors ${isSelected ? 'bg-[#c2956e] text-white shadow-md' : 'hover:bg-[#f0ede8] dark:hover:bg-[#333] text-[#3d3b33] dark:text-[#f0f0f0]'}`}
+                >
+                  {m}
+                </button>
+              )
+            })}
+          </div>
+        </div>
+      );
+    }
+
     const year = pickerMonth.getFullYear();
     const month = pickerMonth.getMonth();
     const firstDay = new Date(year, month, 1).getDay();
     const daysInMonth = new Date(year, month + 1, 0).getDate();
     
-    // Correctly typing the empty padding array to avoid ConcatArray<null> TS error
     const gridDays = (Array.from({ length: firstDay }, () => null) as (Date | null)[]).concat(
         Array.from({ length: daysInMonth }, (_, i) => new Date(year, month, i + 1))
     );
+
+    const isSelectedFn = (d: Date) => {
+      if (calendarView === 'week') {
+        const start = startOfWeek(referenceDate);
+        const end = endOfWeek(referenceDate);
+        return d >= start && d <= end;
+      } else if (calendarView === '2-day') {
+        const end = addDays(referenceDate, 1);
+        return d >= startOfDay(referenceDate) && d <= endOfDay(end);
+      } else {
+        return isSameDay(d, referenceDate);
+      }
+    };
 
     return (
         <div ref={datePickerRef} className="absolute top-[calc(100%+8px)] left-0 w-[280px] bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] rounded-[1.5rem] shadow-xl z-[200] p-4 animate-fade-up cursor-default" onClick={e => e.stopPropagation()}>
@@ -333,12 +386,17 @@ export default function CalendarPage() {
            <div className="grid grid-cols-7 gap-1">
               {gridDays.map((d, i) => {
                  if (!d) return <div key={i} />;
-                 const isSelected = isSameDay(d, referenceDate);
+                 const isSelected = isSelectedFn(d);
                  const isTodayDate = isToday(d);
                  return (
                     <button 
                        key={i} 
-                       onClick={(e) => { e.stopPropagation(); setReferenceDate(d); setIsDatePickerOpen(false); }}
+                       onClick={(e) => { 
+                         e.stopPropagation(); 
+                         if (calendarView === 'week') setReferenceDate(startOfWeek(d));
+                         else setReferenceDate(d); 
+                         setIsDatePickerOpen(false); 
+                       }}
                        className={`h-8 rounded-lg text-xs font-medium transition-colors ${isSelected ? 'bg-[#c2956e] text-white shadow-md' : isTodayDate ? 'text-[#c2956e] font-bold bg-[#c2956e]/10' : 'hover:bg-[#f0ede8] dark:hover:bg-[#333] text-[#3d3b33] dark:text-white'}`}
                     >
                        {format(d, 'd')}
@@ -353,7 +411,7 @@ export default function CalendarPage() {
   const isCurrentDateToday = isSameDay(referenceDate, new Date());
 
   return (
-    <div className="w-full h-full pt-[max(3.5rem,calc(2.5rem+env(safe-area-inset-top)))] px-4 md:p-8 lg:p-10 lg:pl-16 xl:pl-28 relative flex min-w-0 bg-[#f7f5f0] dark:bg-[#121212]">
+    <div className="w-full h-full pt-4 md:pt-[max(3.5rem,calc(2.5rem+env(safe-area-inset-top)))] px-4 md:p-8 lg:p-10 lg:pl-16 xl:pl-28 pb-6 md:pb-8 relative flex min-w-0 bg-[#f7f5f0] dark:bg-[#121212]">
       
       <div className="hidden lg:flex absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none items-center justify-center opacity-30 dark:opacity-20 z-0">
         <span className="-rotate-90 whitespace-nowrap text-[120px] font-bold text-[#e0ddd5] dark:text-[#222] tracking-widest pointer-events-none select-none">
@@ -478,7 +536,7 @@ export default function CalendarPage() {
           </div>
         </header>
 
-        <div className="flex-1 min-h-0 w-full flex flex-col relative z-10 pb-0 md:pb-4">
+        <div className="flex-1 min-h-0 w-full flex flex-col relative z-10">
           {calendarView === 'month' && (
             <MonthView 
               currentDate={referenceDate} 

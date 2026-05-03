@@ -241,7 +241,7 @@ export default function DayView({ currentDate, events, onEventClick, onTimeRange
           }}
         >
           <div 
-             className={`absolute left-0 right-0 z-30 pointer-events-none border-t-[2px] ${isTodayDate ? 'border-red-500 opacity-90' : 'border-red-500/60 opacity-60 dark:border-red-500/70 dark:opacity-70'}`} 
+             className={`absolute left-0 right-0 z-30 pointer-events-none border-t-[2px] ${isTodayDate ? 'border-red-500 opacity-90' : 'border-red-500/60 opacity-60 dark:border-red-500/70 dark:opacity-40'}`} 
              style={{ top: `${currentMins}px` }}
           >
              {isTodayDate && <div className="absolute -left-1.5 -top-[5px] w-3 h-3 bg-red-500 rounded-full shadow-[0_0_8px_rgba(239,68,68,0.8)]" />}

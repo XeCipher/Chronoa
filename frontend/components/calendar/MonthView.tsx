@@ -61,7 +61,7 @@ export default function MonthView({ currentDate, events, onEventClick, onDayClic
               const isTodayDate = isToday(day);
               const isSelected = isSameDay(day, selectedDate);
 
-              const maxVisible = isMobile ? 1 : 2;
+              const maxVisible = 3;
               const visibleEvents = dayEvents.slice(0, maxVisible);
               const extraCount = dayEvents.length - maxVisible;
 
@@ -86,15 +86,15 @@ export default function MonthView({ currentDate, events, onEventClick, onDayClic
                       {format(day, 'd')}
                     </span>
                     
-                    <div className="lg:hidden flex flex-wrap gap-0.5 max-w-[20px] justify-end mt-1">
-                      {dayEvents.slice(0, 3).map((e, idx) => (
-                        <div key={idx} className={`w-1 h-1 md:w-1.5 md:h-1.5 rounded-full ${eventColors[e.color]?.split(' ')[0] || 'bg-[#c2956e]'}`} />
+                    <div className="hidden lg:flex flex-wrap gap-1 max-w-[40px] justify-end mt-1">
+                      {Array.from(new Set(dayEvents.map(e => e.color))).map((color, idx) => (
+                        <div key={idx} className={`w-1.5 h-1.5 rounded-full ${eventColors[color]?.split(' ')[0] || 'bg-[#c2956e]'}`} />
                       ))}
                     </div>
                   </div>
 
-                  <div className="hidden lg:flex flex-col gap-1 overflow-hidden flex-1 relative z-10">
-                    <div className="flex flex-col gap-1 flex-1 min-h-0 overflow-y-auto no-scrollbar">
+                  <div className="hidden lg:flex flex-col gap-1 flex-1 min-h-0 overflow-hidden relative z-10">
+                    <div className="flex flex-col gap-1 overflow-hidden">
                       {visibleEvents.map(event => {
                         const isStart = format(new Date(event.start_time), 'yyyy-MM-dd') === format(day, 'yyyy-MM-dd');
                         const isEnd = format(new Date(event.end_time), 'yyyy-MM-dd') === format(day, 'yyyy-MM-dd');
@@ -127,9 +127,15 @@ export default function MonthView({ currentDate, events, onEventClick, onDayClic
                     </div>
                     {extraCount > 0 && (
                       <div className="px-1.5 py-0.5 text-[9px] font-bold text-[#b0ad9a] dark:text-[#7a7a7a] bg-[#f0ede8] dark:bg-[#252525] border border-[#e0ddd5] dark:border-[#333] rounded-md mt-auto text-center transition-colors shadow-sm shrink-0">
-                        + {extraCount} others
+                        + {extraCount} more
                       </div>
                     )}
+                  </div>
+
+                  <div className="lg:hidden flex flex-wrap gap-1 justify-start mt-auto relative z-10 mb-0.5 ml-0.5">
+                    {dayEvents.map((e, idx) => (
+                      <div key={idx} className={`w-1.5 h-1.5 rounded-full ${eventColors[e.color]?.split(' ')[0] || 'bg-[#c2956e]'}`} />
+                    ))}
                   </div>
                 </div>
               );
