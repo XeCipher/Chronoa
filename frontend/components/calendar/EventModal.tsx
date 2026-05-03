@@ -14,6 +14,7 @@ interface Props {
   onDelete?: (event: CalendarEvent, deleteMode: 'this' | 'future') => void;
   initialEvent?: CalendarEvent | null;
   dragTimeRange?: { start: Date, end: Date } | null;
+  defaultBaseDate?: Date | null;
 }
 
 const COLORS = [
@@ -44,7 +45,7 @@ const DAYS_OF_WEEK = [
   { id: 6, label: 'S' }
 ];
 
-export default function EventModal({ isOpen, onClose, onSave, onDelete, initialEvent, dragTimeRange }: Props) {
+export default function EventModal({ isOpen, onClose, onSave, onDelete, initialEvent, dragTimeRange, defaultBaseDate }: Props) {
   const { showConfirmDialog } = useUiStore();
 
   const [title, setTitle] = useState("");
@@ -58,6 +59,18 @@ export default function EventModal({ isOpen, onClose, onSave, onDelete, initialE
   
   const [repeatSelect, setRepeatSelect] = useState("none");
   const [customDays, setCustomDays] = useState<number[]>([]);
+
+  // Prevent background scrolling on mobile when modal is open
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isOpen]);
 
   useEffect(() => {
     if (isOpen) {
@@ -94,6 +107,17 @@ export default function EventModal({ isOpen, onClose, onSave, onDelete, initialE
           setCustomDays([dragTimeRange.start.getDay()]);
         } else {
           const start = new Date();
+          
+          if (defaultBaseDate) {
+             const isTodayBase = start.getFullYear() === defaultBaseDate.getFullYear() &&
+                                 start.getMonth() === defaultBaseDate.getMonth() &&
+                                 start.getDate() === defaultBaseDate.getDate();
+             
+             if (!isTodayBase) {
+                start.setFullYear(defaultBaseDate.getFullYear(), defaultBaseDate.getMonth(), defaultBaseDate.getDate());
+             }
+          }
+
           const m = start.getMinutes();
           if (m < 30) {
              start.setMinutes(30, 0, 0);
@@ -110,7 +134,7 @@ export default function EventModal({ isOpen, onClose, onSave, onDelete, initialE
         }
       }
     }
-  }, [isOpen, initialEvent, dragTimeRange]);
+  }, [isOpen, initialEvent, dragTimeRange, defaultBaseDate]);
 
   const isEndTimeInvalid = !isAllDay && endTime <= startTime;
 

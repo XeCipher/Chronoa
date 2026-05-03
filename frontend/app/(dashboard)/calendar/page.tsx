@@ -46,6 +46,7 @@ export default function CalendarPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const [dragTimeRange, setDragTimeRange] = useState<{ start: Date, end: Date } | null>(null);
+  const [defaultBaseDate, setDefaultBaseDate] = useState<Date | null>(null);
   const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
@@ -146,9 +147,32 @@ export default function CalendarPage() {
     setReferenceDate(startOfDay(new Date()));
   };
 
+  const getDefaultAddDate = () => {
+    const now = new Date();
+    if (calendarView === 'month') {
+      return isSameDay(referenceDate, now) ? now : referenceDate;
+    } else if (calendarView === 'week') {
+      const end = addDays(referenceDate, 6);
+      if (now >= startOfDay(referenceDate) && now <= endOfDay(end)) return now;
+      return referenceDate;
+    } else if (calendarView === '2-day') {
+      const end = addDays(referenceDate, 1);
+      if (now >= startOfDay(referenceDate) && now <= endOfDay(end)) return now;
+      return referenceDate;
+    } else {
+      return isSameDay(referenceDate, now) ? now : referenceDate;
+    }
+  };
+
   const openAddModal = (start?: Date, end?: Date) => {
     setSelectedEvent(null);
-    setDragTimeRange(start && end ? { start, end } : (start ? { start, end: addMonths(start, 0) } : null));
+    if (start && end) {
+      setDragTimeRange({ start, end });
+      setDefaultBaseDate(null);
+    } else {
+      setDragTimeRange(null);
+      setDefaultBaseDate(getDefaultAddDate());
+    }
     setIsModalOpen(true);
   };
 
@@ -411,9 +435,9 @@ export default function CalendarPage() {
   const isCurrentDateToday = isSameDay(referenceDate, new Date());
 
   return (
-    <div className="w-full h-full pt-4 md:pt-[max(3.5rem,calc(2.5rem+env(safe-area-inset-top)))] px-4 md:p-8 lg:p-10 pb-6 md:pb-8 relative flex min-w-0 bg-[#f7f5f0] dark:bg-[#121212]">
+    <div className="absolute inset-0 flex flex-col pt-4 md:pt-[max(3.5rem,calc(2.5rem+env(safe-area-inset-top)))] px-4 md:p-8 lg:p-10 pb-6 md:pb-8 min-w-0 bg-[#f7f5f0] dark:bg-[#121212] overflow-hidden">
       
-      <div className="flex-1 flex flex-col relative z-10 min-w-0 max-w-full h-full">
+      <div className="flex-1 flex flex-col relative z-10 min-w-0 min-h-0 max-w-full w-full h-full">
         <header className="mb-4 md:mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4 shrink-0 relative z-50">
           
           <div className="flex items-center justify-between w-full md:w-auto relative">
@@ -433,7 +457,7 @@ export default function CalendarPage() {
             <div className="md:hidden relative shrink-0" ref={mobileSearchRef}>
               <button 
                   onClick={() => setIsSearchOpen(!isSearchOpen)}
-                  className={`w-9 h-9 flex items-center justify-center rounded-full transition-colors shadow-sm ${isSearchOpen ? 'bg-[#c2956e] text-white' : 'bg-white dark:bg-[#1a1a1a] text-[#888] hover:text-[#c2956e] border border-[#e0ddd5] dark:border-[#333]'}`}
+                  className={`w-9 h-9 flex items-center justify-center rounded-full transition-colors shadow-sm border ${isSearchOpen ? 'bg-[#c2956e] text-white border-[#c2956e]' : 'bg-white dark:bg-[#1a1a1a] text-[#888] hover:text-[#c2956e] border-[#e0ddd5] dark:border-[#333]'}`}
                 >
                   <Search size={16} />
               </button>
@@ -565,6 +589,7 @@ export default function CalendarPage() {
         onDelete={handleDeleteEvent}
         initialEvent={selectedEvent} 
         dragTimeRange={dragTimeRange}
+        defaultBaseDate={defaultBaseDate}
       />
     </div>
   );
