@@ -21,7 +21,7 @@ interface EditorProps {
   initialContent: string;
   isEditable?: boolean;
   onSave: (content: string) => void;
-  noteType?: 'notes' | 'journal';
+  noteType?: "notes" | "journal";
   entryDate?: string;
 }
 
@@ -35,17 +35,21 @@ type ActiveStates = {
   orderedList: boolean;
 };
 
+// Height of the mobile toolbar in px — used to size the ghost spacer.
+// Increase if you add more rows or padding.
+const MOBILE_TOOLBAR_HEIGHT = 56;
+
 export default function DistractionFreeEditor({
   initialContent,
   isEditable = true,
   onSave,
-  noteType = 'notes',
-  entryDate
+  noteType = "notes",
+  entryDate,
 }: EditorProps) {
   const { journalZoom, setJournalZoom } = useUiStore();
   const [saveStatus, setSaveStatus] = useState("Saved");
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  
+
   const onSaveRef = useRef(onSave);
   useEffect(() => {
     onSaveRef.current = onSave;
@@ -61,28 +65,7 @@ export default function DistractionFreeEditor({
     orderedList: false,
   });
 
-  // --- Mobile Keyboard Tracking ---
   const [isFocused, setIsFocused] = useState(false);
-  const [bottomOffset, setBottomOffset] = useState(0);
-
-  useEffect(() => {
-    if (typeof window === 'undefined' || !window.visualViewport) return;
-    const vp = window.visualViewport;
-
-    const updateOffset = () => {
-      const keyboardHeight = window.innerHeight - vp.height - vp.offsetTop;
-      setBottomOffset(keyboardHeight > 0 ? keyboardHeight : 0);
-    };
-
-    vp.addEventListener('resize', updateOffset);
-    vp.addEventListener('scroll', updateOffset);
-    updateOffset();
-
-    return () => {
-      vp.removeEventListener('resize', updateOffset);
-      vp.removeEventListener('scroll', updateOffset);
-    };
-  }, []);
 
   const editor = useEditor({
     editable: isEditable,
@@ -90,7 +73,7 @@ export default function DistractionFreeEditor({
       StarterKit.configure({ heading: { levels: [1, 2] } }),
       Underline,
     ],
-    content: initialContent, // Handles initial load perfectly without forcing updates mid-typing
+    content: initialContent,
     editorProps: {
       attributes: {
         class:
@@ -100,7 +83,7 @@ export default function DistractionFreeEditor({
     },
     onFocus: () => setIsFocused(true),
     onBlur: () => {
-      // Delay blur so clicking on the toolbar registers before the toolbar is un-fixed
+      // Delay blur so toolbar button clicks register before toolbar loses its fixed state
       setTimeout(() => setIsFocused(false), 150);
     },
     onTransaction: ({ editor: ed }) => {
@@ -138,7 +121,7 @@ export default function DistractionFreeEditor({
 
   const insertTimestamp = () => {
     if (!editor) return;
-    
+
     const todayObj = new Date();
     const timeString = todayObj.toLocaleTimeString([], {
       hour: "2-digit",
@@ -147,16 +130,16 @@ export default function DistractionFreeEditor({
     const dateString = todayObj.toLocaleDateString("en-US", {
       month: "short",
       day: "numeric",
-      year: "numeric"
+      year: "numeric",
     });
 
     let displayString = `${dateString}, ${timeString}`;
-    
-    if (noteType === 'journal' && entryDate) {
-        const localTodayStr = `${todayObj.getFullYear()}-${String(todayObj.getMonth()+1).padStart(2,'0')}-${String(todayObj.getDate()).padStart(2,'0')}`;
-        if (entryDate === localTodayStr) {
-            displayString = timeString; 
-        }
+
+    if (noteType === "journal" && entryDate) {
+      const localTodayStr = `${todayObj.getFullYear()}-${String(todayObj.getMonth() + 1).padStart(2, "0")}-${String(todayObj.getDate()).padStart(2, "0")}`;
+      if (entryDate === localTodayStr) {
+        displayString = timeString;
+      }
     }
 
     const isAtStart = editor.state.selection.anchor <= 1;
@@ -181,13 +164,12 @@ export default function DistractionFreeEditor({
   }) => (
     <button
       onMouseDown={(e) => {
-        // Prevent losing editor focus when clicking the toolbar buttons
         e.preventDefault();
         onClick();
       }}
       data-tooltip-id="global-tooltip"
       data-tooltip-content={title}
-      className={`flex items-center justify-center w-7 h-7 rounded-lg transition-all duration-150 shrink-0 ${
+      className={`flex items-center justify-center w-8 h-8 rounded-xl transition-all duration-150 shrink-0 ${
         isActive
           ? "bg-[#c2956e] dark:bg-[#b0855f] text-white shadow-sm"
           : "text-[#888] dark:text-[#999] hover:text-[#3d3b33] dark:hover:text-[#f0f0f0] hover:bg-[#f0ede8] dark:hover:bg-[#2a2a2a]"
@@ -228,42 +210,139 @@ export default function DistractionFreeEditor({
     );
   };
 
+  // ─── Toolbar positioning logic ─────────────────────────────────────────────
+  //
+  //  Mobile (< md):
+  //    • Always rendered in-flow so it scrolls with the page when not focused.
+  //    • When the editor is focused (keyboard open), it becomes fixed to the
+  //      very top of the viewport — safe-area-aware for notched iPhones.
+  //    • A ghost <div> of the same height keeps the layout stable so content
+  //      doesn't jump when the toolbar detaches.
+  //
+  //  Desktop (≥ md):
+  //    • Sticky to the top of its scroll container, rounded pill style.
+  //
+  // ──────────────────────────────────────────────────────────────────────────
+
+  const mobileFixedClasses =
+    "fixed top-0 left-0 right-0 z-50 " +
+    // Horizontal padding keeps content away from the screen edges
+    "px-4 " +
+    // Vertical: push down past the status bar / notch on iOS, keep bottom comfy
+    "pt-[max(env(safe-area-inset-top),10px)] pb-3 " +
+    // Visual treatment: opaque enough to mask content scrolling under it
+    "bg-white/96 dark:bg-[#121212]/96 backdrop-blur-md " +
+    // Subtle bottom border to separate from content
+    "border-b border-[#e0ddd5]/70 dark:border-[#2a2a2a] " +
+    // Gentle shadow so it feels elevated, not glued
+    "shadow-[0_2px_12px_0_rgba(0,0,0,0.07)] dark:shadow-[0_2px_12px_0_rgba(0,0,0,0.35)] " +
+    // Rounded bottom corners give it a "floating panel" feel
+    "rounded-b-2xl";
+
+  const mobileInlineClasses =
+    "sticky top-0 z-40 " +
+    "px-3 py-2 mx-1 " +
+    "bg-white/90 dark:bg-[#121212]/90 backdrop-blur-sm " +
+    "border border-[#e0ddd5] dark:border-[#2a2a2a] " +
+    "rounded-2xl " +
+    "shadow-sm";
+
+  const desktopClasses =
+    "md:sticky md:top-0 md:z-40 " +
+    "md:px-2 md:py-1.5 " +
+    "md:bg-white/90 md:dark:bg-[#121212]/90 md:backdrop-blur-sm " +
+    "md:border md:border-[#e0ddd5] md:dark:border-[#2a2a2a] " +
+    "md:rounded-2xl " +
+    "md:shadow-sm " +
+    // Reset mobile-fixed overrides at md breakpoint
+    "md:left-auto md:right-auto md:w-auto md:pt-1.5 md:pb-1.5";
+
+  // On mobile the toolbar is fixed (out-of-flow) only while focused
+  const toolbarClass =
+    "flex items-center gap-2 " +
+    // Mobile base: when focused → fixed-top; otherwise → inline sticky
+    (isFocused ? mobileFixedClasses : mobileInlineClasses) + " " +
+    desktopClasses;
+
   return (
     <div className="relative w-full flex flex-col gap-4">
-      
-      {/* Ghost element to maintain layout flow and prevent content from jumping when the toolbar detaches into a fixed state */}
-      {isEditable && isFocused && <div className="h-[44px] md:hidden shrink-0 w-full" />}
-      
+
+      {/* ── Ghost spacer (mobile only) ──────────────────────────────────────
+          When the toolbar is fixed-top on mobile, it leaves the layout flow.
+          This invisible placeholder occupies the same vertical space so the
+          editor content doesn't jump up underneath it.
+          On desktop the toolbar is sticky (in-flow), so the ghost is hidden.
+      ──────────────────────────────────────────────────────────────────── */}
+      {isEditable && isFocused && (
+        <div
+          className="md:hidden shrink-0 w-full"
+          style={{ height: MOBILE_TOOLBAR_HEIGHT }}
+          aria-hidden="true"
+        />
+      )}
+
       {isEditable && (
-        <div 
-          className={
-            `z-50 flex items-center gap-2 px-2 bg-white/90 dark:bg-[#121212]/90 backdrop-blur-sm shadow-sm ` +
-            (isFocused
-              ? `fixed left-0 right-0 w-full border-t border-[#e0ddd5] dark:border-[#2a2a2a] rounded-none pt-2.5 pb-2.5 md:sticky md:top-0 md:rounded-2xl md:border md:py-1.5 md:w-full md:bottom-auto`
-              : `sticky top-0 rounded-2xl border border-[#e0ddd5] dark:border-[#2a2a2a] py-1.5 w-full`
-            )
-          }
-          style={{
-            bottom: isFocused && typeof window !== 'undefined' && window.innerWidth < 768
-              ? `${bottomOffset}px`
-              : undefined,
-            transition: 'bottom 0.15s ease-out',
-          }}
-        >
+        <div className={toolbarClass}>
+          {/* Formatting buttons — scrollable row on very narrow screens */}
           <div className="flex items-center gap-0.5 overflow-x-auto no-scrollbar flex-1 min-w-0">
-            <ToolbarButton title="Bold" onClick={() => editor.chain().focus().toggleBold().run()} isActive={activeStates.bold}><Bold size={14} /></ToolbarButton>
-            <ToolbarButton title="Italic" onClick={() => editor.chain().focus().toggleItalic().run()} isActive={activeStates.italic}><Italic size={14} /></ToolbarButton>
-            <ToolbarButton title="Underline" onClick={() => editor.chain().focus().toggleUnderline().run()} isActive={activeStates.underline}><UnderlineIcon size={14} /></ToolbarButton>
+            <ToolbarButton
+              title="Bold"
+              onClick={() => editor.chain().focus().toggleBold().run()}
+              isActive={activeStates.bold}
+            >
+              <Bold size={15} />
+            </ToolbarButton>
+            <ToolbarButton
+              title="Italic"
+              onClick={() => editor.chain().focus().toggleItalic().run()}
+              isActive={activeStates.italic}
+            >
+              <Italic size={15} />
+            </ToolbarButton>
+            <ToolbarButton
+              title="Underline"
+              onClick={() => editor.chain().focus().toggleUnderline().run()}
+              isActive={activeStates.underline}
+            >
+              <UnderlineIcon size={15} />
+            </ToolbarButton>
             <Divider />
-            <ToolbarButton title="Heading 1" onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()} isActive={activeStates.heading1}><Heading1 size={14} /></ToolbarButton>
-            <ToolbarButton title="Heading 2" onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()} isActive={activeStates.heading2}><Heading2 size={14} /></ToolbarButton>
+            <ToolbarButton
+              title="Heading 1"
+              onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
+              isActive={activeStates.heading1}
+            >
+              <Heading1 size={15} />
+            </ToolbarButton>
+            <ToolbarButton
+              title="Heading 2"
+              onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
+              isActive={activeStates.heading2}
+            >
+              <Heading2 size={15} />
+            </ToolbarButton>
             <Divider />
-            <ToolbarButton title="Bullet list" onClick={() => editor.chain().focus().toggleBulletList().run()} isActive={activeStates.bulletList}><List size={14} /></ToolbarButton>
-            <ToolbarButton title="Ordered list" onClick={() => editor.chain().focus().toggleOrderedList().run()} isActive={activeStates.orderedList}><ListOrdered size={14} /></ToolbarButton>
+            <ToolbarButton
+              title="Bullet list"
+              onClick={() => editor.chain().focus().toggleBulletList().run()}
+              isActive={activeStates.bulletList}
+            >
+              <List size={15} />
+            </ToolbarButton>
+            <ToolbarButton
+              title="Ordered list"
+              onClick={() => editor.chain().focus().toggleOrderedList().run()}
+              isActive={activeStates.orderedList}
+            >
+              <ListOrdered size={15} />
+            </ToolbarButton>
             <Divider />
-            <ToolbarButton title="Insert timestamp" onClick={insertTimestamp}><Clock size={14} /></ToolbarButton>
+            <ToolbarButton title="Insert timestamp" onClick={insertTimestamp}>
+              <Clock size={15} />
+            </ToolbarButton>
           </div>
 
+          {/* Right side: save status + zoom */}
           <div className="flex items-center gap-2 shrink-0">
             <span
               className={`hidden md:block text-[9px] font-bold uppercase tracking-widest whitespace-nowrap transition-colors ${
@@ -280,6 +359,7 @@ export default function DistractionFreeEditor({
         </div>
       )}
 
+      {/* Read-only zoom control */}
       {!isEditable && (
         <div className="flex justify-end">
           <ZoomControl />
