@@ -602,7 +602,7 @@ export default function NotesPage() {
             
             <div id="notes-scroll-container" className="flex-1 overflow-y-auto no-scrollbar scroll-smooth">
               <div className="max-w-[1000px] mx-auto px-6 py-8 lg:py-10 lg:px-12 w-full">
-                <div className="mb-6">
+                <div className="mb-6 relative pr-28 md:pr-0">
                   {(!isTrashOpen && notesTab === 'journal') || selectedItem.isJournal ? (
                     <div className="space-y-1">
                       <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#c2956e]">Daily Entry</p>

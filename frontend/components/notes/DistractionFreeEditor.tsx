@@ -140,7 +140,7 @@ export default function DistractionFreeEditor({
 
       // Horizontally center it based on the bounds of the selection
       const centerLeft = (startCoords.left + endCoords.left) / 2;
-      const halfMenuWidth = 160; 
+      const halfMenuWidth = 140; 
       let safeLeft = centerLeft;
       
       // Ensure the menu doesn't bleed off the left or right edges of the screen
@@ -167,7 +167,6 @@ export default function DistractionFreeEditor({
       }, 100);
     };
 
-    // Listeners for text/focus changes and physical scrolling/resizing
     editor.on("selectionUpdate", updateBubble);
     editor.on("focus", updateBubble);
     editor.on("blur", handleBlur);
@@ -281,85 +280,36 @@ export default function DistractionFreeEditor({
     );
   };
 
-  const renderToolbarContents = () => (
+  const renderFormattingButtons = () => (
     <>
-      {/* Formatting buttons */}
-      <div className="flex items-center gap-0.5 overflow-x-auto no-scrollbar flex-1 min-w-0">
-        <ToolbarButton
-          title="Bold"
-          onClick={() => editor.chain().focus().toggleBold().run()}
-          isActive={activeStates.bold}
-        >
-          <Bold size={15} />
-        </ToolbarButton>
-        <ToolbarButton
-          title="Italic"
-          onClick={() => editor.chain().focus().toggleItalic().run()}
-          isActive={activeStates.italic}
-        >
-          <Italic size={15} />
-        </ToolbarButton>
-        <ToolbarButton
-          title="Underline"
-          onClick={() => editor.chain().focus().toggleUnderline().run()}
-          isActive={activeStates.underline}
-        >
-          <UnderlineIcon size={15} />
-        </ToolbarButton>
-        <Divider />
-        <ToolbarButton
-          title="Heading 1"
-          onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
-          isActive={activeStates.heading1}
-        >
-          <Heading1 size={15} />
-        </ToolbarButton>
-        <ToolbarButton
-          title="Heading 2"
-          onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
-          isActive={activeStates.heading2}
-        >
-          <Heading2 size={15} />
-        </ToolbarButton>
-        <Divider />
-        <ToolbarButton
-          title="Bullet list"
-          onClick={() => editor.chain().focus().toggleBulletList().run()}
-          isActive={activeStates.bulletList}
-        >
-          <List size={15} />
-        </ToolbarButton>
-        <ToolbarButton
-          title="Ordered list"
-          onClick={() => editor.chain().focus().toggleOrderedList().run()}
-          isActive={activeStates.orderedList}
-        >
-          <ListOrdered size={15} />
-        </ToolbarButton>
-        <Divider />
-        <ToolbarButton title="Insert timestamp" onClick={insertTimestamp}>
-          <Clock size={15} />
-        </ToolbarButton>
-      </div>
-
-      {/* Right: save indicator + zoom */}
-      <div className="flex items-center gap-2 shrink-0">
-        <span
-          className={`hidden md:block text-[9px] font-bold uppercase tracking-widest whitespace-nowrap transition-colors ${
-            saveStatus === "Saving..."
-              ? "text-[#c2956e] dark:text-[#d1a784]"
-              : "text-[#c4c0b8] dark:text-[#555]"
-          }`}
-        >
-          {saveStatus}
-        </span>
-        <ZoomControl preventFocus />
-      </div>
+      <ToolbarButton title="Bold" onClick={() => editor.chain().focus().toggleBold().run()} isActive={activeStates.bold}><Bold size={15} /></ToolbarButton>
+      <ToolbarButton title="Italic" onClick={() => editor.chain().focus().toggleItalic().run()} isActive={activeStates.italic}><Italic size={15} /></ToolbarButton>
+      <ToolbarButton title="Underline" onClick={() => editor.chain().focus().toggleUnderline().run()} isActive={activeStates.underline}><UnderlineIcon size={15} /></ToolbarButton>
+      <Divider />
+      <ToolbarButton title="Heading 1" onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()} isActive={activeStates.heading1}><Heading1 size={15} /></ToolbarButton>
+      <ToolbarButton title="Heading 2" onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()} isActive={activeStates.heading2}><Heading2 size={15} /></ToolbarButton>
+      <Divider />
+      <ToolbarButton title="Bullet list" onClick={() => editor.chain().focus().toggleBulletList().run()} isActive={activeStates.bulletList}><List size={15} /></ToolbarButton>
+      <ToolbarButton title="Ordered list" onClick={() => editor.chain().focus().toggleOrderedList().run()} isActive={activeStates.orderedList}><ListOrdered size={15} /></ToolbarButton>
     </>
   );
 
   return (
     <div className="relative w-full flex flex-col gap-4">
+      
+      {/* MOBILE TITLE CONTROLS (Absolute Top Right) */}
+      <div className="md:hidden absolute -top-[3.25rem] right-0 flex items-center gap-1.5 z-10">
+        {isEditable && (
+          <button
+            onMouseDown={(e) => { e.preventDefault(); insertTimestamp(); }}
+            className="flex items-center justify-center w-[30px] h-[30px] rounded-xl bg-[#f7f5f0] dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#2a2a2a] text-[#888] hover:text-[#c2956e] shadow-sm transition-colors"
+          >
+            <Clock size={14} />
+          </button>
+        )}
+        <ZoomControl preventFocus={isEditable} />
+      </div>
+
       {isEditable && (
         <>
           {/* MOBILE POPUP: Appears dynamically tracking text coordinates */}
@@ -367,10 +317,12 @@ export default function DistractionFreeEditor({
             className="md:hidden flex items-center gap-2 px-3 py-2 border border-[#e0ddd5] dark:border-[#2a2a2a] bg-white/95 dark:bg-[#121212]/95 backdrop-blur-md shadow-xl rounded-2xl w-max max-w-[92vw] overflow-x-auto no-scrollbar transition-opacity duration-200"
             style={bubbleStyle}
           >
-            {renderToolbarContents()}
+            <div className="flex items-center gap-0.5 overflow-x-auto no-scrollbar flex-1 min-w-0">
+              {renderFormattingButtons()}
+            </div>
           </div>
 
-          {/* DESKTOP TOOLBAR: Beautifully pinned to top layout */}
+          {/* DESKTOP STICKY TOOLBAR */}
           <div
             className={[
               "hidden md:flex",
@@ -381,14 +333,33 @@ export default function DistractionFreeEditor({
               "items-center gap-2",
             ].join(" ")}
           >
-            {renderToolbarContents()}
+            <div className="flex items-center gap-0.5 overflow-x-auto no-scrollbar flex-1 min-w-0">
+              {renderFormattingButtons()}
+              <Divider />
+              <ToolbarButton title="Insert timestamp" onClick={insertTimestamp}>
+                <Clock size={15} />
+              </ToolbarButton>
+            </div>
+
+            <div className="flex items-center gap-2 shrink-0">
+              <span
+                className={`text-[9px] font-bold uppercase tracking-widest whitespace-nowrap transition-colors ${
+                  saveStatus === "Saving..."
+                    ? "text-[#c2956e] dark:text-[#d1a784]"
+                    : "text-[#c4c0b8] dark:text-[#555]"
+                }`}
+              >
+                {saveStatus}
+              </span>
+              <ZoomControl preventFocus />
+            </div>
           </div>
         </>
       )}
 
-      {/* Read-only zoom control */}
+      {/* Read-only zoom control for Desktop */}
       {!isEditable && (
-        <div className="flex justify-end">
+        <div className="hidden md:flex justify-end">
           <ZoomControl />
         </div>
       )}
