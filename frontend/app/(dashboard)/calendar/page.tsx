@@ -29,7 +29,7 @@ export default function CalendarPage() {
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Search States (Debounced to fix lag)
+  // Search States
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchInput, setSearchInput] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
@@ -411,14 +411,8 @@ export default function CalendarPage() {
   const isCurrentDateToday = isSameDay(referenceDate, new Date());
 
   return (
-    <div className="w-full h-full pt-4 md:pt-[max(3.5rem,calc(2.5rem+env(safe-area-inset-top)))] px-4 md:p-8 lg:p-10 lg:pl-16 xl:pl-28 pb-6 md:pb-8 relative flex min-w-0 bg-[#f7f5f0] dark:bg-[#121212]">
+    <div className="w-full h-full pt-4 md:pt-[max(3.5rem,calc(2.5rem+env(safe-area-inset-top)))] px-4 md:p-8 lg:p-10 pb-6 md:pb-8 relative flex min-w-0 bg-[#f7f5f0] dark:bg-[#121212]">
       
-      <div className="hidden lg:flex absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none items-center justify-center opacity-30 dark:opacity-20 z-0">
-        <span className="-rotate-90 whitespace-nowrap text-[120px] font-bold text-[#e0ddd5] dark:text-[#222] tracking-widest pointer-events-none select-none">
-          CALENDAR
-        </span>
-      </div>
-
       <div className="flex-1 flex flex-col relative z-10 min-w-0 max-w-full h-full">
         <header className="mb-4 md:mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4 shrink-0 relative z-50">
           

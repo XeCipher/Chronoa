@@ -455,14 +455,15 @@ export default function NotesPage() {
     );
   };
 
+  // Refined uniformity in root div className (removed lg:pl-10 which caused offset mismatch)
   return (
-    <div className="relative flex h-full w-full bg-[#f7f5f0] dark:bg-[#121212] lg:pl-10 overflow-hidden">
+    <div className="relative flex h-full w-full bg-[#f7f5f0] dark:bg-[#121212] overflow-hidden">
       
       <aside className={`
         w-full lg:w-[350px] flex-shrink-0 flex flex-col border-r border-[#e0ddd5] dark:border-[#2a2a2a] bg-[#f7f5f0] dark:bg-[#121212] z-30 transition-transform duration-300 ease-in-out
         ${isListVisible ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
       `}>
-        <div className="p-6 pb-4 space-y-6">
+        <div className="p-4 md:p-8 lg:p-10 pb-4 space-y-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2.5 text-[#3d3b33] dark:text-[#f0f0f0]">
               <Library size={20} className="text-[#c2956e]" />
@@ -530,7 +531,7 @@ export default function NotesPage() {
           </div>
         </div>
 
-        <div id="notes-library-scroll-container" className="flex-1 overflow-y-auto no-scrollbar p-4 space-y-3 scroll-smooth">
+        <div id="notes-library-scroll-container" className="flex-1 overflow-y-auto no-scrollbar px-4 pb-4 md:px-8 lg:px-10 lg:pl-8 space-y-3 scroll-smooth">
           {loading && notes.length === 0 && journals.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 gap-3 opacity-40">
               <Sparkles className="animate-pulse text-[#c2956e]" />
@@ -644,7 +645,6 @@ export default function NotesPage() {
         )}
       </main>
 
-      {/* Mobile FAB for Notes & Journal */}
       {isListVisible && !isTrashOpen && (
         <div className="lg:hidden fixed bottom-[calc(90px+env(safe-area-inset-bottom))] right-6 z-[100] flex flex-col items-end">
           {showCalendar && notesTab === 'journal' && (

@@ -117,6 +117,49 @@ export default function DistractionFreeEditor({
     };
   }, [editor]);
 
+  // Overriding Browser Default Zoom
+  useEffect(() => {
+    const handleGlobalWheel = (e: WheelEvent) => {
+      if (!isEditable) return;
+      if (e.ctrlKey || e.metaKey) {
+        e.preventDefault();
+        const currentZoom = useUiStore.getState().journalZoom;
+        if (e.deltaY < 0) {
+           useUiStore.getState().setJournalZoom(Math.min(200, currentZoom + 5));
+        } else {
+           useUiStore.getState().setJournalZoom(Math.max(50, currentZoom - 5));
+        }
+      }
+    };
+
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      if (!isEditable) return;
+      if (e.ctrlKey || e.metaKey) {
+        const currentZoom = useUiStore.getState().journalZoom;
+        if (e.key === '=' || e.key === '+') {
+          e.preventDefault();
+          useUiStore.getState().setJournalZoom(Math.min(200, currentZoom + 10));
+        } else if (e.key === '-' || e.key === '_') {
+          e.preventDefault();
+          useUiStore.getState().setJournalZoom(Math.max(50, currentZoom - 10));
+        }
+      }
+    };
+
+    const editorEl = document.querySelector('.chronoa-editor');
+    if (editorEl) {
+       editorEl.addEventListener('wheel', handleGlobalWheel as any, { passive: false });
+       editorEl.addEventListener('keydown', handleGlobalKeyDown as any);
+    }
+
+    return () => {
+       if (editorEl) {
+          editorEl.removeEventListener('wheel', handleGlobalWheel as any);
+          editorEl.removeEventListener('keydown', handleGlobalKeyDown as any);
+       }
+    };
+  }, [isEditable]);
+
   // Handle the logic for calculating exactly where the text is on mobile
   useEffect(() => {
     if (!editor) return;
@@ -134,16 +177,13 @@ export default function DistractionFreeEditor({
       }
 
       const { view } = editor;
-      // Get the absolute physical position of the selected text within the viewport
       const endCoords = view.coordsAtPos(selection.to);
       const startCoords = view.coordsAtPos(selection.from);
 
-      // Horizontally center it based on the bounds of the selection
       const centerLeft = (startCoords.left + endCoords.left) / 2;
       const halfMenuWidth = 140; 
       let safeLeft = centerLeft;
       
-      // Ensure the menu doesn't bleed off the left or right edges of the screen
       if (safeLeft < halfMenuWidth + 16) safeLeft = halfMenuWidth + 16;
       if (safeLeft > window.innerWidth - halfMenuWidth - 16) safeLeft = window.innerWidth - halfMenuWidth - 16;
 
@@ -151,7 +191,7 @@ export default function DistractionFreeEditor({
         opacity: 1,
         pointerEvents: "auto",
         position: "fixed",
-        top: `${endCoords.bottom + 12}px`, // Places it precisely 12px below the text
+        top: `${endCoords.bottom + 12}px`,
         left: `${safeLeft}px`,
         transform: "translateX(-50%)",
         zIndex: 100,
@@ -159,7 +199,6 @@ export default function DistractionFreeEditor({
     };
 
     const handleBlur = () => {
-      // Delay ensures we don't hide the menu when a formatting button itself is clicked
       setTimeout(() => {
         if (!editor.isFocused) {
           setBubbleStyle((prev) => ({ ...prev, opacity: 0, pointerEvents: "none" }));
@@ -228,7 +267,6 @@ export default function DistractionFreeEditor({
   }) => (
     <button
       onMouseDown={(e) => {
-        // Prevent default handles focus loss, allowing the editor to stay focused!
         e.preventDefault();
         onClick();
       }}
@@ -297,7 +335,6 @@ export default function DistractionFreeEditor({
   return (
     <div className="relative w-full flex flex-col gap-4">
       
-      {/* MOBILE TITLE CONTROLS (Absolute Top Right) */}
       <div className="md:hidden absolute -top-[3.25rem] right-0 flex items-center gap-1.5 z-10">
         {isEditable && (
           <button
@@ -312,7 +349,6 @@ export default function DistractionFreeEditor({
 
       {isEditable && (
         <>
-          {/* MOBILE POPUP: Appears dynamically tracking text coordinates */}
           <div
             className="md:hidden flex items-center gap-2 px-3 py-2 border border-[#e0ddd5] dark:border-[#2a2a2a] bg-white/95 dark:bg-[#121212]/95 backdrop-blur-md shadow-xl rounded-2xl w-max max-w-[92vw] overflow-x-auto no-scrollbar transition-opacity duration-200"
             style={bubbleStyle}
@@ -322,7 +358,6 @@ export default function DistractionFreeEditor({
             </div>
           </div>
 
-          {/* DESKTOP STICKY TOOLBAR */}
           <div
             className={[
               "hidden md:flex",
@@ -357,7 +392,6 @@ export default function DistractionFreeEditor({
         </>
       )}
 
-      {/* Read-only zoom control for Desktop */}
       {!isEditable && (
         <div className="hidden md:flex justify-end">
           <ZoomControl />

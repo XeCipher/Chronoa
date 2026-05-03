@@ -30,9 +30,9 @@ const playChime = () => {
       osc.stop(ctx.currentTime + delay + duration);
     };
 
-    playSine(523.25, 4, 0.4, 0);       // C5 Root
-    playSine(1046.50, 3, 0.15, 0.05);  // C6 Octave
-    playSine(1569.75, 2, 0.05, 0.1);   // G6 Harmonic
+    playSine(523.25, 4, 0.4, 0);       
+    playSine(1046.50, 3, 0.15, 0.05);  
+    playSine(1569.75, 2, 0.05, 0.1);   
   } catch (e) {
     console.error("Audio API not supported", e);
   }
@@ -103,6 +103,31 @@ function EngineCard({ engine, tab }: { engine: EngineInstance, tab: 'timer' | 's
     ? Math.max(0, ((engine.targetMinutes || 0) * 60) - liveSeconds)
     : liveSeconds;
 
+  const getStatusText = () => {
+    if (!engine.isRunning || !engine.startTime) return null;
+    
+    const formatTimeStatus = (date: Date) => {
+      const isDiffDay = date.getDate() !== new Date().getDate() || date.getMonth() !== new Date().getMonth();
+      const timeStr = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      if (isDiffDay) {
+        const dateStr = date.toLocaleDateString([], { month: 'short', day: 'numeric' });
+        return `${timeStr}, ${dateStr}`;
+      }
+      return timeStr;
+    };
+
+    if (tab === 'stopwatch') {
+      const absoluteStart = new Date(engine.startTime - (engine.accumulatedSeconds * 1000));
+      return `Started at ${formatTimeStatus(absoluteStart)}`;
+    } else {
+      const remainingSecs = Math.max(0, ((engine.targetMinutes || 0) * 60) - liveSeconds);
+      const endDate = new Date(Date.now() + remainingSecs * 1000);
+      return `Ends at ${formatTimeStatus(endDate)}`;
+    }
+  };
+
+  const statusText = getStatusText();
+
   return (
     <div className="relative shrink-0 w-[24rem] max-w-[85vw] bg-white/20 dark:bg-black/30 backdrop-blur-3xl border border-white/40 dark:border-white/10 rounded-[2.5rem] p-6 shadow-[0_20px_50px_-10px_rgba(0,0,0,0.15)] flex flex-col gap-5 transition-colors snap-center group">
       
@@ -115,8 +140,17 @@ function EngineCard({ engine, tab }: { engine: EngineInstance, tab: 'timer' | 's
       </button>
 
       <div className="flex items-center justify-between px-2 pt-2">
-        <div className="text-[3.5rem] sm:text-[4rem] leading-none text-[#3d3b33] dark:text-[#f0f0f0] font-mono tracking-tighter font-light drop-shadow-sm transition-colors">
-          {formatTime(currentDisplaySeconds)}
+        <div className="flex flex-col">
+          <div className="text-[3.5rem] sm:text-[4rem] leading-none text-[#3d3b33] dark:text-[#f0f0f0] font-mono tracking-tighter font-light drop-shadow-sm transition-colors">
+            {formatTime(currentDisplaySeconds)}
+          </div>
+          <div className="h-4 mt-1">
+            {statusText && (
+               <span className="text-[10px] text-[#3d3b33]/60 dark:text-[#f0f0f0]/60 font-bold uppercase tracking-widest">
+                 {statusText}
+               </span>
+            )}
+          </div>
         </div>
         <div className="flex items-center gap-3">
           {(engine.accumulatedSeconds > 0 || engine.isRunning) && (

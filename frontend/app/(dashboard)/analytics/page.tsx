@@ -46,7 +46,6 @@ const escapeRegExp = (string: string) => {
   return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 };
 
-// Recursive Component for Task Selection
 const TaskTreeNode = ({ 
   node, 
   selectedIds, 
@@ -57,7 +56,6 @@ const TaskTreeNode = ({
   onToggleExpand
 }: any) => {
   
-  // Collapse by default if descendants > 5, unless user explicitly expanded/collapsed
   const isExpanded = expandedTrackNodes[node.id] !== undefined 
     ? expandedTrackNodes[node.id] 
     : (node.descendantCount <= 5);
@@ -135,7 +133,6 @@ export default function AnalyticsPage() {
   const [filterType, setFilterType] = useState<'all' | 'routine' | 'normal'>('all');
   const [isRankModalOpen, setIsRankModalOpen] = useState(false);
 
-  // Tracker Logic
   const [isTrackerModalOpen, setIsTrackerModalOpen] = useState(false);
   const [selectedTrackedIds, setSelectedTrackedIds] = useState<Set<string>>(new Set());
   const [trackerSearch, setTrackerSearch] = useState("");
@@ -196,7 +193,6 @@ export default function AnalyticsPage() {
     fetchRawData();
   }, []);
 
-  // Modal scroll locking
   useEffect(() => {
     if (isRankModalOpen || isTrackerModalOpen) {
       document.body.style.overflow = 'hidden';
@@ -260,7 +256,6 @@ export default function AnalyticsPage() {
     let trackedIds = new Set<string>();
     let trackedTitles = new Set<string>();
 
-    // 1. Gather all tasks and their descendants if specific tasks are tracked
     if (selectedTrackedIds.size > 0) {
       const collect = (id: string) => {
         trackedIds.add(id);
@@ -275,7 +270,6 @@ export default function AnalyticsPage() {
 
     const completedTasks = baseTasks.filter(t => t.is_completed && t.completed_at);
 
-    // 2. Map sessions intelligently for the Pie Chart using colon sub-category logic
     let mappedSessions: any[] = [];
     if (selectedTrackedIds.size > 0) {
       mappedSessions = rawSessions.filter(s => {
@@ -298,7 +292,6 @@ export default function AnalyticsPage() {
       });
     }
 
-    // 3. Global XP Logic (XP shouldn't plummet just because you filtered views)
     const globalCompletedTasks = rawTasks.filter(t => t.is_completed && t.completed_at).length;
     const globalFocusSeconds = rawSessions.reduce((acc, s) => acc + s.duration_seconds, 0);
     const globalFocusMinutes = Math.floor(globalFocusSeconds / 60);
@@ -315,7 +308,6 @@ export default function AnalyticsPage() {
       return rankObj ? rankObj.name : "Novice";
     };
 
-    // 4. Aggregation into maps
     const getLocalYMD = (d: Date) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
     const dailyMap: Record<string, DailyRecord> = {};
     const ensureDay = (ymd: string) => {
@@ -339,7 +331,6 @@ export default function AnalyticsPage() {
       dailyMap[ymd].focusMinutes += mins;
     });
 
-    // 5. Streak Computation
     const calculateStreak = (daySet: Set<string>) => {
       let current = 0, best = 0;
       const todayYmd = getLocalYMD(new Date());
@@ -395,8 +386,9 @@ export default function AnalyticsPage() {
     );
   }
 
+  // Refined uniformity in root div className (p-4 md:p-8 lg:p-10)
   return (
-    <div className="w-full min-h-full mx-auto p-4 md:p-10 lg:pl-20 xl:pl-28 space-y-8 pb-24 overflow-x-hidden">
+    <div className="w-full min-h-full mx-auto p-4 md:p-8 lg:p-10 space-y-8 pb-24 overflow-x-hidden">
       
       <header className="mb-6 flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div>
@@ -438,7 +430,6 @@ export default function AnalyticsPage() {
         </div>
       </header>
 
-      {/* Level Hero Bar */}
       <div className="w-full bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] rounded-[2rem] p-6 md:p-8 shadow-sm flex flex-col md:flex-row items-center gap-6 md:gap-10">
         
         <div className="flex items-center gap-6 shrink-0">
@@ -470,7 +461,6 @@ export default function AnalyticsPage() {
         </div>
       </div>
 
-      {/* Stats Grid */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
         <StatCard 
           title={selectedTrackedIds.size > 0 ? "Tracked Tasks Done" : filterType === 'all' ? "Tasks Done" : filterType === 'routine' ? "Routines Done" : "Normal Tasks"} 
@@ -500,7 +490,6 @@ export default function AnalyticsPage() {
         />
       </div>
 
-      {/* Main Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2">
           <ProductivityChart dailyMap={data?.dailyMap || {}} />
@@ -510,13 +499,11 @@ export default function AnalyticsPage() {
         </div>
       </div>
 
-      {/* Secondary Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <ActivityHeatmap dailyMap={data?.dailyMap || {}} />
         <FocusDistribution rawSessions={data?.rawSessions || []} />
       </div>
 
-      {/* Task Tracker Modal */}
       {isTrackerModalOpen && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center px-4">
           <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setIsTrackerModalOpen(false)} />
@@ -578,7 +565,6 @@ export default function AnalyticsPage() {
         </div>
       )}
 
-      {/* Gamification Info Modal */}
       {isRankModalOpen && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center px-4">
           <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setIsRankModalOpen(false)} />

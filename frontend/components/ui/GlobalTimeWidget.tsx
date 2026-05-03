@@ -32,9 +32,9 @@ const playChime = () => {
       osc.stop(ctx.currentTime + delay + duration);
     };
 
-    playSine(523.25, 4, 0.4, 0);       // C5 Root
-    playSine(1046.50, 3, 0.15, 0.05);  // C6 Octave
-    playSine(1569.75, 2, 0.05, 0.1);   // G6 Harmonic
+    playSine(523.25, 4, 0.4, 0);       
+    playSine(1046.50, 3, 0.15, 0.05);  
+    playSine(1569.75, 2, 0.05, 0.1);   
   } catch (e) {
     console.error("Audio API not supported", e);
   }
@@ -105,6 +105,31 @@ function MiniEngineCard({ engine, tab }: { engine: EngineInstance, tab: 'timer' 
     ? Math.max(0, ((engine.targetMinutes || 0) * 60) - liveSeconds)
     : liveSeconds;
 
+  const getStatusText = () => {
+    if (!engine.isRunning || !engine.startTime) return null;
+    
+    const formatTimeStatus = (date: Date) => {
+      const isDiffDay = date.getDate() !== new Date().getDate() || date.getMonth() !== new Date().getMonth();
+      const timeStr = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      if (isDiffDay) {
+        const dateStr = date.toLocaleDateString([], { month: 'short', day: 'numeric' });
+        return `${timeStr}, ${dateStr}`;
+      }
+      return timeStr;
+    };
+
+    if (tab === 'stopwatch') {
+      const absoluteStart = new Date(engine.startTime - (engine.accumulatedSeconds * 1000));
+      return `Started at ${formatTimeStatus(absoluteStart)}`;
+    } else {
+      const remainingSecs = Math.max(0, ((engine.targetMinutes || 0) * 60) - liveSeconds);
+      const endDate = new Date(Date.now() + remainingSecs * 1000);
+      return `Ends at ${formatTimeStatus(endDate)}`;
+    }
+  };
+
+  const statusText = getStatusText();
+
   return (
     <div className="bg-[#f7f5f0]/50 dark:bg-[#222]/50 border border-[#e0ddd5] dark:border-[#444] rounded-[1.5rem] p-5 flex flex-col gap-3 group relative transition-colors hover:border-[#c2956e]/50 dark:hover:border-[#b0855f]/50 shadow-sm shrink-0">
       <button 
@@ -115,8 +140,17 @@ function MiniEngineCard({ engine, tab }: { engine: EngineInstance, tab: 'timer' 
       </button>
 
       <div className="flex justify-between items-center mt-1 px-1">
-        <div className="text-4xl text-[#3d3b33] dark:text-[#f0f0f0] font-mono tracking-tighter font-light drop-shadow-sm">
-          {formatTime(currentDisplaySeconds)}
+        <div className="flex flex-col flex-1">
+          <div className="text-4xl text-[#3d3b33] dark:text-[#f0f0f0] font-mono tracking-tighter font-light drop-shadow-sm">
+            {formatTime(currentDisplaySeconds)}
+          </div>
+          <div className="h-3.5 mt-0.5">
+            {statusText && (
+              <span className="text-[9px] text-[#b0ad9a] dark:text-[#7a7a7a] font-bold uppercase tracking-widest">
+                {statusText}
+              </span>
+            )}
+          </div>
         </div>
         <div className="flex items-center gap-2">
           {(engine.accumulatedSeconds > 0 || engine.isRunning) && (
@@ -210,7 +244,6 @@ export default function GlobalTimeWidget() {
         </div>
 
         <div className="flex justify-between items-center w-full">
-          {/* Sleek Segmented Control Tab Switcher */}
           <div className="relative flex bg-[#ebe8e2]/50 dark:bg-[#1a1a1a] p-1.5 rounded-[1.25rem] border border-[#e0ddd5] dark:border-[#333] w-full max-w-[240px] shadow-inner">
             {(['stopwatch', 'timer'] as const).map(tab => {
               const isActive = store.activeTab === tab;
@@ -245,12 +278,10 @@ export default function GlobalTimeWidget() {
             <MiniEngineCard key={engine.id} engine={engine} tab={store.activeTab} />
           ))}
           
-          {/* Prevent cut-off issue with shrink-0 and adding a spacer block */}
           <button onClick={() => store.addInstance(store.activeTab)} className="w-full shrink-0 flex items-center justify-center gap-2 py-4 border border-dashed border-[#d4d0c8] dark:border-[#444] rounded-[1.25rem] text-[11px] font-bold uppercase tracking-widest text-[#b0ad9a] dark:text-[#7a7a7a] hover:text-[#c2956e] dark:hover:text-[#b0855f] hover:border-[#c2956e] dark:hover:border-[#b0855f] transition-colors hover:bg-white/50 dark:hover:bg-[#222]/50">
             <Plus size={16} /> Add {store.activeTab}
           </button>
           
-          {/* Extra spacer at bottom to ensure completely smooth scrolling to bottom edge */}
           <div className="h-2 w-full shrink-0 pointer-events-none" />
         </div>
 

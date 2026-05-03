@@ -69,11 +69,20 @@ export default function MonthView({ currentDate, events, onEventClick, onDayClic
                 <div 
                   key={i} 
                   onClick={() => onDayClick(day)}
-                  className={`bg-white dark:bg-[#1a1a1a] p-1 md:p-2 flex flex-col gap-1 transition-colors cursor-pointer hover:bg-[#fdfbf7] dark:hover:bg-[#222] relative overflow-hidden ${!isCurrMonth ? 'opacity-40 bg-gray-50 dark:bg-[#161616]' : ''}`}
+                  className={`bg-white dark:bg-[#1a1a1a] p-1 md:p-2 flex flex-col gap-1 transition-colors cursor-pointer hover:bg-[#fdfbf7] dark:hover:bg-[#222] relative ${(i === days.length - 7 || i === days.length - 1) ? 'overflow-visible' : 'overflow-hidden'} ${!isCurrMonth ? 'opacity-40 bg-gray-50 dark:bg-[#161616]' : ''}`}
                 >
-                  {isSelected && (
-                    <div className="absolute inset-0 bg-[#c2956e]/10 dark:bg-[#b0855f]/15 border-[1.5px] md:border-2 border-[#c2956e] dark:border-[#b0855f] md:rounded-2xl md:m-0.5 z-0 pointer-events-none" />
-                  )}
+                  {/* Gracefully rounded floating selection border to perfectly bypass any container clipping */}
+                  {isSelected && (() => {
+                    const isBottomLeft  = i === days.length - 7;
+                    const isBottomRight = i === days.length - 1;
+                    const cornerClass = [
+                      isBottomLeft  ? 'rounded-bl-[2rem]' : '',
+                      isBottomRight ? 'rounded-br-[2rem]' : '',
+                    ].filter(Boolean).join(' ');
+                    return (
+                      <div className={`absolute inset-0 bg-[#c2956e]/10 dark:bg-[#b0855f]/15 border-[1.5px] md:border-2 border-[#c2956e] dark:border-[#b0855f] z-0 pointer-events-none ${cornerClass}`} />
+                    );
+                  })()}
 
                   <div className="flex justify-between items-start mb-0.5 md:mb-1 relative z-10 shrink-0">
                     <span className={`flex items-center justify-center w-5 h-5 md:w-7 md:h-7 rounded-full text-[10px] md:text-sm font-medium ${
@@ -127,7 +136,7 @@ export default function MonthView({ currentDate, events, onEventClick, onDayClic
                     </div>
                     {extraCount > 0 && (
                       <div className="px-1.5 py-0.5 text-[9px] font-bold text-[#b0ad9a] dark:text-[#7a7a7a] bg-[#f0ede8] dark:bg-[#252525] border border-[#e0ddd5] dark:border-[#333] rounded-md mt-auto text-center transition-colors shadow-sm shrink-0">
-                        + {extraCount} more
+                        And more
                       </div>
                     )}
                   </div>

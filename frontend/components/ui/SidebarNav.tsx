@@ -39,18 +39,15 @@ export default function SidebarNav() {
 
   return (
     <>
-      {/* Desktop Sidebar */}
       <aside
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
-        className={`hidden md:block relative h-full z-50 transition-all duration-500 ease-in-out 
-          ${isExpanded ? 'w-64' : isHiddenMode ? 'w-0' : 'w-20'}
+        className={`hidden md:block relative h-full z-50 transition-all duration-500 ease-in-out shrink-0
+          ${isExpanded ? 'w-60' : isHiddenMode ? 'w-10' : 'w-20'}
         `}
       >
-        <div className={`absolute inset-y-0 left-0 w-12 z-50 ${isHiddenMode ? 'block' : 'hidden'}`} />
-
-        <div className={`absolute top-1/2 left-3 -translate-y-1/2 pointer-events-none transition-all duration-500 delay-100 flex items-center justify-center ${
-          isHiddenMode ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-8'
+        <div className={`absolute top-1/2 left-11 -translate-y-1/2 -translate-x-1/2 pointer-events-none transition-all duration-500 delay-100 flex items-center justify-center w-10 z-50 ${
+          isHiddenMode ? 'opacity-100' : 'opacity-0'
         }`}>
           <span className="-rotate-90 whitespace-nowrap text-[10px] tracking-[0.4em] uppercase font-bold text-[#b0ad9a] dark:text-[#7a7a7a]">
             {currentItem.name}
@@ -58,7 +55,7 @@ export default function SidebarNav() {
         </div>
 
         <div className={`absolute inset-y-0 left-0 h-full bg-[#f7f5f0] dark:bg-[#161616] border-r border-[#e0ddd5] dark:border-[#2a2a2a] flex flex-col z-40 transition-all duration-500 ease-in-out overflow-hidden ${
-          isExpanded ? 'w-64 translate-x-0 shadow-xl shadow-[#e0ddd5]/50 dark:shadow-black/50' : 
+          isExpanded ? 'w-60 translate-x-0 shadow-xl shadow-[#e0ddd5]/50 dark:shadow-black/50' : 
           isHiddenMode ? 'w-20 -translate-x-full shadow-none' : 
           'w-20 translate-x-0 shadow-none'
         }`}>
@@ -103,7 +100,7 @@ export default function SidebarNav() {
             <Link
               href="/settings"
               className={`flex items-center h-12 rounded-xl text-sm font-medium transition-all duration-300 overflow-hidden shrink-0
-                ${isExpanded ? "px-4 justify-start gap-4" : "justify-center"}
+                ${isExpanded ? "px-4 justify-start gap-4" : "mx-0 justify-center"}
                 ${pathname === "/settings" ? "bg-white dark:bg-[#252525] text-[#3d3b33] dark:text-[#fff] shadow-sm border border-[#e0ddd5] dark:border-[#333]" : "text-[#888888] dark:text-[#a0a0a0] md:hover:bg-white/50 md:dark:hover:bg-[#2a2a2a] md:hover:text-[#3d3b33] md:dark:hover:text-[#fff]"}
               `}
             >

@@ -32,8 +32,9 @@ export default function TasksPage() {
 
   const currentViewMode = isTrashOpen ? 'trash' : tasksView;
 
+  // Refined uniformity in root div className (p-4 md:p-8 lg:p-10)
   return (
-    <div className="w-full min-h-full bg-[#f7f5f0] dark:bg-[#121212] p-4 md:p-12 lg:p-16 relative">
+    <div className="w-full min-h-full bg-[#f7f5f0] dark:bg-[#121212] p-4 md:p-8 lg:p-10 relative">
       <div className="max-w-[1600px] mx-auto w-full flex flex-col h-full">
         
         <header className="mb-6 lg:mb-10 flex flex-col xl:flex-row xl:items-center justify-between gap-6 shrink-0">
