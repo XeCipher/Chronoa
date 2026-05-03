@@ -47,8 +47,21 @@ const escapeRegExp = (string: string) => {
 };
 
 // Recursive Component for Task Selection
-const TaskTreeNode = ({ node, selectedIds, onToggle, searchQuery, parentSelected = false }: any) => {
-  const [isExpanded, setIsExpanded] = useState(true);
+const TaskTreeNode = ({ 
+  node, 
+  selectedIds, 
+  onToggle, 
+  searchQuery, 
+  parentSelected = false,
+  expandedTrackNodes,
+  onToggleExpand
+}: any) => {
+  
+  // Collapse by default if descendants > 5, unless user explicitly expanded/collapsed
+  const isExpanded = expandedTrackNodes[node.id] !== undefined 
+    ? expandedTrackNodes[node.id] 
+    : (node.descendantCount <= 5);
+
   const isSelected = selectedIds.has(node.id) || parentSelected;
   
   const hasMatchingDescendant = (n: any): boolean => {
@@ -83,7 +96,7 @@ const TaskTreeNode = ({ node, selectedIds, onToggle, searchQuery, parentSelected
         </button>
         
         {node.children && node.children.length > 0 && (
-          <button onClick={(e) => { e.stopPropagation(); setIsExpanded(!isExpanded); }} className="shrink-0 -ml-1 text-[#b0ad9a] hover:text-[#c2956e] dark:hover:text-[#d1a784] transition-colors p-1">
+          <button onClick={(e) => { e.stopPropagation(); onToggleExpand(node.id, !isExpanded); }} className="shrink-0 -ml-1 text-[#b0ad9a] hover:text-[#c2956e] dark:hover:text-[#d1a784] transition-colors p-1">
             {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} className="opacity-40 group-hover:opacity-100" />}
           </button>
         )}
@@ -103,6 +116,8 @@ const TaskTreeNode = ({ node, selectedIds, onToggle, searchQuery, parentSelected
               onToggle={onToggle} 
               searchQuery={searchQuery}
               parentSelected={isSelected}
+              expandedTrackNodes={expandedTrackNodes}
+              onToggleExpand={onToggleExpand}
             />
           ))}
         </div>
@@ -124,6 +139,7 @@ export default function AnalyticsPage() {
   const [isTrackerModalOpen, setIsTrackerModalOpen] = useState(false);
   const [selectedTrackedIds, setSelectedTrackedIds] = useState<Set<string>>(new Set());
   const [trackerSearch, setTrackerSearch] = useState("");
+  const [expandedTrackNodes, setExpandedTrackNodes] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     setSelectedTrackedIds(new Set());
@@ -135,7 +151,12 @@ export default function AnalyticsPage() {
     const cachedTasks = localStorage.getItem('chronoa_cache_rawTasks_v2');
     const cachedSessions = localStorage.getItem('chronoa_cache_rawSessions');
     const cachedJournals = localStorage.getItem('chronoa_cache_rawJournals');
+    const cachedExpandedNodes = localStorage.getItem('chronoa_tracker_expanded_nodes');
     
+    if (cachedExpandedNodes) {
+      try { setExpandedTrackNodes(JSON.parse(cachedExpandedNodes)); } catch (e) {}
+    }
+
     if (cachedTasks && cachedSessions && cachedJournals) {
       try {
         setRawTasks(JSON.parse(cachedTasks));
@@ -194,12 +215,20 @@ export default function AnalyticsPage() {
     });
   };
 
+  const toggleNodeExpand = (id: string, expanded: boolean) => {
+    setExpandedTrackNodes(prev => {
+      const next = { ...prev, [id]: expanded };
+      localStorage.setItem('chronoa_tracker_expanded_nodes', JSON.stringify(next));
+      return next;
+    });
+  };
+
   const taskTree = useMemo(() => {
     if (filterType === 'all') return [];
     const items = rawTasks.filter(t => t.task_type === filterType);
     const map = new Map<string, any>();
     
-    items.forEach(t => map.set(t.id, { ...t, children: [] }));
+    items.forEach(t => map.set(t.id, { ...t, children: [], descendantCount: 0 }));
     
     const roots: any[] = [];
     items.forEach(t => {
@@ -209,6 +238,18 @@ export default function AnalyticsPage() {
         roots.push(map.get(t.id));
       }
     });
+
+    const calculateDescendants = (node: any) => {
+       let count = 0;
+       for (const child of node.children) {
+          count += 1 + calculateDescendants(child);
+       }
+       node.descendantCount = count;
+       return count;
+    };
+
+    roots.forEach(root => calculateDescendants(root));
+
     return roots;
   }, [rawTasks, filterType]);
 
@@ -366,7 +407,7 @@ export default function AnalyticsPage() {
           <p className="text-[#b0ad9a] dark:text-[#7a7a7a] tracking-[0.25em] text-[10px] font-bold uppercase ml-1">Consistency builds empires</p>
         </div>
         
-        <div className="flex items-center gap-3 w-full md:w-auto overflow-x-auto no-scrollbar pb-1 -mb-1 shrink-0">
+        <div className="flex items-center gap-3 w-full md:w-auto overflow-x-auto no-scrollbar pt-2 -mt-2 pb-2 -mb-2 px-2 -mx-2 shrink-0">
           {filterType !== 'all' && (
             <button 
               onClick={() => setIsTrackerModalOpen(true)}
@@ -511,6 +552,8 @@ export default function AnalyticsPage() {
                   selectedIds={selectedTrackedIds} 
                   onToggle={toggleSelection} 
                   searchQuery={trackerSearch} 
+                  expandedTrackNodes={expandedTrackNodes}
+                  onToggleExpand={toggleNodeExpand}
                 />
               )) : (
                 <p className="text-center text-[#b0ad9a] dark:text-[#7a7a7a] text-sm italic">No {filterType}s found.</p>
