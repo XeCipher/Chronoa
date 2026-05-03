@@ -108,8 +108,7 @@ function MiniEngineCard({ engine, tab }: { engine: EngineInstance, tab: 'timer' 
   return (
     <div className="bg-[#f7f5f0]/50 dark:bg-[#222]/50 border border-[#e0ddd5] dark:border-[#444] rounded-[1.5rem] p-5 flex flex-col gap-3 group relative transition-colors hover:border-[#c2956e]/50 dark:hover:border-[#b0855f]/50 shadow-sm shrink-0">
       <button 
-        onClick={() => store.removeInstance(tab, engine.id)} 
-        data-tooltip-id="global-tooltip" data-tooltip-content="Remove"
+        onClick={() => store.removeInstance(tab, engine.id)}
         className="absolute top-4 right-4 text-[#b0ad9a] hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
       >
         <Trash2 size={16} />
@@ -121,12 +120,11 @@ function MiniEngineCard({ engine, tab }: { engine: EngineInstance, tab: 'timer' 
         </div>
         <div className="flex items-center gap-2">
           {(engine.accumulatedSeconds > 0 || engine.isRunning) && (
-            <button data-tooltip-id="global-tooltip" data-tooltip-content="Stop & Save" onClick={() => handleStopAndSave()} className="w-10 h-10 flex items-center justify-center bg-white dark:bg-[#333] text-red-500 rounded-full shadow-sm hover:scale-105 transition-transform border border-[#e0ddd5] dark:border-[#444]">
+            <button onClick={() => handleStopAndSave()} className="w-10 h-10 flex items-center justify-center bg-white dark:bg-[#333] text-red-500 rounded-full shadow-sm hover:scale-105 transition-transform border border-[#e0ddd5] dark:border-[#444]">
               <Square size={14} fill="currentColor" />
             </button>
           )}
-          <button 
-            data-tooltip-id="global-tooltip" data-tooltip-content={engine.isRunning ? "Pause" : "Start"}
+          <button
             onClick={() => {
               if (engine.isRunning) store.pause(tab, engine.id);
               else {
@@ -237,7 +235,7 @@ export default function GlobalTimeWidget() {
             })}
           </div>
           
-          <button data-tooltip-id="global-tooltip" data-tooltip-content="Sessions Log Book" onClick={() => router.push('/sessions')} className="w-10 h-10 flex items-center justify-center rounded-[1rem] hover:bg-[#ebe8e2]/50 dark:hover:bg-[#222] transition-colors text-[#b0ad9a] dark:text-[#888] hover:text-[#3d3b33] dark:hover:text-[#f0f0f0] border border-[#e0ddd5] dark:border-[#333] shadow-sm">
+          <button onClick={() => router.push('/sessions')} className="w-10 h-10 flex items-center justify-center rounded-[1rem] hover:bg-[#ebe8e2]/50 dark:hover:bg-[#222] transition-colors text-[#b0ad9a] dark:text-[#888] hover:text-[#3d3b33] dark:hover:text-[#f0f0f0] border border-[#e0ddd5] dark:border-[#333] shadow-sm">
             <History size={16} />
           </button>
         </div>

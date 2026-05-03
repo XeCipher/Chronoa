@@ -35,10 +35,6 @@ type ActiveStates = {
   orderedList: boolean;
 };
 
-// Height of the mobile toolbar in px — used to size the ghost spacer.
-// Increase if you add more rows or padding.
-const MOBILE_TOOLBAR_HEIGHT = 56;
-
 export default function DistractionFreeEditor({
   initialContent,
   isEditable = true,
@@ -65,8 +61,6 @@ export default function DistractionFreeEditor({
     orderedList: false,
   });
 
-  const [isFocused, setIsFocused] = useState(false);
-
   const editor = useEditor({
     editable: isEditable,
     extensions: [
@@ -80,11 +74,6 @@ export default function DistractionFreeEditor({
           "chronoa-editor focus:outline-none w-full min-h-[500px] text-[#3d3b33] dark:text-[#e0e0e0]",
         spellcheck: "false",
       },
-    },
-    onFocus: () => setIsFocused(true),
-    onBlur: () => {
-      // Delay blur so toolbar button clicks register before toolbar loses its fixed state
-      setTimeout(() => setIsFocused(false), 150);
     },
     onTransaction: ({ editor: ed }) => {
       setActiveStates({
@@ -164,6 +153,7 @@ export default function DistractionFreeEditor({
   }) => (
     <button
       onMouseDown={(e) => {
+        // Prevent the editor from losing focus when tapping toolbar buttons
         e.preventDefault();
         onClick();
       }}
@@ -186,7 +176,12 @@ export default function DistractionFreeEditor({
   const ZoomControl = ({ preventFocus = false }: { preventFocus?: boolean }) => {
     const bind = (fn: () => void) =>
       preventFocus
-        ? { onMouseDown: (e: React.MouseEvent) => { e.preventDefault(); fn(); } }
+        ? {
+            onMouseDown: (e: React.MouseEvent) => {
+              e.preventDefault();
+              fn();
+            },
+          }
         : { onClick: fn };
 
     return (
@@ -210,80 +205,54 @@ export default function DistractionFreeEditor({
     );
   };
 
-  // ─── Toolbar positioning logic ─────────────────────────────────────────────
-  //
-  //  Mobile (< md):
-  //    • Always rendered in-flow so it scrolls with the page when not focused.
-  //    • When the editor is focused (keyboard open), it becomes fixed to the
-  //      very top of the viewport — safe-area-aware for notched iPhones.
-  //    • A ghost <div> of the same height keeps the layout stable so content
-  //      doesn't jump when the toolbar detaches.
-  //
-  //  Desktop (≥ md):
-  //    • Sticky to the top of its scroll container, rounded pill style.
-  //
-  // ──────────────────────────────────────────────────────────────────────────
-
-  const mobileFixedClasses =
-    "fixed top-0 left-0 right-0 z-50 " +
-    // Horizontal padding keeps content away from the screen edges
-    "px-4 " +
-    // Vertical: push down past the status bar / notch on iOS, keep bottom comfy
-    "pt-[max(env(safe-area-inset-top),10px)] pb-3 " +
-    // Visual treatment: opaque enough to mask content scrolling under it
-    "bg-white/96 dark:bg-[#121212]/96 backdrop-blur-md " +
-    // Subtle bottom border to separate from content
-    "border-b border-[#e0ddd5]/70 dark:border-[#2a2a2a] " +
-    // Gentle shadow so it feels elevated, not glued
-    "shadow-[0_2px_12px_0_rgba(0,0,0,0.07)] dark:shadow-[0_2px_12px_0_rgba(0,0,0,0.35)] " +
-    // Rounded bottom corners give it a "floating panel" feel
-    "rounded-b-2xl";
-
-  const mobileInlineClasses =
-    "sticky top-0 z-40 " +
-    "px-3 py-2 mx-1 " +
-    "bg-white/90 dark:bg-[#121212]/90 backdrop-blur-sm " +
-    "border border-[#e0ddd5] dark:border-[#2a2a2a] " +
-    "rounded-2xl " +
-    "shadow-sm";
-
-  const desktopClasses =
-    "md:sticky md:top-0 md:z-40 " +
-    "md:px-2 md:py-1.5 " +
-    "md:bg-white/90 md:dark:bg-[#121212]/90 md:backdrop-blur-sm " +
-    "md:border md:border-[#e0ddd5] md:dark:border-[#2a2a2a] " +
-    "md:rounded-2xl " +
-    "md:shadow-sm " +
-    // Reset mobile-fixed overrides at md breakpoint
-    "md:left-auto md:right-auto md:w-auto md:pt-1.5 md:pb-1.5";
-
-  // On mobile the toolbar is fixed (out-of-flow) only while focused
-  const toolbarClass =
-    "flex items-center gap-2 " +
-    // Mobile base: when focused → fixed-top; otherwise → inline sticky
-    (isFocused ? mobileFixedClasses : mobileInlineClasses) + " " +
-    desktopClasses;
-
   return (
+    // No bottom padding here — let the parent layout own page-level spacing.
     <div className="relative w-full flex flex-col gap-4">
 
-      {/* ── Ghost spacer (mobile only) ──────────────────────────────────────
-          When the toolbar is fixed-top on mobile, it leaves the layout flow.
-          This invisible placeholder occupies the same vertical space so the
-          editor content doesn't jump up underneath it.
-          On desktop the toolbar is sticky (in-flow), so the ghost is hidden.
-      ──────────────────────────────────────────────────────────────────── */}
-      {isEditable && isFocused && (
-        <div
-          className="md:hidden shrink-0 w-full"
-          style={{ height: MOBILE_TOOLBAR_HEIGHT }}
-          aria-hidden="true"
-        />
-      )}
-
       {isEditable && (
-        <div className={toolbarClass}>
-          {/* Formatting buttons — scrollable row on very narrow screens */}
+        /*
+         * TOOLBAR — always `sticky top-0`, never `fixed`.
+         *
+         * Why not fixed?
+         *   `position: fixed` is supposed to be relative to the viewport, but
+         *   it silently breaks when ANY ancestor has transform / will-change /
+         *   filter / overflow-scroll set — which Next.js layout wrappers
+         *   commonly do. The result: the toolbar disappears or mispositions
+         *   when the keyboard opens, because the browser scrolls the page and
+         *   the "fixed" element is actually fixed to the wrong container.
+         *
+         * Why sticky is correct here:
+         *   • It stays in document flow — parent overflow/transform don't
+         *     affect it at all.
+         *   • It scrolls with the page until it would leave the top of its
+         *     scroll container, then locks in place.
+         *   • When the keyboard opens and the browser scrolls to the cursor,
+         *     the toolbar simply stays locked at the top — always visible,
+         *     always reachable with a single scroll-up gesture.
+         *   • Zero iOS Safari quirks. Rock solid.
+         *
+         * Mobile visual polish:
+         *   • mx-3 insets it from both edges → floating panel, not a glued strip.
+         *   • mt-1 adds a tiny breathing gap from the very top of the page.
+         *   • Rounded corners + soft shadow reinforce the elevated feel.
+         */
+        <div
+          className={[
+            "sticky top-0 z-50",
+            // Inset from screen edges on mobile; full-width on desktop
+            "mx-3 md:mx-0",
+            // Tiny gap from the page top on mobile
+            "mt-1 md:mt-0",
+            "px-3 py-2",
+            "flex items-center gap-2",
+            "bg-white/95 dark:bg-[#121212]/95 backdrop-blur-md",
+            "border border-[#e0ddd5] dark:border-[#2a2a2a]",
+            "rounded-2xl",
+            // Soft downward shadow so the toolbar reads as floating
+            "shadow-[0_2px_16px_0_rgba(0,0,0,0.07)] dark:shadow-[0_2px_16px_0_rgba(0,0,0,0.4)]",
+          ].join(" ")}
+        >
+          {/* Formatting buttons — scrollable so narrow phones never clip */}
           <div className="flex items-center gap-0.5 overflow-x-auto no-scrollbar flex-1 min-w-0">
             <ToolbarButton
               title="Bold"
@@ -309,14 +278,18 @@ export default function DistractionFreeEditor({
             <Divider />
             <ToolbarButton
               title="Heading 1"
-              onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
+              onClick={() =>
+                editor.chain().focus().toggleHeading({ level: 1 }).run()
+              }
               isActive={activeStates.heading1}
             >
               <Heading1 size={15} />
             </ToolbarButton>
             <ToolbarButton
               title="Heading 2"
-              onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
+              onClick={() =>
+                editor.chain().focus().toggleHeading({ level: 2 }).run()
+              }
               isActive={activeStates.heading2}
             >
               <Heading2 size={15} />
@@ -331,7 +304,9 @@ export default function DistractionFreeEditor({
             </ToolbarButton>
             <ToolbarButton
               title="Ordered list"
-              onClick={() => editor.chain().focus().toggleOrderedList().run()}
+              onClick={() =>
+                editor.chain().focus().toggleOrderedList().run()
+              }
               isActive={activeStates.orderedList}
             >
               <ListOrdered size={15} />
@@ -342,7 +317,7 @@ export default function DistractionFreeEditor({
             </ToolbarButton>
           </div>
 
-          {/* Right side: save status + zoom */}
+          {/* Right: save indicator + zoom */}
           <div className="flex items-center gap-2 shrink-0">
             <span
               className={`hidden md:block text-[9px] font-bold uppercase tracking-widest whitespace-nowrap transition-colors ${
@@ -353,7 +328,6 @@ export default function DistractionFreeEditor({
             >
               {saveStatus}
             </span>
-
             <ZoomControl preventFocus />
           </div>
         </div>
@@ -366,7 +340,12 @@ export default function DistractionFreeEditor({
         </div>
       )}
 
-      <div style={{ fontSize: `${(journalZoom / 100) * 1.05}rem`, fontFamily: "inherit" }}>
+      <div
+        style={{
+          fontSize: `${(journalZoom / 100) * 1.05}rem`,
+          fontFamily: "inherit",
+        }}
+      >
         <EditorContent editor={editor} />
       </div>
     </div>
