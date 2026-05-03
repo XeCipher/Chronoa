@@ -11,9 +11,6 @@ import {
   Info, Mail
 } from "lucide-react";
 
-/**
- * Custom GitHub Icon component since brand icons were removed from newer lucide-react versions.
- */
 const GitHubIcon = ({ size = 16, className = "" }: { size?: number, className?: string }) => (
   <svg 
     width={size} 
@@ -174,7 +171,6 @@ export default function SettingsPage() {
 
       <div className="bg-white dark:bg-[#1a1a1a] border border-[#ebe8e2] dark:border-[#2a2a2a] rounded-[2.5rem] p-6 md:p-10 shadow-sm space-y-12 transition-all">
         
-        {/* Appearance Settings */}
         <section className="space-y-4">
           <div className="flex items-center gap-3 text-[#a882c2]">
             <Monitor size={20} />
@@ -195,7 +191,6 @@ export default function SettingsPage() {
 
         <hr className="border-[#f0ede8] dark:border-[#2a2a2a]" />
 
-        {/* Global Hotkeys */}
         <section className="hidden md:block space-y-6">
           <div className="flex justify-between items-center">
             <div className="space-y-1">
@@ -218,7 +213,7 @@ export default function SettingsPage() {
               { id: 'home', keys: [altKeyDisplay, 'H'], desc: 'Go to Home' },
               { id: 'tasks', keys: [altKeyDisplay, 'T'], desc: 'Go to Tasks' },
               { id: 'notes', keys: [altKeyDisplay, 'N'], desc: 'Go to Notes' },
-              { id: 'journal', keys: [altKeyDisplay, 'J'], desc: 'Jump to Journal' },
+              { id: 'calendar', keys: [altKeyDisplay, 'C'], desc: 'Go to Calendar' },
               { id: 'analytics', keys: [altKeyDisplay, 'A'], desc: 'Go to Analytics' },
               { id: 'settings', keys: [altKeyDisplay, 'S'], desc: 'Go to Settings' },
               { id: 'up', keys: [altKeyDisplay, '↑'], desc: 'Move Task Up' },
@@ -257,7 +252,6 @@ export default function SettingsPage() {
 
         <hr className="hidden md:block border-[#f0ede8] dark:border-[#2a2a2a]" />
 
-        {/* Task Features Configuration */}
         <section className="space-y-4">
           <div className="flex items-center gap-3 text-[#6e90c2] dark:text-[#8aaae0]">
             <CheckCircle2 size={20} />
@@ -310,7 +304,6 @@ export default function SettingsPage() {
 
         <hr className="border-[#f0ede8] dark:border-[#2a2a2a]" />
 
-        {/* Weather Location */}
         <section className="space-y-4">
           <div className="flex items-center gap-3 text-[#5b9ea0] dark:text-[#6baea0]">
             <MapPin size={20} />
@@ -344,7 +337,6 @@ export default function SettingsPage() {
 
         <hr className="border-[#f0ede8] dark:border-[#2a2a2a]" />
 
-        {/* Task & Routine Settings */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
           <section className="space-y-4">
             <div className="flex items-center gap-3 text-[#c2956e] dark:text-[#d1a784]"><Clock size={18} /><h3 className="text-lg font-medium text-[#3d3b33] dark:text-[#f0f0f0]">Vanishing Delay</h3></div>
@@ -364,7 +356,6 @@ export default function SettingsPage() {
 
         <hr className="border-[#f0ede8] dark:border-[#2a2a2a]" />
 
-        {/* Developer Contact Section */}
         <section className="space-y-4">
           <div className="flex items-center gap-3 text-[#3d3b33] dark:text-[#f0f0f0]">
              <Info size={20} className="text-[#c2956e] dark:text-[#d1a784]" />

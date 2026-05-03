@@ -85,6 +85,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         if (key === 't' && !disabledHotkeys?.includes('tasks')) { e.preventDefault(); router.push('/tasks'); }
         if (key === 'n' && !disabledHotkeys?.includes('notes')) { e.preventDefault(); setNotesTab('notes'); router.push('/notes'); }
         if (key === 'j' && !disabledHotkeys?.includes('journal')) { e.preventDefault(); setNotesTab('journal'); router.push('/notes'); }
+        if (key === 'c' && !disabledHotkeys?.includes('calendar')) { e.preventDefault(); router.push('/calendar'); }
         if (key === 'a' && !disabledHotkeys?.includes('analytics')) { e.preventDefault(); router.push('/analytics'); }
         if (key === 's' && !disabledHotkeys?.includes('settings')) { e.preventDefault(); router.push('/settings'); }
       }

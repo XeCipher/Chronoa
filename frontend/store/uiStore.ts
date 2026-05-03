@@ -5,6 +5,7 @@ import { persist } from 'zustand/middleware';
 type TasksView = 'focus' | 'archive' | 'trash';
 type NotesTab = 'notes' | 'journal' | 'trash';
 type SessionsFilter = 'all' | 'timer' | 'stopwatch';
+type CalendarView = 'month' | 'week' | 'day';
 
 export type ConfirmDialogState = {
   title: string;
@@ -27,6 +28,7 @@ interface UiState {
   tasksView: TasksView;
   notesTab: NotesTab;
   sessionsFilter: SessionsFilter;
+  calendarView: CalendarView;
   hotkeysEnabled: boolean;
   disabledHotkeys: string[];
   moveCompletedToBottom: boolean;
@@ -54,6 +56,7 @@ interface UiState {
   setTasksView: (view: TasksView) => void;
   setNotesTab: (tab: NotesTab) => void;
   setSessionsFilter: (filter: SessionsFilter) => void;
+  setCalendarView: (view: CalendarView) => void;
   setHotkeysEnabled: (enabled: boolean) => void;
   setDisabledHotkeys: (keys: string[]) => void;
   setMoveCompletedToBottom: (val: boolean) => void;
@@ -86,6 +89,7 @@ export const useUiStore = create<UiState>()(
       tasksView: 'focus',
       notesTab: 'notes',
       sessionsFilter: 'all',
+      calendarView: 'month',
       hotkeysEnabled: true,
       disabledHotkeys: [],
       moveCompletedToBottom: true,
@@ -112,6 +116,7 @@ export const useUiStore = create<UiState>()(
       setTasksView: (view) => set({ tasksView: view }),
       setNotesTab: (tab) => set({ notesTab: tab }),
       setSessionsFilter: (filter) => set({ sessionsFilter: filter }),
+      setCalendarView: (view) => set({ calendarView: view }),
       setHotkeysEnabled: (hotkeysEnabled) => set({ hotkeysEnabled }),
       setDisabledHotkeys: (keys) => set({ disabledHotkeys: keys }),
       setMoveCompletedToBottom: (val) => set({ moveCompletedToBottom: val }),

@@ -5,7 +5,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useUiStore } from "@/store/uiStore";
-import { Home, CheckSquare, BarChart2, Settings, PanelLeftClose, Sun, FileText } from "lucide-react";
+import { Home, CheckSquare, BarChart2, Settings, PanelLeftClose, Sun, FileText, CalendarDays } from "lucide-react";
 
 export default function SidebarNav() {
   const pathname = usePathname();
@@ -31,6 +31,7 @@ export default function SidebarNav() {
     { name: "Home", href: "/", icon: Home },
     { name: "Tasks", href: "/tasks", icon: CheckSquare },
     { name: "Notes", href: "/notes", icon: FileText },
+    { name: "Calendar", href: "/calendar", icon: CalendarDays },
     { name: "Analytics", href: "/analytics", icon: BarChart2 },
   ];
 
@@ -74,14 +75,14 @@ export default function SidebarNav() {
             </div>
           </div>
 
-          <nav className="flex-1 space-y-2 pt-4">
+          <nav className="flex-1 space-y-2 pt-4 overflow-y-auto no-scrollbar pb-4">
             {navItems.map((item) => {
               const isActive = pathname === item.href;
               return (
                 <Link
                   key={item.name}
                   href={item.href}
-                  className={`flex items-center h-12 rounded-xl text-sm font-medium transition-all duration-300 overflow-hidden group
+                  className={`flex items-center h-12 rounded-xl text-sm font-medium transition-all duration-300 overflow-hidden group shrink-0
                     ${isExpanded ? "mx-6 px-4 justify-start gap-4" : "mx-4 justify-center"}
                     ${isActive 
                       ? "bg-white dark:bg-[#252525] text-[#c2956e] dark:text-[#d1a784] shadow-sm border border-[#e0ddd5] dark:border-[#333]" 
@@ -101,7 +102,7 @@ export default function SidebarNav() {
           <div className="mt-auto space-y-2 pb-6 pt-4 border-t border-[#e0ddd5]/50 dark:border-[#333]/50 mx-4">
             <Link
               href="/settings"
-              className={`flex items-center h-12 rounded-xl text-sm font-medium transition-all duration-300 overflow-hidden
+              className={`flex items-center h-12 rounded-xl text-sm font-medium transition-all duration-300 overflow-hidden shrink-0
                 ${isExpanded ? "px-4 justify-start gap-4" : "justify-center"}
                 ${pathname === "/settings" ? "bg-white dark:bg-[#252525] text-[#3d3b33] dark:text-[#fff] shadow-sm border border-[#e0ddd5] dark:border-[#333]" : "text-[#888888] dark:text-[#a0a0a0] md:hover:bg-white/50 md:dark:hover:bg-[#2a2a2a] md:hover:text-[#3d3b33] md:dark:hover:text-[#fff]"}
               `}
@@ -126,7 +127,7 @@ export default function SidebarNav() {
       </aside>
 
       {/* Mobile Bottom Nav */}
-      <nav className={`md:hidden fixed bottom-0 left-0 w-full h-[calc(72px+env(safe-area-inset-bottom))] pb-[env(safe-area-inset-bottom)] bg-[#f7f5f0]/90 dark:bg-[#121212]/90 backdrop-blur-xl border-t border-[#e0ddd5] dark:border-[#2a2a2a] flex items-center justify-around z-[100] transition-transform duration-300 ease-in-out ${mobileNoteOpen ? 'translate-y-full' : 'translate-y-0'}`}>
+      <nav className={`md:hidden fixed bottom-0 left-0 w-full h-[calc(72px+env(safe-area-inset-bottom))] pb-[env(safe-area-inset-bottom)] bg-[#f7f5f0]/90 dark:bg-[#121212]/90 backdrop-blur-xl border-t border-[#e0ddd5] dark:border-[#2a2a2a] flex items-center justify-around z-[100] transition-transform duration-300 ease-in-out overflow-x-auto no-scrollbar ${mobileNoteOpen ? 'translate-y-full' : 'translate-y-0'}`}>
         {navItems.map((item) => {
           const isActive = pathname === item.href;
           return (
@@ -136,14 +137,14 @@ export default function SidebarNav() {
               onClick={(e) => {
                 if (isActive) {
                   e.preventDefault();
-                  const containers = ["notes-library-scroll-container", "notes-scroll-container", "main-scroll-container"];
+                  const containers = ["notes-library-scroll-container", "notes-scroll-container", "main-scroll-container", "calendar-scroll-container"];
                   for (const id of containers) {
                     const el = document.getElementById(id);
                     if (el) el.scrollTo({ top: 0, behavior: "smooth" });
                   }
                 }
               }}
-              className={`flex flex-col items-center justify-center w-16 h-full gap-1 transition-all ${
+              className={`flex flex-col items-center justify-center w-16 shrink-0 h-full gap-1 transition-all ${
                 isActive ? "text-[#c2956e] dark:text-[#d1a784]" : "text-[#888888] dark:text-[#a0a0a0] active:text-[#3d3b33] dark:active:text-[#fff]"
               }`}
             >
@@ -163,7 +164,7 @@ export default function SidebarNav() {
               if (el) el.scrollTo({ top: 0, behavior: "smooth" });
             }
           }}
-          className={`flex flex-col items-center justify-center w-16 h-full gap-1 transition-all ${
+          className={`flex flex-col items-center justify-center w-16 shrink-0 h-full gap-1 transition-all ${
             pathname === "/settings" ? "text-[#3d3b33] dark:text-[#fff]" : "text-[#888888] dark:text-[#a0a0a0] active:text-[#3d3b33] dark:active:text-[#fff]"
           }`}
         >
