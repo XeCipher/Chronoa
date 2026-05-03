@@ -282,11 +282,12 @@ export default function WeekView({ currentDate, events, onEventClick, onTimeRang
                 onDrop={(e) => {
                   e.preventDefault();
                   const eventId = e.dataTransfer.getData('text/plain');
+                  const grabY = parseInt(e.dataTransfer.getData('grabY') || '0', 10);
                   const ev = events.find(x => x.id === eventId);
                   if (!ev) return;
                   
                   const rect = e.currentTarget.getBoundingClientRect();
-                  const y = e.clientY - rect.top;
+                  const y = Math.max(0, e.clientY - rect.top - grabY);
                   const hour = Math.floor(y / 60);
                   const min = Math.floor((y % 60) / 15) * 15;
                   
@@ -297,8 +298,9 @@ export default function WeekView({ currentDate, events, onEventClick, onTimeRang
                   onEventMove(ev, newStart, newEnd);
                 }}
               >
+                {/* Fixed line 8: Dimming of red-line on non-today days */}
                 <div 
-                   className={`absolute left-0 right-0 z-30 pointer-events-none border-t-[2px] ${isTodayDate ? 'border-red-500 opacity-90' : 'border-red-500/40 opacity-50'}`} 
+                   className={`absolute left-0 right-0 z-30 pointer-events-none border-t-[2px] ${isTodayDate ? 'border-red-500 opacity-90' : 'border-red-500/60 opacity-60 dark:border-red-500/70 dark:opacity-40'}`} 
                    style={{ top: `${currentMins}px` }}
                 >
                    {isTodayDate && <div className="absolute -left-1.5 -top-[5px] w-3 h-3 bg-red-500 rounded-full shadow-[0_0_8px_rgba(239,68,68,0.8)]" />}
@@ -324,7 +326,7 @@ export default function WeekView({ currentDate, events, onEventClick, onTimeRang
                       key={event.id}
                       onMouseDown={(e) => e.stopPropagation()}
                       onClick={(e) => { e.stopPropagation(); onEventClick(event); }}
-                      className={`absolute rounded-lg border cursor-pointer shadow-sm overflow-hidden hover:z-30 transition-transform flex flex-col ${colorClasses} z-20`}
+                      className={`absolute rounded-md md:rounded-md border cursor-pointer shadow-sm overflow-hidden hover:z-30 transition-transform flex flex-col ${colorClasses} z-20`}
                       style={{ top: pos.top, height: pos.height, left: pos.left, width: pos.width }}
                     >
                       <div 
@@ -332,6 +334,9 @@ export default function WeekView({ currentDate, events, onEventClick, onTimeRang
                         onDragStart={(e) => {
                           e.stopPropagation();
                           e.dataTransfer.setData('text/plain', event.id);
+                          const rect = e.currentTarget.parentElement!.getBoundingClientRect();
+                          const offsetY = e.clientY - rect.top;
+                          e.dataTransfer.setData('grabY', offsetY.toString());
                         }}
                         className="w-full h-3 flex items-center justify-center cursor-grab active:cursor-grabbing opacity-30 hover:opacity-100 transition-opacity bg-black/10 dark:bg-white/10 shrink-0"
                       >

@@ -61,7 +61,7 @@ export default function MonthView({ currentDate, events, onEventClick, onDayClic
               const isTodayDate = isToday(day);
               const isSelected = isSameDay(day, selectedDate);
 
-              const maxVisible = isMobile ? 2 : 3;
+              const maxVisible = isMobile ? 1 : 2;
               const visibleEvents = dayEvents.slice(0, maxVisible);
               const extraCount = dayEvents.length - maxVisible;
 
@@ -94,35 +94,37 @@ export default function MonthView({ currentDate, events, onEventClick, onDayClic
                   </div>
 
                   <div className="hidden lg:flex flex-col gap-1 overflow-hidden flex-1 relative z-10">
-                    {visibleEvents.map(event => {
-                      const isStart = format(new Date(event.start_time), 'yyyy-MM-dd') === format(day, 'yyyy-MM-dd');
-                      const isEnd = format(new Date(event.end_time), 'yyyy-MM-dd') === format(day, 'yyyy-MM-dd');
-                      const colorClasses = eventColors[event.color] || eventColors['amber'];
-                      return (
-                        <div 
-                          key={event.id}
-                          onClick={(e) => { e.stopPropagation(); onEventClick(event); }}
-                          className={`px-1.5 py-0.5 text-[10px] font-semibold flex justify-between items-center transition-transform hover:scale-[1.02] border border-transparent shadow-sm shrink-0 ${colorClasses} ${isStart ? 'rounded-l-md' : 'rounded-l-none border-l-0'} ${isEnd ? 'rounded-r-md' : 'rounded-r-none border-r-0'}`}
-                        >
-                          <div className="truncate flex items-center min-w-0 pr-1">
-                            <span className="truncate">{event.title}</span>
+                    <div className="flex flex-col gap-1 flex-1 min-h-0 overflow-y-auto no-scrollbar">
+                      {visibleEvents.map(event => {
+                        const isStart = format(new Date(event.start_time), 'yyyy-MM-dd') === format(day, 'yyyy-MM-dd');
+                        const isEnd = format(new Date(event.end_time), 'yyyy-MM-dd') === format(day, 'yyyy-MM-dd');
+                        const colorClasses = eventColors[event.color] || eventColors['amber'];
+                        return (
+                          <div 
+                            key={event.id}
+                            onClick={(e) => { e.stopPropagation(); onEventClick(event); }}
+                            className={`px-1.5 py-0.5 text-[10px] font-semibold flex justify-between items-center transition-transform hover:scale-[1.02] border border-transparent shadow-sm shrink-0 ${colorClasses} ${isStart ? 'rounded-md md:rounded-md' : 'rounded-none border-l-0'} ${isEnd ? 'rounded-md md:rounded-md' : 'rounded-none border-r-0'}`}
+                          >
+                            <div className="truncate flex items-center min-w-0 pr-1">
+                              <span className="truncate">{event.title}</span>
+                            </div>
+                            <div className="flex items-center gap-1 shrink-0">
+                              {!event.is_all_day && (
+                                 <span className="opacity-70 text-[8px] font-bold tracking-wider">{format(new Date(event.start_time), 'h:mm a')}</span>
+                              )}
+                              {event.meeting_url && (
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); if (event.meeting_url) window.open(event.meeting_url, '_blank'); }}
+                                  className="bg-[#c2956e] text-white px-1.5 py-0.5 rounded text-[8px] uppercase tracking-wider flex items-center gap-1 hover:bg-[#b0855f] transition-colors shadow-sm ml-1"
+                                >
+                                  <Video size={8} /> Join
+                                </button>
+                              )}
+                            </div>
                           </div>
-                          <div className="flex items-center gap-1 shrink-0">
-                            {!event.is_all_day && (
-                               <span className="opacity-70 text-[8px] font-bold tracking-wider">{format(new Date(event.start_time), 'h:mm a')}</span>
-                            )}
-                            {event.meeting_url && (
-                              <button
-                                onClick={(e) => { e.stopPropagation(); if (event.meeting_url) window.open(event.meeting_url, '_blank'); }}
-                                className="bg-[#c2956e] text-white px-1.5 py-0.5 rounded text-[8px] uppercase tracking-wider flex items-center gap-1 hover:bg-[#b0855f] transition-colors shadow-sm ml-1"
-                              >
-                                <Video size={8} /> Join
-                              </button>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })}
+                        );
+                      })}
+                    </div>
                     {extraCount > 0 && (
                       <div className="px-1.5 py-0.5 text-[9px] font-bold text-[#b0ad9a] dark:text-[#7a7a7a] bg-[#f0ede8] dark:bg-[#252525] border border-[#e0ddd5] dark:border-[#333] rounded-md mt-auto text-center transition-colors shadow-sm shrink-0">
                         + {extraCount} others

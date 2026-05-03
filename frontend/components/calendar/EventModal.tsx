@@ -10,7 +10,7 @@ import CustomDateTimePicker from "./CustomDateTimePicker";
 interface Props {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (event: Partial<CalendarEvent>, updateMode: 'this' | 'future') => void;
+  onSave: (event: Partial<CalendarEvent>, updateMode: 'this' | 'future', originalEventObj?: CalendarEvent | null) => void;
   onDelete?: (event: CalendarEvent, deleteMode: 'this' | 'future') => void;
   initialEvent?: CalendarEvent | null;
   dragTimeRange?: { start: Date, end: Date } | null;
@@ -185,7 +185,7 @@ export default function EventModal({ isOpen, onClose, onSave, onDelete, initialE
       end_time: finalEnd.toISOString(),
       color,
       repeat_pattern: getFinalRepeatPattern()
-    }, updateMode);
+    }, updateMode, initialEvent);
     
     onClose();
   };

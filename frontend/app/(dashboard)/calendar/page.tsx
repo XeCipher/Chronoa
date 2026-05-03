@@ -6,7 +6,7 @@ import { supabase } from "@/lib/supabase";
 import { CalendarEvent } from "@/types/app.types";
 import { useUiStore } from "@/store/uiStore";
 import { CalendarDays, ChevronLeft, ChevronRight, Plus, Search } from "lucide-react";
-import { format, addMonths, subMonths, addDays, startOfDay, endOfDay, startOfWeek, addWeeks, addYears, isSameDay } from "date-fns";
+import { format, addMonths, subMonths, addDays, startOfDay, endOfDay, startOfWeek, addWeeks, addYears, isSameDay, startOfMonth, isToday } from "date-fns";
 
 import MonthView from "@/components/calendar/MonthView";
 import WeekView from "@/components/calendar/WeekView";
@@ -29,12 +29,19 @@ export default function CalendarPage() {
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Search States
+  // Search States (Debounced to fix lag)
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [searchInput, setSearchInput] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const mobileSearchRef = useRef<HTMLDivElement>(null);
   const desktopSearchRef = useRef<HTMLDivElement>(null);
   const [targetScrollTime, setTargetScrollTime] = useState<string | null>(null);
+
+  // Date Picker States
+  const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
+  const [pickerMonth, setPickerMonth] = useState(startOfMonth(referenceDate));
+  const datePickerRef = useRef<HTMLDivElement>(null);
+  const titleRef = useRef<HTMLDivElement>(null);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
@@ -48,6 +55,16 @@ export default function CalendarPage() {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  // Debounce search input
+  useEffect(() => {
+    const timeout = setTimeout(() => setSearchQuery(searchInput), 300);
+    return () => clearTimeout(timeout);
+  }, [searchInput]);
+
+  useEffect(() => {
+    setPickerMonth(startOfMonth(referenceDate));
+  }, [referenceDate]);
+
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       const target = e.target as Node;
@@ -58,20 +75,28 @@ export default function CalendarPage() {
       ) {
         setIsSearchOpen(false);
       }
+      if (
+        isDatePickerOpen &&
+        datePickerRef.current && !datePickerRef.current.contains(target) &&
+        titleRef.current && !titleRef.current.contains(target)
+      ) {
+        setIsDatePickerOpen(false);
+      }
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [isSearchOpen]);
+  }, [isSearchOpen, isDatePickerOpen]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isSearchOpen) {
-        setIsSearchOpen(false);
+      if (e.key === 'Escape') {
+        if (isSearchOpen) setIsSearchOpen(false);
+        if (isDatePickerOpen) setIsDatePickerOpen(false);
       }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isSearchOpen]);
+  }, [isSearchOpen, isDatePickerOpen]);
 
   const fetchEvents = async () => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -170,18 +195,29 @@ export default function CalendarPage() {
     await supabase.from('calendar_events').insert(instances);
   };
 
-  const handleSaveEvent = async (updates: Partial<CalendarEvent>, updateMode: 'this' | 'future') => {
+  const handleSaveEvent = async (updates: Partial<CalendarEvent>, updateMode: 'this' | 'future', originalEventObj?: CalendarEvent | null) => {
+    const referenceEvent = originalEventObj || selectedEvent;
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
     const baseEvent = { ...updates, user_id: user.id };
 
     if (updates.id) {
-      if (updateMode === 'this' || !updates.series_id) {
+      const isUpgradingToSeries = !referenceEvent?.series_id && updates.repeat_pattern && updates.repeat_pattern !== 'none';
+
+      if (isUpgradingToSeries) {
+        const newSeriesId = crypto.randomUUID();
+        const upgradedEvent = { ...baseEvent, series_id: newSeriesId } as CalendarEvent;
+        
+        setEvents(prev => prev.map(e => e.id === updates.id ? { ...upgradedEvent } : e));
+        await supabase.from('calendar_events').update({ ...upgradedEvent }).eq('id', updates.id);
+        
+        await generateRecurringEvents(upgradedEvent, newSeriesId);
+      } else if (updateMode === 'this' || !updates.series_id) {
         setEvents(prev => prev.map(e => e.id === updates.id ? { ...e, ...updates, series_id: null } as CalendarEvent : e));
         await supabase.from('calendar_events').update({ ...updates, series_id: null }).eq('id', updates.id);
       } else {
-        const currentStartTime = new Date(selectedEvent?.start_time || updates.start_time!);
+        const currentStartTime = new Date(referenceEvent?.start_time || updates.start_time!);
         setEvents(prev => prev.filter(e => !(e.series_id === updates.series_id && new Date(e.start_time) >= currentStartTime)));
         await supabase.from('calendar_events').delete().eq('series_id', updates.series_id).gte('start_time', currentStartTime.toISOString());
         
@@ -236,12 +272,12 @@ export default function CalendarPage() {
         cancelText: "Cancel",
         secondaryAction: {
           text: "Only This Event",
-          onClick: () => handleSaveEvent(updates, 'this')
+          onClick: () => handleSaveEvent(updates, 'this', event)
         },
-        onConfirm: () => handleSaveEvent(updates, 'future')
+        onConfirm: () => handleSaveEvent(updates, 'future', event)
       });
     } else {
-      handleSaveEvent(updates, 'this');
+      handleSaveEvent(updates, 'this', event);
     }
   };
 
@@ -273,10 +309,51 @@ export default function CalendarPage() {
     );
   };
 
+  const renderDatePicker = () => {
+    const year = pickerMonth.getFullYear();
+    const month = pickerMonth.getMonth();
+    const firstDay = new Date(year, month, 1).getDay();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    
+    // Correctly typing the empty padding array to avoid ConcatArray<null> TS error
+    const gridDays = (Array.from({ length: firstDay }, () => null) as (Date | null)[]).concat(
+        Array.from({ length: daysInMonth }, (_, i) => new Date(year, month, i + 1))
+    );
+
+    return (
+        <div ref={datePickerRef} className="absolute top-[calc(100%+8px)] left-0 w-[280px] bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] rounded-[1.5rem] shadow-xl z-[200] p-4 animate-fade-up cursor-default" onClick={e => e.stopPropagation()}>
+           <div className="flex justify-between items-center mb-4">
+              <button onClick={(e) => { e.stopPropagation(); setPickerMonth(subMonths(pickerMonth, 1)); }} className="p-1.5 text-[#888] bg-[#f7f5f0] dark:bg-[#252525] rounded-lg hover:text-[#c2956e] transition-colors"><ChevronLeft size={16}/></button>
+              <span className="text-sm font-bold text-[#3d3b33] dark:text-[#f0f0f0] uppercase tracking-widest">{format(pickerMonth, 'MMM yyyy')}</span>
+              <button onClick={(e) => { e.stopPropagation(); setPickerMonth(addMonths(pickerMonth, 1)); }} className="p-1.5 text-[#888] bg-[#f7f5f0] dark:bg-[#252525] rounded-lg hover:text-[#c2956e] transition-colors"><ChevronRight size={16}/></button>
+           </div>
+           <div className="grid grid-cols-7 gap-1 text-center mb-2">
+              {['S','M','T','W','T','F','S'].map((d, i) => <span key={i} className="text-[9px] font-bold text-[#b0ad9a]">{d}</span>)}
+           </div>
+           <div className="grid grid-cols-7 gap-1">
+              {gridDays.map((d, i) => {
+                 if (!d) return <div key={i} />;
+                 const isSelected = isSameDay(d, referenceDate);
+                 const isTodayDate = isToday(d);
+                 return (
+                    <button 
+                       key={i} 
+                       onClick={(e) => { e.stopPropagation(); setReferenceDate(d); setIsDatePickerOpen(false); }}
+                       className={`h-8 rounded-lg text-xs font-medium transition-colors ${isSelected ? 'bg-[#c2956e] text-white shadow-md' : isTodayDate ? 'text-[#c2956e] font-bold bg-[#c2956e]/10' : 'hover:bg-[#f0ede8] dark:hover:bg-[#333] text-[#3d3b33] dark:text-white'}`}
+                    >
+                       {format(d, 'd')}
+                    </button>
+                 );
+              })}
+           </div>
+        </div>
+    );
+  };
+
   const isCurrentDateToday = isSameDay(referenceDate, new Date());
 
   return (
-    <div className="w-full h-full pt-[max(1.5rem,env(safe-area-inset-top))] px-4 md:p-8 lg:p-10 lg:pl-16 xl:pl-28 relative flex min-w-0 bg-[#f7f5f0] dark:bg-[#121212]">
+    <div className="w-full h-full pt-[max(3.5rem,calc(2.5rem+env(safe-area-inset-top)))] px-4 md:p-8 lg:p-10 lg:pl-16 xl:pl-28 relative flex min-w-0 bg-[#f7f5f0] dark:bg-[#121212]">
       
       <div className="hidden lg:flex absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none items-center justify-center opacity-30 dark:opacity-20 z-0">
         <span className="-rotate-90 whitespace-nowrap text-[120px] font-bold text-[#e0ddd5] dark:text-[#222] tracking-widest pointer-events-none select-none">
@@ -287,14 +364,20 @@ export default function CalendarPage() {
       <div className="flex-1 flex flex-col relative z-10 min-w-0 max-w-full h-full">
         <header className="mb-4 md:mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4 shrink-0 relative z-50">
           
-          <div className="flex items-center justify-between w-full md:w-auto">
-            <div className="flex items-center gap-2.5 text-[#3d3b33] dark:text-[#f0f0f0] min-w-0 pr-2">
+          <div className="flex items-center justify-between w-full md:w-auto relative">
+            <div 
+              ref={titleRef}
+              onClick={() => setIsDatePickerOpen(!isDatePickerOpen)}
+              className="flex items-center gap-2.5 text-[#3d3b33] dark:text-[#f0f0f0] min-w-0 pr-2 cursor-pointer hover:opacity-80 transition-opacity"
+            >
               <CalendarDays size={24} className="text-[#c2956e] shrink-0" />
               <div className="flex flex-col min-w-0">
-                <h1 className="text-2xl md:text-3xl font-serif font-medium tracking-tight leading-normal truncate pb-0.5">{displayTitle()}</h1>
+                <h1 className="text-2xl md:text-3xl font-serif font-medium tracking-tight leading-normal truncate pb-0.5 select-none">{displayTitle()}</h1>
               </div>
             </div>
             
+            {isDatePickerOpen && renderDatePicker()}
+
             <div className="md:hidden relative shrink-0" ref={mobileSearchRef}>
               <button 
                   onClick={() => setIsSearchOpen(!isSearchOpen)}
@@ -307,8 +390,8 @@ export default function CalendarPage() {
                 <div className="absolute top-[calc(100%+8px)] right-0 w-[280px] bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] rounded-[1.5rem] shadow-xl z-[100] p-4 animate-fade-up">
                   <input 
                     autoFocus
-                    value={searchQuery} 
-                    onChange={e => setSearchQuery(e.target.value)} 
+                    value={searchInput} 
+                    onChange={e => setSearchInput(e.target.value)} 
                     placeholder="Search events..." spellCheck={false}
                     className="w-full bg-[#f7f5f0] dark:bg-[#252525] border border-[#e0ddd5] dark:border-[#444] rounded-xl px-4 py-2.5 outline-none focus:border-[#c2956e] text-sm text-[#3d3b33] dark:text-[#f0f0f0] transition-all mb-3" 
                   />
@@ -334,7 +417,7 @@ export default function CalendarPage() {
             </div>
           </div>
 
-          <div className="flex items-center gap-2 md:gap-3 w-full md:w-auto overflow-x-auto no-scrollbar pb-1 md:pb-0 shrink-0">
+          <div className="flex items-center gap-2 md:gap-3 w-full md:w-auto max-md:overflow-x-auto md:overflow-visible no-scrollbar pb-1 md:pb-0 shrink-0">
             <div className="hidden md:block relative shrink-0 h-10" ref={desktopSearchRef}>
               <button 
                 onClick={() => setIsSearchOpen(!isSearchOpen)}
@@ -346,8 +429,8 @@ export default function CalendarPage() {
                 <div className="absolute top-[calc(100%+8px)] right-0 w-[300px] bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] rounded-[1.5rem] shadow-xl z-[100] p-4 animate-fade-up">
                   <input 
                     autoFocus
-                    value={searchQuery} 
-                    onChange={e => setSearchQuery(e.target.value)} 
+                    value={searchInput} 
+                    onChange={e => setSearchInput(e.target.value)} 
                     placeholder="Search events..." spellCheck={false}
                     className="w-full bg-[#f7f5f0] dark:bg-[#252525] border border-[#e0ddd5] dark:border-[#444] rounded-xl px-4 py-2.5 outline-none focus:border-[#c2956e] text-sm text-[#3d3b33] dark:text-[#f0f0f0] transition-all mb-3" 
                   />
@@ -372,17 +455,17 @@ export default function CalendarPage() {
               )}
             </div>
 
-            <div className="flex items-center bg-white dark:bg-[#1a1a1a] rounded-xl md:rounded-2xl p-0.5 border border-[#e0ddd5] dark:border-[#333] shadow-sm shrink-0 h-9 md:h-10">
-              <button onClick={handlePrev} className="px-2 md:px-3 text-[#888] hover:text-[#3d3b33] dark:hover:text-white transition-colors h-full flex items-center justify-center"><ChevronLeft size={16} className="md:w-[18px] md:h-[18px]" /></button>
-              <button onClick={handleToday} className={`px-3 md:px-4 text-[10px] md:text-[11px] font-bold uppercase tracking-widest transition-colors h-full flex items-center justify-center ${isCurrentDateToday ? 'text-[#c2956e] dark:text-[#b0855f]' : 'text-[#3d3b33] dark:text-[#f0f0f0] hover:text-[#c2956e]'}`}>Today</button>
-              <button onClick={handleNext} className="px-2 md:px-3 text-[#888] hover:text-[#3d3b33] dark:hover:text-white transition-colors h-full flex items-center justify-center"><ChevronRight size={16} className="md:w-[18px] md:h-[18px]" /></button>
+            <div className="flex items-center bg-white dark:bg-[#1a1a1a] rounded-full p-0.5 border border-[#e0ddd5] dark:border-[#333] shadow-sm shrink-0 h-9 md:h-10">
+              <button onClick={handlePrev} className="px-3 text-[#888] hover:text-[#3d3b33] dark:hover:text-white transition-colors h-full flex items-center justify-center rounded-l-full"><ChevronLeft size={16} className="md:w-[18px] md:h-[18px]" /></button>
+              <button onClick={handleToday} className={`px-4 text-[10px] md:text-[11px] font-bold uppercase tracking-widest transition-colors h-full flex items-center justify-center ${isCurrentDateToday ? 'text-[#c2956e] dark:text-[#b0855f]' : 'text-[#3d3b33] dark:text-[#f0f0f0] hover:text-[#c2956e]'}`}>Today</button>
+              <button onClick={handleNext} className="px-3 text-[#888] hover:text-[#3d3b33] dark:hover:text-white transition-colors h-full flex items-center justify-center rounded-r-full"><ChevronRight size={16} className="md:w-[18px] md:h-[18px]" /></button>
             </div>
 
-            <div className="flex bg-white/50 dark:bg-[#1e1e1e]/50 border border-[#e0ddd5] dark:border-[#333] p-0.5 md:p-1 rounded-xl md:rounded-2xl shadow-sm overflow-x-auto no-scrollbar h-9 md:h-10 w-full justify-between">
+            <div className="flex bg-white/50 dark:bg-[#1e1e1e]/50 border border-[#e0ddd5] dark:border-[#333] p-1 rounded-full shadow-sm overflow-x-auto no-scrollbar h-9 md:h-10 w-full justify-between">
               {(['day', '2-day', 'week', 'month'] as const).map(v => (
                 <button 
                   key={v} onClick={() => setCalendarView(v)}
-                  className={`flex-1 md:flex-none px-3 sm:px-4 rounded-lg md:rounded-xl text-[9px] sm:text-[10px] font-bold uppercase tracking-widest transition-all h-full flex items-center justify-center ${v === 'week' ? 'hidden md:flex' : 'flex'} ${calendarView === v ? 'bg-[#c2956e] dark:bg-[#b0855f] text-white shadow-md' : 'text-[#b0ad9a] dark:text-[#7a7a7a] md:hover:text-[#3d3b33] md:dark:hover:text-white'}`}
+                  className={`flex-1 md:flex-none px-3 sm:px-4 rounded-full text-[9px] sm:text-[10px] font-bold uppercase tracking-widest transition-all h-full flex items-center justify-center ${v === 'week' ? 'hidden md:flex' : 'flex'} ${calendarView === v ? 'bg-[#c2956e] dark:bg-[#b0855f] text-white shadow-md' : 'text-[#b0ad9a] dark:text-[#7a7a7a] md:hover:text-[#3d3b33] md:dark:hover:text-white'}`}
                 >
                   {v === '2-day' ? '2D' : v}
                 </button>
