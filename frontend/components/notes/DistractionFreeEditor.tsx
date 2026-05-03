@@ -153,16 +153,21 @@ export default function DistractionFreeEditor({
   }) => (
     <button
       onMouseDown={(e) => {
-        // Prevent the editor from losing focus when tapping toolbar buttons
+        // Prevent the editor from losing focus when tapping toolbar buttons on desktop
+        e.preventDefault();
+        onClick();
+      }}
+      onTouchStart={(e) => {
+        // Crucial for iOS: prevents the virtual keyboard from snapping down when tapping format tools
         e.preventDefault();
         onClick();
       }}
       data-tooltip-id="global-tooltip"
       data-tooltip-content={title}
-      className={`flex items-center justify-center w-8 h-8 rounded-xl transition-all duration-150 shrink-0 ${
+      className={`flex items-center justify-center w-9 h-9 md:w-8 md:h-8 rounded-xl transition-all duration-150 shrink-0 ${
         isActive
           ? "bg-[#c2956e] dark:bg-[#b0855f] text-white shadow-sm"
-          : "text-[#888] dark:text-[#999] hover:text-[#3d3b33] dark:hover:text-[#f0f0f0] hover:bg-[#f0ede8] dark:hover:bg-[#2a2a2a]"
+          : "text-[#888] dark:text-[#999] hover:text-[#3d3b33] dark:hover:text-[#f0f0f0] md:hover:bg-[#f0ede8] md:dark:hover:bg-[#2a2a2a] active:bg-[#e0ddd5] dark:active:bg-[#333]"
       }`}
     >
       {children}
@@ -170,7 +175,7 @@ export default function DistractionFreeEditor({
   );
 
   const Divider = () => (
-    <div className="w-px h-4 bg-[#e0ddd5] dark:bg-[#333] mx-0.5 shrink-0 self-center" />
+    <div className="w-px h-4 bg-[#e0ddd5] dark:bg-[#333] mx-1 md:mx-0.5 shrink-0 self-center" />
   );
 
   const ZoomControl = ({ preventFocus = false }: { preventFocus?: boolean }) => {
@@ -181,23 +186,27 @@ export default function DistractionFreeEditor({
               e.preventDefault();
               fn();
             },
+            onTouchStart: (e: React.TouchEvent) => {
+              e.preventDefault();
+              fn();
+            }
           }
         : { onClick: fn };
 
     return (
-      <div className="flex items-center gap-1 bg-[#f7f5f0] dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#2a2a2a] px-2 py-1 rounded-xl shrink-0">
+      <div className="flex items-center gap-1 bg-[#f7f5f0] dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#2a2a2a] px-2 py-1.5 md:py-1 rounded-xl shrink-0">
         <button
           {...bind(() => setJournalZoom(Math.max(50, journalZoom - 10)))}
-          className="text-[#888] hover:text-[#c2956e] dark:hover:text-[#d1a784] text-sm font-bold leading-none transition-colors w-4 text-center select-none"
+          className="text-[#888] hover:text-[#c2956e] dark:hover:text-[#d1a784] text-base md:text-sm font-bold leading-none transition-colors w-5 md:w-4 text-center select-none"
         >
           −
         </button>
-        <span className="text-[9px] font-bold text-[#3d3b33] dark:text-[#f0f0f0] w-7 text-center tabular-nums">
+        <span className="text-[10px] md:text-[9px] font-bold text-[#3d3b33] dark:text-[#f0f0f0] w-8 md:w-7 text-center tabular-nums">
           {journalZoom}%
         </span>
         <button
           {...bind(() => setJournalZoom(Math.min(200, journalZoom + 10)))}
-          className="text-[#888] hover:text-[#c2956e] dark:hover:text-[#d1a784] text-sm font-bold leading-none transition-colors w-4 text-center select-none"
+          className="text-[#888] hover:text-[#c2956e] dark:hover:text-[#d1a784] text-base md:text-sm font-bold leading-none transition-colors w-5 md:w-4 text-center select-none"
         >
           +
         </button>
@@ -206,74 +215,64 @@ export default function DistractionFreeEditor({
   };
 
   return (
-    // No bottom padding here — let the parent layout own page-level spacing.
-    <div className="relative w-full flex flex-col gap-4">
+    // Added bottom padding to ensure the mobile fixed toolbar doesn't overlap the last line of text
+    <div className="relative w-full flex flex-col gap-4 pb-16 md:pb-0">
 
       {isEditable && (
         /*
-         * TOOLBAR — always `sticky top-0`, never `fixed`.
+         * RESPONSIVE TOOLBAR ARCHITECTURE:
          *
-         * Why not fixed?
-         *   `position: fixed` is supposed to be relative to the viewport, but
-         *   it silently breaks when ANY ancestor has transform / will-change /
-         *   filter / overflow-scroll set — which Next.js layout wrappers
-         *   commonly do. The result: the toolbar disappears or mispositions
-         *   when the keyboard opens, because the browser scrolls the page and
-         *   the "fixed" element is actually fixed to the wrong container.
+         * Mobile (< md):
+         *   - Fixed to the bottom of the screen (`fixed bottom-0`).
+         *   - iOS Safari naturally pins this directly on top of the virtual keyboard.
+         *   - The layout is completely decoupled from the scrollable container's constraints.
          *
-         * Why sticky is correct here:
-         *   • It stays in document flow — parent overflow/transform don't
-         *     affect it at all.
-         *   • It scrolls with the page until it would leave the top of its
-         *     scroll container, then locks in place.
-         *   • When the keyboard opens and the browser scrolls to the cursor,
-         *     the toolbar simply stays locked at the top — always visible,
-         *     always reachable with a single scroll-up gesture.
-         *   • Zero iOS Safari quirks. Rock solid.
-         *
-         * Mobile visual polish:
-         *   • mx-3 insets it from both edges → floating panel, not a glued strip.
-         *   • mt-1 adds a tiny breathing gap from the very top of the page.
-         *   • Rounded corners + soft shadow reinforce the elevated feel.
+         * Desktop (md+):
+         *   - Reverts to `sticky top-0` inside the scroll container.
+         *   - Floats beautifully over the document as you scroll down.
          */
         <div
           className={[
-            "sticky top-0 z-50",
-            // Inset from screen edges on mobile; full-width on desktop
-            "mx-3 md:mx-0",
-            // Tiny gap from the page top on mobile
-            "mt-1 md:mt-0",
-            "px-3 py-2",
+            // --- MOBILE: Fixed bottom floating toolbar ---
+            "fixed bottom-0 left-0 w-full z-[200]",
+            "border-t border-[#e0ddd5] dark:border-[#2a2a2a]",
+            "bg-white/95 dark:bg-[#121212]/95 backdrop-blur-xl",
+            "px-2 py-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]",
             "flex items-center gap-2",
-            "bg-white/95 dark:bg-[#121212]/95 backdrop-blur-md",
-            "border border-[#e0ddd5] dark:border-[#2a2a2a]",
-            "rounded-2xl",
-            // Soft downward shadow so the toolbar reads as floating
-            "shadow-[0_2px_16px_0_rgba(0,0,0,0.07)] dark:shadow-[0_2px_16px_0_rgba(0,0,0,0.4)]",
+            "shadow-[0_-4px_20px_rgba(0,0,0,0.05)] dark:shadow-[0_-4px_20px_rgba(0,0,0,0.4)]",
+            
+            // --- DESKTOP: Sticky top header ---
+            "md:sticky md:top-0 md:bottom-auto md:left-auto md:w-full",
+            "md:border md:border-[#e0ddd5] md:dark:border-[#2a2a2a]",
+            "md:bg-white/95 md:dark:bg-[#121212]/95",
+            "md:rounded-2xl",
+            "md:px-3 md:py-2 md:pb-2", // reset padding bottom for desktop
+            "md:shadow-[0_2px_16px_0_rgba(0,0,0,0.07)] md:dark:shadow-[0_2px_16px_0_rgba(0,0,0,0.4)]",
+            "md:mt-0 md:mx-0"
           ].join(" ")}
         >
           {/* Formatting buttons — scrollable so narrow phones never clip */}
-          <div className="flex items-center gap-0.5 overflow-x-auto no-scrollbar flex-1 min-w-0">
+          <div className="flex items-center gap-1 md:gap-0.5 overflow-x-auto no-scrollbar flex-1 min-w-0">
             <ToolbarButton
               title="Bold"
               onClick={() => editor.chain().focus().toggleBold().run()}
               isActive={activeStates.bold}
             >
-              <Bold size={15} />
+              <Bold size={16} className="md:w-[15px] md:h-[15px]" />
             </ToolbarButton>
             <ToolbarButton
               title="Italic"
               onClick={() => editor.chain().focus().toggleItalic().run()}
               isActive={activeStates.italic}
             >
-              <Italic size={15} />
+              <Italic size={16} className="md:w-[15px] md:h-[15px]" />
             </ToolbarButton>
             <ToolbarButton
               title="Underline"
               onClick={() => editor.chain().focus().toggleUnderline().run()}
               isActive={activeStates.underline}
             >
-              <UnderlineIcon size={15} />
+              <UnderlineIcon size={16} className="md:w-[15px] md:h-[15px]" />
             </ToolbarButton>
             <Divider />
             <ToolbarButton
@@ -283,7 +282,7 @@ export default function DistractionFreeEditor({
               }
               isActive={activeStates.heading1}
             >
-              <Heading1 size={15} />
+              <Heading1 size={16} className="md:w-[15px] md:h-[15px]" />
             </ToolbarButton>
             <ToolbarButton
               title="Heading 2"
@@ -292,7 +291,7 @@ export default function DistractionFreeEditor({
               }
               isActive={activeStates.heading2}
             >
-              <Heading2 size={15} />
+              <Heading2 size={16} className="md:w-[15px] md:h-[15px]" />
             </ToolbarButton>
             <Divider />
             <ToolbarButton
@@ -300,7 +299,7 @@ export default function DistractionFreeEditor({
               onClick={() => editor.chain().focus().toggleBulletList().run()}
               isActive={activeStates.bulletList}
             >
-              <List size={15} />
+              <List size={16} className="md:w-[15px] md:h-[15px]" />
             </ToolbarButton>
             <ToolbarButton
               title="Ordered list"
@@ -309,11 +308,11 @@ export default function DistractionFreeEditor({
               }
               isActive={activeStates.orderedList}
             >
-              <ListOrdered size={15} />
+              <ListOrdered size={16} className="md:w-[15px] md:h-[15px]" />
             </ToolbarButton>
             <Divider />
             <ToolbarButton title="Insert timestamp" onClick={insertTimestamp}>
-              <Clock size={15} />
+              <Clock size={16} className="md:w-[15px] md:h-[15px]" />
             </ToolbarButton>
           </div>
 
