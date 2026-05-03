@@ -3,7 +3,7 @@
 
 import { useEffect, useState, useMemo } from "react";
 import { supabase } from "@/lib/supabase";
-import { Sparkles, CheckCircle2, Timer, Flame, PenTool, Info, X, BarChart2 } from "lucide-react";
+import { Sparkles, CheckCircle2, Timer, Flame, PenTool, Info, X, BarChart2, Target, Search, ChevronDown, ChevronRight, Check } from "lucide-react";
 import StatCard from "@/components/analytics/StatCard";
 import ProductivityChart from "@/components/analytics/ProductivityChart";
 import FocusDistribution from "@/components/analytics/FocusDistribution";
@@ -42,6 +42,58 @@ export const RANKS = [
   { name: "Chronoa Ascendant", minLevel: 50, minXp: 125000 }
 ];
 
+// Recursive Component for Task Selection
+const TaskTreeNode = ({ node, selectedIds, onToggle, searchQuery, parentSelected = false }: any) => {
+  const [isExpanded, setIsExpanded] = useState(true);
+  const isSelected = selectedIds.has(node.id) || parentSelected;
+  
+  const hasMatchingDescendant = (n: any): boolean => {
+    if (n.title.toLowerCase().includes(searchQuery.toLowerCase())) return true;
+    return n.children.some((c: any) => hasMatchingDescendant(c));
+  };
+  const isVisible = !searchQuery || hasMatchingDescendant(node);
+
+  if (!isVisible) return null;
+
+  return (
+    <div className="flex flex-col">
+      <div className="flex items-center gap-2 py-2.5 px-3 hover:bg-[#f7f5f0] dark:hover:bg-[#222] rounded-[1rem] transition-colors group cursor-pointer" onClick={() => { if(!parentSelected) onToggle(node.id); }}>
+        <button 
+          disabled={parentSelected}
+          className={`w-[18px] h-[18px] rounded-[5px] border flex items-center justify-center transition-all shrink-0 ${parentSelected ? 'opacity-50 cursor-not-allowed bg-[#7ca982] border-[#7ca982]' : isSelected ? 'bg-[#7ca982] border-[#7ca982]' : 'bg-white dark:bg-[#1a1a1a] border-[#d4d0c8] dark:border-[#555] group-hover:border-[#7ca982]'}`}
+        >
+          {isSelected && <Check size={12} className="text-white" strokeWidth={3} />}
+        </button>
+        
+        {node.children && node.children.length > 0 && (
+          <button onClick={(e) => { e.stopPropagation(); setIsExpanded(!isExpanded); }} className="shrink-0 -ml-1 text-[#b0ad9a] hover:text-[#c2956e] dark:hover:text-[#d1a784] transition-colors p-1">
+            {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} className="opacity-40 group-hover:opacity-100" />}
+          </button>
+        )}
+
+        <span className={`text-[14px] font-medium truncate ${parentSelected ? 'opacity-60' : ''} text-[#3d3b33] dark:text-[#f0f0f0]`}>
+          {node.title}
+        </span>
+      </div>
+      
+      {isExpanded && node.children && node.children.length > 0 && (
+        <div className="ml-[18px] pl-4 border-l border-[#e0ddd5] dark:border-[#333] mt-1 space-y-1">
+          {node.children.map((child: any) => (
+            <TaskTreeNode 
+              key={child.id} 
+              node={child} 
+              selectedIds={selectedIds} 
+              onToggle={onToggle} 
+              searchQuery={searchQuery}
+              parentSelected={isSelected}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
 export default function AnalyticsPage() {
   const [rawTasks, setRawTasks] = useState<any[]>([]);
   const [rawSessions, setRawSessions] = useState<any[]>([]);
@@ -51,9 +103,19 @@ export default function AnalyticsPage() {
   const [filterType, setFilterType] = useState<'all' | 'routine' | 'normal'>('all');
   const [isRankModalOpen, setIsRankModalOpen] = useState(false);
 
+  // Tracker Logic
+  const [isTrackerModalOpen, setIsTrackerModalOpen] = useState(false);
+  const [selectedTrackedIds, setSelectedTrackedIds] = useState<Set<string>>(new Set());
+  const [trackerSearch, setTrackerSearch] = useState("");
+
+  useEffect(() => {
+    setSelectedTrackedIds(new Set());
+    setTrackerSearch("");
+  }, [filterType]);
+
   useEffect(() => {
     let hasCache = false;
-    const cachedTasks = localStorage.getItem('chronoa_cache_rawTasks');
+    const cachedTasks = localStorage.getItem('chronoa_cache_rawTasks_v2');
     const cachedSessions = localStorage.getItem('chronoa_cache_rawSessions');
     const cachedJournals = localStorage.getItem('chronoa_cache_rawJournals');
     
@@ -73,7 +135,7 @@ export default function AnalyticsPage() {
       if (!user) return;
 
       const [tasksRes, sessionsRes, journalRes] = await Promise.all([
-        supabase.from('tasks').select('title, completed_at, task_type').eq('user_id', user.id).eq('is_completed', true).is('deleted_at', null),
+        supabase.from('tasks').select('id, title, parent_id, task_type, is_completed, completed_at, deleted_at').eq('user_id', user.id).is('deleted_at', null),
         supabase.from('time_sessions').select('duration_seconds, created_at, title').eq('user_id', user.id),
         supabase.from('journal_entries').select('entry_date').eq('user_id', user.id).is('deleted_at', null)
       ]);
@@ -86,7 +148,7 @@ export default function AnalyticsPage() {
       setRawSessions(newSessions);
       setRawJournals(newJournals);
       
-      localStorage.setItem('chronoa_cache_rawTasks', JSON.stringify(newTasks));
+      localStorage.setItem('chronoa_cache_rawTasks_v2', JSON.stringify(newTasks));
       localStorage.setItem('chronoa_cache_rawSessions', JSON.stringify(newSessions));
       localStorage.setItem('chronoa_cache_rawJournals', JSON.stringify(newJournals));
       
@@ -96,27 +158,95 @@ export default function AnalyticsPage() {
     fetchRawData();
   }, []);
 
-  // Handle modal scroll locking to prevent background bleeding
+  // Modal scroll locking
   useEffect(() => {
-    if (isRankModalOpen) {
+    if (isRankModalOpen || isTrackerModalOpen) {
       document.body.style.overflow = 'hidden';
     } else {
       document.body.style.overflow = '';
     }
     return () => { document.body.style.overflow = ''; };
-  }, [isRankModalOpen]);
+  }, [isRankModalOpen, isTrackerModalOpen]);
+
+  const toggleSelection = (id: string) => {
+    setSelectedTrackedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const taskTree = useMemo(() => {
+    if (filterType === 'all') return [];
+    const items = rawTasks.filter(t => t.task_type === filterType);
+    const map = new Map<string, any>();
+    
+    items.forEach(t => map.set(t.id, { ...t, children: [] }));
+    
+    const roots: any[] = [];
+    items.forEach(t => {
+      if (t.parent_id && map.has(t.parent_id)) {
+        map.get(t.parent_id).children.push(map.get(t.id));
+      } else {
+        roots.push(map.get(t.id));
+      }
+    });
+    return roots;
+  }, [rawTasks, filterType]);
 
   const data = useMemo<AnalyticsData | null>(() => {
     if (loading && rawTasks.length === 0) return null;
 
-    const filteredTasks = rawTasks.filter(t => filterType === 'all' || t.task_type === filterType);
+    let baseTasks = rawTasks.filter(t => filterType === 'all' || t.task_type === filterType);
+    let trackedIds = new Set<string>();
+    let trackedTitles = new Set<string>();
 
-    const globalTotalTasks = rawTasks.length;
-    const totalFocusSeconds = rawSessions.reduce((acc, s) => acc + s.duration_seconds, 0);
-    const totalFocusMinutes = Math.floor(totalFocusSeconds / 60);
+    // 1. Gather all tasks and their descendants if specific tasks are tracked
+    if (selectedTrackedIds.size > 0) {
+      const collect = (id: string) => {
+        trackedIds.add(id);
+        const t = rawTasks.find(x => x.id === id);
+        if (t && t.title) trackedTitles.add(t.title.trim());
+        rawTasks.filter(x => x.parent_id === id).forEach(child => collect(child.id));
+      };
+      selectedTrackedIds.forEach(id => collect(id));
+      
+      baseTasks = baseTasks.filter(t => trackedIds.has(t.id));
+    }
+
+    const completedTasks = baseTasks.filter(t => t.is_completed && t.completed_at);
+
+    // 2. Map sessions intelligently for the Pie Chart using colon sub-category logic
+    let mappedSessions: any[] = [];
+    if (selectedTrackedIds.size > 0) {
+      mappedSessions = rawSessions.filter(s => {
+        const title = s.title || '';
+        const main = title.split(':')[0].trim();
+        return trackedTitles.has(main) || trackedTitles.has(title);
+      }).map(s => {
+        const title = s.title || '';
+        const main = title.split(':')[0].trim();
+        if (trackedTitles.has(main) && title.includes(':')) {
+           const sub = title.substring(title.indexOf(':') + 1).trim();
+           return { ...s, title: sub || main };
+        }
+        return s;
+      });
+    } else {
+      mappedSessions = rawSessions.map(s => {
+        const title = s.title || '';
+        return { ...s, title: title.split(':')[0].trim() };
+      });
+    }
+
+    // 3. Global XP Logic (XP shouldn't plummet just because you filtered views)
+    const globalCompletedTasks = rawTasks.filter(t => t.is_completed && t.completed_at).length;
+    const globalFocusSeconds = rawSessions.reduce((acc, s) => acc + s.duration_seconds, 0);
+    const globalFocusMinutes = Math.floor(globalFocusSeconds / 60);
     const totalJournals = rawJournals.length;
 
-    const xp = (globalTotalTasks * 10) + (totalFocusMinutes * 2) + (totalJournals * 15);
+    const xp = (globalCompletedTasks * 10) + (globalFocusMinutes * 2) + (totalJournals * 15);
     const level = Math.floor(Math.sqrt(xp / 50)) + 1;
     const nextLevelXp = Math.pow(level, 2) * 50;
     const prevLevelXp = Math.pow(level - 1, 2) * 50;
@@ -127,13 +257,14 @@ export default function AnalyticsPage() {
       return rankObj ? rankObj.name : "Novice";
     };
 
+    // 4. Aggregation into maps
     const getLocalYMD = (d: Date) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
     const dailyMap: Record<string, DailyRecord> = {};
     const ensureDay = (ymd: string) => {
       if (!dailyMap[ymd]) dailyMap[ymd] = { date: ymd, tasks: [], sessions: [], taskCount: 0, focusMinutes: 0 };
     };
 
-    filteredTasks.forEach(t => {
+    completedTasks.forEach(t => {
       if (!t.completed_at) return;
       const ymd = getLocalYMD(new Date(t.completed_at));
       ensureDay(ymd);
@@ -141,7 +272,7 @@ export default function AnalyticsPage() {
       dailyMap[ymd].taskCount++;
     });
 
-    rawSessions.forEach(s => {
+    mappedSessions.forEach(s => {
       if (!s.created_at) return;
       const ymd = getLocalYMD(new Date(s.created_at));
       const mins = Math.floor(s.duration_seconds / 60);
@@ -150,6 +281,7 @@ export default function AnalyticsPage() {
       dailyMap[ymd].focusMinutes += mins;
     });
 
+    // 5. Streak Computation
     const calculateStreak = (daySet: Set<string>) => {
       let current = 0, best = 0;
       const todayYmd = getLocalYMD(new Date());
@@ -181,19 +313,20 @@ export default function AnalyticsPage() {
 
     const activityStreak = calculateStreak(activeDays);
     const journalStreak = calculateStreak(journalDays);
+    const filteredFocusMinutes = mappedSessions.reduce((acc, s) => acc + Math.floor(s.duration_seconds / 60), 0);
 
     return {
-      totalFilteredTasks: filteredTasks.length,
-      totalFocusMinutes, 
+      totalFilteredTasks: completedTasks.length,
+      totalFocusMinutes: filteredFocusMinutes, 
       currentStreak: activityStreak.current, 
       bestStreak: activityStreak.best,
       journalCurrentStreak: journalStreak.current, 
       journalBestStreak: journalStreak.best,
       dailyMap, 
-      rawSessions,
+      rawSessions: mappedSessions,
       levelInfo: { level, rank: getRank(level), progress, xp }
     };
-  }, [rawTasks, rawSessions, rawJournals, loading, filterType]);
+  }, [rawTasks, rawSessions, rawJournals, loading, filterType, selectedTrackedIds]);
 
   if (loading && rawTasks.length === 0) {
     return (
@@ -216,16 +349,34 @@ export default function AnalyticsPage() {
           <p className="text-[#b0ad9a] dark:text-[#7a7a7a] tracking-[0.25em] text-[10px] font-bold uppercase ml-1">Consistency builds empires</p>
         </div>
         
-        <div className="flex bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] p-1 rounded-2xl shadow-sm w-fit shrink-0">
-          {['all', 'routine', 'normal'].map(f => (
+        <div className="flex items-center gap-3 w-full md:w-auto overflow-x-auto no-scrollbar pb-1 -mb-1 shrink-0">
+          {filterType !== 'all' && (
             <button 
-              key={f} 
-              onClick={() => setFilterType(f as any)}
-              className={`px-5 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all ${filterType === f ? 'bg-[#c2956e] dark:bg-[#b0855f] text-white shadow-md' : 'text-[#888] hover:text-[#3d3b33] dark:hover:text-[#ccc]'}`}
+              onClick={() => setIsTrackerModalOpen(true)}
+              data-tooltip-id="global-tooltip"
+              data-tooltip-content={`Track Specific ${filterType === 'routine' ? 'Routines' : 'Tasks'}`}
+              className={`relative flex items-center justify-center w-[42px] h-[42px] rounded-[1rem] transition-colors shadow-sm border shrink-0 ${selectedTrackedIds.size > 0 ? 'bg-[#c2956e] text-white border-[#c2956e]' : 'bg-white dark:bg-[#1a1a1a] text-[#888] border-[#e0ddd5] dark:border-[#333] hover:text-[#c2956e]'}`}
             >
-              {f}
+              <Target size={18} /> 
+              {selectedTrackedIds.size > 0 && (
+                <span className="absolute -top-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 border-2 border-[#f7f5f0] dark:border-[#121212] text-[8px] font-bold text-white">
+                  {selectedTrackedIds.size}
+                </span>
+              )}
             </button>
-          ))}
+          )}
+          
+          <div className="flex bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] p-1 rounded-[1.25rem] shadow-sm shrink-0">
+            {['all', 'routine', 'normal'].map(f => (
+              <button 
+                key={f} 
+                onClick={() => setFilterType(f as any)}
+                className={`px-5 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all ${filterType === f ? 'bg-[#c2956e] dark:bg-[#b0855f] text-white shadow-md' : 'text-[#888] hover:text-[#3d3b33] dark:hover:text-[#ccc]'}`}
+              >
+                {f}
+              </button>
+            ))}
+          </div>
         </div>
       </header>
 
@@ -264,7 +415,7 @@ export default function AnalyticsPage() {
       {/* Stats Grid */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
         <StatCard 
-          title={filterType === 'all' ? "Tasks Done" : filterType === 'routine' ? "Routines Done" : "Normal Tasks"} 
+          title={selectedTrackedIds.size > 0 ? "Tracked Tasks Done" : filterType === 'all' ? "Tasks Done" : filterType === 'routine' ? "Routines Done" : "Normal Tasks"} 
           value={data?.totalFilteredTasks || 0} 
           icon={CheckCircle2} 
           color="sage"
@@ -306,6 +457,66 @@ export default function AnalyticsPage() {
         <ActivityHeatmap dailyMap={data?.dailyMap || {}} />
         <FocusDistribution rawSessions={data?.rawSessions || []} />
       </div>
+
+      {/* Task Tracker Modal */}
+      {isTrackerModalOpen && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center px-4">
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setIsTrackerModalOpen(false)} />
+          <div className="bg-[#f7f5f0] dark:bg-[#161616] border border-[#e0ddd5] dark:border-[#333] w-full max-w-2xl rounded-[2.5rem] shadow-2xl relative z-10 flex flex-col overflow-hidden max-h-[85vh] animate-fade-up">
+            
+            <header className="px-8 py-6 border-b border-[#e0ddd5] dark:border-[#2a2a2a] flex justify-between items-center bg-white dark:bg-[#1a1a1a]">
+              <div>
+                <h3 className="text-2xl font-serif text-[#3d3b33] dark:text-white">Track {filterType === 'routine' ? 'Routines' : 'Tasks'}</h3>
+                <p className="text-[10px] text-[#b0ad9a] dark:text-[#7a7a7a] font-bold uppercase tracking-widest mt-1">Select specific items to analyze</p>
+              </div>
+              <button onClick={() => setIsTrackerModalOpen(false)} className="p-2 rounded-full bg-[#f0ede8] dark:bg-[#222] hover:bg-[#e0ddd5] dark:hover:bg-[#333] transition-colors text-[#3d3b33] dark:text-white">
+                <X size={20} />
+              </button>
+            </header>
+
+            <div className="p-6 border-b border-[#e0ddd5] dark:border-[#2a2a2a] bg-[#f7f5f0] dark:bg-[#161616] shrink-0">
+              <div className="relative">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-[#b0ad9a]" size={16} />
+                <input 
+                  type="text" placeholder="Search..." 
+                  value={trackerSearch} onChange={e => setTrackerSearch(e.target.value)}
+                  spellCheck={false}
+                  className="w-full bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] rounded-2xl pl-12 pr-4 py-3 text-sm outline-none focus:border-[#c2956e] text-[#3d3b33] dark:text-[#f0f0f0] transition-colors shadow-sm"
+                />
+              </div>
+            </div>
+
+            <div className="p-6 overflow-y-auto no-scrollbar flex-1 space-y-2 bg-white dark:bg-[#1a1a1a]">
+              {taskTree.length > 0 ? taskTree.map(node => (
+                <TaskTreeNode 
+                  key={node.id} 
+                  node={node} 
+                  selectedIds={selectedTrackedIds} 
+                  onToggle={toggleSelection} 
+                  searchQuery={trackerSearch} 
+                />
+              )) : (
+                <p className="text-center text-[#b0ad9a] dark:text-[#7a7a7a] text-sm italic">No {filterType}s found.</p>
+              )}
+            </div>
+
+            <footer className="px-8 py-5 border-t border-[#e0ddd5] dark:border-[#2a2a2a] flex justify-between items-center bg-[#f7f5f0] dark:bg-[#161616] shrink-0">
+              <button 
+                onClick={() => setSelectedTrackedIds(new Set())}
+                className="text-[10px] font-bold text-[#888] hover:text-[#3d3b33] dark:hover:text-white uppercase tracking-widest transition-colors"
+              >
+                Clear Selection
+              </button>
+              <button 
+                onClick={() => setIsTrackerModalOpen(false)}
+                className="px-6 py-3 bg-[#c2956e] dark:bg-[#b0855f] text-white rounded-xl text-[10px] font-bold uppercase tracking-widest shadow-md hover:scale-105 transition-all"
+              >
+                Apply Tracker
+              </button>
+            </footer>
+          </div>
+        </div>
+      )}
 
       {/* Gamification Info Modal */}
       {isRankModalOpen && (
