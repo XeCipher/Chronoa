@@ -1,3 +1,4 @@
+// frontend/components/notes/DistractionFreeEditor.tsx
 "use client";
 
 import { useState, useEffect, useRef } from "react";
@@ -44,6 +45,15 @@ export default function DistractionFreeEditor({
   const { journalZoom, setJournalZoom } = useUiStore();
   const [saveStatus, setSaveStatus] = useState("Saved");
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const [bubbleStyle, setBubbleStyle] = useState<React.CSSProperties>({
+    opacity: 0,
+    pointerEvents: "none",
+    position: "fixed",
+    top: 0,
+    left: "50%",
+    transform: "translateX(-50%)",
+  });
 
   const onSaveRef = useRef(onSave);
   useEffect(() => {
@@ -107,6 +117,73 @@ export default function DistractionFreeEditor({
     };
   }, [editor]);
 
+  // Handle the logic for calculating exactly where the text is on mobile
+  useEffect(() => {
+    if (!editor) return;
+
+    const updateBubble = () => {
+      if (window.innerWidth >= 768) {
+        setBubbleStyle((prev) => ({ ...prev, opacity: 0, pointerEvents: "none" }));
+        return;
+      }
+
+      const { selection } = editor.state;
+      if (selection.empty || !editor.isFocused) {
+        setBubbleStyle((prev) => ({ ...prev, opacity: 0, pointerEvents: "none" }));
+        return;
+      }
+
+      const { view } = editor;
+      // Get the absolute physical position of the selected text within the viewport
+      const endCoords = view.coordsAtPos(selection.to);
+      const startCoords = view.coordsAtPos(selection.from);
+
+      // Horizontally center it based on the bounds of the selection
+      const centerLeft = (startCoords.left + endCoords.left) / 2;
+      const halfMenuWidth = 160; 
+      let safeLeft = centerLeft;
+      
+      // Ensure the menu doesn't bleed off the left or right edges of the screen
+      if (safeLeft < halfMenuWidth + 16) safeLeft = halfMenuWidth + 16;
+      if (safeLeft > window.innerWidth - halfMenuWidth - 16) safeLeft = window.innerWidth - halfMenuWidth - 16;
+
+      setBubbleStyle({
+        opacity: 1,
+        pointerEvents: "auto",
+        position: "fixed",
+        top: `${endCoords.bottom + 12}px`, // Places it precisely 12px below the text
+        left: `${safeLeft}px`,
+        transform: "translateX(-50%)",
+        zIndex: 100,
+      });
+    };
+
+    const handleBlur = () => {
+      // Delay ensures we don't hide the menu when a formatting button itself is clicked
+      setTimeout(() => {
+        if (!editor.isFocused) {
+          setBubbleStyle((prev) => ({ ...prev, opacity: 0, pointerEvents: "none" }));
+        }
+      }, 100);
+    };
+
+    // Listeners for text/focus changes and physical scrolling/resizing
+    editor.on("selectionUpdate", updateBubble);
+    editor.on("focus", updateBubble);
+    editor.on("blur", handleBlur);
+
+    window.addEventListener("resize", updateBubble);
+    window.addEventListener("scroll", updateBubble, true);
+
+    return () => {
+      editor.off("selectionUpdate", updateBubble);
+      editor.off("focus", updateBubble);
+      editor.off("blur", handleBlur);
+      window.removeEventListener("resize", updateBubble);
+      window.removeEventListener("scroll", updateBubble, true);
+    };
+  }, [editor]);
+
   const insertTimestamp = () => {
     if (!editor) return;
 
@@ -152,7 +229,7 @@ export default function DistractionFreeEditor({
   }) => (
     <button
       onMouseDown={(e) => {
-        // Prevent the editor from losing focus when tapping toolbar buttons
+        // Prevent default handles focus loss, allowing the editor to stay focused!
         e.preventDefault();
         onClick();
       }}
@@ -204,121 +281,109 @@ export default function DistractionFreeEditor({
     );
   };
 
-  return (
-    // Added bottom padding on mobile so content isn't hidden behind the fixed bottom toolbar
-    <div className="relative w-full flex flex-col gap-4 pb-16 md:pb-0">
-      {isEditable && (
-        /*
-         * TOOLBAR — Hybrid Strategy for perfect cross-device support:
-         * 
-         * Mobile: `fixed bottom-0`
-         *   - iOS Safari handles fixed bottom elements elegantly when the virtual keyboard
-         *     opens. It shifts the visual viewport, carrying the toolbar up so it rests 
-         *     snugly against the top of the keyboard (like Apple Notes).
-         *   - `env(safe-area-inset-bottom)` ensures we respect the home indicator on iPhones.
-         * 
-         * Desktop: `sticky top-0`
-         *   - Desktop browsers don't have visual viewport scaling issues, so we preserve
-         *     the beautiful, floating top-sticky layout for larger screens.
-         */
-        <div
-          className={[
-            // --- Mobile Positioning (Bottom Fixed) ---
-            "fixed bottom-0 left-0 right-0 z-[100]",
-            "pb-[calc(env(safe-area-inset-bottom)+0.5rem)] pt-2 px-3",
-            "border-t border-[#e0ddd5] dark:border-[#2a2a2a]",
-            "bg-white/95 dark:bg-[#121212]/95 backdrop-blur-md",
-            "shadow-[0_-4px_16px_0_rgba(0,0,0,0.05)] dark:shadow-[0_-4px_16px_0_rgba(0,0,0,0.4)]",
-            
-            // --- Desktop Positioning (Top Sticky) ---
-            "md:sticky md:top-0 md:bottom-auto md:left-auto md:right-auto",
-            "md:mt-0 md:mx-0 md:p-2",
-            "md:border md:rounded-2xl",
-            "md:shadow-[0_2px_16px_0_rgba(0,0,0,0.07)] md:dark:shadow-[0_2px_16px_0_rgba(0,0,0,0.4)]",
-            
-            // --- Shared ---
-            "flex items-center gap-2",
-          ].join(" ")}
+  const renderToolbarContents = () => (
+    <>
+      {/* Formatting buttons */}
+      <div className="flex items-center gap-0.5 overflow-x-auto no-scrollbar flex-1 min-w-0">
+        <ToolbarButton
+          title="Bold"
+          onClick={() => editor.chain().focus().toggleBold().run()}
+          isActive={activeStates.bold}
         >
-          {/* Formatting buttons — scrollable so narrow phones never clip */}
-          <div className="flex items-center gap-0.5 overflow-x-auto no-scrollbar flex-1 min-w-0">
-            <ToolbarButton
-              title="Bold"
-              onClick={() => editor.chain().focus().toggleBold().run()}
-              isActive={activeStates.bold}
-            >
-              <Bold size={15} />
-            </ToolbarButton>
-            <ToolbarButton
-              title="Italic"
-              onClick={() => editor.chain().focus().toggleItalic().run()}
-              isActive={activeStates.italic}
-            >
-              <Italic size={15} />
-            </ToolbarButton>
-            <ToolbarButton
-              title="Underline"
-              onClick={() => editor.chain().focus().toggleUnderline().run()}
-              isActive={activeStates.underline}
-            >
-              <UnderlineIcon size={15} />
-            </ToolbarButton>
-            <Divider />
-            <ToolbarButton
-              title="Heading 1"
-              onClick={() =>
-                editor.chain().focus().toggleHeading({ level: 1 }).run()
-              }
-              isActive={activeStates.heading1}
-            >
-              <Heading1 size={15} />
-            </ToolbarButton>
-            <ToolbarButton
-              title="Heading 2"
-              onClick={() =>
-                editor.chain().focus().toggleHeading({ level: 2 }).run()
-              }
-              isActive={activeStates.heading2}
-            >
-              <Heading2 size={15} />
-            </ToolbarButton>
-            <Divider />
-            <ToolbarButton
-              title="Bullet list"
-              onClick={() => editor.chain().focus().toggleBulletList().run()}
-              isActive={activeStates.bulletList}
-            >
-              <List size={15} />
-            </ToolbarButton>
-            <ToolbarButton
-              title="Ordered list"
-              onClick={() =>
-                editor.chain().focus().toggleOrderedList().run()
-              }
-              isActive={activeStates.orderedList}
-            >
-              <ListOrdered size={15} />
-            </ToolbarButton>
-            <Divider />
-            <ToolbarButton title="Insert timestamp" onClick={insertTimestamp}>
-              <Clock size={15} />
-            </ToolbarButton>
+          <Bold size={15} />
+        </ToolbarButton>
+        <ToolbarButton
+          title="Italic"
+          onClick={() => editor.chain().focus().toggleItalic().run()}
+          isActive={activeStates.italic}
+        >
+          <Italic size={15} />
+        </ToolbarButton>
+        <ToolbarButton
+          title="Underline"
+          onClick={() => editor.chain().focus().toggleUnderline().run()}
+          isActive={activeStates.underline}
+        >
+          <UnderlineIcon size={15} />
+        </ToolbarButton>
+        <Divider />
+        <ToolbarButton
+          title="Heading 1"
+          onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
+          isActive={activeStates.heading1}
+        >
+          <Heading1 size={15} />
+        </ToolbarButton>
+        <ToolbarButton
+          title="Heading 2"
+          onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
+          isActive={activeStates.heading2}
+        >
+          <Heading2 size={15} />
+        </ToolbarButton>
+        <Divider />
+        <ToolbarButton
+          title="Bullet list"
+          onClick={() => editor.chain().focus().toggleBulletList().run()}
+          isActive={activeStates.bulletList}
+        >
+          <List size={15} />
+        </ToolbarButton>
+        <ToolbarButton
+          title="Ordered list"
+          onClick={() => editor.chain().focus().toggleOrderedList().run()}
+          isActive={activeStates.orderedList}
+        >
+          <ListOrdered size={15} />
+        </ToolbarButton>
+        <Divider />
+        <ToolbarButton title="Insert timestamp" onClick={insertTimestamp}>
+          <Clock size={15} />
+        </ToolbarButton>
+      </div>
+
+      {/* Right: save indicator + zoom */}
+      <div className="flex items-center gap-2 shrink-0">
+        <span
+          className={`hidden md:block text-[9px] font-bold uppercase tracking-widest whitespace-nowrap transition-colors ${
+            saveStatus === "Saving..."
+              ? "text-[#c2956e] dark:text-[#d1a784]"
+              : "text-[#c4c0b8] dark:text-[#555]"
+          }`}
+        >
+          {saveStatus}
+        </span>
+        <ZoomControl preventFocus />
+      </div>
+    </>
+  );
+
+  return (
+    <div className="relative w-full flex flex-col gap-4">
+      {isEditable && (
+        <>
+          {/* MOBILE POPUP: Appears dynamically tracking text coordinates */}
+          <div
+            className="md:hidden flex items-center gap-2 px-3 py-2 border border-[#e0ddd5] dark:border-[#2a2a2a] bg-white/95 dark:bg-[#121212]/95 backdrop-blur-md shadow-xl rounded-2xl w-max max-w-[92vw] overflow-x-auto no-scrollbar transition-opacity duration-200"
+            style={bubbleStyle}
+          >
+            {renderToolbarContents()}
           </div>
 
-          {/* Right: save indicator + zoom */}
-          <div className="flex items-center gap-2 shrink-0">
-            <span
-              className={`hidden md:block text-[9px] font-bold uppercase tracking-widest whitespace-nowrap transition-colors ${
-                saveStatus === "Saving..."
-                  ? "text-[#c2956e] dark:text-[#d1a784]"
-                  : "text-[#c4c0b8] dark:text-[#555]"
-              }`}
-            >
-              {saveStatus}
-            </span>
-            <ZoomControl preventFocus />
+          {/* DESKTOP TOOLBAR: Beautifully pinned to top layout */}
+          <div
+            className={[
+              "hidden md:flex",
+              "md:sticky md:top-0 md:z-[100]",
+              "md:p-2 md:border md:border-[#e0ddd5] md:dark:border-[#2a2a2a] md:rounded-2xl",
+              "md:bg-white/95 md:dark:bg-[#121212]/95 md:backdrop-blur-md",
+              "md:shadow-[0_2px_16px_0_rgba(0,0,0,0.07)] md:dark:shadow-[0_2px_16px_0_rgba(0,0,0,0.4)]",
+              "items-center gap-2",
+            ].join(" ")}
+          >
+            {renderToolbarContents()}
           </div>
-        </div>
+        </>
       )}
 
       {/* Read-only zoom control */}
