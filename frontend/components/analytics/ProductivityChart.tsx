@@ -24,7 +24,7 @@ export default function ProductivityChart({ dailyMap }: { dailyMap: Record<strin
   
   const currentSaturday = getSaturday(today);
 
-  const [endDate, setEndDate] = useState<Date>(currentSaturday);
+  const [endDate, setEndDate] = useState<Date>(today);
   const [showCalendar, setShowCalendar] = useState(false);
   const [calMonth, setCalMonth] = useState<Date>(new Date());
   const calRef = useRef<HTMLDivElement>(null);
@@ -38,21 +38,27 @@ export default function ProductivityChart({ dailyMap }: { dailyMap: Record<strin
   }, []);
 
   const handlePrev = () => {
-    const newEnd = new Date(endDate);
-    newEnd.setDate(endDate.getDate() - 7);
-    setEndDate(newEnd);
+    if (endDate.getTime() === today.getTime()) {
+      const prevSat = new Date(currentSaturday);
+      prevSat.setDate(prevSat.getDate() - 7);
+      setEndDate(prevSat);
+    } else {
+      const newEnd = new Date(endDate);
+      newEnd.setDate(endDate.getDate() - 7);
+      setEndDate(newEnd);
+    }
   };
 
   const handleNext = () => {
     const newEnd = new Date(endDate);
     newEnd.setDate(endDate.getDate() + 7);
-    if (newEnd > currentSaturday) setEndDate(currentSaturday);
+    if (newEnd >= today) setEndDate(today);
     else setEndDate(newEnd);
   };
 
   const handleDateSelect = (date: Date) => {
     let weekEnd = getSaturday(date);
-    if (weekEnd > currentSaturday) weekEnd = currentSaturday;
+    if (weekEnd >= today) weekEnd = today;
     setEndDate(weekEnd);
     setShowCalendar(false);
   };
@@ -196,8 +202,8 @@ export default function ProductivityChart({ dailyMap }: { dailyMap: Record<strin
         </div>
         
         <div className="flex items-center gap-2 relative">
-           {endDate.getTime() !== currentSaturday.getTime() && (
-             <button onClick={() => setEndDate(currentSaturday)} className="hidden md:block px-3 py-1.5 rounded-xl bg-[#c2956e]/10 text-[#c2956e] text-[10px] font-bold uppercase tracking-widest hover:bg-[#c2956e] hover:text-white transition-colors">
+           {endDate.getTime() !== today.getTime() && (
+             <button onClick={() => setEndDate(today)} className="hidden md:block px-3 py-1.5 rounded-xl bg-[#c2956e]/10 text-[#c2956e] text-[10px] font-bold uppercase tracking-widest hover:bg-[#c2956e] hover:text-white transition-colors">
                Present
              </button>
            )}
@@ -209,7 +215,7 @@ export default function ProductivityChart({ dailyMap }: { dailyMap: Record<strin
            <div className="flex items-center bg-[#f7f5f0] dark:bg-[#222] rounded-xl p-0.5 border border-[#e0ddd5] dark:border-[#333]">
               <button onClick={handlePrev} className="p-1.5 text-[#888] hover:text-[#3d3b33] dark:hover:text-white transition-colors"><ChevronLeft size={16} /></button>
               <div className="w-px h-4 bg-[#e0ddd5] dark:bg-[#444] mx-1" />
-              <button onClick={handleNext} disabled={endDate.getTime() === currentSaturday.getTime()} className="p-1.5 text-[#888] hover:text-[#3d3b33] dark:hover:text-white transition-colors disabled:opacity-30"><ChevronRight size={16} /></button>
+              <button onClick={handleNext} disabled={endDate.getTime() === today.getTime()} className="p-1.5 text-[#888] hover:text-[#3d3b33] dark:hover:text-white transition-colors disabled:opacity-30"><ChevronRight size={16} /></button>
            </div>
         </div>
       </div>

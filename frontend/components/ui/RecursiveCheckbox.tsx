@@ -32,11 +32,16 @@ interface Props {
   depth?: number;
   newTaskId: string | null;
   setNewTaskId: (id: string | null) => void;
+  searchQuery?: string;
 }
+
+const escapeRegExp = (string: string) => {
+  return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+};
 
 export default function RecursiveCheckbox({ 
   task, isEditMode, viewMode, allTasks, isFlatList, onUpdate, onDelete, onRestore, onAdd, onIndent, onUnindent, 
-  onMoveUp, onMoveDown, depth = 0, newTaskId, setNewTaskId 
+  onMoveUp, onMoveDown, depth = 0, newTaskId, setNewTaskId, searchQuery = ""
 }: Props) {
   const router = useRouter();
   const textRef = useRef<HTMLSpanElement>(null);
@@ -249,6 +254,18 @@ export default function RecursiveCheckbox({
   };
   const descendantColors = isCollapsed ? getDescendantColors(task) : [];
 
+  const renderTitle = () => {
+    if (!isExpanded && searchQuery) {
+      const parts = initialTitle.split(new RegExp(`(${escapeRegExp(searchQuery)})`, 'gi'));
+      return parts.map((part, i) =>
+        part.toLowerCase() === searchQuery.toLowerCase() ? (
+          <span key={i} className="bg-[#c2956e]/40 dark:bg-[#b0855f]/50 text-[#3d3b33] dark:text-white rounded-[4px] px-[2px] font-semibold">{part}</span>
+        ) : part
+      );
+    }
+    return initialTitle;
+  };
+
   const renderChildren = () => (
     task.children!.map((child) => (
       <RecursiveCheckbox 
@@ -269,6 +286,7 @@ export default function RecursiveCheckbox({
         depth={depth + 1} 
         newTaskId={newTaskId} 
         setNewTaskId={setNewTaskId} 
+        searchQuery={searchQuery}
       />
     ))
   );
@@ -362,7 +380,7 @@ export default function RecursiveCheckbox({
               style={!isExpanded ? { display: '-webkit-box', WebkitLineClamp: 10, WebkitBoxOrient: 'vertical', overflow: 'hidden' } : { display: 'block' }}
               className={`break-words whitespace-pre-wrap flex-1 min-w-[50px] transition-all duration-200 outline-none ${titleSize} ${titleWeight} ${allowTextEdit ? "cursor-text border-b border-transparent focus:border-[#c2956e]/30 pb-[1px]" : "cursor-default"} ${isStruckThrough ? "text-[#c4c0b8] dark:text-[#555] line-through" : "text-[#3d3b33] dark:text-[#e0e0e0]"}`}
             >
-              {initialTitle}
+              {renderTitle()}
             </span>
             
             {isCollapsed && descendantColors.length > 0 && (

@@ -232,13 +232,30 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
         tasks
           .filter((t) => t.parent_id === parentId)
           .forEach((child) => {
-            if (child.is_completed !== isDone) {
-              tasksToUpdate.push({
-                id: child.id,
-                updates: { is_completed: isDone, completed_at: completionTime },
-              });
+            // Evaluates whether the child is currently visible in the active focus view.
+            // If they are not visible, they have likely transitioned securely into the archive.
+            const isVisibleInFocus = !child.is_completed || taskArchiveDelay < 0 || (child.completed_at && now - new Date(child.completed_at).getTime() < delayMs);
+
+            if (isDone) {
+              if (!child.is_completed) {
+                tasksToUpdate.push({
+                  id: child.id,
+                  updates: { is_completed: true, completed_at: completionTime },
+                });
+              }
+              addChildrenToUpdate(child.id);
+            } else {
+              // When unchecking parent, only uncheck children that are NOT safely archived
+              if (isVisibleInFocus) {
+                if (child.is_completed) {
+                  tasksToUpdate.push({
+                    id: child.id,
+                    updates: { is_completed: false, completed_at: null },
+                  });
+                }
+                addChildrenToUpdate(child.id);
+              }
             }
-            addChildrenToUpdate(child.id);
           });
       };
       addChildrenToUpdate(id);
@@ -690,6 +707,7 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
                     depth={0}
                     newTaskId={newTaskId}
                     setNewTaskId={setNewTaskId}
+                    searchQuery={searchQuery}
                   />
                 ))}
               </SortableContext>
@@ -713,6 +731,7 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
                   depth={0}
                   newTaskId={newTaskId}
                   setNewTaskId={setNewTaskId}
+                  searchQuery={searchQuery}
                 />
               ))
             )}
