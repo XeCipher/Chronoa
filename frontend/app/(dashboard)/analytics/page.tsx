@@ -42,6 +42,10 @@ export const RANKS = [
   { name: "Chronoa Ascendant", minLevel: 50, minXp: 125000 }
 ];
 
+const escapeRegExp = (string: string) => {
+  return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+};
+
 // Recursive Component for Task Selection
 const TaskTreeNode = ({ node, selectedIds, onToggle, searchQuery, parentSelected = false }: any) => {
   const [isExpanded, setIsExpanded] = useState(true);
@@ -51,9 +55,22 @@ const TaskTreeNode = ({ node, selectedIds, onToggle, searchQuery, parentSelected
     if (n.title.toLowerCase().includes(searchQuery.toLowerCase())) return true;
     return n.children.some((c: any) => hasMatchingDescendant(c));
   };
+  
   const isVisible = !searchQuery || hasMatchingDescendant(node);
 
   if (!isVisible) return null;
+
+  const renderTitle = () => {
+    if (searchQuery) {
+      const parts = node.title.split(new RegExp(`(${escapeRegExp(searchQuery)})`, 'gi'));
+      return parts.map((part: string, i: number) =>
+        part.toLowerCase() === searchQuery.toLowerCase() ? (
+          <span key={i} className="bg-[#c2956e]/40 dark:bg-[#b0855f]/50 text-[#3d3b33] dark:text-white rounded-[4px] px-[2px] font-semibold">{part}</span>
+        ) : part
+      );
+    }
+    return node.title;
+  };
 
   return (
     <div className="flex flex-col">
@@ -72,7 +89,7 @@ const TaskTreeNode = ({ node, selectedIds, onToggle, searchQuery, parentSelected
         )}
 
         <span className={`text-[14px] font-medium truncate ${parentSelected ? 'opacity-60' : ''} text-[#3d3b33] dark:text-[#f0f0f0]`}>
-          {node.title}
+          {renderTitle()}
         </span>
       </div>
       
@@ -355,7 +372,7 @@ export default function AnalyticsPage() {
               onClick={() => setIsTrackerModalOpen(true)}
               data-tooltip-id="global-tooltip"
               data-tooltip-content={`Track Specific ${filterType === 'routine' ? 'Routines' : 'Tasks'}`}
-              className={`relative flex items-center justify-center w-[42px] h-[42px] rounded-[1rem] transition-colors shadow-sm border shrink-0 ${selectedTrackedIds.size > 0 ? 'bg-[#c2956e] text-white border-[#c2956e]' : 'bg-white dark:bg-[#1a1a1a] text-[#888] border-[#e0ddd5] dark:border-[#333] hover:text-[#c2956e]'}`}
+              className={`order-2 md:order-1 relative flex items-center justify-center w-[42px] h-[42px] rounded-[1rem] transition-colors shadow-sm border shrink-0 ${selectedTrackedIds.size > 0 ? 'bg-[#c2956e] text-white border-[#c2956e]' : 'bg-white dark:bg-[#1a1a1a] text-[#888] border-[#e0ddd5] dark:border-[#333] hover:text-[#c2956e]'}`}
             >
               <Target size={18} /> 
               {selectedTrackedIds.size > 0 && (
@@ -366,7 +383,7 @@ export default function AnalyticsPage() {
             </button>
           )}
           
-          <div className="flex bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] p-1 rounded-[1.25rem] shadow-sm shrink-0">
+          <div className="order-1 md:order-2 flex bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] p-1 rounded-[1.25rem] shadow-sm shrink-0">
             {['all', 'routine', 'normal'].map(f => (
               <button 
                 key={f} 
