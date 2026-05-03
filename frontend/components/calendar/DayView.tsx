@@ -4,19 +4,21 @@
 import { useMemo, useEffect, useState, useRef } from "react";
 import { format, isToday, isSameDay, setHours, setMinutes } from "date-fns";
 import { CalendarEvent } from "@/types/app.types";
+import { MapPin, Video, GripHorizontal } from "lucide-react";
 
 interface Props {
   currentDate: Date;
   events: CalendarEvent[];
   onEventClick: (event: CalendarEvent) => void;
   onTimeRangeSelected: (start: Date, end: Date) => void;
+  onEventMove: (event: CalendarEvent, newStart: Date, newEnd: Date) => void;
   eventColors: Record<string, string>;
   targetScrollTime: string | null;
 }
 
 const HOURS = Array.from({ length: 24 }, (_, i) => i);
 
-export default function DayView({ currentDate, events, onEventClick, onTimeRangeSelected, eventColors, targetScrollTime }: Props) {
+export default function DayView({ currentDate, events, onEventClick, onTimeRangeSelected, onEventMove, eventColors, targetScrollTime }: Props) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [now, setNow] = useState(new Date());
 
@@ -59,6 +61,66 @@ export default function DayView({ currentDate, events, onEventClick, onTimeRange
     return { top: `${startMins}px`, height: `${height}px` };
   };
 
+  const calculateOverlaps = (day: Date) => {
+    const dayEvents = timeEvents.sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime());
+
+    const clusters: any[] = [];
+    dayEvents.forEach(ev => {
+        const start = new Date(ev.start_time);
+        const end = new Date(ev.end_time);
+        const evStart = isSameDay(start, day) ? start.getHours() * 60 + start.getMinutes() : 0;
+        const evEnd = isSameDay(end, day) ? end.getHours() * 60 + end.getMinutes() : 24 * 60;
+        
+        let added = false;
+        for (const cluster of clusters) {
+            if (evStart < cluster.end) {
+                cluster.events.push({ ev, start: evStart, end: evEnd });
+                cluster.end = Math.max(cluster.end, evEnd);
+                added = true;
+                break;
+            }
+        }
+        if (!added) {
+            clusters.push({ end: evEnd, events: [{ ev, start: evStart, end: evEnd }] });
+        }
+    });
+
+    const positioned: any[] = [];
+    clusters.forEach(cluster => {
+        const cols: any[][] = [];
+        cluster.events.forEach((item: any) => {
+            let placed = false;
+            for (let i = 0; i < cols.length; i++) {
+                const col = cols[i];
+                const last = col[col.length - 1];
+                if (item.start >= last.end) {
+                    col.push(item);
+                    item.col = i;
+                    placed = true;
+                    break;
+                }
+            }
+            if (!placed) {
+                item.col = cols.length;
+                cols.push([item]);
+            }
+        });
+        
+        const numCols = cols.length;
+        cluster.events.forEach((item: any) => {
+            positioned.push({
+                event: item.ev,
+                top: `${item.start}px`,
+                height: `${Math.max(item.end - item.start, 15)}px`,
+                left: `calc(${(100 / numCols) * item.col}% + 8px)`,
+                width: `calc(${100 / numCols}% - 16px)`
+            });
+        });
+    });
+
+    return positioned;
+  };
+
   const handleMouseDown = (e: React.MouseEvent) => {
     if (e.button !== 0) return;
     const y = e.nativeEvent.offsetY;
@@ -93,6 +155,9 @@ export default function DayView({ currentDate, events, onEventClick, onTimeRange
   };
 
   const currentMins = now.getHours() * 60 + now.getMinutes();
+  const isTodayDate = isToday(currentDate);
+
+  const overlappingEvents = calculateOverlaps(currentDate);
 
   return (
     <div className="flex flex-col h-full bg-white dark:bg-[#1a1a1a] rounded-[2rem] border border-[#e0ddd5] dark:border-[#333] shadow-sm overflow-hidden flex-1 min-h-0 max-w-4xl mx-auto w-full select-none" onMouseUp={handleMouseUp} onMouseLeave={handleMouseUp}>
@@ -103,7 +168,7 @@ export default function DayView({ currentDate, events, onEventClick, onTimeRange
           <span className="text-[11px] font-bold uppercase tracking-widest text-[#b0ad9a] dark:text-[#7a7a7a]">
             {format(currentDate, 'EEEE')}
           </span>
-          <span className={`w-10 h-10 flex items-center justify-center rounded-full text-xl font-medium ${isToday(currentDate) ? 'bg-[#c2956e] text-white shadow-md' : 'text-[#3d3b33] dark:text-[#e0e0e0]'}`}>
+          <span className={`w-10 h-10 flex items-center justify-center rounded-full text-xl font-medium ${isTodayDate ? 'bg-[#c2956e] text-white shadow-md' : 'text-[#3d3b33] dark:text-[#e0e0e0]'}`}>
             {format(currentDate, 'd')}
           </span>
         </div>
@@ -117,8 +182,13 @@ export default function DayView({ currentDate, events, onEventClick, onTimeRange
             <div className="flex-1 relative p-2 overflow-y-auto max-h-[100px]">
                <div className="flex flex-col gap-1">
                  {allDayEvents.map(e => (
-                   <div key={e.id} onClick={() => onEventClick(e)} className={`px-3 py-2 text-[11px] font-bold rounded-lg cursor-pointer ${eventColors[e.color] || eventColors['amber']}`}>
-                     {e.title}
+                   <div key={e.id} onClick={() => onEventClick(e)} className={`px-3 py-2 text-[11px] font-bold rounded-lg cursor-pointer flex items-center justify-between shadow-sm ${eventColors[e.color] || eventColors['amber']}`}>
+                     <span className="truncate pr-1">{e.title}</span>
+                     {e.meeting_url && (
+                       <button onClick={(ev) => { ev.stopPropagation(); if (e.meeting_url) window.open(e.meeting_url, '_blank'); }} className="bg-[#c2956e] text-white px-2 py-1 rounded text-[8px] uppercase tracking-wider flex items-center gap-1 hover:bg-[#b0855f] transition-colors shrink-0 shadow-sm">
+                         <Video size={10} /> Join
+                       </button>
+                     )}
                    </div>
                  ))}
                </div>
@@ -126,15 +196,12 @@ export default function DayView({ currentDate, events, onEventClick, onTimeRange
          </div>
       )}
 
-      {/* Time Grid */}
       <div ref={scrollRef} className="flex-1 overflow-y-auto no-scrollbar flex relative bg-[#fdfbf7] dark:bg-[#161616]">
         
-        {/* Horizontal Lines & Global Red Line Container (Placed exactly inside the flex-1) */}
         <div className="absolute top-0 right-0 left-16 h-[1440px] pointer-events-none z-0">
           {HOURS.map(hour => (
             <div key={hour} className="absolute w-full border-b border-[#e0ddd5] dark:border-[#2a2a2a] opacity-50 shrink-0" style={{ top: `${hour * 60}px` }} />
           ))}
-          <div className="absolute left-0 w-full border-t border-red-500 opacity-40" style={{ top: `${currentMins}px` }} />
         </div>
 
         <div className="w-16 border-r border-[#e0ddd5] dark:border-[#333] shrink-0 relative bg-white dark:bg-[#1a1a1a] z-20 h-[1440px]">
@@ -153,43 +220,108 @@ export default function DayView({ currentDate, events, onEventClick, onTimeRange
           className="flex-1 relative h-[1440px] cursor-default z-10" 
           onMouseDown={handleMouseDown}
           onMouseMove={handleMouseMove}
+          onDragOver={(e) => e.preventDefault()}
+          onDrop={(e) => {
+            e.preventDefault();
+            const eventId = e.dataTransfer.getData('text/plain');
+            const ev = events.find(x => x.id === eventId);
+            if (!ev) return;
+            
+            const rect = e.currentTarget.getBoundingClientRect();
+            const y = e.clientY - rect.top;
+            const hour = Math.floor(y / 60);
+            const min = Math.floor((y % 60) / 15) * 15;
+            
+            const duration = new Date(ev.end_time).getTime() - new Date(ev.start_time).getTime();
+            const newStart = setMinutes(setHours(currentDate, hour), min);
+            const newEnd = new Date(newStart.getTime() + duration);
+            
+            onEventMove(ev, newStart, newEnd);
+          }}
         >
-          {isToday(currentDate) && (
-            <div className="absolute left-0 right-0 border-t-2 border-red-500 z-30 pointer-events-none" style={{ top: `${currentMins}px` }}>
-               <div className="absolute -left-1.5 -top-1.5 w-3 h-3 bg-red-500 rounded-full shadow-md shadow-red-500/50" />
-            </div>
-          )}
+          <div 
+             className={`absolute left-0 right-0 z-30 pointer-events-none border-t-[2px] ${isTodayDate ? 'border-red-500 opacity-90' : 'border-red-500/40 opacity-50'}`} 
+             style={{ top: `${currentMins}px` }}
+          >
+             {isTodayDate && <div className="absolute -left-1.5 -top-[5px] w-3 h-3 bg-red-500 rounded-full shadow-[0_0_8px_rgba(239,68,68,0.8)]" />}
+          </div>
 
           {isDragging && dragStart && dragCurrent && (
              (() => {
                const s = dragStart < dragCurrent ? dragStart : dragCurrent;
                let e = dragStart > dragCurrent ? dragStart : dragCurrent;
                if (e.getTime() - s.getTime() < 30 * 60000) e = new Date(s.getTime() + 30 * 60000);
-               const ghostStyle = getPositionStyle(s, e);
+               let ghostStyle: React.CSSProperties = getPositionStyle(s, e);
+               ghostStyle.left = "8px";
+               ghostStyle.width = "calc(100% - 16px)";
                return (
-                  <div className="absolute left-2 right-4 rounded-xl bg-[#c2956e] text-white shadow-md pointer-events-none z-40 p-2 overflow-hidden" style={ghostStyle}>
+                  <div className="absolute rounded-xl bg-[#c2956e] text-white shadow-md pointer-events-none z-40 p-2 overflow-hidden" style={ghostStyle}>
                     <div className="text-xs font-bold leading-tight">New Event</div>
                   </div>
                );
              })()
           )}
 
-          {timeEvents.map(event => {
-            const style = getPositionStyle(new Date(event.start_time), new Date(event.end_time));
+          {overlappingEvents.map((pos: any) => {
+            const event = pos.event;
             const colorClasses = eventColors[event.color] || eventColors['amber'];
+            const numericHeight = parseInt(pos.height.replace('px', ''));
+
+            const showIconsInTitle = numericHeight < 75;
+            const showLocation = event.location && numericHeight >= 55;
+            const showJoin = event.meeting_url && numericHeight >= 75;
+
             return (
               <div 
                 key={event.id}
                 onMouseDown={(e) => e.stopPropagation()}
                 onClick={(e) => { e.stopPropagation(); onEventClick(event); }}
-                className={`absolute left-2 right-4 rounded-xl border p-2 cursor-pointer shadow-md overflow-hidden hover:z-30 hover:scale-[1.01] transition-transform ${colorClasses} z-20`}
-                style={style}
+                className={`absolute rounded-lg md:rounded-xl border cursor-pointer shadow-sm overflow-hidden hover:z-30 transition-transform flex flex-col ${colorClasses} z-20`}
+                style={{ top: pos.top, height: pos.height, left: pos.left, width: pos.width }}
               >
-                <div className="text-sm font-bold leading-tight">{event.title}</div>
-                <div className="text-[11px] opacity-80 mt-1">
-                  {format(new Date(event.start_time), 'h:mm a')} - {format(new Date(event.end_time), 'h:mm a')}
+                <div 
+                  draggable 
+                  onDragStart={(e) => {
+                    e.stopPropagation();
+                    e.dataTransfer.setData('text/plain', event.id);
+                  }}
+                  className="w-full h-3 flex items-center justify-center cursor-grab active:cursor-grabbing opacity-30 hover:opacity-100 transition-opacity bg-black/10 dark:bg-white/10 shrink-0"
+                >
+                   <GripHorizontal size={10} />
                 </div>
-                {event.description && <div className="text-[11px] mt-2 opacity-70 line-clamp-2">{event.description}</div>}
+
+                <div className="p-1.5 flex-1 min-h-0 flex flex-col relative overflow-hidden">
+                  <div className="text-sm font-bold leading-tight flex justify-between items-start gap-1">
+                    <span className="truncate">{event.title}</span>
+                    {showIconsInTitle && event.meeting_url && (
+                      <button onClick={(e) => { e.stopPropagation(); if (event.meeting_url) window.open(event.meeting_url, '_blank'); }} className="bg-[#c2956e] text-white p-0.5 px-1.5 rounded text-[8px] uppercase tracking-wider shrink-0 transition-colors shadow-sm ml-1 hover:bg-[#b0855f]">
+                         <Video size={10} /> Join
+                      </button>
+                    )}
+                  </div>
+                  <div className="text-[11px] opacity-80 mt-0.5 truncate shrink-0">
+                    {format(new Date(event.start_time), 'h:mm a')} - {format(new Date(event.end_time), 'h:mm a')}
+                  </div>
+                  
+                  {showLocation && (
+                    <div className="text-[11px] opacity-90 mt-1 truncate flex items-center gap-1.5 font-medium shrink-0">
+                      <MapPin size={11} className="shrink-0" /> <span className="truncate">{event.location}</span>
+                    </div>
+                  )}
+
+                  {showJoin && (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); if (event.meeting_url) window.open(event.meeting_url, '_blank'); }}
+                      className="mt-auto bg-black/10 hover:bg-black/20 dark:bg-white/10 dark:hover:bg-white/20 px-2.5 py-1.5 rounded-md text-[10px] font-bold uppercase tracking-wider flex items-center w-max gap-1.5 transition-colors self-end"
+                    >
+                      <Video size={12} /> Join
+                    </button>
+                  )}
+
+                  {!showJoin && event.description && numericHeight >= 85 && (
+                    <div className="text-[11px] mt-2 opacity-70 line-clamp-2">{event.description}</div>
+                  )}
+                </div>
               </div>
             );
           })}

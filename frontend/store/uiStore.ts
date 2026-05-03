@@ -5,7 +5,7 @@ import { persist } from 'zustand/middleware';
 type TasksView = 'focus' | 'archive' | 'trash';
 type NotesTab = 'notes' | 'journal' | 'trash';
 type SessionsFilter = 'all' | 'timer' | 'stopwatch';
-type CalendarView = 'month' | 'week' | 'day';
+type CalendarView = 'month' | 'week' | '2-day' | 'day';
 
 export type ConfirmDialogState = {
   title: string;
@@ -14,6 +14,10 @@ export type ConfirmDialogState = {
   isDestructive?: boolean;
   confirmText?: string;
   cancelText?: string;
+  secondaryAction?: {
+    text: string;
+    onClick: () => void;
+  };
 };
 
 interface UiState {

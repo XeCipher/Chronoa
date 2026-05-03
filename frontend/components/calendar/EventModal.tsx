@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { X, Calendar as CalendarIcon, AlignLeft, Palette, Trash2, CheckCircle2, Repeat } from "lucide-react";
+import { X, Calendar as CalendarIcon, AlignLeft, Palette, Trash2, CheckCircle2, Repeat, MapPin, Video } from "lucide-react";
 import { CalendarEvent } from "@/types/app.types";
 import { useUiStore } from "@/store/uiStore";
 import CustomDateTimePicker from "./CustomDateTimePicker";
@@ -49,6 +49,8 @@ export default function EventModal({ isOpen, onClose, onSave, onDelete, initialE
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const [location, setLocation] = useState("");
+  const [meetingUrl, setMeetingUrl] = useState("");
   const [isAllDay, setIsAllDay] = useState(false);
   const [startTime, setStartTime] = useState(new Date());
   const [endTime, setEndTime] = useState(new Date());
@@ -62,6 +64,8 @@ export default function EventModal({ isOpen, onClose, onSave, onDelete, initialE
       if (initialEvent) {
         setTitle(initialEvent.title);
         setDescription(initialEvent.description || "");
+        setLocation(initialEvent.location || "");
+        setMeetingUrl(initialEvent.meeting_url || "");
         setIsAllDay(initialEvent.is_all_day);
         setStartTime(new Date(initialEvent.start_time));
         setEndTime(new Date(initialEvent.end_time));
@@ -78,6 +82,8 @@ export default function EventModal({ isOpen, onClose, onSave, onDelete, initialE
       } else {
         setTitle("");
         setDescription("");
+        setLocation("");
+        setMeetingUrl("");
         setColor("amber");
         setIsAllDay(false);
         setRepeatSelect("none");
@@ -87,7 +93,6 @@ export default function EventModal({ isOpen, onClose, onSave, onDelete, initialE
           setEndTime(dragTimeRange.end);
           setCustomDays([dragTimeRange.start.getDay()]);
         } else {
-          // Nearest rounded 30 min Logic for cleanly timed initial events
           const start = new Date();
           const m = start.getMinutes();
           if (m < 30) {
@@ -108,6 +113,43 @@ export default function EventModal({ isOpen, onClose, onSave, onDelete, initialE
   }, [isOpen, initialEvent, dragTimeRange]);
 
   const isEndTimeInvalid = !isAllDay && endTime <= startTime;
+
+  // Track Unsaved Changes For ESC
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isOpen) {
+        e.preventDefault();
+        
+        let hasChanges = false;
+        if (!initialEvent) {
+          hasChanges = title.trim() !== "" || description.trim() !== "" || location.trim() !== "" || meetingUrl.trim() !== "";
+        } else {
+          hasChanges = 
+            title !== initialEvent.title ||
+            description !== (initialEvent.description || "") ||
+            location !== (initialEvent.location || "") ||
+            meetingUrl !== (initialEvent.meeting_url || "") ||
+            isAllDay !== initialEvent.is_all_day ||
+            color !== (initialEvent.color || "amber");
+        }
+
+        if (hasChanges) {
+          showConfirmDialog({
+            title: "Discard Changes?",
+            message: "You have unsaved changes. Are you sure you want to discard them?",
+            confirmText: "Discard",
+            cancelText: "Keep Editing",
+            isDestructive: true,
+            onConfirm: () => onClose()
+          });
+        } else {
+          onClose();
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, initialEvent, title, description, location, meetingUrl, isAllDay, color, onClose, showConfirmDialog]);
 
   if (!isOpen) return null;
 
@@ -136,6 +178,8 @@ export default function EventModal({ isOpen, onClose, onSave, onDelete, initialE
       ...(initialEvent ? { id: initialEvent.id, series_id: initialEvent.series_id } : {}),
       title: title.trim(),
       description: description.trim() || null,
+      location: location.trim() || null,
+      meeting_url: meetingUrl.trim() || null,
       is_all_day: isAllDay,
       start_time: finalStart.toISOString(),
       end_time: finalEnd.toISOString(),
@@ -150,11 +194,17 @@ export default function EventModal({ isOpen, onClose, onSave, onDelete, initialE
     if (!title.trim() || isEndTimeInvalid) return;
 
     if (initialEvent && initialEvent.series_id) {
-      setTimeout(() => {
-         const ans = window.confirm("Press OK to update THIS AND ALL FUTURE events.\nPress Cancel to update ONLY THIS EVENT.");
-         if (ans) performSave('future');
-         else performSave('this');
-      }, 50);
+      showConfirmDialog({
+        title: "Update Series",
+        message: "Do you want to update just this event, or this and all future events?",
+        confirmText: "All Future Events",
+        cancelText: "Cancel",
+        secondaryAction: {
+          text: "Only This Event",
+          onClick: () => performSave('this')
+        },
+        onConfirm: () => performSave('future')
+      });
     } else {
       performSave('this');
     }
@@ -163,11 +213,18 @@ export default function EventModal({ isOpen, onClose, onSave, onDelete, initialE
   const handleDeleteWrapper = () => {
     if (!initialEvent || !onDelete) return;
     if (initialEvent.series_id) {
-      setTimeout(() => {
-         const ans = window.confirm("Press OK to delete THIS AND ALL FUTURE events.\nPress Cancel to delete ONLY THIS EVENT.");
-         if (ans) { onDelete(initialEvent, 'future'); onClose(); }
-         else { onDelete(initialEvent, 'this'); onClose(); }
-      }, 50);
+      showConfirmDialog({
+        title: "Delete Series",
+        message: "Do you want to delete just this event, or this and all future events?",
+        isDestructive: true,
+        confirmText: "All Future Events",
+        cancelText: "Cancel",
+        secondaryAction: {
+          text: "Only This Event",
+          onClick: () => { onDelete(initialEvent, 'this'); onClose(); }
+        },
+        onConfirm: () => { onDelete(initialEvent, 'future'); onClose(); }
+      });
     } else {
       onDelete(initialEvent, 'this'); 
       onClose();
@@ -194,15 +251,26 @@ export default function EventModal({ isOpen, onClose, onSave, onDelete, initialE
           </div>
         </header>
 
-        <div className="p-6 md:p-8 overflow-y-auto no-scrollbar space-y-6 flex-1 min-h-0 w-full relative">
-          <input 
-            autoFocus
-            type="text" 
-            placeholder="Event Title" 
-            value={title} 
-            onChange={e => setTitle(e.target.value)}
-            className="w-full text-3xl font-serif bg-transparent outline-none text-[#3d3b33] dark:text-white placeholder:text-[#c4c0b8] dark:placeholder:text-[#555]"
-          />
+        <div className="p-6 md:p-8 overflow-y-auto no-scrollbar space-y-5 flex-1 min-h-0 w-full relative">
+          
+          <div className="flex items-center justify-between gap-3 w-full">
+            <input 
+              autoFocus
+              type="text" 
+              placeholder="Event Title" 
+              value={title} 
+              onChange={e => setTitle(e.target.value)}
+              className="flex-1 min-w-0 w-full text-2xl sm:text-3xl font-serif bg-transparent outline-none text-[#3d3b33] dark:text-white placeholder:text-[#c4c0b8] dark:placeholder:text-[#555]"
+            />
+            {meetingUrl && (
+              <button 
+                onClick={() => window.open(meetingUrl, '_blank')}
+                className="shrink-0 flex items-center justify-center gap-1.5 px-4 py-2 bg-[#c2956e] text-white rounded-xl text-[11px] font-bold uppercase tracking-widest hover:bg-[#b0855f] transition-colors shadow-sm"
+              >
+                <Video size={14} /> Join
+              </button>
+            )}
+          </div>
 
           <div className="space-y-4">
             
@@ -254,17 +322,36 @@ export default function EventModal({ isOpen, onClose, onSave, onDelete, initialE
               </div>
             )}
 
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="relative w-full">
+                <MapPin size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#b0ad9a]" />
+                <input 
+                  type="text" placeholder="Location..." 
+                  value={location} onChange={e => setLocation(e.target.value)}
+                  className="w-full bg-white dark:bg-[#252525] border border-[#e0ddd5] dark:border-[#333] rounded-2xl pl-10 pr-4 py-3 text-sm outline-none focus:border-[#c2956e] dark:focus:border-[#b0855f] text-[#3d3b33] dark:text-white transition-colors shadow-sm"
+                />
+              </div>
+              <div className="relative w-full">
+                <Video size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#b0ad9a]" />
+                <input 
+                  type="url" placeholder="Meeting URL..." 
+                  value={meetingUrl} onChange={e => setMeetingUrl(e.target.value)}
+                  className="w-full bg-white dark:bg-[#252525] border border-[#e0ddd5] dark:border-[#333] rounded-2xl pl-10 pr-4 py-3 text-sm outline-none focus:border-[#c2956e] dark:focus:border-[#b0855f] text-[#3d3b33] dark:text-white transition-colors shadow-sm"
+                />
+              </div>
+            </div>
+
             <div className="relative w-full">
               <AlignLeft size={16} className="absolute left-3.5 top-3.5 text-[#b0ad9a]" />
               <textarea 
                 placeholder="Description or notes..." 
                 value={description} 
                 onChange={e => setDescription(e.target.value)}
-                className="w-full bg-white dark:bg-[#252525] border border-[#e0ddd5] dark:border-[#333] rounded-2xl pl-10 pr-4 py-3 min-h-[100px] text-sm outline-none focus:border-[#c2956e] dark:focus:border-[#b0855f] text-[#3d3b33] dark:text-white transition-colors resize-none shadow-sm"
+                className="w-full bg-white dark:bg-[#252525] border border-[#e0ddd5] dark:border-[#333] rounded-2xl pl-10 pr-4 py-3 min-h-[90px] text-sm outline-none focus:border-[#c2956e] dark:focus:border-[#b0855f] text-[#3d3b33] dark:text-white transition-colors resize-none shadow-sm"
               />
             </div>
 
-            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 pt-2 w-full">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 pt-1 w-full">
               <div className="flex items-center gap-2">
                  <Palette size={16} className="text-[#b0ad9a] ml-1 shrink-0" />
                  <span className="text-[10px] font-bold uppercase tracking-widest text-[#888] sm:hidden">Color</span>

@@ -4,19 +4,22 @@
 import { useMemo, useEffect, useState, useRef } from "react";
 import { eachDayOfInterval, format, isToday, isSameDay, setHours, setMinutes, startOfDay, endOfDay } from "date-fns";
 import { CalendarEvent } from "@/types/app.types";
+import { MapPin, Video, GripHorizontal } from "lucide-react";
 
 interface Props {
   currentDate: Date;
   events: CalendarEvent[];
   onEventClick: (event: CalendarEvent) => void;
   onTimeRangeSelected: (start: Date, end: Date) => void;
+  onEventMove: (event: CalendarEvent, newStart: Date, newEnd: Date) => void;
   eventColors: Record<string, string>;
   targetScrollTime: string | null;
+  daysCount?: number;
 }
 
 const HOURS = Array.from({ length: 24 }, (_, i) => i);
 
-export default function WeekView({ currentDate, events, onEventClick, onTimeRangeSelected, eventColors, targetScrollTime }: Props) {
+export default function WeekView({ currentDate, events, onEventClick, onTimeRangeSelected, onEventMove, eventColors, targetScrollTime, daysCount = 7 }: Props) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [now, setNow] = useState(new Date());
 
@@ -44,16 +47,15 @@ export default function WeekView({ currentDate, events, onEventClick, onTimeRang
 
   const days = useMemo(() => {
     const end = new Date(currentDate);
-    end.setDate(end.getDate() + 6);
+    end.setDate(end.getDate() + (daysCount - 1));
     return eachDayOfInterval({ start: currentDate, end });
-  }, [currentDate]);
+  }, [currentDate, daysCount]);
 
-  // Fixed interval catching for repeating tasks
   const allDayEvents = useMemo(() => {
     return events.filter(e => e.is_all_day).filter(e => {
        const start = new Date(e.start_time);
        const end = new Date(e.end_time);
-       return start <= endOfDay(days[6]) && end >= startOfDay(days[0]);
+       return start <= endOfDay(days[days.length - 1]) && end >= startOfDay(days[0]);
     });
   }, [events, days]);
 
@@ -61,7 +63,7 @@ export default function WeekView({ currentDate, events, onEventClick, onTimeRang
     return events.filter(e => !e.is_all_day).filter(e => {
        const start = new Date(e.start_time);
        const end = new Date(e.end_time);
-       return start <= endOfDay(days[6]) && end >= startOfDay(days[0]);
+       return start <= endOfDay(days[days.length - 1]) && end >= startOfDay(days[0]);
     });
   }, [events, days]);
 
@@ -74,6 +76,71 @@ export default function WeekView({ currentDate, events, onEventClick, onTimeRang
     
     const height = Math.max(endMins - startMins, 15);
     return { top: `${startMins}px`, height: `${height}px` };
+  };
+
+  const calculateOverlaps = (day: Date) => {
+    const dayEvents = timeEvents.filter(e => {
+        const sStr = format(new Date(e.start_time), 'yyyy-MM-dd');
+        const eStr = format(new Date(e.end_time), 'yyyy-MM-dd');
+        const dStr = format(day, 'yyyy-MM-dd');
+        return dStr >= sStr && dStr <= eStr;
+    }).sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime());
+
+    const clusters: any[] = [];
+    dayEvents.forEach(ev => {
+        const start = new Date(ev.start_time);
+        const end = new Date(ev.end_time);
+        const evStart = isSameDay(start, day) ? start.getHours() * 60 + start.getMinutes() : 0;
+        const evEnd = isSameDay(end, day) ? end.getHours() * 60 + end.getMinutes() : 24 * 60;
+        
+        let added = false;
+        for (const cluster of clusters) {
+            if (evStart < cluster.end) {
+                cluster.events.push({ ev, start: evStart, end: evEnd });
+                cluster.end = Math.max(cluster.end, evEnd);
+                added = true;
+                break;
+            }
+        }
+        if (!added) {
+            clusters.push({ end: evEnd, events: [{ ev, start: evStart, end: evEnd }] });
+        }
+    });
+
+    const positioned: any[] = [];
+    clusters.forEach(cluster => {
+        const cols: any[][] = [];
+        cluster.events.forEach((item: any) => {
+            let placed = false;
+            for (let i = 0; i < cols.length; i++) {
+                const col = cols[i];
+                const last = col[col.length - 1];
+                if (item.start >= last.end) {
+                    col.push(item);
+                    item.col = i;
+                    placed = true;
+                    break;
+                }
+            }
+            if (!placed) {
+                item.col = cols.length;
+                cols.push([item]);
+            }
+        });
+        
+        const numCols = cols.length;
+        cluster.events.forEach((item: any) => {
+            positioned.push({
+                event: item.ev,
+                top: `${item.start}px`,
+                height: `${Math.max(item.end - item.start, 15)}px`,
+                left: `calc(${(100 / numCols) * item.col}% + 4px)`,
+                width: `calc(${100 / numCols}% - 8px)`
+            });
+        });
+    });
+
+    return positioned;
   };
 
   const handleMouseDown = (e: React.MouseEvent, day: Date) => {
@@ -118,47 +185,61 @@ export default function WeekView({ currentDate, events, onEventClick, onTimeRang
       
       <div className="flex border-b border-[#e0ddd5] dark:border-[#333] bg-[#f7f5f0]/50 dark:bg-[#222]/50 shrink-0">
         <div className="w-12 md:w-16 border-r border-[#e0ddd5] dark:border-[#333] shrink-0" />
-        <div className="flex-1 grid grid-cols-7 divide-x divide-[#e0ddd5] dark:divide-[#333]">
-          {days.map((day, i) => (
-            <div key={i} className="flex flex-col items-center justify-center py-2 md:py-3 gap-1">
-              <span className="text-[9px] md:text-[10px] font-bold uppercase tracking-widest text-[#b0ad9a] dark:text-[#7a7a7a]">
-                {format(day, 'EEE')}
-              </span>
-              <span className={`w-7 h-7 flex items-center justify-center rounded-full text-sm md:text-base font-medium ${isToday(day) ? 'bg-[#c2956e] text-white shadow-md' : 'text-[#3d3b33] dark:text-[#e0e0e0]'}`}>
-                {format(day, 'd')}
-              </span>
-            </div>
-          ))}
+        <div className="flex-1 grid divide-x divide-[#e0ddd5] dark:divide-[#333]" style={{ gridTemplateColumns: `repeat(${daysCount}, minmax(0, 1fr))` }}>
+          {days.map((day, i) => {
+            const isTodayDate = isToday(day);
+            return (
+              <div key={i} className="flex flex-col items-center justify-center py-2 md:py-3 gap-1">
+                <span className="text-[9px] md:text-[10px] font-bold uppercase tracking-widest text-[#b0ad9a] dark:text-[#7a7a7a]">
+                  {format(day, 'EEE')}
+                </span>
+                <span className={`w-7 h-7 flex items-center justify-center rounded-full text-sm md:text-base font-medium ${isTodayDate ? 'bg-[#c2956e] text-white shadow-md' : 'text-[#3d3b33] dark:text-[#e0e0e0]'}`}>
+                  {format(day, 'd')}
+                </span>
+              </div>
+            );
+          })}
         </div>
       </div>
 
       {allDayEvents.length > 0 && (
          <div className="flex border-b border-[#e0ddd5] dark:border-[#333] bg-white dark:bg-[#1e1e1e] shrink-0 min-h-[30px]">
             <div className="w-12 md:w-16 border-r border-[#e0ddd5] dark:border-[#333] shrink-0 flex items-center justify-center">
-               <span className="text-[9px] font-bold uppercase tracking-widest text-[#b0ad9a]">All-day</span>
+               <span className="text-[8px] md:text-[9px] font-bold uppercase tracking-widest text-[#b0ad9a]">All-day</span>
             </div>
-            <div className="flex-1 relative p-1 overflow-y-auto max-h-[100px]">
-               <div className="flex flex-wrap gap-1">
-                 {allDayEvents.map(e => (
-                   <div key={e.id} onClick={() => onEventClick(e)} className={`px-2 py-1 text-[10px] font-bold rounded-md cursor-pointer ${eventColors[e.color] || eventColors['amber']}`}>
-                     {e.title}
+            <div className="flex-1 grid divide-x divide-[#e0ddd5] dark:divide-[#333]" style={{ gridTemplateColumns: `repeat(${daysCount}, minmax(0, 1fr))` }}>
+               {days.map((day, colIdx) => {
+                 const dayAllDayEvents = allDayEvents.filter(e => {
+                    const sStr = format(new Date(e.start_time), 'yyyy-MM-dd');
+                    const eStr = format(new Date(e.end_time), 'yyyy-MM-dd');
+                    const dStr = format(day, 'yyyy-MM-dd');
+                    return dStr >= sStr && dStr <= eStr;
+                 });
+                 return (
+                   <div key={colIdx} className="p-1 flex flex-col gap-1 min-h-[30px]">
+                     {dayAllDayEvents.map(e => (
+                       <div key={e.id} onClick={() => onEventClick(e)} className={`px-1.5 py-1 text-[9px] font-bold rounded-md cursor-pointer truncate shadow-sm flex items-center justify-between ${eventColors[e.color] || eventColors['amber']}`}>
+                         <span className="truncate pr-1">{e.title}</span>
+                         {e.meeting_url && (
+                           <button onClick={(ev) => { ev.stopPropagation(); if (e.meeting_url) window.open(e.meeting_url, '_blank'); }} className="bg-[#c2956e] text-white px-1.5 py-0.5 rounded text-[8px] uppercase tracking-wider flex items-center gap-1 hover:bg-[#b0855f] transition-colors shrink-0 shadow-sm">
+                             <Video size={8} /> Join
+                           </button>
+                         )}
+                       </div>
+                     ))}
                    </div>
-                 ))}
-               </div>
+                 );
+               })}
             </div>
          </div>
       )}
 
-      {/* Grid */}
       <div ref={scrollRef} className="flex-1 overflow-y-auto no-scrollbar flex relative bg-[#fdfbf7] dark:bg-[#161616]">
         
-        {/* Horizontal Lines & Global Red Line Container (Placed exactly inside the flex-1 to bypass the left 16 w-bar) */}
         <div className="absolute top-0 right-0 left-12 md:left-16 h-[1440px] pointer-events-none z-0">
           {HOURS.map(hour => (
             <div key={hour} className="absolute w-full border-b border-[#e0ddd5] dark:border-[#2a2a2a] opacity-50" style={{ top: `${hour * 60}px` }} />
           ))}
-          {/* Constant Red Line */}
-          <div className="absolute left-0 w-full border-t border-red-500 opacity-40" style={{ top: `${currentMins}px` }} />
         </div>
 
         <div className="w-12 md:w-16 border-r border-[#e0ddd5] dark:border-[#333] shrink-0 relative bg-white dark:bg-[#1a1a1a] z-20 h-[1440px]">
@@ -176,19 +257,19 @@ export default function WeekView({ currentDate, events, onEventClick, onTimeRang
         <div className="flex-1 relative flex z-10" onMouseUp={handleMouseUp} onMouseLeave={handleMouseUp}>
           
           {days.map((day, colIdx) => {
-            const dayEvents = timeEvents.filter(e => {
-               const sStr = e.start_time.split('T')[0];
-               const eStr = e.end_time.split('T')[0];
-               const dStr = format(day, 'yyyy-MM-dd');
-               return dStr >= sStr && dStr <= eStr;
-            });
+            const isTodayDate = isToday(day);
+            const overlappingEvents = calculateOverlaps(day);
 
-            let ghostStyle = null;
+            let ghostStyle: React.CSSProperties | null = null;
             if (isDragging && dragStart && dragCurrent && isSameDay(dragStart, day)) {
                const s = dragStart < dragCurrent ? dragStart : dragCurrent;
                let e = dragStart > dragCurrent ? dragStart : dragCurrent;
                if (e.getTime() - s.getTime() < 30 * 60000) e = new Date(s.getTime() + 30 * 60000);
-               ghostStyle = getPositionStyle(s, e, day);
+               ghostStyle = {
+                 ...getPositionStyle(s, e, day),
+                 left: "4px",
+                 width: "calc(100% - 8px)"
+               };
             }
 
             return (
@@ -197,35 +278,93 @@ export default function WeekView({ currentDate, events, onEventClick, onTimeRang
                 className="flex-1 border-r border-[#e0ddd5] dark:border-[#333] last:border-r-0 relative h-[1440px] cursor-default" 
                 onMouseDown={(e) => handleMouseDown(e, day)}
                 onMouseMove={(e) => handleMouseMove(e, day)}
+                onDragOver={(e) => e.preventDefault()}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  const eventId = e.dataTransfer.getData('text/plain');
+                  const ev = events.find(x => x.id === eventId);
+                  if (!ev) return;
+                  
+                  const rect = e.currentTarget.getBoundingClientRect();
+                  const y = e.clientY - rect.top;
+                  const hour = Math.floor(y / 60);
+                  const min = Math.floor((y % 60) / 15) * 15;
+                  
+                  const duration = new Date(ev.end_time).getTime() - new Date(ev.start_time).getTime();
+                  const newStart = setMinutes(setHours(day, hour), min);
+                  const newEnd = new Date(newStart.getTime() + duration);
+                  
+                  onEventMove(ev, newStart, newEnd);
+                }}
               >
-                {/* Red dot for today ONLY */}
-                {isToday(day) && (
-                  <div className="absolute left-0 right-0 z-30 pointer-events-none" style={{ top: `${currentMins}px` }}>
-                     <div className="absolute -left-1.5 -top-1.5 w-3 h-3 bg-red-500 rounded-full shadow-md shadow-red-500/50" />
-                  </div>
-                )}
+                <div 
+                   className={`absolute left-0 right-0 z-30 pointer-events-none border-t-[2px] ${isTodayDate ? 'border-red-500 opacity-90' : 'border-red-500/40 opacity-50'}`} 
+                   style={{ top: `${currentMins}px` }}
+                >
+                   {isTodayDate && <div className="absolute -left-1.5 -top-[5px] w-3 h-3 bg-red-500 rounded-full shadow-[0_0_8px_rgba(239,68,68,0.8)]" />}
+                </div>
 
-                {/* Ghost Style matched to standard yellow task look */}
                 {ghostStyle && (
-                  <div className="absolute left-1 right-1 rounded-lg bg-[#c2956e] text-white shadow-md pointer-events-none z-40 p-1.5 overflow-hidden" style={ghostStyle}>
+                  <div className="absolute rounded-lg bg-[#c2956e] text-white shadow-md pointer-events-none z-40 p-1.5 overflow-hidden" style={ghostStyle}>
                     <div className="text-[10px] font-bold leading-tight">New Event</div>
                   </div>
                 )}
 
-                {dayEvents.map(event => {
-                  const style = getPositionStyle(new Date(event.start_time), new Date(event.end_time), day);
+                {overlappingEvents.map((pos: any) => {
+                  const event = pos.event;
                   const colorClasses = eventColors[event.color] || eventColors['amber'];
+                  const numericHeight = parseInt(pos.height.replace('px', ''));
+
+                  const showIconsInTitle = numericHeight < 75;
+                  const showLocation = event.location && numericHeight >= 55;
+                  const showJoin = event.meeting_url && numericHeight >= 75;
+
                   return (
                     <div 
                       key={event.id}
                       onMouseDown={(e) => e.stopPropagation()}
                       onClick={(e) => { e.stopPropagation(); onEventClick(event); }}
-                      className={`absolute left-1 right-1 rounded-lg border p-1.5 cursor-pointer shadow-sm overflow-hidden hover:z-30 hover:scale-[1.02] transition-transform ${colorClasses} z-20`}
-                      style={style}
+                      className={`absolute rounded-lg border cursor-pointer shadow-sm overflow-hidden hover:z-30 transition-transform flex flex-col ${colorClasses} z-20`}
+                      style={{ top: pos.top, height: pos.height, left: pos.left, width: pos.width }}
                     >
-                      <div className="text-[10px] md:text-xs font-bold leading-tight">{event.title}</div>
-                      <div className="text-[9px] md:text-[10px] opacity-80 mt-0.5">
-                        {format(new Date(event.start_time), 'h:mm a')}
+                      <div 
+                        draggable 
+                        onDragStart={(e) => {
+                          e.stopPropagation();
+                          e.dataTransfer.setData('text/plain', event.id);
+                        }}
+                        className="w-full h-3 flex items-center justify-center cursor-grab active:cursor-grabbing opacity-30 hover:opacity-100 transition-opacity bg-black/10 dark:bg-white/10 shrink-0"
+                      >
+                         <GripHorizontal size={10} />
+                      </div>
+                      
+                      <div className="p-1.5 flex-1 min-h-0 flex flex-col relative overflow-hidden">
+                        <div className="text-[10px] md:text-xs font-bold leading-tight flex justify-between items-start gap-1">
+                          <span className="truncate">{event.title}</span>
+                          {showIconsInTitle && event.meeting_url && (
+                            <button onClick={(e) => { e.stopPropagation(); if (event.meeting_url) window.open(event.meeting_url, '_blank'); }} className="bg-[#c2956e] text-white p-0.5 px-1 rounded text-[8px] uppercase tracking-wider shrink-0 transition-colors shadow-sm ml-1 hover:bg-[#b0855f]">
+                               <Video size={8} /> Join
+                            </button>
+                          )}
+                        </div>
+                        <div className="text-[9px] md:text-[10px] opacity-80 mt-0.5 truncate shrink-0">
+                          {format(new Date(event.start_time), 'h:mm a')}
+                        </div>
+
+                        {showLocation && (
+                          <div className="text-[9px] opacity-90 mt-1 truncate flex items-center gap-1.5 font-medium shrink-0">
+                            <MapPin size={9} className="shrink-0" /> <span className="truncate">{event.location}</span>
+                          </div>
+                        )}
+
+                        {showJoin && (
+                          <button
+                            onClick={(e) => { e.stopPropagation(); if (event.meeting_url) window.open(event.meeting_url, '_blank'); }}
+                            className="mt-auto bg-black/10 hover:bg-black/20 dark:bg-white/10 dark:hover:bg-white/20 px-2 py-1 rounded-md text-[9px] font-bold uppercase tracking-wider flex items-center w-max gap-1 transition-colors self-end"
+                          >
+                            <Video size={10} /> Join
+                          </button>
+                        )}
                       </div>
                     </div>
                   );

@@ -29,4 +29,6 @@ export type CalendarEvent = {
   updated_at: string;
   series_id?: string | null;
   repeat_pattern?: string | null;
+  meeting_url?: string | null;
+  location?: string | null;
 };

@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, isSameMonth, addMonths, subMonths, startOfDay, isBefore } from "date-fns";
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, addMonths, subMonths, startOfDay, isBefore } from "date-fns";
 import { ChevronLeft, ChevronRight, Calendar as CalIcon } from "lucide-react";
 
 interface Props {
@@ -12,9 +12,6 @@ interface Props {
   label: string;
   minDate?: Date;
 }
-
-const HOURS = Array.from({ length: 12 }, (_, i) => i === 0 ? 12 : i);
-const MINS = ['00', '15', '30', '45'];
 
 export default function CustomDateTimePicker({ value, onChange, isAllDay, label, minDate }: Props) {
   const [isOpen, setIsOpen] = useState(false);
@@ -70,12 +67,21 @@ export default function CustomDateTimePicker({ value, onChange, isAllDay, label,
     applyTime(inputHour, inputMin, mode === 'PM');
   };
 
+  const handleHourChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setInputHour(e.target.value);
+    applyTime(e.target.value, inputMin, value.getHours() >= 12);
+  };
+
+  const handleMinChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setInputMin(e.target.value);
+    applyTime(inputHour, e.target.value, value.getHours() >= 12);
+  };
+
   const flushHour = () => {
     let h = parseInt(inputHour);
     if (isNaN(h) || h < 1) h = 12;
     if (h > 12) h = 12;
     setInputHour(String(h));
-    applyTime(String(h), inputMin, value.getHours() >= 12);
   };
 
   const flushMin = () => {
@@ -83,7 +89,6 @@ export default function CustomDateTimePicker({ value, onChange, isAllDay, label,
     if (isNaN(m) || m < 0) m = 0;
     if (m > 59) m = 59;
     setInputMin(String(m).padStart(2, '0'));
-    applyTime(inputHour, String(m), value.getHours() >= 12);
   };
 
   return (
@@ -109,7 +114,7 @@ export default function CustomDateTimePicker({ value, onChange, isAllDay, label,
                 <input 
                   type="number" min="1" max="12" 
                   value={inputHour} 
-                  onChange={e => setInputHour(e.target.value)} 
+                  onChange={handleHourChange} 
                   onBlur={flushHour}
                   className="w-8 bg-transparent text-center text-sm font-bold outline-none text-[#3d3b33] dark:text-white appearance-none [&::-webkit-inner-spin-button]:appearance-none" 
                 />
@@ -117,7 +122,7 @@ export default function CustomDateTimePicker({ value, onChange, isAllDay, label,
                 <input 
                   type="number" min="0" max="59" 
                   value={inputMin} 
-                  onChange={e => setInputMin(e.target.value)} 
+                  onChange={handleMinChange} 
                   onBlur={flushMin}
                   className="w-8 bg-transparent text-center text-sm font-bold outline-none text-[#3d3b33] dark:text-white appearance-none [&::-webkit-inner-spin-button]:appearance-none" 
                 />

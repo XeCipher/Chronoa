@@ -5,8 +5,8 @@ import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import { CalendarEvent } from "@/types/app.types";
 import { useUiStore } from "@/store/uiStore";
-import { CalendarDays, ChevronLeft, ChevronRight, Plus, Search, X } from "lucide-react";
-import { format, addMonths, subMonths, addDays, startOfDay, endOfDay, startOfWeek, addWeeks, addYears } from "date-fns";
+import { CalendarDays, ChevronLeft, ChevronRight, Plus, Search } from "lucide-react";
+import { format, addMonths, subMonths, addDays, startOfDay, endOfDay, startOfWeek, addWeeks, addYears, isSameDay } from "date-fns";
 
 import MonthView from "@/components/calendar/MonthView";
 import WeekView from "@/components/calendar/WeekView";
@@ -23,7 +23,7 @@ const EVENT_COLORS: Record<string, string> = {
 };
 
 export default function CalendarPage() {
-  const { calendarView, setCalendarView } = useUiStore();
+  const { calendarView, setCalendarView, showConfirmDialog } = useUiStore();
   
   const [referenceDate, setReferenceDate] = useState(startOfDay(new Date()));
   const [events, setEvents] = useState<CalendarEvent[]>([]);
@@ -32,7 +32,8 @@ export default function CalendarPage() {
   // Search States
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const searchRef = useRef<HTMLDivElement>(null);
+  const mobileSearchRef = useRef<HTMLDivElement>(null);
+  const desktopSearchRef = useRef<HTMLDivElement>(null);
   const [targetScrollTime, setTargetScrollTime] = useState<string | null>(null);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -49,12 +50,27 @@ export default function CalendarPage() {
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
-      if (searchRef.current && !searchRef.current.contains(e.target as Node)) {
+      const target = e.target as Node;
+      if (
+        isSearchOpen &&
+        (!mobileSearchRef.current || !mobileSearchRef.current.contains(target)) &&
+        (!desktopSearchRef.current || !desktopSearchRef.current.contains(target))
+      ) {
         setIsSearchOpen(false);
       }
     };
-    if (isSearchOpen) document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [isSearchOpen]);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isSearchOpen) {
+        setIsSearchOpen(false);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isSearchOpen]);
 
   const fetchEvents = async () => {
@@ -90,12 +106,14 @@ export default function CalendarPage() {
       if (referenceDate.getDay() !== 0) setReferenceDate(startOfWeek(referenceDate));
       else setReferenceDate(addDays(referenceDate, -7));
     }
+    else if (calendarView === '2-day') setReferenceDate(addDays(referenceDate, -1));
     else setReferenceDate(addDays(referenceDate, -1));
   };
 
   const handleNext = () => {
     if (calendarView === 'month') setReferenceDate(addMonths(referenceDate, 1));
     else if (calendarView === 'week') setReferenceDate(addDays(referenceDate, 7));
+    else if (calendarView === '2-day') setReferenceDate(addDays(referenceDate, 1));
     else setReferenceDate(addDays(referenceDate, 1));
   };
 
@@ -163,7 +181,7 @@ export default function CalendarPage() {
         setEvents(prev => prev.map(e => e.id === updates.id ? { ...e, ...updates, series_id: null } as CalendarEvent : e));
         await supabase.from('calendar_events').update({ ...updates, series_id: null }).eq('id', updates.id);
       } else {
-        const currentStartTime = new Date(selectedEvent!.start_time);
+        const currentStartTime = new Date(selectedEvent?.start_time || updates.start_time!);
         setEvents(prev => prev.filter(e => !(e.series_id === updates.series_id && new Date(e.start_time) >= currentStartTime)));
         await supabase.from('calendar_events').delete().eq('series_id', updates.series_id).gte('start_time', currentStartTime.toISOString());
         
@@ -203,6 +221,30 @@ export default function CalendarPage() {
     }
   };
 
+  const handleEventMove = (event: CalendarEvent, newStart: Date, newEnd: Date) => {
+    const updates = {
+      ...event,
+      start_time: newStart.toISOString(),
+      end_time: newEnd.toISOString()
+    };
+
+    if (event.series_id) {
+      showConfirmDialog({
+        title: "Update Series",
+        message: "Do you want to move just this event, or this and all future events?",
+        confirmText: "All Future Events",
+        cancelText: "Cancel",
+        secondaryAction: {
+          text: "Only This Event",
+          onClick: () => handleSaveEvent(updates, 'this')
+        },
+        onConfirm: () => handleSaveEvent(updates, 'future')
+      });
+    } else {
+      handleSaveEvent(updates, 'this');
+    }
+  };
+
   const handleSearchResultClick = (e: CalendarEvent) => {
     setReferenceDate(new Date(e.start_time));
     setCalendarView('day');
@@ -217,6 +259,7 @@ export default function CalendarPage() {
   const displayTitle = () => {
     if (calendarView === 'month') return format(referenceDate, 'MMMM yyyy');
     if (calendarView === 'week') return `${format(referenceDate, 'MMM d')} - ${format(addDays(referenceDate, 6), 'MMM d, yyyy')}`;
+    if (calendarView === '2-day') return `${format(referenceDate, 'MMM d')} - ${format(addDays(referenceDate, 1), 'MMM d, yyyy')}`;
     return format(referenceDate, 'MMMM d, yyyy');
   };
 
@@ -230,36 +273,38 @@ export default function CalendarPage() {
     );
   };
 
+  const isCurrentDateToday = isSameDay(referenceDate, new Date());
+
   return (
-    <div className="w-full h-full p-4 md:p-8 lg:p-10 lg:pl-10 relative flex min-w-0 bg-[#f7f5f0] dark:bg-[#121212]">
+    <div className="w-full h-full pt-[max(1.5rem,env(safe-area-inset-top))] px-4 md:p-8 lg:p-10 lg:pl-16 xl:pl-28 relative flex min-w-0 bg-[#f7f5f0] dark:bg-[#121212]">
       
-      {/* Reduced Left Space Vertical Label */}
-      <div className="hidden lg:flex absolute -left-2 top-1/2 -translate-y-1/2 pointer-events-none items-center justify-center opacity-30 dark:opacity-20 z-0">
+      <div className="hidden lg:flex absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none items-center justify-center opacity-30 dark:opacity-20 z-0">
         <span className="-rotate-90 whitespace-nowrap text-[120px] font-bold text-[#e0ddd5] dark:text-[#222] tracking-widest pointer-events-none select-none">
           CALENDAR
         </span>
       </div>
 
-      <div className="flex-1 flex flex-col relative z-10 min-w-0 max-w-full">
-        <header className="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-6 shrink-0">
+      <div className="flex-1 flex flex-col relative z-10 min-w-0 max-w-full h-full">
+        <header className="mb-4 md:mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4 shrink-0 relative z-50">
+          
           <div className="flex items-center justify-between w-full md:w-auto">
-            <div className="flex items-center gap-2.5 text-[#3d3b33] dark:text-[#f0f0f0]">
-              <CalendarDays size={24} className="text-[#c2956e]" />
-              <div className="flex flex-col">
-                <h1 className="text-2xl md:text-3xl font-serif font-medium tracking-tight leading-none">{displayTitle()}</h1>
+            <div className="flex items-center gap-2.5 text-[#3d3b33] dark:text-[#f0f0f0] min-w-0 pr-2">
+              <CalendarDays size={24} className="text-[#c2956e] shrink-0" />
+              <div className="flex flex-col min-w-0">
+                <h1 className="text-2xl md:text-3xl font-serif font-medium tracking-tight leading-normal truncate pb-0.5">{displayTitle()}</h1>
               </div>
             </div>
-            {/* Mobile Header Actions (Only Search) */}
-            <div className="md:hidden flex items-center gap-2 relative" ref={searchRef}>
+            
+            <div className="md:hidden relative shrink-0" ref={mobileSearchRef}>
               <button 
                   onClick={() => setIsSearchOpen(!isSearchOpen)}
-                  className={`w-10 h-10 flex items-center justify-center rounded-full transition-colors shadow-sm ${isSearchOpen ? 'bg-[#c2956e] text-white' : 'bg-white dark:bg-[#1a1a1a] text-[#888] hover:text-[#c2956e] border border-[#e0ddd5] dark:border-[#333]'}`}
+                  className={`w-9 h-9 flex items-center justify-center rounded-full transition-colors shadow-sm ${isSearchOpen ? 'bg-[#c2956e] text-white' : 'bg-white dark:bg-[#1a1a1a] text-[#888] hover:text-[#c2956e] border border-[#e0ddd5] dark:border-[#333]'}`}
                 >
-                  <Search size={18} />
+                  <Search size={16} />
               </button>
 
               {isSearchOpen && (
-                <div className="absolute top-[calc(100%+8px)] right-0 w-[300px] bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] rounded-[1.5rem] shadow-xl z-50 p-4 animate-fade-up">
+                <div className="absolute top-[calc(100%+8px)] right-0 w-[280px] bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] rounded-[1.5rem] shadow-xl z-[100] p-4 animate-fade-up">
                   <input 
                     autoFocus
                     value={searchQuery} 
@@ -289,72 +334,68 @@ export default function CalendarPage() {
             </div>
           </div>
 
-          <div className="flex flex-col xl:flex-row items-center gap-4 w-full md:w-auto relative">
-            
-            <div className="flex items-center justify-between w-full xl:w-auto gap-4">
-              <div className="hidden md:block relative" ref={searchRef}>
-                <button 
-                  onClick={() => setIsSearchOpen(!isSearchOpen)}
-                  className={`p-2.5 rounded-full border transition-colors shadow-sm ${isSearchOpen ? 'bg-[#c2956e] border-[#c2956e] text-white' : 'bg-white dark:bg-[#1a1a1a] border-[#e0ddd5] dark:border-[#333] text-[#888] hover:text-[#c2956e]'}`}
-                >
-                  <Search size={16} />
-                </button>
-                {isSearchOpen && (
-                  <div className="absolute top-[calc(100%+8px)] right-0 w-[300px] bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] rounded-[1.5rem] shadow-xl z-50 p-4 animate-fade-up">
-                    <input 
-                      autoFocus
-                      value={searchQuery} 
-                      onChange={e => setSearchQuery(e.target.value)} 
-                      placeholder="Search events..." spellCheck={false}
-                      className="w-full bg-[#f7f5f0] dark:bg-[#252525] border border-[#e0ddd5] dark:border-[#444] rounded-xl px-4 py-2.5 outline-none focus:border-[#c2956e] text-sm text-[#3d3b33] dark:text-[#f0f0f0] transition-all mb-3" 
-                    />
-                    <div className="max-h-[300px] overflow-y-auto no-scrollbar space-y-1">
-                      {searchQuery ? (
-                        filteredEvents.length > 0 ? filteredEvents.map(e => (
-                          <div 
-                            key={e.id} onClick={() => handleSearchResultClick(e)}
-                            className="p-3 rounded-xl hover:bg-[#f7f5f0] dark:hover:bg-[#222] cursor-pointer transition-colors border border-transparent hover:border-[#e0ddd5] dark:hover:border-[#333]"
-                          >
-                            <div className="text-sm font-semibold truncate text-[#3d3b33] dark:text-white">{renderHighlightedText(e.title)}</div>
-                            <div className="text-[10px] text-[#b0ad9a] mt-1">{format(new Date(e.start_time), 'MMM d, yyyy • h:mm a')}</div>
-                          </div>
-                        )) : (
-                          <div className="text-center py-4 text-xs italic text-[#b0ad9a]">No events found.</div>
-                        )
-                      ) : (
-                        <div className="text-center py-4 text-xs italic text-[#b0ad9a]">Type to search...</div>
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              <div className="flex items-center bg-white dark:bg-[#1a1a1a] rounded-2xl p-1 border border-[#e0ddd5] dark:border-[#333] shadow-sm">
-                <button onClick={handlePrev} className="p-2 text-[#888] hover:text-[#3d3b33] dark:hover:text-white transition-colors"><ChevronLeft size={18} /></button>
-                <button onClick={handleToday} className="px-4 py-1 text-[11px] font-bold uppercase tracking-widest text-[#3d3b33] dark:text-[#f0f0f0] hover:text-[#c2956e] transition-colors">Today</button>
-                <button onClick={handleNext} className="p-2 text-[#888] hover:text-[#3d3b33] dark:hover:text-white transition-colors"><ChevronRight size={18} /></button>
-              </div>
-
-              <div className="flex bg-white/50 dark:bg-[#1e1e1e]/50 border border-[#e0ddd5] dark:border-[#333] p-1 rounded-2xl shadow-sm shrink-0">
-                {(['day', 'week', 'month'] as const).map(v => (
-                  <button 
-                    key={v} onClick={() => setCalendarView(v)}
-                    className={`px-4 md:px-5 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all ${calendarView === v ? 'bg-[#c2956e] dark:bg-[#b0855f] text-white shadow-md' : 'text-[#b0ad9a] dark:text-[#7a7a7a] md:hover:text-[#3d3b33] md:dark:hover:text-white'}`}
-                  >
-                    {v}
-                  </button>
-                ))}
-              </div>
-
-              {/* Desktop Plus Button */}
-              <button onClick={() => openAddModal()} className="hidden md:flex w-9 h-9 items-center justify-center bg-[#f7f5f0] dark:bg-[#252525] text-[#c2956e] dark:text-[#d1a784] rounded-full hover:bg-[#c2956e]/10 dark:hover:bg-[#b0855f]/20 transition-all shadow-sm border border-[#e0ddd5] dark:border-[#333]">
-                <Plus size={18} strokeWidth={2.5} />
+          <div className="flex items-center gap-2 md:gap-3 w-full md:w-auto overflow-x-auto no-scrollbar pb-1 md:pb-0 shrink-0">
+            <div className="hidden md:block relative shrink-0 h-10" ref={desktopSearchRef}>
+              <button 
+                onClick={() => setIsSearchOpen(!isSearchOpen)}
+                className={`h-full aspect-square rounded-full border transition-colors shadow-sm flex items-center justify-center ${isSearchOpen ? 'bg-[#c2956e] border-[#c2956e] text-white' : 'bg-white dark:bg-[#1a1a1a] border-[#e0ddd5] dark:border-[#333] text-[#888] hover:text-[#c2956e]'}`}
+              >
+                <Search size={16} />
               </button>
+              {isSearchOpen && (
+                <div className="absolute top-[calc(100%+8px)] right-0 w-[300px] bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] rounded-[1.5rem] shadow-xl z-[100] p-4 animate-fade-up">
+                  <input 
+                    autoFocus
+                    value={searchQuery} 
+                    onChange={e => setSearchQuery(e.target.value)} 
+                    placeholder="Search events..." spellCheck={false}
+                    className="w-full bg-[#f7f5f0] dark:bg-[#252525] border border-[#e0ddd5] dark:border-[#444] rounded-xl px-4 py-2.5 outline-none focus:border-[#c2956e] text-sm text-[#3d3b33] dark:text-[#f0f0f0] transition-all mb-3" 
+                  />
+                  <div className="max-h-[300px] overflow-y-auto no-scrollbar space-y-1">
+                    {searchQuery ? (
+                      filteredEvents.length > 0 ? filteredEvents.map(e => (
+                        <div 
+                          key={e.id} onClick={() => handleSearchResultClick(e)}
+                          className="p-3 rounded-xl hover:bg-[#f7f5f0] dark:hover:bg-[#222] cursor-pointer transition-colors border border-transparent hover:border-[#e0ddd5] dark:hover:border-[#333]"
+                        >
+                          <div className="text-sm font-semibold truncate text-[#3d3b33] dark:text-white">{renderHighlightedText(e.title)}</div>
+                          <div className="text-[10px] text-[#b0ad9a] mt-1">{format(new Date(e.start_time), 'MMM d, yyyy • h:mm a')}</div>
+                        </div>
+                      )) : (
+                        <div className="text-center py-4 text-xs italic text-[#b0ad9a]">No events found.</div>
+                      )
+                    ) : (
+                      <div className="text-center py-4 text-xs italic text-[#b0ad9a]">Type to search...</div>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
+
+            <div className="flex items-center bg-white dark:bg-[#1a1a1a] rounded-xl md:rounded-2xl p-0.5 border border-[#e0ddd5] dark:border-[#333] shadow-sm shrink-0 h-9 md:h-10">
+              <button onClick={handlePrev} className="px-2 md:px-3 text-[#888] hover:text-[#3d3b33] dark:hover:text-white transition-colors h-full flex items-center justify-center"><ChevronLeft size={16} className="md:w-[18px] md:h-[18px]" /></button>
+              <button onClick={handleToday} className={`px-3 md:px-4 text-[10px] md:text-[11px] font-bold uppercase tracking-widest transition-colors h-full flex items-center justify-center ${isCurrentDateToday ? 'text-[#c2956e] dark:text-[#b0855f]' : 'text-[#3d3b33] dark:text-[#f0f0f0] hover:text-[#c2956e]'}`}>Today</button>
+              <button onClick={handleNext} className="px-2 md:px-3 text-[#888] hover:text-[#3d3b33] dark:hover:text-white transition-colors h-full flex items-center justify-center"><ChevronRight size={16} className="md:w-[18px] md:h-[18px]" /></button>
+            </div>
+
+            <div className="flex bg-white/50 dark:bg-[#1e1e1e]/50 border border-[#e0ddd5] dark:border-[#333] p-0.5 md:p-1 rounded-xl md:rounded-2xl shadow-sm overflow-x-auto no-scrollbar h-9 md:h-10 w-full justify-between">
+              {(['day', '2-day', 'week', 'month'] as const).map(v => (
+                <button 
+                  key={v} onClick={() => setCalendarView(v)}
+                  className={`flex-1 md:flex-none px-3 sm:px-4 rounded-lg md:rounded-xl text-[9px] sm:text-[10px] font-bold uppercase tracking-widest transition-all h-full flex items-center justify-center ${v === 'week' ? 'hidden md:flex' : 'flex'} ${calendarView === v ? 'bg-[#c2956e] dark:bg-[#b0855f] text-white shadow-md' : 'text-[#b0ad9a] dark:text-[#7a7a7a] md:hover:text-[#3d3b33] md:dark:hover:text-white'}`}
+                >
+                  {v === '2-day' ? '2D' : v}
+                </button>
+              ))}
+            </div>
+
+            <button onClick={() => openAddModal()} className="hidden md:flex h-10 aspect-square items-center justify-center bg-[#f7f5f0] dark:bg-[#252525] text-[#c2956e] dark:text-[#d1a784] rounded-full hover:bg-[#c2956e]/10 dark:hover:bg-[#b0855f]/20 transition-all shadow-sm border border-[#e0ddd5] dark:border-[#333] shrink-0">
+              <Plus size={18} strokeWidth={2.5} />
+            </button>
           </div>
         </header>
 
-        <div className="flex-1 min-h-0 w-full flex flex-col relative z-10 pb-4">
+        <div className="flex-1 min-h-0 w-full flex flex-col relative z-10 pb-0 md:pb-4">
           {calendarView === 'month' && (
             <MonthView 
               currentDate={referenceDate} 
@@ -367,12 +408,12 @@ export default function CalendarPage() {
               openAddModal={openAddModal}
             />
           )}
-          {calendarView === 'week' && <WeekView targetScrollTime={targetScrollTime} currentDate={referenceDate} events={events} onEventClick={openEditModal} onTimeRangeSelected={openAddModal} eventColors={EVENT_COLORS} />}
-          {calendarView === 'day' && <DayView targetScrollTime={targetScrollTime} currentDate={referenceDate} events={events} onEventClick={openEditModal} onTimeRangeSelected={openAddModal} eventColors={EVENT_COLORS} />}
+          {calendarView === 'week' && <WeekView targetScrollTime={targetScrollTime} currentDate={referenceDate} events={events} onEventClick={openEditModal} onTimeRangeSelected={openAddModal} onEventMove={handleEventMove} eventColors={EVENT_COLORS} daysCount={7} />}
+          {calendarView === '2-day' && <WeekView targetScrollTime={targetScrollTime} currentDate={referenceDate} events={events} onEventClick={openEditModal} onTimeRangeSelected={openAddModal} onEventMove={handleEventMove} eventColors={EVENT_COLORS} daysCount={2} />}
+          {calendarView === 'day' && <DayView targetScrollTime={targetScrollTime} currentDate={referenceDate} events={events} onEventClick={openEditModal} onTimeRangeSelected={openAddModal} onEventMove={handleEventMove} eventColors={EVENT_COLORS} />}
         </div>
       </div>
 
-      {/* Mobile Floating Action Button */}
       {isMobile && (
         <button 
           onClick={() => openAddModal()}
