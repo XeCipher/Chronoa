@@ -8,7 +8,6 @@ export async function GET(request: Request) {
   const next = searchParams.get('next') ?? '/'
 
   if (code) {
-    // FIX: Add 'await' here because cookies() is now a Promise in Next.js 15
     const cookieStore = await cookies() 
     
     const supabase = createServerClient(

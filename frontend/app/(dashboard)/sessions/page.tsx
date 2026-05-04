@@ -95,7 +95,7 @@ export default function SessionsPage() {
         <div>
           <div className="flex items-center gap-2.5 text-[#3d3b33] dark:text-[#f0f0f0]">
             <Clock size={24} className="text-[#c2956e]" />
-            <h1 className="text-3xl md:text-4xl font-serif font-medium tracking-tight">Time Log</h1>
+            <h1 className="text-2xl md:text-4xl font-serif font-medium tracking-tight">Time Log</h1>
           </div>
         </div>
         <div className="flex items-center gap-4">

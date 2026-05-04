@@ -403,9 +403,8 @@ export default function AnalyticsPage() {
         <div>
           <div className="flex items-center gap-2.5 text-[#3d3b33] dark:text-[#f0f0f0] mb-2">
             <BarChart2 size={20} className="text-[#c2956e]" />
-            <h1 className="text-2xl font-serif font-medium tracking-tight">Performance</h1>
+            <h1 className="text-2xl md:text-4xl font-serif font-medium tracking-tight">Analytics</h1>
           </div>
-          <p className="text-[#b0ad9a] dark:text-[#7a7a7a] tracking-[0.25em] text-[10px] font-bold uppercase ml-1">Consistency builds empires</p>
         </div>
         
         <div className="flex items-center gap-3 w-full md:w-auto overflow-x-auto no-scrollbar pt-2 -mt-2 pb-2 -mb-2 px-2 -mx-2 shrink-0">

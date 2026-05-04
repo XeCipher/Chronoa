@@ -448,7 +448,7 @@ export default function CalendarPage() {
             >
               <CalendarDays size={24} className="text-[#c2956e] shrink-0" />
               <div className="flex flex-col min-w-0">
-                <h1 className="text-2xl md:text-3xl font-serif font-medium tracking-tight leading-normal truncate pb-0.5 select-none">{displayTitle()}</h1>
+                <h1 className="text-2xl md:text-4xl font-serif font-medium tracking-tight leading-normal truncate pb-0.5 select-none">{displayTitle()}</h1>
               </div>
             </div>
             

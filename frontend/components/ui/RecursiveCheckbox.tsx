@@ -2,18 +2,19 @@
 "use client";
 
 import { useRef, useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { Task } from "@/types/app.types";
 import { 
   Plus, Trash2, Check, Timer, Hourglass, ChevronRight, ChevronLeft, 
-  MoreVertical, ArrowUp, ArrowDown, Palette, ChevronDown, Infinity as InfinityIcon, RotateCcw, Clock, GripVertical, CornerDownRight
+  MoreVertical, ArrowUp, ArrowDown, ChevronDown, Infinity as InfinityIcon, 
+  RotateCcw, Clock, GripVertical, CornerDownRight
 } from "lucide-react";
 import { useUiStore } from "@/store/uiStore";
 import { useTimerStore } from "@/store/timerStore";
 
-import { useSortable } from "@dnd-kit/sortable";
+import { useSortable, SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 
 interface Props {
   task: Task;
@@ -71,12 +72,15 @@ export default function RecursiveCheckbox({
   const [initialTitle] = useState(task.title);
   const [isExpanded, setIsExpanded] = useState(false);
   const [isOverflowing, setIsOverflowing] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  const [menuRect, setMenuRect] = useState<DOMRect | null>(null);
 
   const [localCollapsed, setLocalCollapsed] = useState<boolean>(() => {
     return getDescendantCount(task) > 5;
   });
 
   useEffect(() => {
+    setMounted(true);
     if (viewMode !== 'focus') {
       const stored = localStorage.getItem('chronoa_archive_collapsed');
       if (stored) {
@@ -131,13 +135,24 @@ export default function RecursiveCheckbox({
       if (activeTaskIdWithMenu !== task.id) return;
       if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
         const target = event.target as Element;
-        if (target.closest('.menu-toggle-btn')) return;
+        if (target.closest('.menu-toggle-btn') || target.closest('.context-menu-portal')) return;
         setActiveTaskIdWithMenu(null);
       }
     };
     
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [activeTaskIdWithMenu, task.id, setActiveTaskIdWithMenu]);
+
+  // Global scroll listener to dismiss the context menu
+  useEffect(() => {
+    if (activeTaskIdWithMenu !== task.id) return;
+    const handleScroll = (e: Event) => {
+      if ((e.target as HTMLElement).closest('.context-menu-portal')) return;
+      setActiveTaskIdWithMenu(null);
+    };
+    window.addEventListener('scroll', handleScroll, true);
+    return () => window.removeEventListener('scroll', handleScroll, true);
   }, [activeTaskIdWithMenu, task.id, setActiveTaskIdWithMenu]);
 
   useEffect(() => {
@@ -202,6 +217,7 @@ export default function RecursiveCheckbox({
     const id = addInstance(tab, title);
     setTimerTitle(tab, id, title);
     setActiveTab(tab);
+    setActiveTaskIdWithMenu(null);
     
     if (window.innerWidth >= 768) {
        useUiStore.getState().setGlobalTimeWidgetExpanded(true);
@@ -228,7 +244,6 @@ export default function RecursiveCheckbox({
   const isMenuOpen = activeTaskIdWithMenu === task.id;
 
   const showManagementActions = viewMode === 'focus' && (isNormal || (isRoutine && isEditMode));
-  const showTimerStopwatchOutside = viewMode === 'focus' && isRoutine && !isEditMode;
   const hasChildren = task.children && task.children.length > 0;
   const showKeepAliveToggle = showManagementActions && hasChildren;
 
@@ -249,13 +264,11 @@ export default function RecursiveCheckbox({
 
   const toggleMenu = (e: React.MouseEvent) => {
     e.stopPropagation();
-    setActiveTaskIdWithMenu(isMenuOpen ? null : task.id);
-  };
-
-  const handleRowClick = (e: React.MouseEvent) => {
-    if ((e.target as HTMLElement).closest('button') || (e.target as HTMLElement).tagName === 'SPAN') return;
-    if (window.innerWidth < 768 && viewMode === 'focus') {
-      setActiveTaskIdWithMenu(isMenuOpen ? null : task.id);
+    if (isMenuOpen) {
+      setActiveTaskIdWithMenu(null);
+    } else {
+      setMenuRect(e.currentTarget.getBoundingClientRect());
+      setActiveTaskIdWithMenu(task.id);
     }
   };
 
@@ -333,11 +346,108 @@ export default function RecursiveCheckbox({
     ))
   );
 
+  const MenuItem = ({ icon: Icon, label, onClick, destructive = false }: any) => (
+    <button 
+      onClick={(e) => { e.stopPropagation(); onClick(); setActiveTaskIdWithMenu(null); }}
+      className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-[10px] text-xs font-medium transition-colors md:hover:bg-[#f0ede8] md:dark:hover:bg-[#2a2a2a] ${destructive ? 'text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20' : 'text-[#3d3b33] dark:text-[#e0e0e0]'}`}
+    >
+      <Icon size={14} className={destructive ? "text-red-500" : "text-[#888] dark:text-[#a0a0a0]"} />
+      <span>{label}</span>
+    </button>
+  );
+
+  const MenuDivider = () => <div className="h-px bg-[#e0ddd5] dark:bg-[#333] my-1 mx-2 shrink-0" />;
+
+  const renderContextMenu = () => {
+    if (!mounted || !isMenuOpen || !menuRect) return null;
+
+    let top: number | string = menuRect.bottom + 8;
+    let bottom: number | string = 'auto';
+
+    // Smart positioning: flip upwards if in the lower half of the viewport
+    if (menuRect.bottom > window.innerHeight / 2) {
+        top = 'auto';
+        bottom = window.innerHeight - menuRect.top + 8;
+    }
+
+    let left = menuRect.right - 180; // Compact width
+    if (left < 16) left = 16;
+
+    return createPortal(
+      <div 
+        className="context-menu-portal fixed z-[9999] bg-white/95 dark:bg-[#1c1c1c]/95 backdrop-blur-xl border border-[#e0ddd5] dark:border-[#333] shadow-2xl rounded-2xl p-1.5 flex flex-col w-[180px] animate-fade-up overflow-y-auto no-scrollbar max-h-[70vh]"
+        style={{ top, bottom, left }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {viewMode === 'focus' && (
+           <>
+             <MenuItem icon={Hourglass} label="Send to Stopwatch" onClick={() => handleSendToFocus('stopwatch')} />
+             <MenuItem icon={Timer} label="Send to Timer" onClick={() => handleSendToFocus('timer')} />
+
+             {showManagementActions && (
+               <>
+                 <MenuDivider />
+                 <MenuItem icon={CornerDownRight} label="Add Subtask" onClick={() => onAdd(task.id)} />
+                 
+                 <MenuDivider />
+                 {/* Ultra-compact directional layout row */}
+                 <div className="flex items-center justify-between px-1.5 py-1">
+                   <button onClick={(e) => { e.stopPropagation(); onMoveUp(task); setActiveTaskIdWithMenu(null); }} className="p-1.5 text-[#888] md:hover:text-[#3d3b33] md:dark:hover:text-white rounded-lg md:hover:bg-[#f0ede8] md:dark:hover:bg-[#2a2a2a] transition-colors"><ArrowUp size={16} /></button>
+                   <button onClick={(e) => { e.stopPropagation(); onMoveDown(task); setActiveTaskIdWithMenu(null); }} className="p-1.5 text-[#888] md:hover:text-[#3d3b33] md:dark:hover:text-white rounded-lg md:hover:bg-[#f0ede8] md:dark:hover:bg-[#2a2a2a] transition-colors"><ArrowDown size={16} /></button>
+                   <div className="w-px h-4 bg-[#e0ddd5] dark:bg-[#444] mx-1 shrink-0" />
+                   <button onClick={(e) => { e.stopPropagation(); onUnindent(task); setActiveTaskIdWithMenu(null); }} className="p-1.5 text-[#888] md:hover:text-[#3d3b33] md:dark:hover:text-white rounded-lg md:hover:bg-[#f0ede8] md:dark:hover:bg-[#2a2a2a] transition-colors"><ChevronLeft size={16} /></button>
+                   <button onClick={(e) => { e.stopPropagation(); onIndent(task); setActiveTaskIdWithMenu(null); }} className="p-1.5 text-[#888] md:hover:text-[#3d3b33] md:dark:hover:text-white rounded-lg md:hover:bg-[#f0ede8] md:dark:hover:bg-[#2a2a2a] transition-colors"><ChevronRight size={16} /></button>
+                 </div>
+                 
+                 {showKeepAliveToggle && (
+                   <>
+                     <MenuDivider />
+                     <MenuItem icon={InfinityIcon} label={task.keep_alive ? "Disable Keep Alive" : "Keep Parent Alive"} onClick={() => onUpdate(task.id, { keep_alive: !task.keep_alive })} />
+                   </>
+                 )}
+                 
+                 <MenuDivider />
+                 <div className="px-2 py-2 flex items-center justify-between">
+                   {availableColors.map(c => (
+                      <button
+                         key={c.id}
+                         onClick={(e) => { e.stopPropagation(); onUpdate(task.id, { color: c.id === 'none' ? null : c.id }); setActiveTaskIdWithMenu(null); }}
+                         className={`w-5 h-5 rounded-full ${c.bg} transition-all shrink-0 ${task.color === c.id || (!task.color && c.id === 'none') ? 'ring-[1.5px] ring-offset-2 ring-[#c2956e] dark:ring-offset-[#1c1c1c] scale-110' : 'opacity-60 hover:opacity-100 hover:scale-110'}`}
+                      />
+                   ))}
+                 </div>
+                 
+                 <MenuDivider />
+                 <MenuItem icon={Trash2} label="Delete" destructive onClick={() => onDelete(task.id, false)} />
+               </>
+             )}
+           </>
+        )}
+
+        {viewMode === 'archive' && (
+           <>
+             <MenuItem icon={RotateCcw} label="Restore to Focus" onClick={() => onRestore(task.id, 'from_archive')} />
+             <MenuDivider />
+             <MenuItem icon={Trash2} label="Move to Trash" destructive onClick={() => onDelete(task.id, false)} />
+           </>
+        )}
+
+        {viewMode === 'trash' && (
+           <>
+             <MenuItem icon={RotateCcw} label="Restore from Trash" onClick={() => onRestore(task.id, 'from_trash')} />
+             <MenuDivider />
+             <MenuItem icon={Trash2} label="Delete Permanently" destructive onClick={() => onDelete(task.id, true)} />
+           </>
+        )}
+      </div>,
+      document.body
+    );
+  };
+
   return (
     <div ref={setNodeRef} style={sortableStyle} className={`flex flex-col w-full ${isVanishingNow ? "task-vanishing-soothing" : ""}`}>
       <div 
         ref={containerRef}
-        onClick={handleRowClick}
         className={`group relative flex items-center gap-3 py-[7px] px-3 rounded-xl transition-all duration-150 ${activeColorStyle} ${isMenuOpen ? "z-10" : ""}`}
       >
         
@@ -378,8 +488,6 @@ export default function RecursiveCheckbox({
                }
              }} 
              className="shrink-0 -ml-1 text-[#b0ad9a] md:hover:text-[#c2956e] md:dark:hover:text-[#d1a784] transition-colors p-1"
-             data-tooltip-id="task-tooltip"
-             data-tooltip-content={isCollapsed ? "Expand" : "Collapse"}
            >
               {isCollapsed ? <ChevronRight size={14} /> : <ChevronDown size={14} className="opacity-40 md:group-hover:opacity-100" />}
            </button>
@@ -441,7 +549,7 @@ export default function RecursiveCheckbox({
               <div className="flex items-center gap-1 shrink-0 px-1 opacity-80">
                 {descendantColors.map(c => {
                    const colorObj = availableColors.find(ac => ac.id === c);
-                   return colorObj ? <div key={c} className={`w-1.5 h-1.5 rounded-full ${colorObj.bg.split(' ')[0]}`} data-tooltip-id="task-tooltip" data-tooltip-content={c} /> : null;
+                   return colorObj ? <div key={c} className={`w-1.5 h-1.5 rounded-full ${colorObj.bg.split(' ')[0]}`} /> : null;
                 })}
               </div>
             )}
@@ -467,124 +575,24 @@ export default function RecursiveCheckbox({
                {daysLeft > 0 ? `Deletes in ${daysLeft} days` : 'Deletes soon'}
             </div>
           )}
-
-          {isMenuOpen && viewMode === 'focus' && (
-            <div className="mt-2 pt-2.5 border-t border-[#e0ddd5] dark:border-[#333] animate-fade-up w-full" onClick={e => e.stopPropagation()}>
-               <div className="flex flex-wrap gap-2 items-center w-full">
-                  
-                  <div className="flex items-center bg-white dark:bg-[#252525] rounded-xl p-1 border border-[#e0ddd5] dark:border-[#333] shadow-sm shrink-0">
-                     <button onClick={() => handleSendToFocus('timer')} className="flex items-center justify-center p-1.5 rounded-lg text-blue-600 dark:text-blue-400 md:hover:bg-blue-50 md:dark:hover:bg-blue-900/20 transition-colors" data-tooltip-id="task-tooltip" data-tooltip-content="Send to Timer">
-                        <Timer size={15} />
-                     </button>
-                     <button onClick={() => handleSendToFocus('stopwatch')} className="flex items-center justify-center p-1.5 rounded-lg text-orange-600 dark:text-orange-400 md:hover:bg-orange-50 md:dark:hover:bg-orange-900/20 transition-colors" data-tooltip-id="task-tooltip" data-tooltip-content="Send to Stopwatch">
-                        <Hourglass size={15} />
-                     </button>
-                     {showKeepAliveToggle && (
-                        <div className="flex items-center md:hidden">
-                          <div className="w-px h-4 bg-[#e0ddd5] dark:bg-[#444] mx-1" />
-                          <button onClick={() => onUpdate(task.id, { keep_alive: !task.keep_alive })} className={`flex items-center justify-center p-1.5 rounded-lg transition-colors ${task.keep_alive ? 'text-white bg-[#7ca982] dark:bg-[#6a9a70]' : 'text-[#7ca982] md:hover:bg-[#7ca982]/10'}`} data-tooltip-id="task-tooltip" data-tooltip-content="Keep Parent Alive">
-                            <InfinityIcon size={15} />
-                          </button>
-                        </div>
-                     )}
-                  </div>
-
-                  {/* Mobile Only: Add Subtask and Delete */}
-                  {showManagementActions && (
-                    <div className="flex md:hidden items-center bg-white dark:bg-[#252525] rounded-xl p-1 border border-[#e0ddd5] dark:border-[#333] shadow-sm shrink-0">
-                      <button 
-                        onClick={() => onAdd(task.id)} 
-                        className="flex items-center justify-center p-1.5 rounded-lg text-[#888] hover:bg-[#f0ede8] dark:hover:bg-[#111] transition-colors" 
-                        data-tooltip-id="task-tooltip" data-tooltip-content="Add Subtask"
-                      >
-                        <CornerDownRight size={15} />
-                      </button>
-                      <div className="w-px h-4 bg-[#e0ddd5] dark:bg-[#444] mx-1" />
-                      <button 
-                        onClick={() => onDelete(task.id, false)} 
-                        className="flex items-center justify-center p-1.5 rounded-lg text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors" 
-                        data-tooltip-id="task-tooltip" data-tooltip-content="Delete"
-                      >
-                        <Trash2 size={15} />
-                      </button>
-                    </div>
-                  )}
-
-                  {showManagementActions && (
-                     <div className="flex items-center bg-white dark:bg-[#252525] rounded-xl p-1 border border-[#e0ddd5] dark:border-[#333] shadow-sm shrink-0">
-                        <button onClick={() => onMoveUp(task)} className="p-1.5 text-[#888] md:hover:text-[#c2956e] md:hover:bg-[#f7f5f0] md:dark:hover:bg-[#1a1a1a] rounded-lg transition-colors" data-tooltip-id="task-tooltip" data-tooltip-content="Move Up"><ArrowUp size={15} /></button>
-                        <button onClick={() => onMoveDown(task)} className="p-1.5 text-[#888] md:hover:text-[#c2956e] md:hover:bg-[#f7f5f0] md:dark:hover:bg-[#1a1a1a] rounded-lg transition-colors" data-tooltip-id="task-tooltip" data-tooltip-content="Move Down"><ArrowDown size={15} /></button>
-                        <div className="w-px h-4 bg-[#e0ddd5] dark:bg-[#444] mx-1" />
-                        <button onClick={() => onUnindent(task)} className="p-1.5 text-[#888] md:hover:text-[#c2956e] md:hover:bg-[#f7f5f0] md:dark:hover:bg-[#1a1a1a] rounded-lg transition-colors" data-tooltip-id="task-tooltip" data-tooltip-content="Outdent"><ChevronLeft size={15} /></button>
-                        <button onClick={() => onIndent(task)} className="p-1.5 text-[#888] md:hover:text-[#c2956e] md:hover:bg-[#f7f5f0] md:dark:hover:bg-[#1a1a1a] rounded-lg transition-colors" data-tooltip-id="task-tooltip" data-tooltip-content="Indent"><ChevronRight size={15} /></button>
-                     </div>
-                  )}
-
-                  {showManagementActions && (
-                     <div className="flex items-center bg-white dark:bg-[#252525] rounded-xl p-1.5 border border-[#e0ddd5] dark:border-[#333] shadow-sm shrink-0 max-w-full overflow-x-auto no-scrollbar">
-                        <Palette size={14} className="text-[#888] mx-1.5 shrink-0" />
-                        <div className="w-px h-4 bg-[#e0ddd5] dark:bg-[#444] mx-1 shrink-0" />
-                        <div className="flex items-center gap-2 px-1 shrink-0">
-                           {availableColors.map(c => (
-                              <button
-                                 key={c.id}
-                                 onClick={() => onUpdate(task.id, { color: c.id === 'none' ? null : c.id })}
-                                 className={`w-4 h-4 rounded-full ${c.bg} transition-all shrink-0 ${task.color === c.id || (!task.color && c.id === 'none') ? 'ring-2 ring-offset-2 ring-[#c2956e] dark:ring-offset-[#252525] scale-110' : 'opacity-60 md:hover:opacity-100 md:hover:scale-110'}`}
-                                 data-tooltip-id="task-tooltip" data-tooltip-content={`Highlight: ${c.id}`}
-                              />
-                           ))}
-                        </div>
-                     </div>
-                  )}
-               </div>
-            </div>
-          )}
         </div>
 
-        <div className={`flex items-center shrink-0 ml-auto gap-0.5 transition-opacity duration-200 ${isMenuOpen ? 'opacity-100' : 'opacity-100 md:opacity-0 md:group-hover:opacity-100'}`}>
-            {viewMode === 'focus' && (
-              <div className="flex items-center gap-0.5">
-                  {showTimerStopwatchOutside && (
-                      <div className="hidden md:flex items-center gap-0.5">
-                          <button onClick={() => handleSendToFocus('timer')} className="w-7 h-7 flex items-center justify-center rounded-lg text-[#c4c0b8] md:hover:text-blue-500 md:hover:bg-blue-50 md:dark:hover:bg-blue-900/20 transition-all" data-tooltip-id="task-tooltip" data-tooltip-content="Send to Timer"><Timer size={14} /></button>
-                          <button onClick={() => handleSendToFocus('stopwatch')} className="w-7 h-7 flex items-center justify-center rounded-lg text-[#c4c0b8] md:hover:text-orange-500 md:hover:bg-orange-50 md:dark:hover:bg-orange-900/20 transition-all" data-tooltip-id="task-tooltip" data-tooltip-content="Send to Stopwatch"><Hourglass size={14} /></button>
-                      </div>
-                  )}
-                  {showManagementActions && (
-                      <>
-                        {showKeepAliveToggle && (
-                           <button onClick={() => onUpdate(task.id, { keep_alive: !task.keep_alive })} className={`hidden md:flex w-7 h-7 items-center justify-center rounded-lg transition-all ${task.keep_alive ? 'text-white bg-[#7ca982] dark:bg-[#6a9a70]' : 'text-[#c4c0b8] md:hover:text-[#7ca982] md:hover:bg-[#7ca982]/10'}`} data-tooltip-id="task-tooltip" data-tooltip-content="Keep parent task alive"><InfinityIcon size={14} /></button>
-                        )}
-                        {/* Desktop ONLY: Add Child */}
-                        <button onClick={() => onAdd(task.id)} className="hidden md:flex w-7 h-7 items-center justify-center rounded-lg text-[#c4c0b8] md:hover:text-[#c2956e] md:hover:bg-[#c2956e]/10 transition-all" data-tooltip-id="task-tooltip" data-tooltip-content="Add Subtask"><CornerDownRight size={14} /></button>
-                        {/* Add Sibling: Always on desktop hover, visible on mobile when menu open */}
-                        <button onClick={() => onAdd(task.parent_id, task)} className={`w-7 h-7 flex items-center justify-center rounded-lg text-[#c4c0b8] md:hover:text-[#c2956e] md:hover:bg-[#c2956e]/10 transition-all ${isMenuOpen ? 'flex' : 'hidden md:flex'}`} data-tooltip-id="task-tooltip" data-tooltip-content="Add Sibling Below"><Plus size={14} /></button>
-                        {/* Desktop ONLY: Delete */}
-                        <button onClick={() => onDelete(task.id, false)} className="hidden md:flex w-7 h-7 items-center justify-center rounded-lg text-[#c4c0b8] md:hover:text-red-500 md:hover:bg-red-500/10 transition-all" data-tooltip-id="task-tooltip" data-tooltip-content="Delete"><Trash2 size={14} /></button>
-                      </>
-                  )}
-              </div>
+        <div className={`flex items-center shrink-0 ml-auto gap-1 transition-opacity duration-200 ${isMenuOpen ? 'opacity-100' : 'opacity-100 md:opacity-0 md:group-hover:opacity-100'}`}>
+            {viewMode === 'focus' && showManagementActions && (
+               <button 
+                  onClick={(e) => { e.stopPropagation(); onAdd(task.parent_id, task); }} 
+                  className="w-8 h-8 flex items-center justify-center rounded-lg text-[#c4c0b8] md:hover:text-[#c2956e] md:hover:bg-[#c2956e]/10 transition-all" 
+               >
+                  <Plus size={18} />
+               </button>
             )}
             
-            {viewMode === 'archive' && (
-              <div className="flex items-center gap-1.5">
-                <button onClick={() => onRestore(task.id, 'from_archive')} className="p-1.5 md:hover:bg-white md:dark:hover:bg-[#2a2a2a] rounded-lg text-gray-400 dark:text-[#888] md:hover:text-[#c2956e] transition-colors" data-tooltip-id="task-tooltip" data-tooltip-content="Restore to Focus"><RotateCcw size={15} strokeWidth={2.5} /></button>
-                <button onClick={() => onDelete(task.id, false)} className="p-1.5 md:hover:bg-white md:dark:hover:bg-[#2a2a2a] rounded-lg text-gray-400 dark:text-[#888] md:hover:text-red-500 transition-colors" data-tooltip-id="task-tooltip" data-tooltip-content="Move to Trash"><Trash2 size={15} strokeWidth={2} /></button>
-              </div>
-            )}
-
-            {viewMode === 'trash' && (
-              <div className="flex items-center gap-1.5">
-                <button onClick={() => onRestore(task.id, 'from_trash')} className="p-1.5 md:hover:bg-white md:dark:hover:bg-[#2a2a2a] rounded-lg text-gray-400 dark:text-[#888] md:hover:text-[#7ca982] transition-colors" data-tooltip-id="task-tooltip" data-tooltip-content="Restore from Trash"><RotateCcw size={15} strokeWidth={2.5} /></button>
-                <button onClick={() => onDelete(task.id, true)} className="p-1.5 md:hover:bg-white md:dark:hover:bg-[#2a2a2a] rounded-lg text-gray-400 dark:text-[#888] md:hover:text-red-500 transition-colors" data-tooltip-id="task-tooltip" data-tooltip-content="Delete Permanently"><Trash2 size={15} strokeWidth={2} /></button>
-              </div>
-            )}
-            
-            {viewMode === 'focus' && (
-              <button onClick={toggleMenu} className={`menu-toggle-btn w-7 h-7 flex items-center justify-center rounded-lg text-[#c4c0b8] md:hover:text-[#3d3b33] md:dark:hover:text-white md:hover:bg-white md:dark:hover:bg-[#333] transition-all ml-1 ${!showManagementActions ? 'md:hidden' : ''}`} data-tooltip-id="task-tooltip" data-tooltip-content="More Options">
-                 <MoreVertical size={14} />
-              </button>
-            )}
+            <button 
+               onClick={toggleMenu} 
+               className={`menu-toggle-btn w-8 h-8 flex items-center justify-center rounded-lg text-[#c4c0b8] md:hover:text-[#3d3b33] md:dark:hover:text-white md:hover:bg-[#ebe8e2] md:dark:hover:bg-[#333] transition-all ${isMenuOpen ? 'bg-[#ebe8e2] dark:bg-[#333] text-[#3d3b33] dark:text-white' : ''}`}
+            >
+               <MoreVertical size={16} />
+            </button>
         </div>
       </div>
 
@@ -599,6 +607,8 @@ export default function RecursiveCheckbox({
           )}
         </div>
       )}
+
+      {renderContextMenu()}
     </div>
   );
 }

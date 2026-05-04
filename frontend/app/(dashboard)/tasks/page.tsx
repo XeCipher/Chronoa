@@ -40,8 +40,8 @@ export default function TasksPage() {
         <header className="mb-6 lg:mb-10 flex flex-col xl:flex-row xl:items-center justify-between gap-6 shrink-0">
           <div className="flex items-center gap-2.5 text-[#3d3b33] dark:text-[#f0f0f0] shrink-0">
             {isTrashOpen ? <Trash2 size={24} className="text-[#c2956e]" /> : tasksView === 'focus' ? <CheckSquare size={24} className="text-[#c2956e]" /> : <History size={24} className="text-[#c2956e]" />}
-            <h1 className="text-3xl md:text-4xl font-serif font-medium tracking-tight">
-              {isTrashOpen ? 'Trash' : tasksView === 'focus' ? 'Daily Focus' : 'Archive'}
+            <h1 className="text-2xl md:text-4xl font-serif font-medium tracking-tight">
+              {isTrashOpen ? 'Trash' : tasksView === 'focus' ? 'Tasks' : 'Archive'}
             </h1>
           </div>
 

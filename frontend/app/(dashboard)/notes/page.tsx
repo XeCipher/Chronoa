@@ -481,7 +481,7 @@ export default function NotesPage() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2.5 text-[#3d3b33] dark:text-[#f0f0f0]">
               <Library size={20} className="text-[#c2956e]" />
-              <h1 className="text-2xl font-serif font-medium tracking-tight">
+              <h1 className="text-2xl md:text-4xl font-serif font-medium tracking-tight">
                 {isTrashOpen ? 'Trash' : 'Library'}
               </h1>
             </div>
@@ -527,11 +527,11 @@ export default function NotesPage() {
             </div>
 
             <div className="flex flex-col gap-2">
-              <div className="flex bg-[#ebe8e2] dark:bg-[#1a1a1a] p-1 rounded-xl">
+              <div className="flex bg-[#ebe8e2]/70 dark:bg-[#1a1a1a] p-1.5 rounded-[1.25rem] border border-transparent dark:border-[#333] shadow-inner">
                 {TABS.map(({ id, label, icon: Icon }) => (
                   <button key={id} onClick={() => handleTabChange(id)}
-                    className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all ${notesTab === id ? 'bg-white dark:bg-[#2a2a2a] shadow-sm text-[#c2956e] dark:text-[#d1a784]' : 'text-[#888] md:hover:text-[#3d3b33] md:dark:hover:text-[#ccc]'}`}>
-                    <Icon size={14} /> <span className="hidden xl:inline">{label}</span>
+                    className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-[11px] font-bold uppercase tracking-widest transition-all ${notesTab === id ? 'bg-white dark:bg-[#2a2a2a] shadow-sm text-[#c2956e] dark:text-[#d1a784]' : 'text-[#888] hover:text-[#3d3b33] dark:hover:text-[#ccc]'}`}>
+                    <Icon size={14} /> <span>{label}</span>
                   </button>
                 ))}
               </div>
