@@ -665,7 +665,7 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
 
   const renderContent = () => {
     return (
-      <div className={`px-3 md:px-5 py-3 md:py-4 min-h-[60px] ${isCollapsedMobile ? 'hidden md:block' : 'block'}`}>
+      <div className={`px-3 md:px-5 pt-4 md:pt-5 pb-3 md:pb-4 min-h-[60px] ${isCollapsedMobile ? 'hidden md:block' : 'block'}`}>
         {isLoading && tasks.length === 0 ? (
           <div className="space-y-3 py-2 px-3">
             {[...Array(3)].map((_, i) => (

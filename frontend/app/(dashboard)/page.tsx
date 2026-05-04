@@ -7,6 +7,7 @@ import SceneryBackground from "@/components/home/SceneryBackground";
 import ProductivityWidgets from "@/components/home/ProductivityWidgets";
 import WeatherWidget from "@/components/home/WeatherWidget";
 import HomeTaskProgress from "@/components/home/HomeTaskProgress";
+import TodayCalendarWidget from "@/components/calendar/TodayCalendarWidget";
 import { useTimerStore } from "@/store/timerStore";
 import { Settings } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -29,10 +30,9 @@ export default function HomePage() {
   return (
     <div className="relative w-full h-full overflow-hidden flex items-center justify-center touch-none overscroll-none">
       <SceneryBackground />
-      <HomeTaskProgress />
       
-      {/* Elegant Mobile Settings Link Button positioned gracefully at the top right */}
-      <div className="fixed top-[calc(1.5rem+env(safe-area-inset-top))] right-[calc(1.5rem+env(safe-area-inset-right))] md:hidden z-40">
+      {/* Elegant Mobile Settings Link Button positioned gracefully at the top left */}
+      <div className="fixed top-[calc(1.5rem+env(safe-area-inset-top))] left-[calc(1.5rem+env(safe-area-inset-left))] md:hidden z-40">
         <button 
           onClick={() => router.push('/settings')} 
           className="w-10 h-10 flex items-center justify-center rounded-full bg-white/20 dark:bg-black/30 backdrop-blur-md border border-white/40 dark:border-white/10 shadow-sm text-[#3d3b33] dark:text-white transition-all active:scale-95"
@@ -41,8 +41,17 @@ export default function HomePage() {
         </button>
       </div>
 
-      <div className="hidden md:block absolute md:top-10 md:right-12 z-20">
+      {/* Weather & Progress Widget Stack (Top Right on Mobile and Desktop) */}
+      <div className="fixed top-[calc(1.5rem+env(safe-area-inset-top))] right-[calc(1.5rem+env(safe-area-inset-right))] md:top-10 md:right-12 z-40 md:z-20 flex flex-col items-end gap-3 pointer-events-none [&>*]:pointer-events-auto">
         <WeatherWidget />
+        <HomeTaskProgress />
+      </div>
+
+      {/* Calendar Widget (Bottom Right) */}
+      <div className="fixed z-40 flex flex-col items-end gap-4 md:bottom-10 md:right-10 bottom-[calc(90px+env(safe-area-inset-bottom))] right-6 pointer-events-none [&>*]:pointer-events-auto">
+        <div className="hidden md:block">
+          <TodayCalendarWidget variant="home" />
+        </div>
       </div>
 
       <div 

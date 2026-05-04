@@ -158,6 +158,8 @@ export default function SettingsPage() {
     await supabase.from('profiles').update({ weather_city: null, weather_lat: null, weather_lon: null }).eq('id', user?.id);
     setCurrentCity("");
     setCityInput("");
+    localStorage.removeItem('chronoa_cache_weather');
+    localStorage.removeItem('chronoa_cache_weather_city');
   };
 
   const handleResetHourChange = async (hour: number) => {
@@ -242,7 +244,7 @@ export default function SettingsPage() {
     {
       id: 'hotkeys',
       keys: ['global hotkeys', 'keyboard', 'shortcuts', 'navigation'],
-      className: 'hidden md:block',
+      className: 'hidden md:flex flex-col',
       render: () => (
         <section className="space-y-6">
           <div className="flex justify-between items-center">
@@ -389,7 +391,7 @@ export default function SettingsPage() {
     {
       id: 'weather',
       keys: ['weather location', 'city', 'detect', 'map pin'],
-      className: 'hidden md:block',
+      className: 'hidden md:flex flex-col',
       render: () => (
         <section className="space-y-4">
           <div className="flex items-center gap-3 text-[#5b9ea0] dark:text-[#6baea0]">

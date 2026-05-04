@@ -35,14 +35,6 @@ export default function HomeTaskProgress() {
   useEffect(() => {
     if (!showHomeTaskProgress) return;
 
-    const cachedPct = localStorage.getItem('chronoa_cache_routinePct');
-    const cachedNormal = localStorage.getItem('chronoa_cache_normalLeft');
-    if (cachedPct !== null && cachedNormal !== null) {
-       setRoutinePct(Number(cachedPct));
-       setNormalLeft(Number(cachedNormal));
-       setLoading(false);
-    }
-
     const fetchTasks = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
@@ -60,13 +52,8 @@ export default function HomeTaskProgress() {
         const routineDone = routines.filter(t => t.is_completed).length;
         
         const newPct = routineTotal === 0 ? 0 : Math.round((routineDone / routineTotal) * 100);
-        const newNormal = normals.length;
-
         setRoutinePct(newPct);
-        setNormalLeft(newNormal);
-        
-        localStorage.setItem('chronoa_cache_routinePct', newPct.toString());
-        localStorage.setItem('chronoa_cache_normalLeft', newNormal.toString());
+        setNormalLeft(normals.length);
       }
       setLoading(false);
     };
@@ -74,9 +61,8 @@ export default function HomeTaskProgress() {
     fetchTasks();
 
     const channel = supabase.channel('home_tasks_progress')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks' }, () => {
-        fetchTasks();
-      }).subscribe();
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks' }, fetchTasks)
+      .subscribe();
 
     return () => { supabase.removeChannel(channel); };
   }, [showHomeTaskProgress]);
@@ -84,38 +70,29 @@ export default function HomeTaskProgress() {
   if (!showHomeTaskProgress || loading) return null;
 
   return (
-    <div className="fixed md:bottom-10 md:right-10 top-[calc(1.5rem+env(safe-area-inset-top))] left-6 md:top-auto md:left-auto z-40 animate-fade-up">
+    <div className="relative animate-fade-up z-40">
       <div 
         ref={widgetRef}
+        onClick={() => setIsExpanded(!isExpanded)}
         onMouseEnter={() => { if (window.matchMedia('(hover: hover)').matches) setIsHovered(true); }}
         onMouseLeave={() => { if (window.matchMedia('(hover: hover)').matches) setIsHovered(false); }}
-        onClick={() => setIsExpanded(!isExpanded)}
-        // Hard-set to 'rounded-[2rem]' permanently.
-        // It provides enough curvature to appear fully circular when the widget's bounds are minimal (collapsed)
-        // and expands seamlessly into a pill-shape layout without glitchy border-radius interpolation snaps.
-        className={`flex flex-col items-start bg-white/20 dark:bg-black/30 backdrop-blur-xl border border-white/40 dark:border-white/10 transition-all duration-500 ease-in-out shadow-[0_8px_30px_rgb(0,0,0,0.08)] cursor-pointer overflow-hidden rounded-[2rem]
-          ${showFull ? 'p-4 md:p-5 gap-3' : 'p-2 gap-2'}
+        className={`flex items-start bg-white/20 dark:bg-black/30 hover:bg-white/30 dark:hover:bg-black/40 backdrop-blur-xl border border-white/40 dark:border-white/10 transition-all duration-500 ease-in-out shadow-[0_8px_30px_rgb(0,0,0,0.08)] cursor-pointer overflow-hidden rounded-[2rem]
+          ${showFull ? 'flex-col p-4 md:p-5 gap-3 max-w-[240px]' : 'flex-row p-2 gap-2 max-w-[120px]'}
         `}
       >
         
         {/* Routine Section */}
-        <div className="flex items-center w-full">
-          <div className="relative flex items-center justify-center w-10 h-10 md:w-12 md:h-12 shrink-0 transition-transform duration-500">
-            <svg className="w-10 h-10 md:w-12 md:h-12 transform -rotate-90" viewBox="0 0 36 36">
-              <circle cx="18" cy="18" r="16" fill="none" className="stroke-[#e0ddd5] dark:stroke-white/10" strokeWidth="3" />
+        <div className={`flex items-center ${showFull ? 'w-full' : 'w-auto'}`}>
+          <div className="relative flex items-center justify-center w-10 h-10 md:w-12 md:h-12 shrink-0 transition-transform duration-500 bg-white/20 dark:bg-black/40 rounded-full">
+            <svg className="absolute inset-0 w-10 h-10 md:w-12 md:h-12 transform -rotate-90" viewBox="0 0 36 36">
+              <circle cx="18" cy="18" r="16" fill="none" className="stroke-[#e0ddd5]/50 dark:stroke-white/10" strokeWidth="3" />
               <circle 
-                cx="18" 
-                cy="18" 
-                r="16" 
-                fill="none" 
-                className="stroke-[#7ca982] dark:stroke-[#6a9a70] transition-all duration-1000 ease-out" 
-                strokeWidth="3" 
-                strokeDasharray="100" 
-                strokeDashoffset={100 - routinePct} 
-                strokeLinecap="round" 
+                cx="18" cy="18" r="16" fill="none" 
+                className="stroke-[#7ca982] transition-all duration-1000 ease-out" 
+                strokeWidth="3" strokeDasharray="100" strokeDashoffset={100 - routinePct} strokeLinecap="round" 
               />
             </svg>
-            <span className="absolute text-[9px] md:text-[10px] font-bold text-[#3d3b33] dark:text-white">{routinePct}%</span>
+            <span className="text-[8px] md:text-[9px] font-bold text-[#3d3b33] dark:text-white tabular-nums">{routinePct}%</span>
           </div>
           
           <div className={`flex flex-col justify-center transition-all duration-500 ease-in-out ${showFull ? 'ml-3 opacity-100 max-w-[140px]' : 'ml-0 opacity-0 max-w-0'} overflow-hidden whitespace-nowrap`}>
@@ -126,13 +103,13 @@ export default function HomeTaskProgress() {
           </div>
         </div>
 
-        {/* Separator - Fixed to align with the center of the icons */}
-        <div className={`transition-all duration-500 ease-in-out bg-[#3d3b33]/10 dark:bg-white/10 ${showFull ? 'w-full h-px opacity-100' : 'w-0 h-0 opacity-0'}`} />
+        {/* Separator */}
+        <div className={`transition-all duration-500 ease-in-out bg-[#3d3b33]/15 dark:bg-white/15 ${showFull ? 'w-full h-px opacity-100' : 'hidden opacity-0'}`} />
 
         {/* Normal Tasks Section */}
-        <div className="flex items-center w-full">
+        <div className={`flex items-center ${showFull ? 'w-full' : 'w-auto'}`}>
           <div className={`w-10 h-10 md:w-12 md:h-12 flex items-center justify-center rounded-full shrink-0 transition-all duration-500 ${normalLeft >= 1 ? 'bg-[#c2956e] dark:bg-[#b0855f] text-white shadow-md' : 'bg-white/40 dark:bg-black/40 text-[#c2956e] dark:text-[#d1a784]'}`}>
-            <span className="text-base md:text-lg font-serif">{normalLeft}</span>
+            <span className="text-base md:text-lg font-serif tabular-nums">{normalLeft}</span>
           </div>
           
           <div className={`flex flex-col justify-center transition-all duration-500 ease-in-out ${showFull ? 'ml-3 opacity-100 max-w-[140px]' : 'ml-0 opacity-0 max-w-0'} overflow-hidden whitespace-nowrap`}>

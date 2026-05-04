@@ -3,6 +3,7 @@
 
 import { useState, useEffect } from "react";
 import TaskSection from "@/components/tasks/TaskSection";
+import TodayCalendarWidget from "@/components/calendar/TodayCalendarWidget";
 import { ListChecks, History, Trash2, ArrowLeft, Search, LayoutGrid, List, SortAsc, SortDesc, CheckSquare } from "lucide-react";
 import { useUiStore } from "@/store/uiStore";
 import { supabase } from "@/lib/supabase";
@@ -159,7 +160,10 @@ export default function TasksPage() {
         </header>
 
         <div className="flex flex-col lg:flex-row items-start gap-4 lg:gap-12 w-full">
-          <div className="w-full lg:w-1/2 min-w-0">
+          <div className="w-full lg:w-1/2 min-w-0 flex flex-col gap-4 lg:gap-8">
+            <div className="hidden lg:block">
+               <TodayCalendarWidget variant="tasks" searchQuery={searchQuery} />
+            </div>
             <TaskSection type="routine" title={currentViewMode === 'trash' ? 'Routine Trash' : (currentViewMode === 'archive' ? 'Routine History' : "My Routine")} viewMode={currentViewMode} searchQuery={searchQuery} />
           </div>
           <div className="w-full lg:w-1/2 min-w-0">

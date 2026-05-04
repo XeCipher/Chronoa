@@ -45,6 +45,7 @@ interface UiState {
   
   mobileRoutineCollapsed: boolean;
   mobileTasksCollapsed: boolean;
+  calendarWidgetCollapsed: boolean;
 
   confirmDialog: ConfirmDialogState | null;
   isGlobalTimeWidgetExpanded: boolean;
@@ -73,6 +74,7 @@ interface UiState {
   
   setMobileRoutineCollapsed: (val: boolean) => void;
   setMobileTasksCollapsed: (val: boolean) => void;
+  setCalendarWidgetCollapsed: (val: boolean) => void;
 
   showConfirmDialog: (options: ConfirmDialogState) => void;
   closeConfirmDialog: () => void;
@@ -105,6 +107,7 @@ export const useUiStore = create<UiState>()(
       archiveSort: 'newest',
       mobileRoutineCollapsed: false,
       mobileTasksCollapsed: false,
+      calendarWidgetCollapsed: false,
       
       confirmDialog: null,
       isGlobalTimeWidgetExpanded: false,
@@ -132,6 +135,7 @@ export const useUiStore = create<UiState>()(
       setArchiveSort: (archiveSort) => set({ archiveSort }),
       setMobileRoutineCollapsed: (val) => set({ mobileRoutineCollapsed: val }),
       setMobileTasksCollapsed: (val) => set({ mobileTasksCollapsed: val }),
+      setCalendarWidgetCollapsed: (val) => set({ calendarWidgetCollapsed: val }),
 
       showConfirmDialog: (options) => set({ confirmDialog: options }),
       closeConfirmDialog: () => set({ confirmDialog: null }),

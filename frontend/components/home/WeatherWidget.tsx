@@ -3,12 +3,11 @@
 
 import { useEffect, useState, useRef } from "react";
 import { supabase } from "@/lib/supabase";
-import { Cloud, Sun, Moon, CloudSun, CloudMoon, CloudRain, CloudDrizzle, Snowflake, CloudLightning, Wind, MapPin, RefreshCw } from "lucide-react";
+import { Cloud, Sun, Moon, CloudSun, CloudMoon, CloudRain, CloudDrizzle, Snowflake, CloudLightning, Wind, MapPin } from "lucide-react";
 
 export default function WeatherWidget() {
   const [weather, setWeather] = useState<any>(null);
   const [city, setCity] = useState("");
-  const [loading, setLoading] = useState(true);
   const [isToggled, setIsToggled] = useState(false);
   const widgetRef = useRef<HTMLDivElement>(null);
 
@@ -28,10 +27,7 @@ export default function WeatherWidget() {
 
   const fetchWeather = async () => {
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      setLoading(false);
-      return;
-    }
+    if (!user) return;
 
     const { data: profile } = await supabase
       .from('profiles')
@@ -39,7 +35,7 @@ export default function WeatherWidget() {
       .eq('id', user.id)
       .single();
 
-    if (profile?.weather_lat && profile?.weather_lon) {
+    if (profile?.weather_lat && profile?.weather_lon && profile?.weather_city) {
       try {
         const params = new URLSearchParams({
           latitude: profile.weather_lat.toString(),
@@ -61,8 +57,13 @@ export default function WeatherWidget() {
       } catch (err) {
         console.error("Weather Error:", err);
       }
+    } else {
+      // Forcefully clear cache and state if no location is set
+      setWeather(null);
+      setCity("");
+      localStorage.removeItem('chronoa_cache_weather');
+      localStorage.removeItem('chronoa_cache_weather_city');
     }
-    setLoading(false);
   };
 
   useEffect(() => {
@@ -72,7 +73,6 @@ export default function WeatherWidget() {
       try {
         setWeather(JSON.parse(cached));
         setCity(cachedCity);
-        setLoading(false);
       } catch(e) {}
     }
     fetchWeather();
@@ -101,14 +101,8 @@ export default function WeatherWidget() {
     return { text: day ? "Sunny" : "Clear", icon: day ? Sun : Moon, color: day ? "text-amber-500" : "text-indigo-300" };
   };
 
-  if (loading && !weather) return (
-    <div className="flex items-center gap-2 bg-white/10 dark:bg-black/20 backdrop-blur-md rounded-full px-4 py-2 border border-white/10">
-      <RefreshCw size={14} className="animate-spin text-[#c2956e]" />
-      <span className="text-[10px] font-bold uppercase tracking-widest opacity-50">Syncing...</span>
-    </div>
-  );
-
-  if (!weather) return null;
+  // Completely invisible if no weather is available
+  if (!weather || !city) return null;
 
   const details = getWeatherDetails(weather.weather_code, weather.is_day, weather.precipitation, weather.cloud_cover);
   const Icon = details.icon;
@@ -118,24 +112,24 @@ export default function WeatherWidget() {
       ref={widgetRef}
       onClick={() => setIsToggled(!isToggled)}
       className={`
-        group flex items-center bg-white/10 dark:bg-black/20 hover:bg-white/30 dark:hover:bg-black/40 backdrop-blur-md border border-white/20 dark:border-white/10 shadow-sm rounded-full p-1.5 cursor-pointer transition-all duration-500 ease-out animate-fade-up
-        ${isToggled ? 'pr-4' : 'pr-3'}
+        group flex items-center bg-white/20 dark:bg-black/30 hover:bg-white/30 dark:hover:bg-black/40 backdrop-blur-xl border border-white/40 dark:border-white/10 shadow-[0_8px_30px_rgb(0,0,0,0.08)] rounded-[2rem] p-1 md:p-1.5 cursor-pointer transition-all duration-500 ease-out animate-fade-up h-[40px] md:h-[48px]
+        ${isToggled ? 'pr-4 md:pr-5' : 'pr-3 md:pr-4'}
       `}
     >
-      <div className={`flex items-center justify-center w-8 h-8 rounded-full bg-white/20 dark:bg-black/40 transition-colors ${details.color}`}>
-        <Icon size={16} strokeWidth={2.5} />
+      <div className={`flex items-center justify-center w-8 h-8 md:w-9 md:h-9 rounded-full bg-white/20 dark:bg-black/40 transition-colors ${details.color} shrink-0`}>
+        <Icon size={16} strokeWidth={2.5} className="md:w-[18px] md:h-[18px]" />
       </div>
       
-      <span className="text-base font-medium text-[#3d3b33] dark:text-white ml-2.5 transition-colors">
+      <span className="text-[13px] md:text-[14px] font-semibold text-[#3d3b33] dark:text-white ml-2 md:ml-2.5 transition-colors tabular-nums">
         {Math.round(weather.temperature_2m)}°
       </span>
 
       <div className={`
         flex overflow-hidden transition-all duration-400 ease-out 
-        ${isToggled ? 'max-w-[150px] opacity-100 ml-3' : 'max-w-0 opacity-0 group-hover:max-w-[150px] group-hover:opacity-100 group-hover:ml-3'}
+        ${isToggled ? 'max-w-[150px] opacity-100 ml-2.5 md:ml-3' : 'max-w-0 opacity-0 group-hover:max-w-[150px] group-hover:opacity-100 group-hover:ml-2.5 group-hover:md:ml-3'}
       `}>
-        <div className="whitespace-nowrap flex flex-col justify-center border-l border-[#3d3b33]/15 dark:border-white/15 pl-3 transition-colors">
-          <span className="text-[11px] font-semibold text-[#3d3b33] dark:text-white leading-tight tracking-wide transition-colors">
+        <div className="whitespace-nowrap flex flex-col justify-center border-l border-[#3d3b33]/15 dark:border-white/15 pl-2.5 md:pl-3 transition-colors">
+          <span className="text-[10px] md:text-[11px] font-semibold text-[#3d3b33] dark:text-white leading-tight tracking-wide transition-colors">
             {details.text}
           </span>
           {city && (
