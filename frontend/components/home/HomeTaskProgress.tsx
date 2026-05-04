@@ -70,21 +70,23 @@ export default function HomeTaskProgress() {
   if (!showHomeTaskProgress || loading) return null;
 
   return (
-    <div className="relative animate-fade-up z-40">
+    <div 
+      className="relative animate-fade-up z-40 before:absolute before:-inset-4 before:-z-10"
+      onMouseEnter={() => { if (window.matchMedia('(hover: hover)').matches) setIsHovered(true); }}
+      onMouseLeave={() => { if (window.matchMedia('(hover: hover)').matches) setIsHovered(false); }}
+    >
       <div 
         ref={widgetRef}
         onClick={() => setIsExpanded(!isExpanded)}
-        onMouseEnter={() => { if (window.matchMedia('(hover: hover)').matches) setIsHovered(true); }}
-        onMouseLeave={() => { if (window.matchMedia('(hover: hover)').matches) setIsHovered(false); }}
-        className={`flex items-start bg-white/20 dark:bg-black/30 hover:bg-white/30 dark:hover:bg-black/40 backdrop-blur-xl border border-white/40 dark:border-white/10 transition-all duration-500 ease-in-out shadow-[0_8px_30px_rgb(0,0,0,0.08)] cursor-pointer overflow-hidden rounded-[2rem]
-          ${showFull ? 'flex-col p-4 md:p-5 gap-3 max-w-[240px]' : 'flex-row p-2 gap-2 max-w-[120px]'}
+        className={`flex bg-white/20 dark:bg-black/30 hover:bg-white/30 dark:hover:bg-black/40 backdrop-blur-xl border border-white/40 dark:border-white/10 transition-all duration-500 ease-in-out shadow-[0_8px_30px_rgb(0,0,0,0.08)] cursor-pointer overflow-hidden rounded-[2rem]
+          ${showFull ? 'flex-col items-start p-4 md:p-5 gap-3 max-w-[240px]' : 'flex-row items-center p-1.5 md:p-2 h-[48px] md:h-[56px] gap-1.5 md:gap-2 max-w-[160px]'}
         `}
       >
         
         {/* Routine Section */}
         <div className={`flex items-center ${showFull ? 'w-full' : 'w-auto'}`}>
-          <div className="relative flex items-center justify-center w-10 h-10 md:w-12 md:h-12 shrink-0 transition-transform duration-500 bg-white/20 dark:bg-black/40 rounded-full">
-            <svg className="absolute inset-0 w-10 h-10 md:w-12 md:h-12 transform -rotate-90" viewBox="0 0 36 36">
+          <div className="relative flex items-center justify-center w-9 h-9 md:w-10 md:h-10 shrink-0 transition-transform duration-500 bg-white/20 dark:bg-black/40 rounded-full">
+            <svg className="absolute inset-0 w-9 h-9 md:w-10 md:h-10 transform -rotate-90" viewBox="0 0 36 36">
               <circle cx="18" cy="18" r="16" fill="none" className="stroke-[#e0ddd5]/50 dark:stroke-white/10" strokeWidth="3" />
               <circle 
                 cx="18" cy="18" r="16" fill="none" 
@@ -108,8 +110,8 @@ export default function HomeTaskProgress() {
 
         {/* Normal Tasks Section */}
         <div className={`flex items-center ${showFull ? 'w-full' : 'w-auto'}`}>
-          <div className={`w-10 h-10 md:w-12 md:h-12 flex items-center justify-center rounded-full shrink-0 transition-all duration-500 ${normalLeft >= 1 ? 'bg-[#c2956e] dark:bg-[#b0855f] text-white shadow-md' : 'bg-white/40 dark:bg-black/40 text-[#c2956e] dark:text-[#d1a784]'}`}>
-            <span className="text-base md:text-lg font-serif tabular-nums">{normalLeft}</span>
+          <div className={`w-9 h-9 md:w-10 md:h-10 flex items-center justify-center rounded-full shrink-0 transition-all duration-500 ${normalLeft >= 1 ? 'bg-[#c2956e] dark:bg-[#b0855f] text-white shadow-md' : 'bg-white/20 dark:bg-black/40 text-[#3d3b33] dark:text-white'}`}>
+            <span className="text-[14px] md:text-[15px] font-semibold tabular-nums">{normalLeft}</span>
           </div>
           
           <div className={`flex flex-col justify-center transition-all duration-500 ease-in-out ${showFull ? 'ml-3 opacity-100 max-w-[140px]' : 'ml-0 opacity-0 max-w-0'} overflow-hidden whitespace-nowrap`}>

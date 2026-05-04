@@ -99,6 +99,17 @@ export default function CalendarPage() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isSearchOpen, isDatePickerOpen]);
 
+  // Load from cache instantly on mount
+  useEffect(() => {
+    const cached = localStorage.getItem('chronoa_cache_calendar_main');
+    if (cached) {
+      try {
+        setEvents(JSON.parse(cached));
+        setIsLoading(false);
+      } catch(e) {}
+    }
+  }, []);
+
   const fetchEvents = async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
@@ -115,7 +126,10 @@ export default function CalendarPage() {
       .gte('start_time', start.toISOString())
       .lte('start_time', end.toISOString());
 
-    if (data) setEvents(data as CalendarEvent[]);
+    if (data) {
+      setEvents(data as CalendarEvent[]);
+      localStorage.setItem('chronoa_cache_calendar_main', JSON.stringify(data));
+    }
     setIsLoading(false);
   };
 
@@ -277,6 +291,8 @@ export default function CalendarPage() {
         await supabase.from('calendar_events').insert(newEvent);
       }
     }
+    // Update cache after save
+    setTimeout(() => { fetchEvents() }, 500);
   };
 
   const handleDeleteEvent = async (event: CalendarEvent, deleteMode: 'this' | 'future') => {
@@ -288,6 +304,7 @@ export default function CalendarPage() {
       setEvents(prev => prev.filter(e => !(e.series_id === event.series_id && new Date(e.start_time) >= currentStartTime)));
       await supabase.from('calendar_events').delete().eq('series_id', event.series_id).gte('start_time', currentStartTime.toISOString());
     }
+    setTimeout(() => { fetchEvents() }, 500);
   };
 
   const handleEventMove = (event: CalendarEvent, newStart: Date, newEnd: Date) => {

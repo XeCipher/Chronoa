@@ -112,15 +112,15 @@ export default function WeatherWidget() {
       ref={widgetRef}
       onClick={() => setIsToggled(!isToggled)}
       className={`
-        group flex items-center bg-white/20 dark:bg-black/30 hover:bg-white/30 dark:hover:bg-black/40 backdrop-blur-xl border border-white/40 dark:border-white/10 shadow-[0_8px_30px_rgb(0,0,0,0.08)] rounded-[2rem] p-1 md:p-1.5 cursor-pointer transition-all duration-500 ease-out animate-fade-up h-[40px] md:h-[48px]
+        group flex items-center bg-white/20 dark:bg-black/30 hover:bg-white/30 dark:hover:bg-black/40 backdrop-blur-xl border border-white/40 dark:border-white/10 shadow-[0_8px_30px_rgb(0,0,0,0.08)] rounded-[2rem] p-1.5 md:p-2 cursor-pointer transition-all duration-500 ease-out animate-fade-up h-[48px] md:h-[56px]
         ${isToggled ? 'pr-4 md:pr-5' : 'pr-3 md:pr-4'}
       `}
     >
-      <div className={`flex items-center justify-center w-8 h-8 md:w-9 md:h-9 rounded-full bg-white/20 dark:bg-black/40 transition-colors ${details.color} shrink-0`}>
-        <Icon size={16} strokeWidth={2.5} className="md:w-[18px] md:h-[18px]" />
+      <div className={`flex items-center justify-center w-9 h-9 md:w-10 md:h-10 rounded-full bg-white/20 dark:bg-black/40 transition-colors ${details.color} shrink-0`}>
+        <Icon size={18} strokeWidth={2.5} className="md:w-[20px] md:h-[20px]" />
       </div>
       
-      <span className="text-[13px] md:text-[14px] font-semibold text-[#3d3b33] dark:text-white ml-2 md:ml-2.5 transition-colors tabular-nums">
+      <span className="text-[14px] md:text-[15px] font-semibold text-[#3d3b33] dark:text-white ml-2 md:ml-2.5 transition-colors tabular-nums">
         {Math.round(weather.temperature_2m)}°
       </span>
 

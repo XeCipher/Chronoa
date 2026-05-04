@@ -1,11 +1,11 @@
 // frontend/components/calendar/TodayCalendarWidget.tsx
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
 import { CalendarEvent } from "@/types/app.types";
 import { format, isSameDay, addYears, addDays, addWeeks, addMonths } from "date-fns";
-import { Calendar as CalendarIcon, ChevronDown, ChevronUp } from "lucide-react";
+import { Calendar as CalendarIcon, ChevronDown, ChevronUp, Video } from "lucide-react";
 import { useUiStore } from "@/store/uiStore";
 import EventModal from "./EventModal";
 
@@ -36,33 +36,43 @@ export default function TodayCalendarWidget({ variant, searchQuery = '' }: Props
   const { calendarWidgetCollapsed, setCalendarWidgetCollapsed } = useUiStore();
   const scrollRef = useRef<HTMLDivElement>(null);
 
+  const fetchTodayEvents = useCallback(async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const today = new Date();
+    const start = new Date(today);
+    start.setHours(0, 0, 0, 0);
+    const end = new Date(today);
+    end.setHours(23, 59, 59, 999);
+
+    const { data } = await supabase
+      .from('calendar_events')
+      .select('*')
+      .eq('user_id', user.id)
+      .gte('end_time', start.toISOString())
+      .lte('start_time', end.toISOString());
+
+    if (data) {
+      const todayEvents = (data as CalendarEvent[]).filter(e => {
+        return isSameDay(new Date(e.start_time), today) || (new Date(e.start_time) <= end && new Date(e.end_time) >= start);
+      }).sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime());
+      
+      setEvents(todayEvents);
+      localStorage.setItem('chronoa_cache_calendar_today', JSON.stringify(todayEvents));
+    }
+    setLoading(false);
+  }, []);
+
   useEffect(() => {
-    const fetchTodayEvents = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      const today = new Date();
-      const start = new Date(today);
-      start.setHours(0, 0, 0, 0);
-      const end = new Date(today);
-      end.setHours(23, 59, 59, 999);
-
-      const { data } = await supabase
-        .from('calendar_events')
-        .select('*')
-        .eq('user_id', user.id)
-        .gte('end_time', start.toISOString())
-        .lte('start_time', end.toISOString());
-
-      if (data) {
-        const todayEvents = (data as CalendarEvent[]).filter(e => {
-          return isSameDay(new Date(e.start_time), today) || (new Date(e.start_time) <= end && new Date(e.end_time) >= start);
-        }).sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime());
-        setEvents(todayEvents);
-      }
-      setLoading(false);
-    };
-
+    const cached = localStorage.getItem('chronoa_cache_calendar_today');
+    if (cached) {
+      try {
+        setEvents(JSON.parse(cached));
+        setLoading(false);
+      } catch (e) {}
+    }
+    
     fetchTodayEvents();
     
     const channel = supabase.channel('calendar_today')
@@ -70,7 +80,7 @@ export default function TodayCalendarWidget({ variant, searchQuery = '' }: Props
       .subscribe();
       
     return () => { supabase.removeChannel(channel); };
-  }, []);
+  }, [fetchTodayEvents]);
 
   const filteredEvents = events.filter(e => {
     if (!searchQuery) return true;
@@ -81,11 +91,24 @@ export default function TodayCalendarWidget({ variant, searchQuery = '' }: Props
   // Smooth custom scrolling logic
   useEffect(() => {
     if (!loading && filteredEvents.length > 0 && scrollRef.current) {
-      const firstActive = scrollRef.current.querySelector('.event-active') as HTMLElement;
-      if (firstActive) {
-        const container = scrollRef.current;
-        // Offset ensures the padding above the active event is fully shown.
-        const offsetTop = firstActive.offsetTop - 16; 
+      const container = scrollRef.current;
+      const activeEvents = container.querySelectorAll('.event-active');
+      
+      let targetEl: HTMLElement | null = null;
+      
+      if (activeEvents.length > 0) {
+        targetEl = activeEvents[0] as HTMLElement;
+      } else {
+        // If there are no active events (meaning all are past), target the last event in the list
+        const allEvents = container.querySelectorAll('.event-card');
+        if (allEvents.length > 0) {
+          targetEl = allEvents[allEvents.length - 1] as HTMLElement;
+        }
+      }
+
+      if (targetEl) {
+        // Offset ensures the padding above the event is fully shown
+        const offsetTop = targetEl.offsetTop - 16; 
         container.scrollTo({ top: Math.max(0, offsetTop), behavior: 'smooth' });
       }
     }
@@ -179,6 +202,7 @@ export default function TodayCalendarWidget({ variant, searchQuery = '' }: Props
         }
       }
     }
+    await fetchTodayEvents();
   };
 
   const handleDeleteEvent = async (event: CalendarEvent, deleteMode: 'this' | 'future') => {
@@ -188,6 +212,7 @@ export default function TodayCalendarWidget({ variant, searchQuery = '' }: Props
       const currentStartTime = new Date(event.start_time);
       await supabase.from('calendar_events').delete().eq('series_id', event.series_id).gte('start_time', currentStartTime.toISOString());
     }
+    await fetchTodayEvents();
   };
 
   const isCollapsed = variant === 'tasks' ? calendarWidgetCollapsed : false;
@@ -240,14 +265,24 @@ export default function TodayCalendarWidget({ variant, searchQuery = '' }: Props
                   <div 
                     key={e.id}
                     onClick={() => handleEventClick(e)}
-                    className={`flex items-center justify-between p-3 md:p-3.5 rounded-xl shadow-sm border border-black/5 dark:border-white/5 transition-all duration-300 ${variant === 'tasks' ? 'cursor-pointer hover:scale-[1.02]' : ''} ${variant === 'home' ? 'bg-white/60 dark:bg-black/40' : colorClass} ${isPast ? 'opacity-40 grayscale-[20%]' : 'event-active opacity-100'}`}
+                    className={`event-card flex items-center justify-between p-3 md:p-3.5 rounded-xl shadow-sm border border-black/5 dark:border-white/5 transition-all duration-300 ${variant === 'tasks' ? 'cursor-pointer hover:scale-[1.02]' : ''} ${variant === 'home' ? 'bg-white/60 dark:bg-black/40' : colorClass} ${isPast ? 'opacity-40 grayscale-[20%]' : 'event-active opacity-100'}`}
                   >
-                     <span className={`font-semibold text-sm truncate pr-2 ${variant === 'home' ? 'text-[#3d3b33] dark:text-[#e0e0e0]' : ''}`}>
-                       {renderHighlightedText(e.title)}
-                     </span>
-                     <span className={`text-[10px] font-bold tracking-widest uppercase shrink-0 ${variant === 'home' ? 'text-[#c2956e] dark:text-[#d1a784]' : 'opacity-80'}`}>
-                       {timeStr}
-                     </span>
+                     <div className="flex flex-col min-w-0 pr-2">
+                       <span className={`font-semibold text-sm truncate ${variant === 'home' ? 'text-[#3d3b33] dark:text-[#e0e0e0]' : ''}`}>
+                         {renderHighlightedText(e.title)}
+                       </span>
+                       <span className={`text-[10px] font-bold tracking-widest uppercase mt-0.5 ${variant === 'home' ? 'text-[#c2956e] dark:text-[#d1a784]' : 'opacity-80'}`}>
+                         {timeStr}
+                       </span>
+                     </div>
+                     {e.meeting_url && (
+                        <button 
+                          onClick={(ev) => { ev.stopPropagation(); window.open(e.meeting_url!, '_blank'); }}
+                          className="shrink-0 bg-[#c2956e] text-white px-2.5 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider flex items-center gap-1.5 hover:bg-[#b0855f] shadow-sm transition-colors ml-2"
+                        >
+                          <Video size={12} /> Join
+                        </button>
+                     )}
                   </div>
                 )
               })
