@@ -141,35 +141,14 @@ export default function SidebarNav() {
                   }
                 }
               }}
-              className={`flex flex-col items-center justify-center w-16 shrink-0 h-full gap-1 transition-all ${
+              className={`flex items-center justify-center w-16 shrink-0 h-full transition-all ${
                 isActive ? "text-[#c2956e] dark:text-[#d1a784]" : "text-[#888888] dark:text-[#a0a0a0] active:text-[#3d3b33] dark:active:text-[#fff]"
               }`}
             >
-              <item.icon className="w-[20px] h-[20px]" strokeWidth={isActive ? 2.5 : 2} />
-              <span className={`text-[9px] font-medium tracking-wide ${isActive ? "opacity-100" : "opacity-70"}`}>
-                {item.name}
-              </span>
+              <item.icon className="w-[26px] h-[26px]" strokeWidth={isActive ? 2.5 : 2} />
             </Link>
           );
         })}
-        <Link
-          href="/settings"
-          onClick={(e) => {
-            if (pathname === "/settings") {
-              e.preventDefault();
-              const el = document.getElementById("main-scroll-container");
-              if (el) el.scrollTo({ top: 0, behavior: "smooth" });
-            }
-          }}
-          className={`flex flex-col items-center justify-center w-16 shrink-0 h-full gap-1 transition-all ${
-            pathname === "/settings" ? "text-[#3d3b33] dark:text-[#fff]" : "text-[#888888] dark:text-[#a0a0a0] active:text-[#3d3b33] dark:active:text-[#fff]"
-          }`}
-        >
-          <Settings className="w-[20px] h-[20px]" strokeWidth={pathname === "/settings" ? 2.5 : 2} />
-          <span className={`text-[9px] font-medium tracking-wide ${pathname === "/settings" ? "opacity-100" : "opacity-70"}`}>
-            Settings
-          </span>
-        </Link>
       </nav>
     </>
   );

@@ -8,7 +8,7 @@ import { supabase } from "@/lib/supabase";
 import { 
   MapPin, Search, Clock, Sparkles, 
   X, Monitor, LogOut, Navigation, AlertTriangle, Keyboard, CheckCircle2, Settings as SettingsIcon,
-  Info, Mail
+  Info, Mail, ArrowLeft
 } from "lucide-react";
 
 const GitHubIcon = ({ size = 16, className = "" }: { size?: number, className?: string }) => (
@@ -160,13 +160,19 @@ export default function SettingsPage() {
   const altKeyDisplay = os === 'mac' ? '⌥' : 'Alt';
   const ctrlKeyDisplay = os === 'mac' ? '⌘' : 'Ctrl';
 
-  // Refined uniformity in root div className (p-4 md:p-8 lg:p-10)
   return (
     <div className="max-w-4xl w-full min-h-full mx-auto p-4 md:p-8 lg:p-10 space-y-12 pb-32 md:pb-12">
-      <header className="space-y-2">
-        <div className="flex items-center gap-2.5 text-[#3d3b33] dark:text-[#f0f0f0]">
-          <SettingsIcon size={24} className="text-[#c2956e]" />
-          <h1 className="text-3xl md:text-4xl font-serif font-medium tracking-tight">Settings</h1>
+      <header className="flex flex-col sm:flex-row sm:items-end justify-between gap-6">
+        <div className="space-y-2">
+          <div className="flex items-center gap-2.5 text-[#3d3b33] dark:text-[#f0f0f0]">
+            <SettingsIcon size={24} className="text-[#c2956e]" />
+            <h1 className="text-3xl md:text-4xl font-serif font-medium tracking-tight">Settings</h1>
+          </div>
+        </div>
+        <div className="flex items-center gap-4">
+          <button onClick={() => router.push('/')} className="flex items-center justify-center gap-2 px-6 py-3 bg-white dark:bg-[#1a1a1a] text-[#888] rounded-xl text-[10px] font-bold uppercase tracking-widest border border-[#e0ddd5] dark:border-[#333] hover:text-[#3d3b33] dark:hover:text-[#f0f0f0] transition-all shadow-sm">
+            <ArrowLeft size={14} /> Home
+          </button>
         </div>
       </header>
 
@@ -303,9 +309,9 @@ export default function SettingsPage() {
           </div>
         </section>
 
-        <hr className="border-[#f0ede8] dark:border-[#2a2a2a]" />
+        <hr className="hidden md:block border-[#f0ede8] dark:border-[#2a2a2a]" />
 
-        <section className="space-y-4">
+        <section className="hidden md:block space-y-4">
           <div className="flex items-center gap-3 text-[#5b9ea0] dark:text-[#6baea0]">
             <MapPin size={20} />
             <h3 className="text-xl font-medium text-[#3d3b33] dark:text-[#f0f0f0]">Weather Location</h3>

@@ -313,10 +313,11 @@ export default function WeekView({ currentDate, events, onEventClick, onTimeRang
                   const colorClasses = eventColors[event.color] || eventColors['amber'];
                   const numericHeight = parseInt(pos.height.replace('px', ''));
 
-                  const showLocation = event.location && numericHeight >= 55;
+                  const isShort = numericHeight <= 35;
+                  const showLocation = !isShort && event.location && numericHeight >= 55;
                   
                   const durationMins = (new Date(event.end_time).getTime() - new Date(event.start_time).getTime()) / 60000;
-                  const showTime = durationMins >= 45;
+                  const showTime = !isShort && durationMins >= 45;
 
                   return (
                     <div 
@@ -334,8 +335,8 @@ export default function WeekView({ currentDate, events, onEventClick, onTimeRang
                       className={`absolute rounded-md md:rounded-md border cursor-grab active:cursor-grabbing shadow-sm overflow-hidden hover:z-30 transition-transform flex flex-col ${colorClasses} z-20`}
                       style={{ top: pos.top, height: pos.height, left: pos.left, width: pos.width }}
                     >
-                      <div className="p-1.5 flex-1 min-h-0 flex flex-col relative overflow-hidden">
-                        <div className="text-[10px] md:text-xs font-bold leading-tight flex justify-between items-start gap-1">
+                      <div className={`flex-1 min-h-0 flex flex-col relative overflow-hidden ${isShort ? 'justify-center p-0.5 px-1' : 'p-1.5'}`}>
+                        <div className={`font-bold leading-tight flex justify-between gap-1 ${isShort ? 'text-[9px] md:text-[10px] items-center' : 'text-[10px] md:text-xs items-start'}`}>
                           <span className="truncate">{event.title}</span>
                         </div>
                         

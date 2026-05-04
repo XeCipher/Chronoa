@@ -8,8 +8,11 @@ import ProductivityWidgets from "@/components/home/ProductivityWidgets";
 import WeatherWidget from "@/components/home/WeatherWidget";
 import HomeTaskProgress from "@/components/home/HomeTaskProgress";
 import { useTimerStore } from "@/store/timerStore";
+import { Settings } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 export default function HomePage() {
+  const router = useRouter();
   const [isHovered, setIsHovered] = useState(false);
   const [isTouched, setIsTouched] = useState(false);
   
@@ -28,7 +31,17 @@ export default function HomePage() {
       <SceneryBackground />
       <HomeTaskProgress />
       
-      <div className="absolute top-6 right-6 md:top-10 md:right-12 z-20">
+      {/* Elegant Mobile Settings Link Button positioned gracefully at the top right */}
+      <div className="absolute top-6 right-6 md:hidden z-40">
+        <button 
+          onClick={() => router.push('/settings')} 
+          className="w-10 h-10 flex items-center justify-center rounded-full bg-white/20 dark:bg-black/30 backdrop-blur-md border border-white/40 dark:border-white/10 shadow-sm text-[#3d3b33] dark:text-white transition-all active:scale-95"
+        >
+          <Settings size={20} strokeWidth={2} />
+        </button>
+      </div>
+
+      <div className="hidden md:block absolute md:top-10 md:right-12 z-20">
         <WeatherWidget />
       </div>
 

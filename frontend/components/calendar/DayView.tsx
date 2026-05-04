@@ -265,10 +265,11 @@ export default function DayView({ currentDate, events, onEventClick, onTimeRange
             const colorClasses = eventColors[event.color] || eventColors['amber'];
             const numericHeight = parseInt(pos.height.replace('px', ''));
 
-            const showLocation = event.location && numericHeight >= 55;
+            const isShort = numericHeight <= 35;
+            const showLocation = !isShort && event.location && numericHeight >= 55;
             
             const durationMins = (new Date(event.end_time).getTime() - new Date(event.start_time).getTime()) / 60000;
-            const showTime = durationMins >= 45;
+            const showTime = !isShort && durationMins >= 45;
 
             return (
               <div 
@@ -286,8 +287,8 @@ export default function DayView({ currentDate, events, onEventClick, onTimeRange
                 className={`absolute rounded-md md:rounded-md border cursor-grab active:cursor-grabbing shadow-sm overflow-hidden hover:z-30 transition-transform flex flex-col ${colorClasses} z-20`}
                 style={{ top: pos.top, height: pos.height, left: pos.left, width: pos.width }}
               >
-                <div className="p-1.5 flex-1 min-h-0 flex flex-col relative overflow-hidden">
-                  <div className="text-sm font-bold leading-tight flex justify-between items-start gap-1">
+                <div className={`flex-1 min-h-0 flex flex-col relative overflow-hidden ${isShort ? 'p-0.5 px-1.5 justify-center' : 'p-1.5'}`}>
+                  <div className={`font-bold leading-tight flex justify-between items-start gap-1 ${isShort ? 'text-[10px] md:text-[11px] items-center' : 'text-sm'}`}>
                     <span className="truncate">{event.title}</span>
                   </div>
                   
@@ -303,7 +304,7 @@ export default function DayView({ currentDate, events, onEventClick, onTimeRange
                     </div>
                   )}
 
-                  {event.description && numericHeight >= 85 && (
+                  {!isShort && event.description && numericHeight >= 85 && (
                     <div className="text-[11px] mt-2 opacity-70 line-clamp-2">{event.description}</div>
                   )}
                 </div>
