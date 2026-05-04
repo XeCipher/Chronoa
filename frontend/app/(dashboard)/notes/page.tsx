@@ -119,7 +119,22 @@ export default function NotesPage() {
 
     const { data: jData } = await supabase.from('journal_entries').select('*').is('deleted_at', null).order('entry_date', { ascending: false });
     const todayStr = getLocalYYYYMMDD(new Date());
-    const jList = jData || [];
+    
+    let jList = jData || [];
+
+    // Auto-delete empty journals that are not today's
+    const emptyJournals = jList.filter(j => {
+      if (j.entry_date === todayStr) return false;
+      const plain = (j.content || "").replace(/<[^>]+>/g, '').trim();
+      return plain === '';
+    });
+
+    if (emptyJournals.length > 0) {
+      const emptyDates = emptyJournals.map(j => j.entry_date);
+      await supabase.from('journal_entries').delete().in('entry_date', emptyDates).eq('user_id', user.id);
+      jList = jList.filter(j => !emptyJournals.includes(j));
+    }
+
     if (!jList.some(j => j.entry_date === todayStr)) {
       jList.unshift({ entry_date: todayStr, content: "<p></p>" });
     }
@@ -137,7 +152,7 @@ export default function NotesPage() {
     setTrash(combinedTrash);
     setLoading(false);
     syncOfflineData();
-  },[]);
+  }, []);
 
   useEffect(() => { 
     fetchData(); 
@@ -455,7 +470,6 @@ export default function NotesPage() {
     );
   };
 
-  // Refined uniformity in root div className (removed lg:pl-10 which caused offset mismatch)
   return (
     <div className="relative flex h-full w-full bg-[#f7f5f0] dark:bg-[#121212] overflow-hidden">
       

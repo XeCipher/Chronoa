@@ -4,7 +4,7 @@
 import { useMemo, useEffect, useState, useRef } from "react";
 import { format, isToday, isSameDay, setHours, setMinutes } from "date-fns";
 import { CalendarEvent } from "@/types/app.types";
-import { MapPin, Video, GripHorizontal } from "lucide-react";
+import { MapPin, GripHorizontal } from "lucide-react";
 
 interface Props {
   currentDate: Date;
@@ -44,7 +44,7 @@ export default function DayView({ currentDate, events, onEventClick, onTimeRange
          scrollRef.current.scrollTop = Math.max(0, currentMins - scrollRef.current.clientHeight / 2);
       }
     }
-  }, [targetScrollTime]);
+  }, [targetScrollTime, now]);
 
   const allDayEvents = useMemo(() => {
     return events.filter(e => e.is_all_day && isSameDay(new Date(e.start_time), currentDate));
@@ -186,11 +186,6 @@ export default function DayView({ currentDate, events, onEventClick, onTimeRange
                  {allDayEvents.map(e => (
                    <div key={e.id} onClick={() => onEventClick(e)} className={`px-3 py-2 text-[11px] font-bold rounded-lg cursor-pointer flex items-center justify-between shadow-sm ${eventColors[e.color] || eventColors['amber']}`}>
                      <span className="truncate pr-1">{e.title}</span>
-                     {e.meeting_url && (
-                       <button onClick={(ev) => { ev.stopPropagation(); if (e.meeting_url) window.open(e.meeting_url, '_blank'); }} className="bg-[#c2956e] text-white px-2 py-1 rounded text-[8px] uppercase tracking-wider flex items-center gap-1 hover:bg-[#b0855f] transition-colors shrink-0 shadow-sm">
-                         <Video size={10} /> Join
-                       </button>
-                     )}
                    </div>
                  ))}
                </div>
@@ -270,9 +265,10 @@ export default function DayView({ currentDate, events, onEventClick, onTimeRange
             const colorClasses = eventColors[event.color] || eventColors['amber'];
             const numericHeight = parseInt(pos.height.replace('px', ''));
 
-            const showIconsInTitle = numericHeight < 75;
             const showLocation = event.location && numericHeight >= 55;
-            const showJoin = event.meeting_url && numericHeight >= 75;
+            
+            const durationMins = (new Date(event.end_time).getTime() - new Date(event.start_time).getTime()) / 60000;
+            const showTime = durationMins >= 45;
 
             return (
               <div 
@@ -293,15 +289,13 @@ export default function DayView({ currentDate, events, onEventClick, onTimeRange
                 <div className="p-1.5 flex-1 min-h-0 flex flex-col relative overflow-hidden">
                   <div className="text-sm font-bold leading-tight flex justify-between items-start gap-1">
                     <span className="truncate">{event.title}</span>
-                    {showIconsInTitle && event.meeting_url && (
-                      <button onClick={(e) => { e.stopPropagation(); if (event.meeting_url) window.open(event.meeting_url, '_blank'); }} className="bg-[#c2956e] text-white p-0.5 px-1.5 rounded text-[8px] uppercase tracking-wider shrink-0 transition-colors shadow-sm ml-1 hover:bg-[#b0855f]">
-                         <Video size={10} /> Join
-                      </button>
-                    )}
                   </div>
-                  <div className="text-[11px] opacity-80 mt-0.5 truncate shrink-0">
-                    {formatEventTime(new Date(event.start_time))} - {formatEventTime(new Date(event.end_time))}
-                  </div>
+                  
+                  {showTime && (
+                    <div className="text-[11px] opacity-80 mt-0.5 truncate shrink-0">
+                      {formatEventTime(new Date(event.start_time))} - {formatEventTime(new Date(event.end_time))}
+                    </div>
+                  )}
                   
                   {showLocation && (
                     <div className="text-[11px] opacity-90 mt-1 truncate flex items-center gap-1.5 font-medium shrink-0">
@@ -309,16 +303,7 @@ export default function DayView({ currentDate, events, onEventClick, onTimeRange
                     </div>
                   )}
 
-                  {showJoin && (
-                    <button
-                      onClick={(e) => { e.stopPropagation(); if (event.meeting_url) window.open(event.meeting_url, '_blank'); }}
-                      className="mt-auto bg-black/10 hover:bg-black/20 dark:bg-white/10 dark:hover:bg-white/20 px-2.5 py-1.5 rounded-md text-[10px] font-bold uppercase tracking-wider flex items-center w-max gap-1.5 transition-colors self-end"
-                    >
-                      <Video size={12} /> Join
-                    </button>
-                  )}
-
-                  {!showJoin && event.description && numericHeight >= 85 && (
+                  {event.description && numericHeight >= 85 && (
                     <div className="text-[11px] mt-2 opacity-70 line-clamp-2">{event.description}</div>
                   )}
                 </div>

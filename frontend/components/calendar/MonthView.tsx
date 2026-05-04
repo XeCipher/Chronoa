@@ -110,6 +110,10 @@ export default function MonthView({ currentDate, events, onEventClick, onDayClic
                         const isStart = format(new Date(event.start_time), 'yyyy-MM-dd') === format(day, 'yyyy-MM-dd');
                         const isEnd = format(new Date(event.end_time), 'yyyy-MM-dd') === format(day, 'yyyy-MM-dd');
                         const colorClasses = eventColors[event.color] || eventColors['amber'];
+                        
+                        const durationMins = (new Date(event.end_time).getTime() - new Date(event.start_time).getTime()) / 60000;
+                        const showTime = durationMins >= 45;
+
                         return (
                           <div 
                             key={event.id}
@@ -120,16 +124,8 @@ export default function MonthView({ currentDate, events, onEventClick, onDayClic
                               <span className="truncate">{event.title}</span>
                             </div>
                             <div className="flex items-center gap-1 shrink-0">
-                              {!event.is_all_day && (
+                              {!event.is_all_day && showTime && (
                                  <span className="opacity-70 text-[8px] font-bold tracking-wider">{formatEventTime(new Date(event.start_time))} - {formatEventTime(new Date(event.end_time))}</span>
-                              )}
-                              {event.meeting_url && (
-                                <button
-                                  onClick={(e) => { e.stopPropagation(); if (event.meeting_url) window.open(event.meeting_url, '_blank'); }}
-                                  className="bg-[#c2956e] text-white px-1.5 py-0.5 rounded text-[8px] uppercase tracking-wider flex items-center gap-1 hover:bg-[#b0855f] transition-colors shadow-sm ml-1"
-                                >
-                                  <Video size={8} /> Join
-                                </button>
                               )}
                             </div>
                           </div>
@@ -164,25 +160,31 @@ export default function MonthView({ currentDate, events, onEventClick, onDayClic
         </div>
         
         <div className="flex-1 overflow-y-auto no-scrollbar p-3 md:p-4 space-y-2">
-           {selectedDayEvents.length > 0 ? selectedDayEvents.map(e => (
-             <div key={e.id} onClick={() => onEventClick(e)} className={`px-4 py-3 rounded-[1rem] border cursor-pointer hover:scale-[1.02] transition-transform shadow-sm flex justify-between items-center ${eventColors[e.color] || eventColors['amber']}`}>
-                <div className="flex flex-col min-w-0 pr-2">
-                  <div className={`text-sm font-bold truncate leading-tight flex items-center gap-1.5`}>
-                     {e.title}
-                  </div>
-                  <div className="text-[10px] opacity-80 mt-1 uppercase tracking-wider font-semibold flex items-center gap-2">
-                    {e.is_all_day ? 'All-day' : `${formatEventTime(new Date(e.start_time))} - ${formatEventTime(new Date(e.end_time))}`}
-                    {e.location && <span className="flex items-center gap-0.5"><MapPin size={10}/> {e.location}</span>}
-                  </div>
-                </div>
+           {selectedDayEvents.length > 0 ? selectedDayEvents.map(e => {
+             const durationMins = (new Date(e.end_time).getTime() - new Date(e.start_time).getTime()) / 60000;
+             const showTime = durationMins >= 45;
 
-                {e.meeting_url && (
-                  <button onClick={(ev) => { ev.stopPropagation(); if (e.meeting_url) window.open(e.meeting_url, '_blank'); }} className="bg-[#c2956e] text-white px-2.5 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider flex items-center w-max gap-1.5 transition-colors hover:bg-[#b0855f] shadow-sm shrink-0">
-                     <Video size={12} /> Join
-                  </button>
-                )}
-             </div>
-           )) : (
+             return (
+               <div key={e.id} onClick={() => onEventClick(e)} className={`px-4 py-3 rounded-[1rem] border cursor-pointer hover:scale-[1.02] transition-transform shadow-sm flex justify-between items-center ${eventColors[e.color] || eventColors['amber']}`}>
+                  <div className="flex flex-col min-w-0 pr-2">
+                    <div className={`text-sm font-bold truncate leading-tight flex items-center gap-1.5`}>
+                       {e.title}
+                    </div>
+                    <div className="text-[10px] opacity-80 mt-1 uppercase tracking-wider font-semibold flex items-center gap-2">
+                      {e.is_all_day && 'All-day'}
+                      {!e.is_all_day && showTime && `${formatEventTime(new Date(e.start_time))} - ${formatEventTime(new Date(e.end_time))}`}
+                      {e.location && <span className="flex items-center gap-0.5"><MapPin size={10}/> {e.location}</span>}
+                    </div>
+                  </div>
+
+                  {e.meeting_url && (
+                    <button onClick={(ev) => { ev.stopPropagation(); if (e.meeting_url) window.open(e.meeting_url, '_blank'); }} className="bg-[#c2956e] text-white px-2.5 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider flex items-center w-max gap-1.5 transition-colors hover:bg-[#b0855f] shadow-sm shrink-0">
+                       <Video size={12} /> Join
+                    </button>
+                  )}
+               </div>
+             );
+           }) : (
              <div className="h-full flex flex-col items-center justify-center text-[#b0ad9a] dark:text-[#7a7a7a] italic text-xs gap-2 opacity-70">
                 <span>No events for this day.</span>
              </div>
