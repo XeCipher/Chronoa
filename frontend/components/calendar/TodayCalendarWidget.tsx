@@ -88,9 +88,10 @@ export default function TodayCalendarWidget({ variant, searchQuery = '' }: Props
     return e.title.toLowerCase().includes(q) || (e.location && e.location.toLowerCase().includes(q)) || (e.description && e.description.toLowerCase().includes(q));
   });
 
-  // Smooth custom scrolling logic
+  const isCollapsed = variant === 'tasks' ? calendarWidgetCollapsed : false;
+
   useEffect(() => {
-    if (!loading && filteredEvents.length > 0 && scrollRef.current) {
+    if (!loading && filteredEvents.length > 0 && scrollRef.current && !isCollapsed) {
       const container = scrollRef.current;
       const activeEvents = container.querySelectorAll('.event-active');
       
@@ -99,7 +100,6 @@ export default function TodayCalendarWidget({ variant, searchQuery = '' }: Props
       if (activeEvents.length > 0) {
         targetEl = activeEvents[0] as HTMLElement;
       } else {
-        // If there are no active events (meaning all are past), target the last event in the list
         const allEvents = container.querySelectorAll('.event-card');
         if (allEvents.length > 0) {
           targetEl = allEvents[allEvents.length - 1] as HTMLElement;
@@ -107,12 +107,11 @@ export default function TodayCalendarWidget({ variant, searchQuery = '' }: Props
       }
 
       if (targetEl) {
-        // Offset ensures the padding above the event is fully shown
         const offsetTop = targetEl.offsetTop - 16; 
         container.scrollTo({ top: Math.max(0, offsetTop), behavior: 'smooth' });
       }
     }
-  }, [loading, filteredEvents]);
+  }, [loading, filteredEvents, isCollapsed]);
 
   const renderHighlightedText = (text: string) => {
     if (!searchQuery) return text;
@@ -215,15 +214,13 @@ export default function TodayCalendarWidget({ variant, searchQuery = '' }: Props
     await fetchTodayEvents();
   };
 
-  const isCollapsed = variant === 'tasks' ? calendarWidgetCollapsed : false;
-
   const containerClasses = variant === 'home' 
     ? 'w-[280px] bg-white/20 dark:bg-black/30 backdrop-blur-xl border border-white/40 dark:border-white/10 rounded-[2rem] shadow-[0_8px_30px_rgb(0,0,0,0.08)] overflow-hidden transition-all duration-500'
     : 'w-full bg-white/70 dark:bg-[#1a1a1a]/80 backdrop-blur-sm border border-[#ebe8e2] dark:border-[#333] rounded-[28px] overflow-hidden shadow-[0_2px_16px_rgba(44,43,39,0.05)] transition-all duration-300';
 
   const headerClasses = variant === 'home'
     ? 'px-5 py-4 flex items-center justify-between text-[#3d3b33] dark:text-white'
-    : 'px-5 md:px-8 py-5 border-b border-[#f0ede8] dark:border-[#2a2a2a] flex items-center justify-between';
+    : `px-5 md:px-8 py-5 flex items-center justify-between transition-colors duration-300 border-b ${!isCollapsed ? 'border-[#f0ede8] dark:border-[#2a2a2a]' : 'border-transparent'}`;
 
   return (
     <>
@@ -245,54 +242,56 @@ export default function TodayCalendarWidget({ variant, searchQuery = '' }: Props
           )}
         </div>
 
-        {(!isCollapsed) && (
-          <div 
-            ref={scrollRef}
-            className={`flex flex-col overflow-y-auto no-scrollbar scroll-smooth ${variant === 'home' ? 'gap-2 px-4 pt-2 pb-4 max-h-[140px]' : 'gap-3 px-5 md:px-8 pt-4 pb-5 max-h-[180px]'}`}
-          >
-            {loading ? (
-              <div className="animate-pulse flex flex-col gap-2">
-                <div className="h-10 bg-black/10 dark:bg-white/10 rounded-xl w-full" />
-                <div className="h-10 bg-black/10 dark:bg-white/10 rounded-xl w-full" />
-              </div>
-            ) : filteredEvents.length > 0 ? (
-              filteredEvents.map(e => {
-                const colorClass = EVENT_COLORS[e.color] || EVENT_COLORS['amber'];
-                const isPast = new Date(e.end_time) < new Date();
-                const timeStr = e.is_all_day ? 'All-day' : `${formatTimeStr(new Date(e.start_time))} - ${formatTimeStr(new Date(e.end_time))}`;
-                
-                return (
-                  <div 
-                    key={e.id}
-                    onClick={() => handleEventClick(e)}
-                    className={`event-card flex items-center justify-between p-3 md:p-3.5 rounded-xl shadow-sm border border-black/5 dark:border-white/5 transition-all duration-300 ${variant === 'tasks' ? 'cursor-pointer hover:scale-[1.02]' : ''} ${variant === 'home' ? 'bg-white/60 dark:bg-black/40' : colorClass} ${isPast ? 'opacity-40 grayscale-[20%]' : 'event-active opacity-100'}`}
-                  >
-                     <div className="flex flex-col min-w-0 pr-2">
-                       <span className={`font-semibold text-sm truncate ${variant === 'home' ? 'text-[#3d3b33] dark:text-[#e0e0e0]' : ''}`}>
-                         {renderHighlightedText(e.title)}
-                       </span>
-                       <span className={`text-[10px] font-bold tracking-widest uppercase mt-0.5 ${variant === 'home' ? 'text-[#c2956e] dark:text-[#d1a784]' : 'opacity-80'}`}>
-                         {timeStr}
-                       </span>
-                     </div>
-                     {e.meeting_url && (
-                        <button 
-                          onClick={(ev) => { ev.stopPropagation(); window.open(e.meeting_url!, '_blank'); }}
-                          className="shrink-0 bg-[#c2956e] text-white px-2.5 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider flex items-center gap-1.5 hover:bg-[#b0855f] shadow-sm transition-colors ml-2"
-                        >
-                          <Video size={12} /> Join
-                        </button>
-                     )}
-                  </div>
-                )
-              })
-            ) : (
-              <div className={`pb-2 text-center text-xs font-medium italic ${variant === 'home' ? 'text-[#3d3b33]/60 dark:text-white/50' : 'text-[#b0ad9a] dark:text-[#7a7a7a]'}`}>
-                {searchQuery ? "No matching events found." : "No events scheduled today."}
-              </div>
-            )}
+        <div className={`grid transition-all duration-300 ease-in-out ${!isCollapsed ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}>
+          <div className="overflow-hidden">
+            <div 
+              ref={scrollRef}
+              className={`flex flex-col overflow-y-auto no-scrollbar scroll-smooth ${variant === 'home' ? 'gap-2 px-4 pt-2 pb-4 max-h-[140px]' : 'gap-3 px-5 md:px-8 pt-4 pb-5 max-h-[180px]'}`}
+            >
+              {loading ? (
+                <div className="animate-pulse flex flex-col gap-2">
+                  <div className="h-10 bg-black/10 dark:bg-white/10 rounded-xl w-full" />
+                  <div className="h-10 bg-black/10 dark:bg-white/10 rounded-xl w-full" />
+                </div>
+              ) : filteredEvents.length > 0 ? (
+                filteredEvents.map(e => {
+                  const colorClass = EVENT_COLORS[e.color] || EVENT_COLORS['amber'];
+                  const isPast = new Date(e.end_time) < new Date();
+                  const timeStr = e.is_all_day ? 'All-day' : `${formatTimeStr(new Date(e.start_time))} - ${formatTimeStr(new Date(e.end_time))}`;
+                  
+                  return (
+                    <div 
+                      key={e.id}
+                      onClick={() => handleEventClick(e)}
+                      className={`event-card flex items-center justify-between p-3 md:p-3.5 rounded-xl shadow-sm border border-black/5 dark:border-white/5 transition-all duration-300 ${variant === 'tasks' ? 'cursor-pointer hover:scale-[1.02]' : ''} ${variant === 'home' ? 'bg-white/60 dark:bg-black/40' : colorClass} ${isPast ? 'opacity-40 grayscale-[20%]' : 'event-active opacity-100'}`}
+                    >
+                       <div className="flex flex-col min-w-0 pr-2">
+                         <span className={`font-semibold text-sm truncate ${variant === 'home' ? 'text-[#3d3b33] dark:text-[#e0e0e0]' : ''}`}>
+                           {renderHighlightedText(e.title)}
+                         </span>
+                         <span className={`text-[10px] font-bold tracking-widest uppercase mt-0.5 ${variant === 'home' ? 'text-[#c2956e] dark:text-[#d1a784]' : 'opacity-80'}`}>
+                           {timeStr}
+                         </span>
+                       </div>
+                       {e.meeting_url && (
+                          <button 
+                            onClick={(ev) => { ev.stopPropagation(); window.open(e.meeting_url!, '_blank'); }}
+                            className="shrink-0 bg-[#c2956e] text-white px-2.5 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider flex items-center gap-1.5 hover:bg-[#b0855f] shadow-sm transition-colors ml-2"
+                          >
+                            <Video size={12} /> Join
+                          </button>
+                       )}
+                    </div>
+                  )
+                })
+              ) : (
+                <div className={`pb-2 text-center text-xs font-medium italic ${variant === 'home' ? 'text-[#3d3b33]/60 dark:text-white/50' : 'text-[#b0ad9a] dark:text-[#7a7a7a]'}`}>
+                  {searchQuery ? "No matching events found." : "No events scheduled today."}
+                </div>
+              )}
+            </div>
           </div>
-        )}
+        </div>
       </div>
 
       <EventModal 

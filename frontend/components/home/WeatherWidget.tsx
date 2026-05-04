@@ -58,7 +58,6 @@ export default function WeatherWidget() {
         console.error("Weather Error:", err);
       }
     } else {
-      // Forcefully clear cache and state if no location is set
       setWeather(null);
       setCity("");
       localStorage.removeItem('chronoa_cache_weather');
@@ -101,7 +100,6 @@ export default function WeatherWidget() {
     return { text: day ? "Sunny" : "Clear", icon: day ? Sun : Moon, color: day ? "text-amber-500" : "text-indigo-300" };
   };
 
-  // Completely invisible if no weather is available
   if (!weather || !city) return null;
 
   const details = getWeatherDetails(weather.weather_code, weather.is_day, weather.precipitation, weather.cloud_cover);
@@ -112,21 +110,26 @@ export default function WeatherWidget() {
       ref={widgetRef}
       onClick={() => setIsToggled(!isToggled)}
       className={`
-        group flex items-center bg-white/20 dark:bg-black/30 hover:bg-white/30 dark:hover:bg-black/40 backdrop-blur-xl border border-white/40 dark:border-white/10 shadow-[0_8px_30px_rgb(0,0,0,0.08)] rounded-[2rem] p-1.5 md:p-2 cursor-pointer transition-all duration-500 ease-out animate-fade-up h-[48px] md:h-[56px]
-        ${isToggled ? 'pr-4 md:pr-5' : 'pr-3 md:pr-4'}
+        group flex items-center bg-white/20 dark:bg-black/30 hover:bg-white/30 dark:hover:bg-black/40 backdrop-blur-xl border border-white/40 dark:border-white/10 shadow-[0_8px_30px_rgb(0,0,0,0.08)] rounded-[2rem] p-1.5 md:p-2 cursor-pointer transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] animate-fade-up h-[48px] md:h-[56px] overflow-hidden z-40
+        ${isToggled ? 'max-w-[250px] pr-4 md:pr-5' : 'max-w-[90px] md:max-w-[104px] hover:max-w-[250px] hover:pr-4 md:hover:pr-5'}
       `}
     >
-      <div className={`flex items-center justify-center w-9 h-9 md:w-10 md:h-10 rounded-full bg-white/20 dark:bg-black/40 transition-colors ${details.color} shrink-0`}>
-        <Icon size={18} strokeWidth={2.5} className="md:w-[20px] md:h-[20px]" />
+      {/* 
+        This fixed-width container matches the HomeTaskProgress inner usable area 
+        (78px on mobile, 88px on desktop) ensuring an identical resting size stack.
+      */}
+      <div className="flex items-center w-[78px] md:w-[88px] shrink-0 justify-between">
+        <div className={`flex items-center justify-center w-9 h-9 md:w-10 md:h-10 rounded-full bg-white/20 dark:bg-black/40 transition-colors ${details.color} shrink-0`}>
+          <Icon size={18} strokeWidth={2.5} className="md:w-[20px] md:h-[20px]" />
+        </div>
+        <span className="flex-1 text-center text-[14px] md:text-[15px] font-semibold text-[#3d3b33] dark:text-white transition-colors tabular-nums">
+          {Math.round(weather.temperature_2m)}°
+        </span>
       </div>
-      
-      <span className="text-[14px] md:text-[15px] font-semibold text-[#3d3b33] dark:text-white ml-2 md:ml-2.5 transition-colors tabular-nums">
-        {Math.round(weather.temperature_2m)}°
-      </span>
 
       <div className={`
-        flex overflow-hidden transition-all duration-400 ease-out 
-        ${isToggled ? 'max-w-[150px] opacity-100 ml-2.5 md:ml-3' : 'max-w-0 opacity-0 group-hover:max-w-[150px] group-hover:opacity-100 group-hover:ml-2.5 group-hover:md:ml-3'}
+        flex overflow-hidden transition-all duration-400 ease-[cubic-bezier(0.16,1,0.3,1)] 
+        ${isToggled ? 'max-w-[150px] opacity-100 ml-1.5 md:ml-2' : 'max-w-0 opacity-0 group-hover:max-w-[150px] group-hover:opacity-100 group-hover:ml-1.5 group-hover:md:ml-2'}
       `}>
         <div className="whitespace-nowrap flex flex-col justify-center border-l border-[#3d3b33]/15 dark:border-white/15 pl-2.5 md:pl-3 transition-colors">
           <span className="text-[10px] md:text-[11px] font-semibold text-[#3d3b33] dark:text-white leading-tight tracking-wide transition-colors">
