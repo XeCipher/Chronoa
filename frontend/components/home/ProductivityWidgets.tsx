@@ -6,6 +6,7 @@ import { useTimerStore, EngineInstance } from "@/store/timerStore";
 import { supabase } from "@/lib/supabase";
 import { Play, Pause, Square, Pin, PinOff, Plus, Trash2, History } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useUiStore } from "@/store/uiStore";
 
 const playChime = () => {
   try {
@@ -221,7 +222,7 @@ export default function ProductivityWidgets({ isVisible }: { isVisible: boolean 
 
   return (
     <div 
-      className="transition-all duration-[1000ms] ease-[cubic-bezier(0.16,1,0.3,1)] w-full flex flex-col items-center"
+      className="transition-all duration-[1000ms] ease-[cubic-bezier(0.16,1,0.3,1)] will-change-[transform,opacity] w-full flex flex-col items-center"
       style={{ transform: isVisible ? 'translateY(0)' : 'translateY(130%)', opacity: isVisible ? 1 : 0 }}
     >
       <div className="flex justify-between items-center w-[24rem] max-w-[85vw] mb-4">

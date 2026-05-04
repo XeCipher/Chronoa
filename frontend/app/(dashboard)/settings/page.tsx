@@ -8,7 +8,7 @@ import { supabase } from "@/lib/supabase";
 import { 
   MapPin, Search, Clock, Sparkles, 
   X, Monitor, LogOut, Navigation, AlertTriangle, Keyboard, CheckCircle2, Settings as SettingsIcon,
-  Info, Mail, ArrowLeft
+  Info, Mail, ArrowLeft, Star
 } from "lucide-react";
 
 const escapeRegExp = (string: string) => {
@@ -72,6 +72,9 @@ export default function SettingsPage() {
   
   const [searchQuery, setSearchQuery] = useState("");
 
+  const [showGithubModal, setShowGithubModal] = useState(false);
+  const [githubCountdown, setGithubCountdown] = useState(-1);
+
   useEffect(() => {
     const platform = window.navigator.platform.toLowerCase();
     if (platform.includes('mac')) setOs('mac');
@@ -95,6 +98,18 @@ export default function SettingsPage() {
     };
     fetchProfile();
   }, [setRoutineResetHour, setDisabledHotkeys]);
+
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    if (showGithubModal && githubCountdown > 0) {
+      timer = setTimeout(() => setGithubCountdown(githubCountdown - 1), 1000);
+    } else if (showGithubModal && githubCountdown === 0) {
+      window.open("https://github.com/XeCipher/Chronoa", "_blank");
+      setShowGithubModal(false);
+      setGithubCountdown(-1);
+    }
+    return () => clearTimeout(timer);
+  }, [showGithubModal, githubCountdown]);
 
   const updateRemoteSetting = async (key: string, value: any) => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -179,6 +194,12 @@ export default function SettingsPage() {
         }
       }
     });
+  };
+
+  const handleGithubClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    setShowGithubModal(true);
+    setGithubCountdown(3);
   };
 
   const altKeyDisplay = os === 'mac' ? '⌥' : 'Alt';
@@ -456,7 +477,7 @@ export default function SettingsPage() {
             <a href="mailto:chaitanyapatil.xe@gmail.com" className="flex items-center gap-2 px-5 py-3 bg-[#f7f5f0] dark:bg-[#252525] text-[#888] dark:text-[#a0a0a0] border border-[#e0ddd5] dark:border-[#333] rounded-xl text-[10px] font-bold uppercase tracking-widest hover:text-[#c2956e] transition-all shadow-sm">
               <Mail size={16} /> Email
             </a>
-            <a href="https://github.com/XeCipher/Chronoa" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 px-5 py-3 bg-[#f7f5f0] dark:bg-[#252525] text-[#888] dark:text-[#a0a0a0] border border-[#e0ddd5] dark:border-[#333] rounded-xl text-[10px] font-bold uppercase tracking-widest hover:text-[#c2956e] transition-all shadow-sm">
+            <a href="https://github.com/XeCipher/Chronoa" onClick={handleGithubClick} className="flex items-center gap-2 px-5 py-3 bg-[#f7f5f0] dark:bg-[#252525] text-[#888] dark:text-[#a0a0a0] border border-[#e0ddd5] dark:border-[#333] rounded-xl text-[10px] font-bold uppercase tracking-widest hover:text-[#c2956e] transition-all shadow-sm">
               <GitHubIcon size={16} /> GitHub
             </a>
           </div>
@@ -505,7 +526,7 @@ export default function SettingsPage() {
           <input 
             type="text" placeholder="Search settings..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
             spellCheck={false}
-            className="w-full bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] rounded-full md:rounded-xl pl-11 pr-4 py-2.5 md:py-3 outline-none focus:border-[#c2956e] dark:focus:border-[#b0855f] text-sm text-[#3d3b33] dark:text-[#f0f0f0] shadow-sm transition-all"
+            className="w-full bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] rounded-full md:rounded-xl pl-11 pr-4 py-3 outline-none focus:border-[#c2956e] dark:focus:border-[#b0855f] text-sm text-[#3d3b33] dark:text-[#f0f0f0] shadow-sm transition-all"
           />
         </div>
       </header>
@@ -523,6 +544,31 @@ export default function SettingsPage() {
           </div>
         )}
       </div>
+
+      {showGithubModal && (
+        <div className="fixed inset-0 z-[500] flex items-center justify-center px-4 bg-black/40 dark:bg-black/60 backdrop-blur-sm animate-fade-in transition-all">
+          <div className="bg-[#f7f5f0] dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] rounded-[2rem] p-8 max-w-sm w-full shadow-2xl animate-fade-up flex flex-col items-center text-center relative">
+            <div className="w-14 h-14 rounded-full flex items-center justify-center mb-5 bg-[#c2956e]/20 text-[#c2956e] dark:bg-[#b0855f]/20 dark:text-[#d1a784]">
+              <Star size={28} className="fill-current" />
+            </div>
+            <h3 className="text-2xl md:text-3xl font-serif text-[#3d3b33] dark:text-[#f0f0f0] mb-2 leading-tight">
+              Support Chronoa
+            </h3>
+            <p className="text-[13px] text-[#888] dark:text-[#7a7a7a] mb-6 leading-relaxed px-2">
+              If you find Chronoa helpful, please consider giving it a star on GitHub.
+            </p>
+            <div className="w-full flex items-center justify-center gap-2 text-[11px] font-bold uppercase tracking-widest text-[#b0ad9a] dark:text-[#7a7a7a]">
+              Redirecting in <span className="text-[#c2956e] text-sm tabular-nums">{githubCountdown}</span>
+            </div>
+            <button
+              onClick={() => { setShowGithubModal(false); setGithubCountdown(-1); }}
+              className="absolute top-4 right-4 p-2 text-gray-400 hover:text-[#3d3b33] dark:hover:text-white transition-colors"
+            >
+              <X size={16} />
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

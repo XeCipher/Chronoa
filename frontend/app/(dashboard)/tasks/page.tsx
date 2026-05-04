@@ -97,7 +97,7 @@ export default function TasksPage() {
 
   return (
     <div className="w-full min-h-full bg-[#f7f5f0] dark:bg-[#121212] p-4 md:p-8 lg:p-10 relative">
-      <div className="max-w-[1600px] mx-auto w-full flex flex-col h-full gap-8">
+      <div className="max-w-[1600px] mx-auto w-full flex flex-col h-full gap-4 md:gap-8">
         
         <header className="flex flex-col gap-4 shrink-0 w-full mb-2">
           <div className="flex flex-col md:flex-row md:items-center justify-between w-full gap-4">
@@ -131,7 +131,7 @@ export default function TasksPage() {
                   value={searchQuery} onChange={e => setSearchQuery(e.target.value)} 
                   placeholder="Search tasks..." 
                   spellCheck={false}
-                  className="w-full bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] rounded-full md:rounded-xl pl-11 pr-4 py-2.5 md:py-3 outline-none focus:border-[#c2956e] dark:focus:border-[#b0855f] text-sm text-[#3d3b33] dark:text-[#f0f0f0] shadow-sm transition-all" 
+                  className="w-full bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] rounded-xl pl-11 pr-4 py-3 outline-none focus:border-[#c2956e] dark:focus:border-[#b0855f] text-sm text-[#3d3b33] dark:text-[#f0f0f0] shadow-sm transition-all" 
                 />
               </div>
               
@@ -158,7 +158,7 @@ export default function TasksPage() {
           )}
         </header>
 
-        <div className="flex flex-col lg:flex-row items-start gap-8 lg:gap-12 w-full">
+        <div className="flex flex-col lg:flex-row items-start gap-4 lg:gap-12 w-full">
           <div className="w-full lg:w-1/2 min-w-0">
             <TaskSection type="routine" title={currentViewMode === 'trash' ? 'Routine Trash' : (currentViewMode === 'archive' ? 'Routine History' : "My Routine")} viewMode={currentViewMode} searchQuery={searchQuery} />
           </div>

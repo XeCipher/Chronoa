@@ -397,9 +397,9 @@ export default function AnalyticsPage() {
   }
 
   return (
-    <div className="w-full min-h-full mx-auto p-4 md:p-8 lg:p-10 pb-24 overflow-x-hidden flex flex-col gap-8">
+    <div className="w-full min-h-full mx-auto p-4 md:p-8 lg:p-10 pb-24 overflow-x-hidden flex flex-col gap-4 md:gap-8">
       
-      <header className="flex flex-col md:flex-row md:items-end justify-between gap-6 shrink-0">
+      <header className="flex flex-col md:flex-row md:items-end justify-between gap-4 md:gap-6 shrink-0">
         <div>
           <div className="flex items-center gap-2.5 text-[#3d3b33] dark:text-[#f0f0f0] mb-2">
             <BarChart2 size={20} className="text-[#c2956e]" />
@@ -498,7 +498,7 @@ export default function AnalyticsPage() {
         />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
         <div className="lg:col-span-2">
           <ProductivityChart dailyMap={data?.dailyMap || {}} />
         </div>
@@ -507,7 +507,7 @@ export default function AnalyticsPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
         <ActivityHeatmap dailyMap={data?.dailyMap || {}} />
         <FocusDistribution rawSessions={data?.rawSessions || []} />
       </div>

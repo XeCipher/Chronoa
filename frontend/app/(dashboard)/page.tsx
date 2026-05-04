@@ -32,7 +32,7 @@ export default function HomePage() {
       <HomeTaskProgress />
       
       {/* Elegant Mobile Settings Link Button positioned gracefully at the top right */}
-      <div className="absolute top-6 right-6 md:hidden z-40">
+      <div className="fixed top-[calc(1.5rem+env(safe-area-inset-top))] right-[calc(1.5rem+env(safe-area-inset-right))] md:hidden z-40">
         <button 
           onClick={() => router.push('/settings')} 
           className="w-10 h-10 flex items-center justify-center rounded-full bg-white/20 dark:bg-black/30 backdrop-blur-md border border-white/40 dark:border-white/10 shadow-sm text-[#3d3b33] dark:text-white transition-all active:scale-95"
@@ -46,7 +46,7 @@ export default function HomePage() {
       </div>
 
       <div 
-        className={`relative z-10 transition-all duration-[1000ms] ease-[cubic-bezier(0.16,1,0.3,1)] ${showWidget ? '-translate-y-[16vh] scale-90 opacity-80' : 'max-md:-translate-y-[8vh] md:-translate-y-[4vh] scale-100 opacity-100'}`}
+        className={`relative z-10 transition-all duration-[1000ms] ease-[cubic-bezier(0.16,1,0.3,1)] will-change-[transform,opacity] ${showWidget ? '-translate-y-[16vh] scale-90 opacity-80' : 'max-md:-translate-y-[8vh] md:-translate-y-[4vh] scale-100 opacity-100'}`}
       >
         <CenterClock />
       </div>
