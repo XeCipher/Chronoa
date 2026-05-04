@@ -39,6 +39,23 @@ const escapeRegExp = (string: string) => {
   return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 };
 
+const getDescendantCount = (n: Task): number => {
+  let count = 0;
+  if (n.children) {
+      count += n.children.length;
+      n.children.forEach(c => count += getDescendantCount(c));
+  }
+  return count;
+};
+
+const hasSearchMatchInDescendants = (n: Task, query: string): boolean => {
+  if (!query || !n.children) return false;
+  const q = query.toLowerCase();
+  return n.children.some(c => 
+      c.title.toLowerCase().includes(q) || hasSearchMatchInDescendants(c, query)
+  );
+};
+
 export default function RecursiveCheckbox({ 
   task, isEditMode, viewMode, allTasks, isFlatList, onUpdate, onDelete, onRestore, onAdd, onIndent, onUnindent, 
   onMoveUp, onMoveDown, depth = 0, newTaskId, setNewTaskId, searchQuery = ""
@@ -54,6 +71,22 @@ export default function RecursiveCheckbox({
   const [initialTitle] = useState(task.title);
   const [isExpanded, setIsExpanded] = useState(false);
   const [isOverflowing, setIsOverflowing] = useState(false);
+
+  const [localCollapsed, setLocalCollapsed] = useState<boolean>(() => {
+    return getDescendantCount(task) > 5;
+  });
+
+  useEffect(() => {
+    if (viewMode !== 'focus') {
+      const stored = localStorage.getItem('chronoa_archive_collapsed');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (parsed[task.id] !== undefined) {
+          setLocalCollapsed(parsed[task.id]);
+        }
+      }
+    }
+  }, [task.id, viewMode]);
 
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ 
     id: task.id,
@@ -198,7 +231,16 @@ export default function RecursiveCheckbox({
   const showTimerStopwatchOutside = viewMode === 'focus' && isRoutine && !isEditMode;
   const hasChildren = task.children && task.children.length > 0;
   const showKeepAliveToggle = showManagementActions && hasChildren;
-  const isCollapsed = task.is_collapsed ?? false;
+
+  const hasSearchMatch = hasSearchMatchInDescendants(task, searchQuery);
+  let isCollapsed = false;
+  if (hasSearchMatch) {
+      isCollapsed = false;
+  } else if (viewMode === 'focus') {
+      isCollapsed = task.is_collapsed ?? false;
+  } else {
+      isCollapsed = localCollapsed;
+  }
 
   const titleSize = depth === 0 ? "text-[15px]" : depth === 1 ? "text-[13.5px]" : "text-[12.5px]";
   const titleWeight = depth === 0 ? "font-[500]" : "font-[400]";
@@ -322,7 +364,19 @@ export default function RecursiveCheckbox({
 
         {!isFlatList && hasChildren && (
            <button 
-             onClick={(e) => { e.stopPropagation(); onUpdate(task.id, { is_collapsed: !isCollapsed }); }} 
+             onClick={(e) => { 
+               e.stopPropagation(); 
+               if (viewMode === 'focus') {
+                   onUpdate(task.id, { is_collapsed: !isCollapsed }); 
+               } else {
+                   const newVal = !isCollapsed;
+                   setLocalCollapsed(newVal);
+                   const stored = localStorage.getItem('chronoa_archive_collapsed');
+                   const parsed = stored ? JSON.parse(stored) : {};
+                   parsed[task.id] = newVal;
+                   localStorage.setItem('chronoa_archive_collapsed', JSON.stringify(parsed));
+               }
+             }} 
              className="shrink-0 -ml-1 text-[#b0ad9a] md:hover:text-[#c2956e] md:dark:hover:text-[#d1a784] transition-colors p-1"
              data-tooltip-id="task-tooltip"
              data-tooltip-content={isCollapsed ? "Expand" : "Collapse"}

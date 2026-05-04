@@ -18,6 +18,8 @@ interface Props {
 
 const HOURS = Array.from({ length: 24 }, (_, i) => i);
 
+const formatEventTime = (d: Date) => d.getMinutes() === 0 ? format(d, 'h a') : format(d, 'h:mm a');
+
 export default function DayView({ currentDate, events, onEventClick, onTimeRangeSelected, onEventMove, eventColors, targetScrollTime }: Props) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [now, setNow] = useState(new Date());
@@ -275,25 +277,19 @@ export default function DayView({ currentDate, events, onEventClick, onTimeRange
             return (
               <div 
                 key={event.id}
+                draggable 
+                onDragStart={(e) => {
+                  e.stopPropagation();
+                  e.dataTransfer.setData('text/plain', event.id);
+                  const rect = e.currentTarget.getBoundingClientRect();
+                  const offsetY = e.clientY - rect.top;
+                  e.dataTransfer.setData('grabY', offsetY.toString());
+                }}
                 onMouseDown={(e) => e.stopPropagation()}
                 onClick={(e) => { e.stopPropagation(); onEventClick(event); }}
-                className={`absolute rounded-md md:rounded-md border cursor-pointer shadow-sm overflow-hidden hover:z-30 transition-transform flex flex-col ${colorClasses} z-20`}
+                className={`absolute rounded-md md:rounded-md border cursor-grab active:cursor-grabbing shadow-sm overflow-hidden hover:z-30 transition-transform flex flex-col ${colorClasses} z-20`}
                 style={{ top: pos.top, height: pos.height, left: pos.left, width: pos.width }}
               >
-                <div 
-                  draggable 
-                  onDragStart={(e) => {
-                    e.stopPropagation();
-                    e.dataTransfer.setData('text/plain', event.id);
-                    const rect = e.currentTarget.parentElement!.getBoundingClientRect();
-                    const offsetY = e.clientY - rect.top;
-                    e.dataTransfer.setData('grabY', offsetY.toString());
-                  }}
-                  className="w-full h-3 flex items-center justify-center cursor-grab active:cursor-grabbing opacity-30 hover:opacity-100 transition-opacity bg-black/10 dark:bg-white/10 shrink-0"
-                >
-                   <GripHorizontal size={10} />
-                </div>
-
                 <div className="p-1.5 flex-1 min-h-0 flex flex-col relative overflow-hidden">
                   <div className="text-sm font-bold leading-tight flex justify-between items-start gap-1">
                     <span className="truncate">{event.title}</span>
@@ -304,7 +300,7 @@ export default function DayView({ currentDate, events, onEventClick, onTimeRange
                     )}
                   </div>
                   <div className="text-[11px] opacity-80 mt-0.5 truncate shrink-0">
-                    {format(new Date(event.start_time), 'h:mm a')} - {format(new Date(event.end_time), 'h:mm a')}
+                    {formatEventTime(new Date(event.start_time))} - {formatEventTime(new Date(event.end_time))}
                   </div>
                   
                   {showLocation && (

@@ -17,6 +17,8 @@ interface Props {
   openAddModal: (start: Date) => void;
 }
 
+const formatEventTime = (d: Date) => d.getMinutes() === 0 ? format(d, 'h a') : format(d, 'h:mm a');
+
 export default function MonthView({ currentDate, events, onEventClick, onDayClick, eventColors, selectedDate, isMobile }: Props) {
   
   const days = useMemo(() => {
@@ -119,7 +121,7 @@ export default function MonthView({ currentDate, events, onEventClick, onDayClic
                             </div>
                             <div className="flex items-center gap-1 shrink-0">
                               {!event.is_all_day && (
-                                 <span className="opacity-70 text-[8px] font-bold tracking-wider">{format(new Date(event.start_time), 'h:mm a')}</span>
+                                 <span className="opacity-70 text-[8px] font-bold tracking-wider">{formatEventTime(new Date(event.start_time))} - {formatEventTime(new Date(event.end_time))}</span>
                               )}
                               {event.meeting_url && (
                                 <button
@@ -169,7 +171,7 @@ export default function MonthView({ currentDate, events, onEventClick, onDayClic
                      {e.title}
                   </div>
                   <div className="text-[10px] opacity-80 mt-1 uppercase tracking-wider font-semibold flex items-center gap-2">
-                    {e.is_all_day ? 'All-day' : `${format(new Date(e.start_time), 'h:mm a')} - ${format(new Date(e.end_time), 'h:mm a')}`}
+                    {e.is_all_day ? 'All-day' : `${formatEventTime(new Date(e.start_time))} - ${formatEventTime(new Date(e.end_time))}`}
                     {e.location && <span className="flex items-center gap-0.5"><MapPin size={10}/> {e.location}</span>}
                   </div>
                 </div>

@@ -56,9 +56,19 @@ const TaskTreeNode = ({
   onToggleExpand
 }: any) => {
   
-  const isExpanded = expandedTrackNodes[node.id] !== undefined 
-    ? expandedTrackNodes[node.id] 
-    : (node.descendantCount <= 5);
+  const hasMatchInChildren = (n: any, query: string): boolean => {
+    if (!query || !n.children) return false;
+    const q = query.toLowerCase();
+    return n.children.some((c: any) => c.title.toLowerCase().includes(q) || hasMatchInChildren(c, query));
+  };
+
+  const isMatchInDescendants = searchQuery && hasMatchInChildren(node, searchQuery);
+  
+  const isExpanded = isMatchInDescendants 
+    ? true 
+    : (expandedTrackNodes[node.id] !== undefined 
+      ? expandedTrackNodes[node.id] 
+      : (node.descendantCount <= 5));
 
   const isSelected = selectedIds.has(node.id) || parentSelected;
   
@@ -386,7 +396,6 @@ export default function AnalyticsPage() {
     );
   }
 
-  // Refined uniformity in root div className (p-4 md:p-8 lg:p-10)
   return (
     <div className="w-full min-h-full mx-auto p-4 md:p-8 lg:p-10 space-y-8 pb-24 overflow-x-hidden">
       

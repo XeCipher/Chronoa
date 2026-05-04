@@ -113,6 +113,7 @@ export default function CustomDateTimePicker({ value, onChange, isAllDay, label,
               <div className="flex items-center gap-1 bg-[#f7f5f0] dark:bg-[#252525] border border-[#e0ddd5] dark:border-[#333] rounded-xl p-1 shadow-inner">
                 <input 
                   type="number" min="1" max="12" 
+                  inputMode="numeric" pattern="[0-9]*"
                   value={inputHour} 
                   onChange={handleHourChange} 
                   onBlur={flushHour}
@@ -121,6 +122,7 @@ export default function CustomDateTimePicker({ value, onChange, isAllDay, label,
                 <span className="text-[#b0ad9a] font-bold pb-0.5">:</span>
                 <input 
                   type="number" min="0" max="59" 
+                  inputMode="numeric" pattern="[0-9]*"
                   value={inputMin} 
                   onChange={handleMinChange} 
                   onBlur={flushMin}
