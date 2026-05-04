@@ -88,10 +88,9 @@ export default function SessionsPage() {
     return matchesSearch && matchesFilter;
   });
 
-  // Refined uniformity in root div className (p-4 md:p-8 lg:p-10)
   return (
-    <div className="max-w-5xl w-full min-h-full mx-auto p-4 md:p-8 lg:p-10 pb-32 md:pb-12 space-y-12">
-      <header className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+    <div className="max-w-5xl w-full min-h-full mx-auto p-4 md:p-8 lg:p-10 pb-32 md:pb-12 flex flex-col gap-8">
+      <header className="flex flex-col md:flex-row md:items-end justify-between gap-6 shrink-0">
         <div>
           <div className="flex items-center gap-2.5 text-[#3d3b33] dark:text-[#f0f0f0]">
             <Clock size={24} className="text-[#c2956e]" />
@@ -99,10 +98,10 @@ export default function SessionsPage() {
           </div>
         </div>
         <div className="flex items-center gap-4">
-          <button onClick={() => router.push('/')} className="flex items-center justify-center gap-2 px-6 py-3 bg-white dark:bg-[#1a1a1a] text-[#888] rounded-xl text-[10px] font-bold uppercase tracking-widest border border-[#e0ddd5] dark:border-[#333] hover:text-[#3d3b33] dark:hover:text-[#f0f0f0] transition-all shadow-sm">
+          <button onClick={() => router.push('/')} className="md:hidden flex items-center justify-center gap-2 px-6 py-3 bg-white dark:bg-[#1a1a1a] text-[#888] rounded-xl text-[10px] font-bold uppercase tracking-widest border border-[#e0ddd5] dark:border-[#333] hover:text-[#3d3b33] dark:hover:text-[#f0f0f0] transition-all shadow-sm">
             <ArrowLeft size={14} /> Home
           </button>
-          <button onClick={handleDeleteAll} className="flex items-center justify-center gap-2 px-6 py-3 bg-white dark:bg-[#1a1a1a] text-[#888] dark:text-[#a0a0a0] rounded-xl text-[10px] font-bold uppercase tracking-widest border border-[#e0ddd5] dark:border-[#333] hover:text-red-500 hover:border-red-200 dark:hover:border-red-900/50 transition-all shadow-sm">
+          <button onClick={handleDeleteAll} className="flex items-center justify-center gap-2 px-6 py-3 bg-red-50 dark:bg-red-900/10 text-red-500 rounded-xl text-[10px] font-bold uppercase tracking-widest md:hover:bg-red-500 md:hover:text-white transition-all shadow-sm">
             <Trash2 size={14} /> Clear History
           </button>
         </div>
@@ -110,19 +109,19 @@ export default function SessionsPage() {
 
       <div className="bg-white dark:bg-[#1a1a1a] border border-[#ebe8e2] dark:border-[#2a2a2a] rounded-[2.5rem] p-6 md:p-12 shadow-sm space-y-8">
         <div className="flex flex-col md:flex-row gap-4 justify-between">
-          <div className="relative flex-1 max-w-md">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-[#b0ad9a] dark:text-[#7a7a7a]" size={16} />
+          <div className="relative flex-1 w-full max-w-md shrink-0">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-[#b0ad9a]" size={16} />
             <input 
               type="text" placeholder="Search sessions..." value={search} onChange={(e) => setSearch(e.target.value)}
               spellCheck={false}
-              className="w-full bg-[#f7f5f0] dark:bg-[#121212] border border-[#e0ddd5] dark:border-[#333] rounded-2xl pl-12 pr-4 py-3 outline-none focus:border-[#c2956e] dark:focus:border-[#b0855f] text-sm text-[#3d3b33] dark:text-[#f0f0f0]"
+              className="w-full bg-[#f7f5f0] dark:bg-[#252525] border border-[#e0ddd5] dark:border-[#333] rounded-xl pl-11 pr-4 py-3 outline-none focus:border-[#c2956e] dark:focus:border-[#b0855f] text-sm text-[#3d3b33] dark:text-[#f0f0f0] shadow-sm transition-all"
             />
           </div>
-          <div className="flex bg-[#f7f5f0] dark:bg-[#121212] border border-[#e0ddd5] dark:border-[#333] p-1 rounded-2xl">
+          <div className="flex bg-[#ebe8e2]/50 dark:bg-[#1a1a1a] p-1.5 rounded-[1.25rem] border border-[#e0ddd5] dark:border-[#333] shadow-inner shrink-0">
             {['all', 'timer', 'stopwatch'].map(f => (
               <button 
                 key={f} onClick={() => handleFilterChange(f as any)}
-                className={`flex-1 px-6 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all ${filter === f ? 'bg-[#c2956e] dark:bg-[#b0855f] text-white shadow-md' : 'text-[#888] dark:text-[#7a7a7a] hover:text-[#3d3b33] dark:hover:text-[#f0f0f0]'}`}
+                className={`flex-1 flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all ${filter === f ? 'bg-white dark:bg-[#2a2a2a] text-[#c2956e] dark:text-[#d1a784] shadow-sm' : 'text-[#888] md:hover:text-[#3d3b33] md:dark:hover:text-[#f0f0f0]'}`}
               >
                 {f}
               </button>

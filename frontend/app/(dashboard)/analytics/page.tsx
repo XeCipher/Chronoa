@@ -95,7 +95,7 @@ const TaskTreeNode = ({
 
   return (
     <div className="flex flex-col">
-      <div className="flex items-center gap-2 py-2.5 px-3 hover:bg-[#f7f5f0] dark:hover:bg-[#222] rounded-[1rem] transition-colors group cursor-pointer" onClick={() => { if(!parentSelected) onToggle(node.id); }}>
+      <div className="flex items-center gap-2 py-2.5 px-3 hover:bg-[#f7f5f0] dark:hover:bg-[#222] rounded-xl transition-colors group cursor-pointer" onClick={() => { if(!parentSelected) onToggle(node.id); }}>
         <button 
           disabled={parentSelected}
           className={`w-[18px] h-[18px] rounded-[5px] border flex items-center justify-center transition-all shrink-0 ${parentSelected ? 'opacity-50 cursor-not-allowed bg-[#7ca982] border-[#7ca982]' : isSelected ? 'bg-[#7ca982] border-[#7ca982]' : 'bg-white dark:bg-[#1a1a1a] border-[#d4d0c8] dark:border-[#555] group-hover:border-[#7ca982]'}`}
@@ -397,9 +397,9 @@ export default function AnalyticsPage() {
   }
 
   return (
-    <div className="w-full min-h-full mx-auto p-4 md:p-8 lg:p-10 space-y-8 pb-24 overflow-x-hidden">
+    <div className="w-full min-h-full mx-auto p-4 md:p-8 lg:p-10 pb-24 overflow-x-hidden flex flex-col gap-8">
       
-      <header className="mb-6 flex flex-col md:flex-row md:items-end justify-between gap-6">
+      <header className="flex flex-col md:flex-row md:items-end justify-between gap-6 shrink-0">
         <div>
           <div className="flex items-center gap-2.5 text-[#3d3b33] dark:text-[#f0f0f0] mb-2">
             <BarChart2 size={20} className="text-[#c2956e]" />
@@ -407,13 +407,13 @@ export default function AnalyticsPage() {
           </div>
         </div>
         
-        <div className="flex items-center gap-3 w-full md:w-auto overflow-x-auto no-scrollbar pt-2 -mt-2 pb-2 -mb-2 px-2 -mx-2 shrink-0">
+        <div className="flex items-center gap-3 w-full md:w-auto overflow-x-auto no-scrollbar pb-1 shrink-0">
           {filterType !== 'all' && (
             <button 
               onClick={() => setIsTrackerModalOpen(true)}
               data-tooltip-id="global-tooltip"
               data-tooltip-content={`Track Specific ${filterType === 'routine' ? 'Routines' : 'Tasks'}`}
-              className={`order-2 md:order-1 relative flex items-center justify-center w-[42px] h-[42px] rounded-[1rem] transition-colors shadow-sm border shrink-0 ${selectedTrackedIds.size > 0 ? 'bg-[#c2956e] text-white border-[#c2956e]' : 'bg-white dark:bg-[#1a1a1a] text-[#888] border-[#e0ddd5] dark:border-[#333] hover:text-[#c2956e]'}`}
+              className={`order-2 md:order-1 relative flex items-center justify-center w-[42px] h-[42px] rounded-xl transition-colors shadow-sm border shrink-0 ${selectedTrackedIds.size > 0 ? 'bg-[#c2956e] text-white border-[#c2956e]' : 'bg-white dark:bg-[#1a1a1a] text-[#888] border-[#e0ddd5] dark:border-[#333] hover:text-[#c2956e]'}`}
             >
               <Target size={18} /> 
               {selectedTrackedIds.size > 0 && (
@@ -424,12 +424,12 @@ export default function AnalyticsPage() {
             </button>
           )}
           
-          <div className="order-1 md:order-2 flex bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] p-1 rounded-[1.25rem] shadow-sm shrink-0">
+          <div className="order-1 md:order-2 flex bg-[#ebe8e2]/50 dark:bg-[#1a1a1a] p-1.5 rounded-[1.25rem] border border-[#e0ddd5] dark:border-[#333] shadow-inner shrink-0">
             {['all', 'routine', 'normal'].map(f => (
               <button 
                 key={f} 
                 onClick={() => setFilterType(f as any)}
-                className={`px-5 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all ${filterType === f ? 'bg-[#c2956e] dark:bg-[#b0855f] text-white shadow-md' : 'text-[#888] hover:text-[#3d3b33] dark:hover:text-[#ccc]'}`}
+                className={`flex-1 flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all ${filterType === f ? 'bg-white dark:bg-[#2a2a2a] text-[#c2956e] dark:text-[#d1a784] shadow-sm' : 'text-[#888] md:hover:text-[#3d3b33] md:dark:hover:text-white'}`}
               >
                 {f}
               </button>
@@ -438,7 +438,7 @@ export default function AnalyticsPage() {
         </div>
       </header>
 
-      <div className="w-full bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] rounded-[2rem] p-6 md:p-8 shadow-sm flex flex-col md:flex-row items-center gap-6 md:gap-10">
+      <div className="w-full bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] rounded-[2.5rem] p-6 md:p-8 shadow-sm flex flex-col md:flex-row items-center gap-6 md:gap-10">
         
         <div className="flex items-center gap-6 shrink-0">
           <RankBadge rank={data?.levelInfo.rank || "Novice"} className="w-20 h-20" />
@@ -534,7 +534,7 @@ export default function AnalyticsPage() {
                   type="text" placeholder="Search..." 
                   value={trackerSearch} onChange={e => setTrackerSearch(e.target.value)}
                   spellCheck={false}
-                  className="w-full bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] rounded-2xl pl-12 pr-4 py-3 text-sm outline-none focus:border-[#c2956e] text-[#3d3b33] dark:text-[#f0f0f0] transition-colors shadow-sm"
+                  className="w-full bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] rounded-2xl pl-11 pr-4 py-3 text-sm outline-none focus:border-[#c2956e] text-[#3d3b33] dark:text-[#f0f0f0] transition-all shadow-sm"
                 />
               </div>
             </div>

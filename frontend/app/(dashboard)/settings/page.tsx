@@ -161,8 +161,8 @@ export default function SettingsPage() {
   const ctrlKeyDisplay = os === 'mac' ? '⌘' : 'Ctrl';
 
   return (
-    <div className="max-w-4xl w-full min-h-full mx-auto p-4 md:p-8 lg:p-10 space-y-12 pb-32 md:pb-12">
-      <header className="flex flex-col sm:flex-row sm:items-end justify-between gap-6">
+    <div className="max-w-4xl w-full min-h-full mx-auto p-4 md:p-8 lg:p-10 pb-32 md:pb-12 flex flex-col gap-8">
+      <header className="flex flex-col sm:flex-row sm:items-end justify-between gap-6 shrink-0">
         <div className="space-y-2">
           <div className="flex items-center gap-2.5 text-[#3d3b33] dark:text-[#f0f0f0]">
             <SettingsIcon size={24} className="text-[#c2956e]" />
@@ -170,7 +170,7 @@ export default function SettingsPage() {
           </div>
         </div>
         <div className="flex items-center gap-4">
-          <button onClick={() => router.push('/')} className="flex items-center justify-center gap-2 px-6 py-3 bg-white dark:bg-[#1a1a1a] text-[#888] rounded-xl text-[10px] font-bold uppercase tracking-widest border border-[#e0ddd5] dark:border-[#333] hover:text-[#3d3b33] dark:hover:text-[#f0f0f0] transition-all shadow-sm">
+          <button onClick={() => router.push('/')} className="md:hidden flex items-center justify-center gap-2 px-6 py-3 bg-white dark:bg-[#1a1a1a] text-[#888] rounded-xl text-[10px] font-bold uppercase tracking-widest border border-[#e0ddd5] dark:border-[#333] hover:text-[#3d3b33] dark:hover:text-[#f0f0f0] transition-all shadow-sm">
             <ArrowLeft size={14} /> Home
           </button>
         </div>
@@ -184,11 +184,11 @@ export default function SettingsPage() {
             <h3 className="text-xl font-medium text-[#3d3b33] dark:text-[#f0f0f0]">Appearance</h3>
           </div>
           <p className="text-xs text-[#b0ad9a] dark:text-[#7a7a7a] mt-1 mb-4">Choose the visual theme for your workspace.</p>
-          <div className="flex bg-[#f7f5f0] dark:bg-[#121212] border border-[#e0ddd5] dark:border-[#333] p-1 rounded-2xl w-fit">
+          <div className="flex bg-[#ebe8e2]/50 dark:bg-[#1a1a1a] p-1.5 rounded-[1.25rem] border border-[#e0ddd5] dark:border-[#333] shadow-inner w-fit shrink-0">
             {['system', 'light', 'dark'].map(t => (
               <button 
                 key={t} onClick={() => { setTheme(t as any); updateRemoteSetting('theme', t); }}
-                className={`px-6 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all ${theme === t ? 'bg-white dark:bg-[#252525] text-[#c2956e] dark:text-[#d1a784] shadow-sm' : 'text-[#888] dark:text-[#7a7a7a] hover:text-[#3d3b33] dark:hover:text-[#ccc]'}`}
+                className={`flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all ${theme === t ? 'bg-white dark:bg-[#2a2a2a] text-[#c2956e] dark:text-[#d1a784] shadow-sm' : 'text-[#888] md:hover:text-[#3d3b33] md:dark:hover:text-white'}`}
               >
                 {t}
               </button>
@@ -330,13 +330,13 @@ export default function SettingsPage() {
             </div>
           ) : (
             <div className="flex flex-col md:flex-row gap-3">
-              <div className="relative flex-1">
+              <div className="relative flex-1 w-full shrink-0">
                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-[#b0ad9a]" size={16} />
-                <input type="text" placeholder="Search City..." value={cityInput} onChange={(e) => setCityInput(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleLocationSearch()} spellCheck={false} className="w-full bg-[#f7f5f0] dark:bg-[#222] text-[#3d3b33] dark:text-white border border-[#e0ddd5] rounded-2xl pl-12 pr-4 py-4 outline-none focus:border-[#c2956e] transition-all" />
+                <input type="text" placeholder="Search City..." value={cityInput} onChange={(e) => setCityInput(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleLocationSearch()} spellCheck={false} className="w-full bg-[#f7f5f0] dark:bg-[#252525] border border-[#e0ddd5] dark:border-[#333] rounded-xl pl-11 pr-4 py-3 outline-none focus:border-[#c2956e] dark:focus:border-[#b0855f] text-sm text-[#3d3b33] dark:text-[#f0f0f0] shadow-sm transition-all" />
               </div>
               <div className="flex gap-2">
-                <button onClick={handleAutoDetect} disabled={isSearching} data-tooltip-id="global-tooltip" data-tooltip-content="Auto Detect Location" className="px-6 bg-[#f7f5f0] dark:bg-[#222] text-[#3d3b33] dark:text-white border border-[#e0ddd5] dark:border-[#333] rounded-2xl flex items-center justify-center hover:bg-[#ebe8e2] transition-all disabled:opacity-50"><Navigation size={18} /></button>
-                <button onClick={handleLocationSearch} disabled={isSearching} className="flex-1 px-8 py-4 md:py-0 bg-[#3d3b33] dark:bg-[#f0f0f0] text-white dark:text-[#1a1a1a] rounded-2xl text-[10px] font-bold uppercase tracking-[0.2em] hover:bg-black transition-all disabled:opacity-50">{isSearching ? "Searching..." : "Set Location"}</button>
+                <button onClick={handleAutoDetect} disabled={isSearching} data-tooltip-id="global-tooltip" data-tooltip-content="Auto Detect Location" className="px-6 bg-[#f7f5f0] dark:bg-[#252525] text-[#3d3b33] dark:text-white border border-[#e0ddd5] dark:border-[#333] rounded-xl flex items-center justify-center hover:bg-[#ebe8e2] dark:hover:bg-[#333] transition-all disabled:opacity-50 shadow-sm"><Navigation size={18} /></button>
+                <button onClick={handleLocationSearch} disabled={isSearching} className="flex-1 px-8 py-3 bg-[#3d3b33] dark:bg-[#f0f0f0] text-white dark:text-[#1a1a1a] rounded-xl text-[10px] font-bold uppercase tracking-[0.2em] hover:bg-black transition-all disabled:opacity-50 shadow-md">{isSearching ? "Searching..." : "Set Location"}</button>
               </div>
             </div>
           )}
@@ -348,15 +348,15 @@ export default function SettingsPage() {
           <section className="space-y-4">
             <div className="flex items-center gap-3 text-[#c2956e] dark:text-[#d1a784]"><Clock size={18} /><h3 className="text-lg font-medium text-[#3d3b33] dark:text-[#f0f0f0]">Vanishing Delay</h3></div>
             <p className="text-[11px] text-[#b0ad9a] dark:text-[#7a7a7a] mt-1 mb-3">Minutes before completed tasks are archived.</p>
-            <input type="number" value={taskArchiveDelay} onChange={(e) => { const v = parseInt(e.target.value) || 0; setTaskArchiveDelay(v); updateRemoteSetting('task_archive_delay', v); }} className="w-full bg-[#f7f5f0] dark:bg-[#222] border border-[#e0ddd5] rounded-xl px-4 py-3 outline-none focus:border-[#c2956e] font-bold text-[#3d3b33] dark:text-white" />
+            <input type="number" value={taskArchiveDelay} onChange={(e) => { const v = parseInt(e.target.value) || 0; setTaskArchiveDelay(v); updateRemoteSetting('task_archive_delay', v); }} className="w-full bg-[#f7f5f0] dark:bg-[#252525] border border-[#e0ddd5] dark:border-[#333] rounded-xl px-4 py-3 text-sm outline-none focus:border-[#c2956e] dark:focus:border-[#b0855f] text-[#3d3b33] dark:text-[#f0f0f0] shadow-sm transition-all font-bold" />
           </section>
           
           <section className="space-y-4">
              <div className="flex items-center gap-3 text-[#c2956e] dark:text-[#d1a784]"><Sparkles size={18} /><h3 className="text-lg font-medium text-[#3d3b33] dark:text-[#f0f0f0]">Routine Reset</h3></div>
             <p className="text-[11px] text-[#b0ad9a] dark:text-[#7a7a7a] mt-1 mb-3">Hour when your routines reset.</p>
             <div className="flex items-center gap-3">
-              <input type="number" min="0" max="23" value={routineResetHour} onChange={(e) => handleResetHourChange(parseInt(e.target.value) || 0)} className="flex-1 bg-[#f7f5f0] dark:bg-[#222] border border-[#e0ddd5] rounded-xl px-4 py-3 outline-none focus:border-[#c2956e] font-bold text-[#3d3b33] dark:text-white" />
-              <div className="px-4 py-3 bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] rounded-xl text-[10px] font-bold text-[#b0ad9a] uppercase tracking-widest">{routineResetHour >= 12 ? 'PM' : 'AM'}</div>
+              <input type="number" min="0" max="23" value={routineResetHour} onChange={(e) => handleResetHourChange(parseInt(e.target.value) || 0)} className="flex-1 bg-[#f7f5f0] dark:bg-[#252525] border border-[#e0ddd5] dark:border-[#333] rounded-xl px-4 py-3 text-sm outline-none focus:border-[#c2956e] dark:focus:border-[#b0855f] text-[#3d3b33] dark:text-[#f0f0f0] shadow-sm transition-all font-bold" />
+              <div className="px-4 py-3 bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] rounded-xl text-[10px] font-bold text-[#b0ad9a] uppercase tracking-widest shadow-sm">{routineResetHour >= 12 ? 'PM' : 'AM'}</div>
             </div>
           </section>
         </div>
@@ -372,10 +372,10 @@ export default function SettingsPage() {
             Chronoa is an open-source workspace built for deep focus. Feel free to reach out, report issues, or contribute.
           </p>
           <div className="flex items-center gap-4">
-            <a href="mailto:chaitanyapatil.xe@gmail.com" className="flex items-center gap-2 px-5 py-3 bg-white dark:bg-[#252525] text-[#888] border border-[#e0ddd5] dark:border-[#333] rounded-xl text-[10px] font-bold uppercase tracking-widest hover:text-[#c2956e] transition-all shadow-sm">
+            <a href="mailto:chaitanyapatil.xe@gmail.com" className="flex items-center gap-2 px-5 py-3 bg-[#f7f5f0] dark:bg-[#252525] text-[#888] dark:text-[#a0a0a0] border border-[#e0ddd5] dark:border-[#333] rounded-xl text-[10px] font-bold uppercase tracking-widest hover:text-[#c2956e] transition-all shadow-sm">
               <Mail size={16} /> Email
             </a>
-            <a href="https://github.com/XeCipher/Chronoa" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 px-5 py-3 bg-white dark:bg-[#252525] text-[#888] border border-[#e0ddd5] dark:border-[#333] rounded-xl text-[10px] font-bold uppercase tracking-widest hover:text-[#c2956e] transition-all shadow-sm">
+            <a href="https://github.com/XeCipher/Chronoa" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 px-5 py-3 bg-[#f7f5f0] dark:bg-[#252525] text-[#888] dark:text-[#a0a0a0] border border-[#e0ddd5] dark:border-[#333] rounded-xl text-[10px] font-bold uppercase tracking-widest hover:text-[#c2956e] transition-all shadow-sm">
               <GitHubIcon size={16} /> GitHub
             </a>
           </div>
@@ -387,8 +387,8 @@ export default function SettingsPage() {
           <div className="flex items-center gap-3 text-red-500"><AlertTriangle size={20} /><h3 className="text-xl font-medium">Danger Zone</h3></div>
           <p className="text-xs text-[#b0ad9a] dark:text-[#7a7a7a]">Permanently delete your account. This is irreversible.</p>
           <div className="flex items-center gap-4">
-            <button onClick={handleDeleteAccount} className="px-6 py-3 bg-red-50 dark:bg-red-900/10 text-red-500 border border-red-200 rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-red-500 hover:text-white transition-all shadow-sm">Delete Account</button>
-            <button onClick={handleLogout} className="flex items-center gap-2 px-6 py-3 bg-white dark:bg-[#1a1a1a] text-[#888] border border-[#e0ddd5] rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-gray-50 transition-all shadow-sm"><LogOut size={16} /> Sign Out</button>
+            <button onClick={handleDeleteAccount} className="px-6 py-3 bg-red-50 dark:bg-red-900/10 text-red-500 border border-red-200 dark:border-red-900/50 rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-red-500 hover:text-white transition-all shadow-sm">Delete Account</button>
+            <button onClick={handleLogout} className="flex items-center gap-2 px-6 py-3 bg-[#f7f5f0] dark:bg-[#252525] text-[#888] border border-[#e0ddd5] dark:border-[#333] rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-gray-50 transition-all shadow-sm"><LogOut size={16} /> Sign Out</button>
           </div>
         </section>
       </div>

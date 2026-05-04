@@ -518,26 +518,26 @@ export default function NotesPage() {
 
           <div className="space-y-4">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[#b0ad9a]" size={14} />
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-[#b0ad9a]" size={16} />
               <input 
                 type="text" placeholder={`Search ${isTrashOpen ? 'trash' : 'library'}...`} value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
                 spellCheck={false}
-                className="w-full bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] rounded-2xl pl-9 pr-4 py-2 text-sm outline-none focus:border-[#c2956e] dark:focus:border-[#b0855f] transition-all shadow-sm"
+                className="w-full bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] rounded-xl pl-11 pr-4 py-3 text-sm outline-none focus:border-[#c2956e] dark:focus:border-[#b0855f] transition-all shadow-sm"
               />
             </div>
 
             <div className="flex flex-col gap-2">
-              <div className="flex bg-[#ebe8e2]/70 dark:bg-[#1a1a1a] p-1.5 rounded-[1.25rem] border border-transparent dark:border-[#333] shadow-inner">
+              <div className="flex bg-[#ebe8e2]/50 dark:bg-[#1a1a1a] p-1.5 rounded-[1.25rem] border border-[#e0ddd5] dark:border-[#333] shadow-inner">
                 {TABS.map(({ id, label, icon: Icon }) => (
                   <button key={id} onClick={() => handleTabChange(id)}
-                    className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-[11px] font-bold uppercase tracking-widest transition-all ${notesTab === id ? 'bg-white dark:bg-[#2a2a2a] shadow-sm text-[#c2956e] dark:text-[#d1a784]' : 'text-[#888] hover:text-[#3d3b33] dark:hover:text-[#ccc]'}`}>
+                    className={`flex-1 flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all ${notesTab === id ? 'bg-white dark:bg-[#2a2a2a] text-[#c2956e] dark:text-[#d1a784] shadow-sm' : 'text-[#888] md:hover:text-[#3d3b33] md:dark:hover:text-white'}`}>
                     <Icon size={14} /> <span>{label}</span>
                   </button>
                 ))}
               </div>
               
               {isTrashOpen && (
-                <button onClick={emptyTrash} className="w-full flex items-center justify-center gap-2 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all bg-red-50 dark:bg-red-900/10 text-red-500 md:hover:bg-red-500 md:hover:text-white shadow-sm border border-red-100 dark:border-red-900/30">
+                <button onClick={emptyTrash} className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all bg-red-50 dark:bg-red-900/10 text-red-500 md:hover:bg-red-500 md:hover:text-white shadow-sm border border-red-100 dark:border-red-900/30">
                   <Trash2 size={14} /> Empty {notesTab} Trash
                 </button>
               )}

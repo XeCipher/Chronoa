@@ -438,7 +438,7 @@ export default function CalendarPage() {
     <div className="absolute inset-0 flex flex-col pt-[max(1.5rem,calc(1rem+env(safe-area-inset-top)))] md:pt-[max(3.5rem,calc(2.5rem+env(safe-area-inset-top)))] px-4 md:p-8 lg:p-10 pb-[calc(5.5rem+env(safe-area-inset-bottom))] md:pb-8 min-w-0 bg-[#f7f5f0] dark:bg-[#121212] overflow-hidden">
       
       <div className="flex-1 flex flex-col relative z-10 min-w-0 min-h-0 max-w-full w-full h-full">
-        <header className="mb-4 md:mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4 shrink-0 relative z-50">
+        <header className="mb-6 lg:mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4 shrink-0 relative z-50">
           
           <div className="flex items-center justify-between w-full md:w-auto relative">
             <div 
@@ -464,13 +464,16 @@ export default function CalendarPage() {
 
               {isSearchOpen && (
                 <div className="absolute top-[calc(100%+8px)] right-0 w-[280px] bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] rounded-[1.5rem] shadow-xl z-[100] p-4 animate-fade-up">
-                  <input 
-                    autoFocus
-                    value={searchInput} 
-                    onChange={e => setSearchInput(e.target.value)} 
-                    placeholder="Search events..." spellCheck={false}
-                    className="w-full bg-[#f7f5f0] dark:bg-[#252525] border border-[#e0ddd5] dark:border-[#444] rounded-xl px-4 py-2.5 outline-none focus:border-[#c2956e] text-sm text-[#3d3b33] dark:text-[#f0f0f0] transition-all mb-3" 
-                  />
+                  <div className="relative w-full mb-3">
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-[#b0ad9a]" size={16} />
+                    <input 
+                      autoFocus
+                      value={searchInput} 
+                      onChange={e => setSearchInput(e.target.value)} 
+                      placeholder="Search events..." spellCheck={false}
+                      className="w-full bg-[#f7f5f0] dark:bg-[#252525] border border-[#e0ddd5] dark:border-[#444] rounded-xl pl-11 pr-4 py-3 outline-none focus:border-[#c2956e] text-sm text-[#3d3b33] dark:text-[#f0f0f0] transition-all shadow-sm" 
+                    />
+                  </div>
                   <div className="max-h-[300px] overflow-y-auto no-scrollbar space-y-1">
                     {searchQuery ? (
                       filteredEvents.length > 0 ? filteredEvents.map(e => (
@@ -503,13 +506,16 @@ export default function CalendarPage() {
               </button>
               {isSearchOpen && (
                 <div className="absolute top-[calc(100%+8px)] right-0 w-[300px] bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] rounded-[1.5rem] shadow-xl z-[100] p-4 animate-fade-up">
-                  <input 
-                    autoFocus
-                    value={searchInput} 
-                    onChange={e => setSearchInput(e.target.value)} 
-                    placeholder="Search events..." spellCheck={false}
-                    className="w-full bg-[#f7f5f0] dark:bg-[#252525] border border-[#e0ddd5] dark:border-[#444] rounded-xl px-4 py-2.5 outline-none focus:border-[#c2956e] text-sm text-[#3d3b33] dark:text-[#f0f0f0] transition-all mb-3" 
-                  />
+                  <div className="relative w-full mb-3">
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-[#b0ad9a]" size={16} />
+                    <input 
+                      autoFocus
+                      value={searchInput} 
+                      onChange={e => setSearchInput(e.target.value)} 
+                      placeholder="Search events..." spellCheck={false}
+                      className="w-full bg-[#f7f5f0] dark:bg-[#252525] border border-[#e0ddd5] dark:border-[#444] rounded-xl pl-11 pr-4 py-3 outline-none focus:border-[#c2956e] text-sm text-[#3d3b33] dark:text-[#f0f0f0] transition-all shadow-sm" 
+                    />
+                  </div>
                   <div className="max-h-[300px] overflow-y-auto no-scrollbar space-y-1">
                     {searchQuery ? (
                       filteredEvents.length > 0 ? filteredEvents.map(e => (
@@ -537,11 +543,11 @@ export default function CalendarPage() {
               <button onClick={handleNext} className="px-3 text-[#888] hover:text-[#3d3b33] dark:hover:text-white transition-colors h-full flex items-center justify-center rounded-r-full"><ChevronRight size={16} className="md:w-[18px] md:h-[18px]" /></button>
             </div>
 
-            <div className="flex bg-white/50 dark:bg-[#1e1e1e]/50 border border-[#e0ddd5] dark:border-[#333] p-1 rounded-full shadow-sm overflow-x-auto no-scrollbar h-9 md:h-10 w-full justify-between">
+            <div className="flex bg-[#ebe8e2]/50 dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] shadow-inner p-1.5 rounded-[1.25rem] overflow-x-auto no-scrollbar h-10 w-full justify-between shrink-0">
               {(['day', '2-day', 'week', 'month'] as const).map(v => (
                 <button 
                   key={v} onClick={() => setCalendarView(v)}
-                  className={`flex-1 md:flex-none px-3 sm:px-4 rounded-full text-[9px] sm:text-[10px] font-bold uppercase tracking-widest transition-all h-full flex items-center justify-center ${v === 'week' ? 'hidden md:flex' : 'flex'} ${calendarView === v ? 'bg-[#c2956e] dark:bg-[#b0855f] text-white shadow-md' : 'text-[#b0ad9a] dark:text-[#7a7a7a] md:hover:text-[#3d3b33] md:dark:hover:text-white'}`}
+                  className={`flex-1 md:flex-none px-4 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all h-full flex items-center justify-center ${v === 'week' ? 'hidden md:flex' : 'flex'} ${calendarView === v ? 'bg-white dark:bg-[#2a2a2a] text-[#c2956e] dark:text-[#d1a784] shadow-sm' : 'text-[#888] dark:text-[#7a7a7a] md:hover:text-[#3d3b33] md:dark:hover:text-white'}`}
                 >
                   {v === '2-day' ? '2D' : v}
                 </button>

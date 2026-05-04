@@ -32,12 +32,11 @@ export default function TasksPage() {
 
   const currentViewMode = isTrashOpen ? 'trash' : tasksView;
 
-  // Refined uniformity in root div className (p-4 md:p-8 lg:p-10)
   return (
     <div className="w-full min-h-full bg-[#f7f5f0] dark:bg-[#121212] p-4 md:p-8 lg:p-10 relative">
-      <div className="max-w-[1600px] mx-auto w-full flex flex-col h-full">
+      <div className="max-w-[1600px] mx-auto w-full flex flex-col h-full gap-8">
         
-        <header className="mb-6 lg:mb-10 flex flex-col xl:flex-row xl:items-center justify-between gap-6 shrink-0">
+        <header className="flex flex-col xl:flex-row xl:items-center justify-between gap-6 shrink-0">
           <div className="flex items-center gap-2.5 text-[#3d3b33] dark:text-[#f0f0f0] shrink-0">
             {isTrashOpen ? <Trash2 size={24} className="text-[#c2956e]" /> : tasksView === 'focus' ? <CheckSquare size={24} className="text-[#c2956e]" /> : <History size={24} className="text-[#c2956e]" />}
             <h1 className="text-2xl md:text-4xl font-serif font-medium tracking-tight">
@@ -52,26 +51,26 @@ export default function TasksPage() {
                 value={searchQuery} onChange={e => setSearchQuery(e.target.value)} 
                 placeholder="Search tasks..." 
                 spellCheck={false}
-                className="w-full bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] rounded-2xl pl-12 pr-4 py-3 outline-none focus:border-[#c2956e] text-sm text-[#3d3b33] dark:text-[#f0f0f0] shadow-sm transition-all" 
+                className="w-full bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] rounded-xl pl-11 pr-4 py-3 outline-none focus:border-[#c2956e] dark:focus:border-[#b0855f] text-sm text-[#3d3b33] dark:text-[#f0f0f0] shadow-sm transition-all" 
               />
             </div>
 
             <div className="flex items-center gap-4 w-full md:w-auto justify-between md:justify-end shrink-0">
               {!isTrashOpen ? (
                 <>
-                  <div className="flex bg-white/50 dark:bg-[#1e1e1e]/50 border border-[#e0ddd5] dark:border-[#333] p-1 rounded-2xl shadow-sm">
+                  <div className="flex bg-[#ebe8e2]/50 dark:bg-[#1a1a1a] p-1.5 rounded-[1.25rem] border border-[#e0ddd5] dark:border-[#333] shadow-inner shrink-0">
                     <button 
                       onClick={() => handleViewChange('focus')}
-                      className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-xs font-bold uppercase tracking-widest transition-all ${
-                        tasksView === 'focus' ? 'bg-[#c2956e] dark:bg-[#b0855f] text-white shadow-md' : 'text-[#b0ad9a] dark:text-[#7a7a7a] md:hover:text-[#3d3b33] md:dark:hover:text-white'
+                      className={`flex-1 flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all ${
+                        tasksView === 'focus' ? 'bg-white dark:bg-[#2a2a2a] text-[#c2956e] dark:text-[#d1a784] shadow-sm' : 'text-[#888] md:hover:text-[#3d3b33] md:dark:hover:text-[#f0f0f0]'
                       }`}
                     >
                       <ListChecks size={14} /> Focus
                     </button>
                     <button 
                       onClick={() => handleViewChange('archive')}
-                      className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-xs font-bold uppercase tracking-widest transition-all ${
-                        tasksView === 'archive' ? 'bg-[#c2956e] dark:bg-[#b0855f] text-white shadow-md' : 'text-[#b0ad9a] dark:text-[#7a7a7a] md:hover:text-[#3d3b33] md:dark:hover:text-white'
+                      className={`flex-1 flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all ${
+                        tasksView === 'archive' ? 'bg-white dark:bg-[#2a2a2a] text-[#c2956e] dark:text-[#d1a784] shadow-sm' : 'text-[#888] md:hover:text-[#3d3b33] md:dark:hover:text-[#f0f0f0]'
                       }`}
                     >
                       <History size={14} /> Archive
@@ -81,7 +80,7 @@ export default function TasksPage() {
                   <button 
                     onClick={() => setIsTrashOpen(true)}
                     data-tooltip-id="task-tooltip" data-tooltip-content="Open Trash"
-                    className="p-3 text-[#b0ad9a] md:hover:text-red-400 md:hover:bg-red-50 md:dark:hover:bg-red-900/10 rounded-2xl transition-all border border-transparent md:hover:border-red-100 md:dark:hover:border-red-900/30"
+                    className="p-3 text-[#b0ad9a] md:hover:text-red-400 md:hover:bg-red-50 md:dark:hover:bg-red-900/10 rounded-xl transition-all border border-transparent md:hover:border-red-100 md:dark:hover:border-red-900/30"
                   >
                     <Trash2 size={20} />
                   </button>
@@ -90,13 +89,13 @@ export default function TasksPage() {
                 <div className="flex items-center gap-3">
                   <button 
                     onClick={() => setIsTrashOpen(false)}
-                    className="flex items-center gap-2 px-6 py-3 bg-white dark:bg-[#1e1e1e] border border-[#e0ddd5] dark:border-[#333] rounded-2xl text-[10px] font-bold uppercase tracking-widest text-[#3d3b33] dark:text-[#f0f0f0] shadow-sm md:hover:border-[#c2956e] transition-all"
+                    className="flex items-center gap-2 px-6 py-3 bg-white dark:bg-[#1a1a1a] text-[#888] rounded-xl text-[10px] font-bold uppercase tracking-widest border border-[#e0ddd5] dark:border-[#333] hover:text-[#3d3b33] dark:hover:text-[#f0f0f0] transition-all shadow-sm"
                   >
-                    <ArrowLeft size={14} /> Back to Tasks
+                    <ArrowLeft size={14} /> Back
                   </button>
                   <button 
                     onClick={handleEmptyTrash}
-                    className="px-6 py-3 bg-red-50 dark:bg-red-900/10 text-red-500 rounded-2xl text-[10px] font-bold uppercase tracking-widest md:hover:bg-red-500 md:hover:text-white transition-all shadow-sm"
+                    className="flex items-center gap-2 px-6 py-3 bg-red-50 dark:bg-red-900/10 text-red-500 rounded-xl text-[10px] font-bold uppercase tracking-widest md:hover:bg-red-500 md:hover:text-white transition-all shadow-sm"
                   >
                     Empty Trash
                   </button>
@@ -107,15 +106,15 @@ export default function TasksPage() {
         </header>
 
         {currentViewMode === 'archive' && (
-          <div className="flex items-center justify-end gap-3 mb-8 w-full overflow-x-auto no-scrollbar shrink-0">
-             <div className="flex bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] p-1 rounded-2xl shadow-sm shrink-0">
-               <button onClick={() => setArchiveLayout('nested')} className={`p-2.5 rounded-xl transition-all ${archiveLayout === 'nested' ? 'bg-[#c2956e] text-white shadow-md' : 'text-[#888]'}`} data-tooltip-id="task-tooltip" data-tooltip-content="Nested View"><LayoutGrid size={18} /></button>
-               <button onClick={() => setArchiveLayout('list')} className={`p-2.5 rounded-xl transition-all ${archiveLayout === 'list' ? 'bg-[#c2956e] text-white shadow-md' : 'text-[#888]'}`} data-tooltip-id="task-tooltip" data-tooltip-content="Flat List"><List size={18} /></button>
+          <div className="flex items-center justify-end gap-3 w-full overflow-x-auto no-scrollbar shrink-0 -mt-4">
+             <div className="flex bg-[#ebe8e2]/50 dark:bg-[#1a1a1a] p-1.5 rounded-[1.25rem] border border-[#e0ddd5] dark:border-[#333] shadow-inner shrink-0">
+               <button onClick={() => setArchiveLayout('nested')} className={`p-2.5 rounded-xl transition-all ${archiveLayout === 'nested' ? 'bg-white dark:bg-[#2a2a2a] text-[#c2956e] dark:text-[#d1a784] shadow-sm' : 'text-[#888] md:hover:text-[#3d3b33] md:dark:hover:text-white'}`} data-tooltip-id="task-tooltip" data-tooltip-content="Nested View"><LayoutGrid size={18} /></button>
+               <button onClick={() => setArchiveLayout('list')} className={`p-2.5 rounded-xl transition-all ${archiveLayout === 'list' ? 'bg-white dark:bg-[#2a2a2a] text-[#c2956e] dark:text-[#d1a784] shadow-sm' : 'text-[#888] md:hover:text-[#3d3b33] md:dark:hover:text-white'}`} data-tooltip-id="task-tooltip" data-tooltip-content="Flat List"><List size={18} /></button>
              </div>
              
-             <div className="flex bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] p-1 rounded-2xl shadow-sm shrink-0">
-               <button onClick={() => setArchiveSort('newest')} className={`flex items-center gap-2 px-4 py-2 rounded-xl text-[10px] font-bold uppercase transition-all ${archiveSort === 'newest' ? 'bg-[#c2956e] text-white shadow-md' : 'text-[#888]'}`}><SortDesc size={14} /> Newest</button>
-               <button onClick={() => setArchiveSort('oldest')} className={`flex items-center gap-2 px-4 py-2 rounded-xl text-[10px] font-bold uppercase transition-all ${archiveSort === 'oldest' ? 'bg-[#c2956e] text-white shadow-md' : 'text-[#888]'}`}><SortAsc size={14} /> Oldest</button>
+             <div className="flex bg-[#ebe8e2]/50 dark:bg-[#1a1a1a] p-1.5 rounded-[1.25rem] border border-[#e0ddd5] dark:border-[#333] shadow-inner shrink-0">
+               <button onClick={() => setArchiveSort('newest')} className={`flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all ${archiveSort === 'newest' ? 'bg-white dark:bg-[#2a2a2a] text-[#c2956e] dark:text-[#d1a784] shadow-sm' : 'text-[#888] md:hover:text-[#3d3b33] md:dark:hover:text-white'}`}><SortDesc size={14} /> Newest</button>
+               <button onClick={() => setArchiveSort('oldest')} className={`flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all ${archiveSort === 'oldest' ? 'bg-white dark:bg-[#2a2a2a] text-[#c2956e] dark:text-[#d1a784] shadow-sm' : 'text-[#888] md:hover:text-[#3d3b33] md:dark:hover:text-white'}`}><SortAsc size={14} /> Oldest</button>
              </div>
           </div>
         )}
