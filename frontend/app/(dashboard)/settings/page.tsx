@@ -11,6 +11,28 @@ import {
   Info, Mail, ArrowLeft
 } from "lucide-react";
 
+const escapeRegExp = (string: string) => {
+  return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+};
+
+const HighlightText = ({ text, query, highlightClass }: { text: string, query: string, highlightClass?: string }) => {
+  if (!query) return <>{text}</>;
+  const parts = text.split(new RegExp(`(${escapeRegExp(query)})`, 'gi'));
+  return (
+    <>
+      {parts.map((part, i) => 
+        part.toLowerCase() === query.toLowerCase() ? (
+          <span key={i} className={`bg-[#c2956e]/40 dark:bg-[#b0855f]/50 text-[#3d3b33] dark:text-white rounded-[4px] px-[2px] font-semibold ${highlightClass || ''}`}>
+            {part}
+          </span>
+        ) : (
+          part
+        )
+      )}
+    </>
+  );
+};
+
 const GitHubIcon = ({ size = 16, className = "" }: { size?: number, className?: string }) => (
   <svg 
     width={size} 
@@ -47,6 +69,8 @@ export default function SettingsPage() {
   const [currentCity, setCurrentCity] = useState("");
   const [isSearching, setIsSearching] = useState(false);
   const [os, setOs] = useState<'mac' | 'windows'>('windows');
+  
+  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     const platform = window.navigator.platform.toLowerCase();
@@ -160,51 +184,57 @@ export default function SettingsPage() {
   const altKeyDisplay = os === 'mac' ? '⌥' : 'Alt';
   const ctrlKeyDisplay = os === 'mac' ? '⌘' : 'Ctrl';
 
-  return (
-    <div className="max-w-4xl w-full min-h-full mx-auto p-4 md:p-8 lg:p-10 pb-32 md:pb-12 flex flex-col gap-8">
-      
-      <header className="flex items-center justify-between shrink-0 mb-2">
-        <div className="flex items-center gap-4">
-          <button onClick={() => router.back()} className="flex items-center justify-center p-2.5 md:p-3 bg-white dark:bg-[#1a1a1a] text-[#888] rounded-xl border border-[#e0ddd5] dark:border-[#333] hover:text-[#3d3b33] dark:hover:text-[#f0f0f0] transition-all shadow-sm">
-            <ArrowLeft size={18} />
-          </button>
-          <div className="flex items-center gap-2.5 text-[#3d3b33] dark:text-[#f0f0f0]">
-            <SettingsIcon size={24} className="text-[#c2956e]" />
-            <h1 className="text-2xl md:text-4xl font-serif font-medium tracking-tight">Settings</h1>
-          </div>
-        </div>
-      </header>
+  const isVisible = (keys: string[]) => {
+    if (!searchQuery.trim()) return true;
+    return keys.some(k => k.toLowerCase().includes(searchQuery.toLowerCase()));
+  };
 
-      <div className="bg-white dark:bg-[#1a1a1a] border border-[#ebe8e2] dark:border-[#2a2a2a] rounded-[2.5rem] p-6 md:p-10 shadow-sm space-y-12 transition-all">
-        
+  const sections = [
+    {
+      id: 'appearance',
+      keys: ['appearance', 'theme', 'dark', 'light', 'system', 'visual', 'color'],
+      className: '',
+      render: () => (
         <section className="space-y-4">
           <div className="flex items-center gap-3 text-[#a882c2]">
             <Monitor size={20} />
-            <h3 className="text-xl font-medium text-[#3d3b33] dark:text-[#f0f0f0]">Appearance</h3>
+            <h3 className="text-xl font-medium text-[#3d3b33] dark:text-[#f0f0f0]">
+              <HighlightText text="Appearance" query={searchQuery} />
+            </h3>
           </div>
-          <p className="text-xs text-[#b0ad9a] dark:text-[#7a7a7a] mt-1 mb-4">Choose the visual theme for your workspace.</p>
+          <p className="text-xs text-[#b0ad9a] dark:text-[#7a7a7a] mt-1 mb-4">
+            <HighlightText text="Choose the visual theme for your workspace." query={searchQuery} />
+          </p>
           <div className="flex bg-[#ebe8e2]/50 dark:bg-[#1a1a1a] p-1.5 rounded-[1.25rem] border border-[#e0ddd5] dark:border-[#333] shadow-inner w-fit shrink-0">
             {['system', 'light', 'dark'].map(t => (
               <button 
                 key={t} onClick={() => { setTheme(t as any); updateRemoteSetting('theme', t); }}
                 className={`flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all ${theme === t ? 'bg-white dark:bg-[#2a2a2a] text-[#c2956e] dark:text-[#d1a784] shadow-sm' : 'text-[#888] md:hover:text-[#3d3b33] md:dark:hover:text-white'}`}
               >
-                {t}
+                <HighlightText text={t} query={searchQuery} />
               </button>
             ))}
           </div>
         </section>
-
-        <hr className="border-[#f0ede8] dark:border-[#2a2a2a]" />
-
-        <section className="hidden md:block space-y-6">
+      )
+    },
+    {
+      id: 'hotkeys',
+      keys: ['global hotkeys', 'keyboard', 'shortcuts', 'navigation'],
+      className: 'hidden md:block',
+      render: () => (
+        <section className="space-y-6">
           <div className="flex justify-between items-center">
             <div className="space-y-1">
               <div className="flex items-center gap-3 text-[#7ca982]">
                 <Keyboard size={20} />
-                <h3 className="text-xl font-medium text-[#3d3b33] dark:text-[#f0f0f0]">Global Hotkeys</h3>
+                <h3 className="text-xl font-medium text-[#3d3b33] dark:text-[#f0f0f0]">
+                  <HighlightText text="Global Hotkeys" query={searchQuery} />
+                </h3>
               </div>
-              <p className="text-xs text-[#b0ad9a] dark:text-[#7a7a7a]">Speed up your workflow with keyboard mnemonic shortcuts.</p>
+              <p className="text-xs text-[#b0ad9a] dark:text-[#7a7a7a]">
+                <HighlightText text="Speed up your workflow with keyboard mnemonic shortcuts." query={searchQuery} />
+              </p>
             </div>
             <button 
               onClick={() => { setHotkeysEnabled(!hotkeysEnabled); updateRemoteSetting('hotkeys_enabled', !hotkeysEnabled); }}
@@ -241,12 +271,14 @@ export default function SettingsPage() {
                     <div className={`w-4 h-4 rounded-full border flex items-center justify-center transition-colors ${!isDisabled ? 'bg-[#7ca982] border-[#7ca982]' : 'bg-transparent border-[#c4c0b8] dark:border-[#555]'}`}>
                       {!isDisabled && <CheckCircle2 size={10} className="text-white" strokeWidth={4} />}
                     </div>
-                    <span className="text-[12px] text-[#3d3b33] dark:text-[#f0f0f0] font-medium select-none">{hk.desc}</span>
+                    <span className="text-[12px] text-[#3d3b33] dark:text-[#f0f0f0] font-medium select-none">
+                      <HighlightText text={hk.desc} query={searchQuery} />
+                    </span>
                   </div>
                   <div className="flex gap-1.5 pointer-events-none">
                     {hk.keys.map(k => (
                       <kbd key={k} className="px-2 py-1 bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#444] rounded-lg text-[10px] font-bold text-[#b0ad9a] dark:text-[#777] shadow-sm min-w-[28px] text-center">
-                        {k}
+                        <HighlightText text={k} query={searchQuery} />
                       </kbd>
                     ))}
                   </div>
@@ -255,21 +287,33 @@ export default function SettingsPage() {
             })}
           </div>
         </section>
-
-        <hr className="hidden md:block border-[#f0ede8] dark:border-[#2a2a2a]" />
-
+      )
+    },
+    {
+      id: 'tasks',
+      keys: ['task layout behavior', 'completed tasks', 'bottom', 'keep parent', 'add task top', 'home page progress'],
+      className: '',
+      render: () => (
         <section className="space-y-4">
           <div className="flex items-center gap-3 text-[#6e90c2] dark:text-[#8aaae0]">
             <CheckCircle2 size={20} />
-            <h3 className="text-xl font-medium text-[#3d3b33] dark:text-[#f0f0f0]">Task Layout Behavior</h3>
+            <h3 className="text-xl font-medium text-[#3d3b33] dark:text-[#f0f0f0]">
+              <HighlightText text="Task Layout Behavior" query={searchQuery} />
+            </h3>
           </div>
-          <p className="text-xs text-[#b0ad9a] dark:text-[#7a7a7a] mt-1 mb-4">Control how tasks respond automatically in your lists.</p>
+          <p className="text-xs text-[#b0ad9a] dark:text-[#7a7a7a] mt-1 mb-4">
+            <HighlightText text="Control how tasks respond automatically in your lists." query={searchQuery} />
+          </p>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="flex items-center justify-between p-4 bg-[#f7f5f0]/50 dark:bg-[#222] border border-[#e0ddd5] dark:border-[#333] rounded-2xl cursor-pointer" onClick={() => { setMoveCompletedToBottom(!moveCompletedToBottom); updateRemoteSetting('move_completed_to_bottom', !moveCompletedToBottom); }}>
               <div className="space-y-1 pr-4">
-                <span className="text-[13px] text-[#3d3b33] dark:text-[#f0f0f0] font-medium">Glide Completed Tasks</span>
-                <p className="text-[10px] text-[#b0ad9a] dark:text-[#7a7a7a] leading-tight">Move to the bottom instantly.</p>
+                <span className="text-[13px] text-[#3d3b33] dark:text-[#f0f0f0] font-medium">
+                  <HighlightText text="Glide Completed Tasks" query={searchQuery} />
+                </span>
+                <p className="text-[10px] text-[#b0ad9a] dark:text-[#7a7a7a] leading-tight">
+                  <HighlightText text="Move to the bottom instantly." query={searchQuery} />
+                </p>
               </div>
               <button className={`shrink-0 w-10 h-5 rounded-full transition-colors relative ${moveCompletedToBottom ? 'bg-[#7ca982] dark:bg-[#6a9a70]' : 'bg-[#e0ddd5] dark:bg-[#444]'}`}>
                 <div className={`w-4 h-4 bg-white rounded-full absolute top-0.5 transition-transform ${moveCompletedToBottom ? 'translate-x-5' : 'translate-x-0.5 shadow-sm'}`} />
@@ -278,8 +322,12 @@ export default function SettingsPage() {
 
             <div className="flex items-center justify-between p-4 bg-[#f7f5f0]/50 dark:bg-[#222] border border-[#e0ddd5] dark:border-[#333] rounded-2xl cursor-pointer" onClick={() => { setKeepParentTaskAlive(!keepParentTaskAlive); updateRemoteSetting('keep_parent_task_alive', !keepParentTaskAlive); }}>
               <div className="space-y-1 pr-4">
-                <span className="text-[13px] text-[#3d3b33] dark:text-[#f0f0f0] font-medium">Keep Parent Tasks</span>
-                <p className="text-[10px] text-[#b0ad9a] dark:text-[#7a7a7a] leading-tight">Don't auto-complete when children finish.</p>
+                <span className="text-[13px] text-[#3d3b33] dark:text-[#f0f0f0] font-medium">
+                  <HighlightText text="Keep Parent Tasks" query={searchQuery} />
+                </span>
+                <p className="text-[10px] text-[#b0ad9a] dark:text-[#7a7a7a] leading-tight">
+                  <HighlightText text="Don't auto-complete when children finish." query={searchQuery} />
+                </p>
               </div>
               <button className={`shrink-0 w-10 h-5 rounded-full transition-colors relative ${keepParentTaskAlive ? 'bg-[#7ca982] dark:bg-[#6a9a70]' : 'bg-[#e0ddd5] dark:bg-[#444]'}`}>
                 <div className={`w-4 h-4 bg-white rounded-full absolute top-0.5 transition-transform ${keepParentTaskAlive ? 'translate-x-5' : 'translate-x-0.5 shadow-sm'}`} />
@@ -288,8 +336,12 @@ export default function SettingsPage() {
 
             <div className="flex items-center justify-between p-4 bg-[#f7f5f0]/50 dark:bg-[#222] border border-[#e0ddd5] dark:border-[#333] rounded-2xl cursor-pointer" onClick={() => { setAddTaskAtTop(!addTaskAtTop); updateRemoteSetting('add_task_at_top', !addTaskAtTop); }}>
               <div className="space-y-1 pr-4">
-                <span className="text-[13px] text-[#3d3b33] dark:text-[#f0f0f0] font-medium">Add New Tasks to Top</span>
-                <p className="text-[10px] text-[#b0ad9a] dark:text-[#7a7a7a] leading-tight">New tasks appear at the top.</p>
+                <span className="text-[13px] text-[#3d3b33] dark:text-[#f0f0f0] font-medium">
+                  <HighlightText text="Add New Tasks to Top" query={searchQuery} />
+                </span>
+                <p className="text-[10px] text-[#b0ad9a] dark:text-[#7a7a7a] leading-tight">
+                  <HighlightText text="New tasks appear at the top." query={searchQuery} />
+                </p>
               </div>
               <button className={`shrink-0 w-10 h-5 rounded-full transition-colors relative ${addTaskAtTop ? 'bg-[#7ca982] dark:bg-[#6a9a70]' : 'bg-[#e0ddd5] dark:bg-[#444]'}`}>
                 <div className={`w-4 h-4 bg-white rounded-full absolute top-0.5 transition-transform ${addTaskAtTop ? 'translate-x-5' : 'translate-x-0.5 shadow-sm'}`} />
@@ -298,8 +350,12 @@ export default function SettingsPage() {
 
             <div className="flex items-center justify-between p-4 bg-[#f7f5f0]/50 dark:bg-[#222] border border-[#e0ddd5] dark:border-[#333] rounded-2xl cursor-pointer" onClick={() => { setShowHomeTaskProgress(!showHomeTaskProgress); updateRemoteSetting('show_home_task_progress', !showHomeTaskProgress); }}>
               <div className="space-y-1 pr-4">
-                <span className="text-[13px] text-[#3d3b33] dark:text-[#f0f0f0] font-medium">Home Page Progress</span>
-                <p className="text-[10px] text-[#b0ad9a] dark:text-[#7a7a7a] leading-tight">Show task analytics gracefully on the home screen.</p>
+                <span className="text-[13px] text-[#3d3b33] dark:text-[#f0f0f0] font-medium">
+                  <HighlightText text="Home Page Progress" query={searchQuery} />
+                </span>
+                <p className="text-[10px] text-[#b0ad9a] dark:text-[#7a7a7a] leading-tight">
+                  <HighlightText text="Show task analytics gracefully on the home screen." query={searchQuery} />
+                </p>
               </div>
               <button className={`shrink-0 w-10 h-5 rounded-full transition-colors relative ${showHomeTaskProgress ? 'bg-[#7ca982] dark:bg-[#6a9a70]' : 'bg-[#e0ddd5] dark:bg-[#444]'}`}>
                 <div className={`w-4 h-4 bg-white rounded-full absolute top-0.5 transition-transform ${showHomeTaskProgress ? 'translate-x-5' : 'translate-x-0.5 shadow-sm'}`} />
@@ -307,15 +363,23 @@ export default function SettingsPage() {
             </div>
           </div>
         </section>
-
-        <hr className="hidden md:block border-[#f0ede8] dark:border-[#2a2a2a]" />
-
-        <section className="hidden md:block space-y-4">
+      )
+    },
+    {
+      id: 'weather',
+      keys: ['weather location', 'city', 'detect', 'map pin'],
+      className: 'hidden md:block',
+      render: () => (
+        <section className="space-y-4">
           <div className="flex items-center gap-3 text-[#5b9ea0] dark:text-[#6baea0]">
             <MapPin size={20} />
-            <h3 className="text-xl font-medium text-[#3d3b33] dark:text-[#f0f0f0]">Weather Location</h3>
+            <h3 className="text-xl font-medium text-[#3d3b33] dark:text-[#f0f0f0]">
+              <HighlightText text="Weather Location" query={searchQuery} />
+            </h3>
           </div>
-          <p className="text-xs text-[#b0ad9a] dark:text-[#7a7a7a] mt-1 mb-4">Set your active city to display live weather updates.</p>
+          <p className="text-xs text-[#b0ad9a] dark:text-[#7a7a7a] mt-1 mb-4">
+            <HighlightText text="Set your active city to display live weather updates." query={searchQuery} />
+          </p>
           {currentCity ? (
             <div className="flex items-center justify-between p-6 bg-[#e8f2e9] dark:bg-[#1c2921] border border-[#7ca982]/20 rounded-[2rem]">
               <div className="flex items-center gap-4">
@@ -340,35 +404,53 @@ export default function SettingsPage() {
             </div>
           )}
         </section>
-
-        <hr className="border-[#f0ede8] dark:border-[#2a2a2a]" />
-
+      )
+    },
+    {
+      id: 'timing',
+      keys: ['vanishing delay', 'minutes', 'routine reset', 'hour', 'time'],
+      className: '',
+      render: () => (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
           <section className="space-y-4">
-            <div className="flex items-center gap-3 text-[#c2956e] dark:text-[#d1a784]"><Clock size={18} /><h3 className="text-lg font-medium text-[#3d3b33] dark:text-[#f0f0f0]">Vanishing Delay</h3></div>
-            <p className="text-[11px] text-[#b0ad9a] dark:text-[#7a7a7a] mt-1 mb-3">Minutes before completed tasks are archived.</p>
+            <div className="flex items-center gap-3 text-[#c2956e] dark:text-[#d1a784]"><Clock size={18} />
+              <h3 className="text-lg font-medium text-[#3d3b33] dark:text-[#f0f0f0]"><HighlightText text="Vanishing Delay" query={searchQuery} /></h3>
+            </div>
+            <p className="text-[11px] text-[#b0ad9a] dark:text-[#7a7a7a] mt-1 mb-3">
+              <HighlightText text="Minutes before completed tasks are archived." query={searchQuery} />
+            </p>
             <input type="number" value={taskArchiveDelay} onChange={(e) => { const v = parseInt(e.target.value) || 0; setTaskArchiveDelay(v); updateRemoteSetting('task_archive_delay', v); }} className="w-full bg-[#f7f5f0] dark:bg-[#252525] border border-[#e0ddd5] dark:border-[#333] rounded-xl px-4 py-3 text-sm outline-none focus:border-[#c2956e] dark:focus:border-[#b0855f] text-[#3d3b33] dark:text-[#f0f0f0] shadow-sm transition-all font-bold" />
           </section>
           
           <section className="space-y-4">
-             <div className="flex items-center gap-3 text-[#c2956e] dark:text-[#d1a784]"><Sparkles size={18} /><h3 className="text-lg font-medium text-[#3d3b33] dark:text-[#f0f0f0]">Routine Reset</h3></div>
-            <p className="text-[11px] text-[#b0ad9a] dark:text-[#7a7a7a] mt-1 mb-3">Hour when your routines reset.</p>
+             <div className="flex items-center gap-3 text-[#c2956e] dark:text-[#d1a784]"><Sparkles size={18} />
+               <h3 className="text-lg font-medium text-[#3d3b33] dark:text-[#f0f0f0]"><HighlightText text="Routine Reset" query={searchQuery} /></h3>
+             </div>
+            <p className="text-[11px] text-[#b0ad9a] dark:text-[#7a7a7a] mt-1 mb-3">
+              <HighlightText text="Hour when your routines reset." query={searchQuery} />
+            </p>
             <div className="flex items-center gap-3">
               <input type="number" min="0" max="23" value={routineResetHour} onChange={(e) => handleResetHourChange(parseInt(e.target.value) || 0)} className="flex-1 bg-[#f7f5f0] dark:bg-[#252525] border border-[#e0ddd5] dark:border-[#333] rounded-xl px-4 py-3 text-sm outline-none focus:border-[#c2956e] dark:focus:border-[#b0855f] text-[#3d3b33] dark:text-[#f0f0f0] shadow-sm transition-all font-bold" />
               <div className="px-4 py-3 bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] rounded-xl text-[10px] font-bold text-[#b0ad9a] uppercase tracking-widest shadow-sm">{routineResetHour >= 12 ? 'PM' : 'AM'}</div>
             </div>
           </section>
         </div>
-
-        <hr className="border-[#f0ede8] dark:border-[#2a2a2a]" />
-
+      )
+    },
+    {
+      id: 'about',
+      keys: ['developer & source', 'github', 'email', 'open-source', 'chronoa'],
+      className: '',
+      render: () => (
         <section className="space-y-4">
           <div className="flex items-center gap-3 text-[#3d3b33] dark:text-[#f0f0f0]">
              <Info size={20} className="text-[#c2956e] dark:text-[#d1a784]" />
-             <h3 className="text-xl font-medium">Developer & Source</h3>
+             <h3 className="text-xl font-medium">
+               <HighlightText text="Developer & Source" query={searchQuery} />
+             </h3>
           </div>
           <p className="text-xs text-[#b0ad9a] dark:text-[#7a7a7a] mt-1 mb-4">
-            Chronoa is an open-source workspace built for deep focus. Feel free to reach out, report issues, or contribute.
+            <HighlightText text="Chronoa is an open-source workspace built for deep focus. Feel free to reach out, report issues, or contribute." query={searchQuery} />
           </p>
           <div className="flex items-center gap-4">
             <a href="mailto:chaitanyapatil.xe@gmail.com" className="flex items-center gap-2 px-5 py-3 bg-[#f7f5f0] dark:bg-[#252525] text-[#888] dark:text-[#a0a0a0] border border-[#e0ddd5] dark:border-[#333] rounded-xl text-[10px] font-bold uppercase tracking-widest hover:text-[#c2956e] transition-all shadow-sm">
@@ -379,17 +461,67 @@ export default function SettingsPage() {
             </a>
           </div>
         </section>
-
-        <hr className="border-[#f0ede8] dark:border-[#2a2a2a]" />
-
+      )
+    },
+    {
+      id: 'danger',
+      keys: ['danger zone', 'delete account', 'sign out', 'logout', 'remove'],
+      className: '',
+      render: () => (
         <section className="space-y-6 pt-2">
-          <div className="flex items-center gap-3 text-red-500"><AlertTriangle size={20} /><h3 className="text-xl font-medium">Danger Zone</h3></div>
-          <p className="text-xs text-[#b0ad9a] dark:text-[#7a7a7a]">Permanently delete your account. This is irreversible.</p>
-          <div className="flex items-center gap-4">
-            <button onClick={handleDeleteAccount} className="px-6 py-3 bg-red-50 dark:bg-red-900/10 text-red-500 border border-red-200 dark:border-red-900/50 rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-red-500 hover:text-white transition-all shadow-sm">Delete Account</button>
-            <button onClick={handleLogout} className="flex items-center gap-2 px-6 py-3 bg-[#f7f5f0] dark:bg-[#252525] text-[#888] border border-[#e0ddd5] dark:border-[#333] rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-gray-50 transition-all shadow-sm"><LogOut size={16} /> Sign Out</button>
+          <div className="flex items-center gap-3 text-red-500"><AlertTriangle size={20} />
+            <h3 className="text-xl font-medium"><HighlightText text="Danger Zone" query={searchQuery} /></h3>
+          </div>
+          <p className="text-xs text-[#b0ad9a] dark:text-[#7a7a7a]">
+            <HighlightText text="Permanently delete your account. This is irreversible." query={searchQuery} />
+          </p>
+          <div className="flex flex-col sm:flex-row items-center gap-4">
+            <button onClick={handleDeleteAccount} className="w-full sm:w-auto px-6 py-3 bg-red-50 dark:bg-red-900/10 text-red-500 border border-red-200 dark:border-red-900/50 rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-red-500 hover:text-white transition-all shadow-sm">Delete Account</button>
+            <button onClick={handleLogout} className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-3 bg-[#f7f5f0] dark:bg-[#252525] text-[#888] border border-[#e0ddd5] dark:border-[#333] rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-gray-50 transition-all shadow-sm"><LogOut size={16} /> Sign Out</button>
           </div>
         </section>
+      )
+    }
+  ];
+
+  const visibleSections = sections.filter(s => isVisible(s.keys));
+
+  return (
+    <div className="max-w-4xl w-full min-h-full mx-auto p-4 md:p-8 lg:p-10 pb-32 md:pb-12 flex flex-col gap-8">
+      
+      <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 shrink-0 mb-2">
+        <div className="flex items-center gap-4">
+          <button onClick={() => router.back()} className="flex items-center justify-center p-2.5 md:p-3 bg-white dark:bg-[#1a1a1a] text-[#888] rounded-xl border border-[#e0ddd5] dark:border-[#333] hover:text-[#3d3b33] dark:hover:text-[#f0f0f0] transition-all shadow-sm">
+            <ArrowLeft size={18} />
+          </button>
+          <div className="flex items-center gap-2.5 text-[#3d3b33] dark:text-[#f0f0f0]">
+            <SettingsIcon size={24} className="text-[#c2956e]" />
+            <h1 className="text-2xl md:text-4xl font-serif font-medium tracking-tight">Settings</h1>
+          </div>
+        </div>
+
+        <div className="relative w-full md:w-64 shrink-0">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-[#b0ad9a]" size={16} />
+          <input 
+            type="text" placeholder="Search settings..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
+            spellCheck={false}
+            className="w-full bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] rounded-full md:rounded-xl pl-11 pr-4 py-2.5 md:py-3 outline-none focus:border-[#c2956e] dark:focus:border-[#b0855f] text-sm text-[#3d3b33] dark:text-[#f0f0f0] shadow-sm transition-all"
+          />
+        </div>
+      </header>
+
+      <div className="bg-white dark:bg-[#1a1a1a] border border-[#ebe8e2] dark:border-[#2a2a2a] rounded-[2.5rem] p-6 md:p-10 shadow-sm flex flex-col gap-10 transition-all">
+        {visibleSections.map((sec, i) => (
+          <div key={sec.id} className={`flex flex-col gap-10 ${sec.className}`}>
+             {sec.render()}
+             {i < visibleSections.length - 1 && <hr className="border-[#f0ede8] dark:border-[#2a2a2a]" />}
+          </div>
+        ))}
+        {visibleSections.length === 0 && (
+          <div className="text-center py-12 text-[#b0ad9a] dark:text-[#7a7a7a] italic text-sm">
+            No settings match your search.
+          </div>
+        )}
       </div>
     </div>
   );

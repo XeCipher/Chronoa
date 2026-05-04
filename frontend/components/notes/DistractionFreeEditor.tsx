@@ -335,7 +335,8 @@ export default function DistractionFreeEditor({
   return (
     <div className="relative w-full flex flex-col gap-4">
       
-      <div className="md:hidden absolute -top-[3.25rem] right-0 flex items-center gap-1.5 z-10">
+      {/* Mobile Inline Tools (Timestamp & Zoom) — No longer Absolute */}
+      <div className="md:hidden flex w-full justify-end items-center gap-1.5 z-10 mb-2">
         {isEditable && (
           <button
             onMouseDown={(e) => { e.preventDefault(); insertTimestamp(); }}
@@ -349,6 +350,7 @@ export default function DistractionFreeEditor({
 
       {isEditable && (
         <>
+          {/* Mobile Bubble Menu (Text selection popup) */}
           <div
             className="md:hidden flex items-center gap-2 px-3 py-2 border border-[#e0ddd5] dark:border-[#2a2a2a] bg-white/95 dark:bg-[#121212]/95 backdrop-blur-md shadow-xl rounded-2xl w-max max-w-[92vw] overflow-x-auto no-scrollbar transition-opacity duration-200"
             style={bubbleStyle}
@@ -358,6 +360,7 @@ export default function DistractionFreeEditor({
             </div>
           </div>
 
+          {/* Desktop Toolbar */}
           <div
             className={[
               "hidden md:flex",

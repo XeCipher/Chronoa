@@ -4,7 +4,7 @@
 import { useEffect, useState, useMemo, useCallback, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import DistractionFreeEditor from "@/components/notes/DistractionFreeEditor";
-import { Search, Plus, Trash2, BookOpen, FileText, ChevronLeft, RotateCcw, Library, Sparkles, CalendarDays, X, ChevronRight } from "lucide-react";
+import { Search, Plus, Trash2, BookOpen, FileText, ChevronLeft, RotateCcw, Library, Sparkles, CalendarDays, X, ChevronRight, ArrowLeft } from "lucide-react";
 import { useUiStore } from "@/store/uiStore";
 
 type Tab = 'notes' | 'journal';
@@ -90,6 +90,17 @@ export default function NotesPage() {
       prevNotesTab.current = notesTab;
     }
   }, [notesTab]);
+
+  // Reset View Event Listener
+  useEffect(() => {
+    const handleReset = (e: any) => {
+      if (e.detail === '/notes') {
+        setIsTrashOpen(false);
+      }
+    };
+    window.addEventListener('chronoa-reset-tab', handleReset);
+    return () => window.removeEventListener('chronoa-reset-tab', handleReset);
+  }, []);
 
   const handleTabChange = (id: Tab) => {
     setNotesTab(id);
@@ -473,6 +484,7 @@ export default function NotesPage() {
   return (
     <div className="relative flex h-full w-full bg-[#f7f5f0] dark:bg-[#121212] overflow-hidden">
       
+      {/* SIDEBAR LIBRARY VIEW */}
       <aside className={`
         w-full lg:w-[350px] flex-shrink-0 flex flex-col border-r border-[#e0ddd5] dark:border-[#2a2a2a] bg-[#f7f5f0] dark:bg-[#121212] z-30 transition-transform duration-300 ease-in-out
         ${isListVisible ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
@@ -480,30 +492,44 @@ export default function NotesPage() {
         <div className="p-4 md:p-8 lg:p-10 pb-4 space-y-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2.5 text-[#3d3b33] dark:text-[#f0f0f0]">
-              <Library size={20} className="text-[#c2956e]" />
+              {isTrashOpen && (
+                <button onClick={() => { setIsTrashOpen(false); setSelectedId(null); setAutoSelectPending(true); setShowCalendar(false); }} className="flex items-center justify-center p-2.5 md:p-3 bg-white dark:bg-[#1a1a1a] text-[#888] rounded-xl border border-[#e0ddd5] dark:border-[#333] hover:text-[#3d3b33] dark:hover:text-[#f0f0f0] transition-all shadow-sm mr-1">
+                  <ArrowLeft size={18} />
+                </button>
+              )}
+              {!isTrashOpen && <Library size={20} className="text-[#c2956e]" />}
+              {isTrashOpen && <Trash2 size={24} className="text-[#c2956e]" />}
               <h1 className="text-2xl md:text-4xl font-serif font-medium tracking-tight">
                 {isTrashOpen ? 'Trash' : 'Library'}
               </h1>
             </div>
             
             <div className="flex items-center gap-2 relative">
-              <button 
-                onClick={() => { setIsTrashOpen(!isTrashOpen); setSelectedId(null); setAutoSelectPending(true); setShowCalendar(false); }} 
-                data-tooltip-id="global-tooltip" data-tooltip-content={isTrashOpen ? "Exit Trash" : "Open Trash"}
-                className={`w-8 h-8 flex items-center justify-center rounded-full transition-all ${isTrashOpen ? 'bg-[#ebe8e2] dark:bg-[#2a2a2a] text-[#888] md:hover:text-[#3d3b33] md:dark:hover:text-white' : 'text-[#888] md:hover:text-red-400 md:hover:bg-red-50 md:dark:hover:bg-red-900/10'}`}
-              >
-                {isTrashOpen ? <X size={16} /> : <Trash2 size={16} />}
-              </button>
-              
               {!isTrashOpen && notesTab === 'notes' && (
-                <button onClick={createNote} data-tooltip-id="global-tooltip" data-tooltip-content="New Note" className="hidden lg:flex w-8 h-8 items-center justify-center bg-[#3d3b33] dark:bg-[#f0f0f0] text-white dark:text-[#121212] rounded-full md:hover:scale-105 transition-all shadow-lg">
-                  <Plus size={18} />
-                </button>
+                <>
+                  <button 
+                    onClick={() => { setIsTrashOpen(true); setSelectedId(null); setAutoSelectPending(true); setShowCalendar(false); }} 
+                    data-tooltip-id="global-tooltip" data-tooltip-content="Open Trash"
+                    className="w-10 h-10 flex shrink-0 items-center justify-center rounded-full transition-all text-[#888] md:hover:text-red-400 bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] shadow-sm"
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                  <button onClick={createNote} data-tooltip-id="global-tooltip" data-tooltip-content="New Note" className="hidden lg:flex w-10 h-10 items-center justify-center bg-[#3d3b33] dark:bg-[#f0f0f0] text-white dark:text-[#121212] rounded-full md:hover:scale-105 transition-all shadow-lg">
+                    <Plus size={18} />
+                  </button>
+                </>
               )}
               
               {!isTrashOpen && notesTab === 'journal' && (
                 <>
-                  <button onClick={() => setShowCalendar(!showCalendar)} data-tooltip-id="global-tooltip" data-tooltip-content="Calendar" className="desktop-cal-toggle hidden lg:flex w-8 h-8 items-center justify-center bg-[#3d3b33] dark:bg-[#f0f0f0] text-white dark:text-[#121212] rounded-full md:hover:scale-105 transition-all shadow-lg">
+                  <button 
+                    onClick={() => { setIsTrashOpen(true); setSelectedId(null); setAutoSelectPending(true); setShowCalendar(false); }} 
+                    data-tooltip-id="global-tooltip" data-tooltip-content="Open Trash"
+                    className="w-10 h-10 flex shrink-0 items-center justify-center rounded-full transition-all text-[#888] md:hover:text-red-400 bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] shadow-sm"
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                  <button onClick={() => setShowCalendar(!showCalendar)} data-tooltip-id="global-tooltip" data-tooltip-content="Calendar" className="desktop-cal-toggle hidden lg:flex w-10 h-10 items-center justify-center bg-[#3d3b33] dark:bg-[#f0f0f0] text-white dark:text-[#121212] rounded-full md:hover:scale-105 transition-all shadow-lg">
                     {showCalendar ? <X size={16} /> : <CalendarDays size={16} />}
                   </button>
                   {showCalendar && (
@@ -512,6 +538,16 @@ export default function NotesPage() {
                      </div>
                   )}
                 </>
+              )}
+
+              {isTrashOpen && (
+                <button 
+                  onClick={emptyTrash} 
+                  data-tooltip-id="global-tooltip" data-tooltip-content={`Empty ${notesTab} Trash`}
+                  className="w-10 h-10 flex items-center justify-center rounded-full transition-all bg-red-50 dark:bg-red-900/10 text-red-500 hover:bg-red-500 hover:text-white shadow-sm shrink-0 border border-transparent md:border-red-100 dark:border-red-900/30"
+                >
+                  <Trash2 size={16} />
+                </button>
               )}
             </div>
           </div>
@@ -535,12 +571,6 @@ export default function NotesPage() {
                   </button>
                 ))}
               </div>
-              
-              {isTrashOpen && (
-                <button onClick={emptyTrash} className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all bg-red-50 dark:bg-red-900/10 text-red-500 md:hover:bg-red-500 md:hover:text-white shadow-sm border border-red-100 dark:border-red-900/30">
-                  <Trash2 size={14} /> Empty {notesTab} Trash
-                </button>
-              )}
             </div>
           </div>
         </div>
@@ -587,53 +617,62 @@ export default function NotesPage() {
         </div>
       </aside>
 
+      {/* MAIN CONTENT VIEW */}
       <main className={`
         flex-1 flex flex-col bg-white dark:bg-[#121212] lg:static absolute inset-0 transition-transform duration-500 ease-in-out z-40
         ${isListVisible ? 'translate-x-full lg:translate-x-0' : 'translate-x-0'}
       `}>
         {selectedItem ? (
           <div className="flex-1 flex flex-col w-full overflow-hidden">
-            <header className="h-14 flex items-center justify-between px-6 lg:px-8 border-b border-[#f0ede8] dark:border-[#1a1a1a] shrink-0">
-              <button onClick={() => setIsListVisible(true)} className="lg:hidden flex items-center gap-1.5 text-xs font-bold uppercase text-[#b0ad9a] tracking-widest hover:text-[#c2956e]">
-                <ChevronLeft size={16} /> Library
-              </button>
-              <div className="flex items-center gap-2 ml-auto">
-                {!isTrashOpen ? (
-                  <button data-tooltip-id="global-tooltip" data-tooltip-content="Move to Trash" onClick={() => moveToTrash(selectedItem.entry_date || selectedItem.id)} className="p-2 text-gray-400 md:hover:text-red-500 md:hover:bg-red-50 md:dark:hover:bg-red-900/10 rounded-xl transition-all">
-                    <Trash2 size={18} />
-                  </button>
-                ) : (
-                  <div className="flex items-center gap-2">
-                    <button onClick={() => restoreNote(selectedItem)} className="flex items-center gap-2 px-4 py-2 bg-[#7ca982]/10 text-[#7ca982] rounded-xl text-[10px] font-bold uppercase tracking-widest md:hover:bg-[#7ca982] md:hover:text-white transition-all">
-                      <RotateCcw size={14} /> Restore
-                    </button>
-                    <button data-tooltip-id="global-tooltip" data-tooltip-content="Delete Permanently" onClick={() => permanentlyDelete(selectedItem)} className="p-2 text-red-500 md:hover:bg-red-50 md:dark:hover:bg-red-900/10 rounded-xl transition-all">
-                      <Trash2 size={18} />
-                    </button>
-                  </div>
-                )}
-              </div>
-            </header>
             
             <div id="notes-scroll-container" className="flex-1 overflow-y-auto no-scrollbar scroll-smooth">
-              <div className="max-w-[1000px] mx-auto px-6 py-8 lg:py-10 lg:px-12 w-full">
-                <div className="mb-6 relative pr-28 md:pr-0">
-                  {(!isTrashOpen && notesTab === 'journal') || selectedItem.isJournal ? (
-                    <div className="space-y-1">
-                      <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#c2956e]">Daily Entry</p>
-                      <h1 className="text-4xl lg:text-5xl text-[#3d3b33] dark:text-white font-serif leading-tight">
-                        {formatDateLabel(selectedItem.entry_date)}
-                      </h1>
-                    </div>
-                  ) : (
-                    <input 
-                      value={editTitle} onChange={e => setEditTitle(e.target.value)} onBlur={updateNoteTitle} disabled={isTrashOpen}
-                      placeholder="Title..."
-                      spellCheck={false}
-                      className="text-4xl lg:text-5xl text-[#3d3b33] dark:text-white font-serif leading-tight bg-transparent outline-none w-full placeholder:text-[#e0ddd5] dark:placeholder:text-[#2a2a2a] transition-all" 
-                    />
-                  )}
+              <div className="max-w-[1000px] mx-auto px-6 py-6 lg:py-10 lg:px-12 w-full">
+                
+                {/* Mobile Back Button */}
+                <button onClick={() => setIsListVisible(true)} className="lg:hidden flex items-center gap-1.5 text-xs font-bold uppercase text-[#b0ad9a] tracking-widest hover:text-[#c2956e] mb-4 outline-none">
+                  <ChevronLeft size={16} /> Library
+                </button>
+
+                {/* Title & Top Right Actions */}
+                <div className="mb-4 flex flex-row items-center justify-between gap-4 relative group w-full">
+                  <div className="flex-1 min-w-0">
+                    {(!isTrashOpen && notesTab === 'journal') || selectedItem.isJournal ? (
+                      <div className="space-y-1">
+                        <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#c2956e]">Daily Entry</p>
+                        <h1 className="text-4xl lg:text-5xl text-[#3d3b33] dark:text-white font-serif leading-tight">
+                          {formatDateLabel(selectedItem.entry_date)}
+                        </h1>
+                      </div>
+                    ) : (
+                      <input 
+                        value={editTitle} onChange={e => setEditTitle(e.target.value)} onBlur={updateNoteTitle} disabled={isTrashOpen}
+                        placeholder="Title..."
+                        spellCheck={false}
+                        className="text-4xl lg:text-5xl text-[#3d3b33] dark:text-white font-serif leading-tight bg-transparent outline-none w-full placeholder:text-[#e0ddd5] dark:placeholder:text-[#2a2a2a] transition-all" 
+                      />
+                    )}
+                  </div>
+
+                  {/* Top-Right Action Buttons (Perfectly Inline with Title) */}
+                  <div className="flex items-center gap-1 shrink-0">
+                    {!isTrashOpen ? (
+                      <button data-tooltip-id="global-tooltip" data-tooltip-content="Move to Trash" onClick={() => moveToTrash(selectedItem.entry_date || selectedItem.id)} className="w-10 h-10 text-[#b0ad9a] hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-full transition-all flex items-center justify-center bg-transparent outline-none">
+                        <Trash2 size={18} />
+                      </button>
+                    ) : (
+                      <>
+                        <button data-tooltip-id="global-tooltip" data-tooltip-content="Restore" onClick={() => restoreNote(selectedItem)} className="w-10 h-10 text-[#7ca982] hover:bg-[#7ca982]/10 rounded-full transition-all flex items-center justify-center bg-transparent outline-none">
+                          <RotateCcw size={18} />
+                        </button>
+                        <button data-tooltip-id="global-tooltip" data-tooltip-content="Delete Permanently" onClick={() => permanentlyDelete(selectedItem)} className="w-10 h-10 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-full transition-all flex items-center justify-center bg-transparent outline-none">
+                          <Trash2 size={18} />
+                        </button>
+                      </>
+                    )}
+                  </div>
                 </div>
+
+                {/* Editor Content Area */}
                 <div className="relative min-h-[500px]">
                   <DistractionFreeEditor
                     key={`${isTrashOpen ? 'trash' : notesTab}-${selectedId}`}

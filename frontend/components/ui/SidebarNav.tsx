@@ -39,6 +39,21 @@ export default function SidebarNav() {
     name: pathname === '/settings' ? 'Settings' : pathname === '/sessions' ? 'Time Log' : 'Chronoa' 
   };
 
+  const handleTabClick = (e: React.MouseEvent, href: string, isActive: boolean) => {
+    if (isActive) {
+      e.preventDefault();
+      // Reset view to default
+      window.dispatchEvent(new CustomEvent('chronoa-reset-tab', { detail: href }));
+      
+      // Scroll to top
+      const containers = ["notes-library-scroll-container", "notes-scroll-container", "main-scroll-container", "calendar-scroll-container"];
+      for (const id of containers) {
+        const el = document.getElementById(id);
+        if (el) el.scrollTo({ top: 0, behavior: "smooth" });
+      }
+    }
+  };
+
   return (
     <>
       <aside
@@ -81,6 +96,7 @@ export default function SidebarNav() {
                 <Link
                   key={item.name}
                   href={item.href}
+                  onClick={(e) => handleTabClick(e, item.href, isActive)}
                   className={`flex items-center h-12 rounded-xl text-sm font-medium transition-all duration-300 overflow-hidden group shrink-0
                     ${isExpanded ? "mx-6 px-4 justify-start gap-4" : "mx-4 justify-center"}
                     ${isActive 
@@ -101,6 +117,7 @@ export default function SidebarNav() {
           <div className="mt-auto space-y-2 pb-6 pt-4 border-t border-[#e0ddd5]/50 dark:border-[#333]/50 mx-4">
             <Link
               href="/settings"
+              onClick={(e) => handleTabClick(e, "/settings", pathname === "/settings")}
               className={`flex items-center h-12 rounded-xl text-sm font-medium transition-all duration-300 overflow-hidden shrink-0
                 ${isExpanded ? "px-4 justify-start gap-4" : "mx-0 justify-center"}
                 ${pathname === "/settings" ? "bg-white dark:bg-[#252525] text-[#3d3b33] dark:text-[#fff] shadow-sm border border-[#e0ddd5] dark:border-[#333]" : "text-[#888888] dark:text-[#a0a0a0] md:hover:bg-white/50 md:dark:hover:bg-[#2a2a2a] md:hover:text-[#3d3b33] md:dark:hover:text-[#fff]"}
@@ -133,16 +150,7 @@ export default function SidebarNav() {
             <Link
               key={item.name}
               href={item.href}
-              onClick={(e) => {
-                if (isActive) {
-                  e.preventDefault();
-                  const containers = ["notes-library-scroll-container", "notes-scroll-container", "main-scroll-container", "calendar-scroll-container"];
-                  for (const id of containers) {
-                    const el = document.getElementById(id);
-                    if (el) el.scrollTo({ top: 0, behavior: "smooth" });
-                  }
-                }
-              }}
+              onClick={(e) => handleTabClick(e, item.href, isActive)}
               className={`flex items-center justify-center w-16 shrink-0 h-full transition-all ${
                 isActive ? "text-[#c2956e] dark:text-[#d1a784]" : "text-[#888888] dark:text-[#a0a0a0] active:text-[#3d3b33] dark:active:text-[#fff]"
               }`}

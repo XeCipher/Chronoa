@@ -101,8 +101,12 @@ export default function SessionsPage() {
             <h1 className="text-2xl md:text-4xl font-serif font-medium tracking-tight">Time Log</h1>
           </div>
         </div>
-        <button onClick={handleDeleteAll} className="flex items-center justify-center gap-2 px-4 py-2.5 md:px-6 md:py-3 bg-red-50 dark:bg-red-900/10 text-red-500 rounded-xl text-[10px] font-bold uppercase tracking-widest md:hover:bg-red-500 md:hover:text-white transition-all shadow-sm shrink-0">
-          <Trash2 size={14} /> <span className="hidden md:inline">Clear History</span>
+        
+        <button 
+          onClick={handleDeleteAll} 
+          className="w-10 h-10 md:w-auto md:px-6 md:py-3 flex items-center justify-center gap-2 bg-red-50 dark:bg-red-900/10 text-red-500 rounded-full md:rounded-xl text-[10px] font-bold uppercase tracking-widest md:hover:bg-red-500 md:hover:text-white transition-all shadow-sm shrink-0 border border-transparent md:border-red-100 md:dark:border-red-900/30"
+        >
+          <Trash2 size={16} className="shrink-0" /> <span className="hidden md:inline">Clear History</span>
         </button>
       </header>
 

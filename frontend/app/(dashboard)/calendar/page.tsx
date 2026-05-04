@@ -457,7 +457,7 @@ export default function CalendarPage() {
             <div className="md:hidden relative shrink-0" ref={mobileSearchRef}>
               <button 
                   onClick={() => setIsSearchOpen(!isSearchOpen)}
-                  className={`w-9 h-9 flex items-center justify-center rounded-full transition-colors shadow-sm border ${isSearchOpen ? 'bg-[#c2956e] text-white border-[#c2956e]' : 'bg-white dark:bg-[#1a1a1a] text-[#888] hover:text-[#c2956e] border-[#e0ddd5] dark:border-[#333]'}`}
+                  className={`w-10 h-10 flex items-center justify-center rounded-full transition-colors shadow-sm border ${isSearchOpen ? 'bg-[#c2956e] text-white border-[#c2956e]' : 'bg-white dark:bg-[#1a1a1a] text-[#888] hover:text-[#c2956e] border-[#e0ddd5] dark:border-[#333]'}`}
                 >
                   <Search size={16} />
               </button>
@@ -496,7 +496,7 @@ export default function CalendarPage() {
             </div>
           </div>
 
-          <div className="flex items-center gap-2 md:gap-3 w-full md:w-auto max-md:overflow-x-auto md:overflow-visible no-scrollbar pb-1 md:pb-0 shrink-0">
+          <div className="flex flex-col md:flex-row items-center gap-2 md:gap-3 w-full md:w-auto shrink-0">
             <div className="hidden md:block relative shrink-0 h-10" ref={desktopSearchRef}>
               <button 
                 onClick={() => setIsSearchOpen(!isSearchOpen)}
@@ -537,21 +537,23 @@ export default function CalendarPage() {
               )}
             </div>
 
-            <div className="flex items-center bg-white dark:bg-[#1a1a1a] rounded-full p-0.5 border border-[#e0ddd5] dark:border-[#333] shadow-sm shrink-0 h-9 md:h-10">
-              <button onClick={handlePrev} className="px-3 text-[#888] hover:text-[#3d3b33] dark:hover:text-white transition-colors h-full flex items-center justify-center rounded-l-full"><ChevronLeft size={16} className="md:w-[18px] md:h-[18px]" /></button>
-              <button onClick={handleToday} className={`px-4 text-[10px] md:text-[11px] font-bold uppercase tracking-widest transition-colors h-full flex items-center justify-center ${isCurrentDateToday ? 'text-[#c2956e] dark:text-[#b0855f]' : 'text-[#3d3b33] dark:text-[#f0f0f0] hover:text-[#c2956e]'}`}>Today</button>
-              <button onClick={handleNext} className="px-3 text-[#888] hover:text-[#3d3b33] dark:hover:text-white transition-colors h-full flex items-center justify-center rounded-r-full"><ChevronRight size={16} className="md:w-[18px] md:h-[18px]" /></button>
-            </div>
+            <div className="grid grid-cols-2 md:flex md:flex-row gap-2 md:gap-3 w-full md:w-auto h-10 md:h-10">
+              <div className="flex items-center bg-white dark:bg-[#1a1a1a] rounded-full p-0.5 border border-[#e0ddd5] dark:border-[#333] shadow-sm w-full md:w-auto h-full">
+                <button onClick={handlePrev} className="flex-1 md:flex-none px-3 text-[#888] hover:text-[#3d3b33] dark:hover:text-white transition-colors h-full flex items-center justify-center rounded-l-full"><ChevronLeft size={16} className="md:w-[18px] md:h-[18px]" /></button>
+                <button onClick={handleToday} className={`flex-1 md:flex-none px-2 md:px-4 text-[10px] md:text-[11px] font-bold uppercase tracking-widest transition-colors h-full flex items-center justify-center ${isCurrentDateToday ? 'text-[#c2956e] dark:text-[#b0855f]' : 'text-[#3d3b33] dark:text-[#f0f0f0] hover:text-[#c2956e]'}`}>Today</button>
+                <button onClick={handleNext} className="flex-1 md:flex-none px-3 text-[#888] hover:text-[#3d3b33] dark:hover:text-white transition-colors h-full flex items-center justify-center rounded-r-full"><ChevronRight size={16} className="md:w-[18px] md:h-[18px]" /></button>
+              </div>
 
-            <div className="flex bg-[#ebe8e2]/50 dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] shadow-inner p-1 md:p-1.5 rounded-[1.25rem] overflow-x-auto no-scrollbar h-9 md:h-10 w-auto shrink-0">
-              {(['day', '2-day', 'week', 'month'] as const).map(v => (
-                <button 
-                  key={v} onClick={() => setCalendarView(v)}
-                  className={`flex-none px-3 md:px-4 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all h-full flex items-center justify-center ${v === 'week' ? 'hidden md:flex' : 'flex'} ${calendarView === v ? 'bg-white dark:bg-[#2a2a2a] text-[#c2956e] dark:text-[#d1a784] shadow-sm' : 'text-[#888] dark:text-[#7a7a7a] md:hover:text-[#3d3b33] md:dark:hover:text-white'}`}
-                >
-                  {v === '2-day' ? '2D' : v}
-                </button>
-              ))}
+              <div className="flex bg-[#ebe8e2]/50 dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] shadow-inner p-1 rounded-full w-full md:w-auto h-full">
+                {(['day', '2-day', 'week', 'month'] as const).map(v => (
+                  <button 
+                    key={v} onClick={() => setCalendarView(v)}
+                    className={`flex-1 md:flex-none px-2 md:px-4 rounded-full text-[9px] md:text-[10px] font-bold uppercase tracking-widest transition-all h-full flex items-center justify-center ${v === 'week' ? 'hidden md:flex' : 'flex'} ${calendarView === v ? 'bg-white dark:bg-[#2a2a2a] text-[#c2956e] dark:text-[#d1a784] shadow-sm' : 'text-[#888] dark:text-[#7a7a7a] md:hover:text-[#3d3b33] md:dark:hover:text-white'}`}
+                  >
+                    {v === '2-day' ? '2D' : v}
+                  </button>
+                ))}
+              </div>
             </div>
 
             <button onClick={() => openAddModal()} className="hidden md:flex h-10 aspect-square items-center justify-center bg-[#f7f5f0] dark:bg-[#252525] text-[#c2956e] dark:text-[#d1a784] rounded-full hover:bg-[#c2956e]/10 dark:hover:bg-[#b0855f]/20 transition-all shadow-sm border border-[#e0ddd5] dark:border-[#333] shrink-0">
