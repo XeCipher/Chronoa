@@ -110,7 +110,7 @@ export default function WeatherWidget() {
       ref={widgetRef}
       onClick={() => setIsToggled(!isToggled)}
       className={`
-        group flex items-center bg-white/20 dark:bg-black/30 hover:bg-white/30 dark:hover:bg-black/40 backdrop-blur-xl border border-white/40 dark:border-white/10 shadow-[0_8px_30px_rgb(0,0,0,0.08)] rounded-[2rem] p-1.5 md:p-2 cursor-pointer transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] animate-fade-up h-[48px] md:h-[56px] overflow-hidden z-40
+        group flex items-center bg-white/20 dark:bg-black/30 hover:bg-white/30 dark:hover:bg-black/40 backdrop-blur-xl border border-white/40 dark:border-white/10 shadow-[0_8px_30px_rgb(0,0,0,0.08)] rounded-[2rem] p-1.5 md:p-2 cursor-pointer transition-all duration-500 ease-in-out animate-fade-up h-[48px] md:h-[56px] overflow-hidden z-40
         ${isToggled ? 'max-w-[250px] pr-4 md:pr-5' : 'max-w-[90px] md:max-w-[104px] hover:max-w-[250px] hover:pr-4 md:hover:pr-5'}
       `}
     >
@@ -128,7 +128,7 @@ export default function WeatherWidget() {
       </div>
 
       <div className={`
-        flex overflow-hidden transition-all duration-400 ease-[cubic-bezier(0.16,1,0.3,1)] 
+        flex overflow-hidden transition-all duration-500 ease-in-out 
         ${isToggled ? 'max-w-[150px] opacity-100 ml-1.5 md:ml-2' : 'max-w-0 opacity-0 group-hover:max-w-[150px] group-hover:opacity-100 group-hover:ml-1.5 group-hover:md:ml-2'}
       `}>
         <div className="whitespace-nowrap flex flex-col justify-center border-l border-[#3d3b33]/15 dark:border-white/15 pl-2.5 md:pl-3 transition-colors">

@@ -22,31 +22,31 @@ export default function SceneryBackground() {
 
   const time = getTimeOfDay();
 
-  // Enhanced palettes: Dark mode uses 'screen' blend and brighter orbs to be visible
+  // Refined palettes: Beautiful, soft, elegant pastels for light mode that aren't overwhelmingly bright
   const palettes = {
     dawn: {
       bg: "bg-[#fdfbf7] dark:bg-[#1a1210]",
-      orb1: "bg-[#ffecd2] dark:bg-[#8a4e40]", 
-      orb2: "bg-[#fcb69f] dark:bg-[#8a5a44]", 
-      orb3: "bg-[#e2c2f0] dark:bg-[#6c4f7a]", 
+      orb1: "bg-[#ffcba6] dark:bg-[#8a4e40]", 
+      orb2: "bg-[#ffa68f] dark:bg-[#8a5a44]", 
+      orb3: "bg-[#d6aef2] dark:bg-[#6c4f7a]", 
     },
     day: {
       bg: "bg-[#f7f5f0] dark:bg-[#0f1115]",
-      orb1: "bg-[#e0c3fc] dark:bg-[#2d3b5c]", 
-      orb2: "bg-[#8ec5fc] dark:bg-[#1e2e42]", 
-      orb3: "bg-[#d4eed8] dark:bg-[#253828]", 
+      orb1: "bg-[#d4b3ff] dark:bg-[#2d3b5c]", 
+      orb2: "bg-[#9bc7f5] dark:bg-[#1e2e42]", 
+      orb3: "bg-[#a1e3b3] dark:bg-[#253828]", 
     },
     dusk: {
       bg: "bg-[#f8f5f2] dark:bg-[#1a1012]",
-      orb1: "bg-[#ff9a9e] dark:bg-[#7a3b4c]", 
-      orb2: "bg-[#fecfef] dark:bg-[#7a4b6c]", 
-      orb3: "bg-[#c2956e] dark:bg-[#7d4628]", 
+      orb1: "bg-[#ff8a90] dark:bg-[#7a3b4c]", 
+      orb2: "bg-[#f5b0db] dark:bg-[#7a4b6c]", 
+      orb3: "bg-[#de9c64] dark:bg-[#7d4628]", 
     },
     night: {
       bg: "bg-[#f2f4f8] dark:bg-[#050810]",
-      orb1: "bg-[#c8d4e6] dark:bg-[#1f2b45]", 
-      orb2: "bg-[#dce3f0] dark:bg-[#111926]", 
-      orb3: "bg-[#b0c0d9] dark:bg-[#172033]", 
+      orb1: "bg-[#9eb4db] dark:bg-[#1f2b45]", 
+      orb2: "bg-[#b9c6e3] dark:bg-[#111926]", 
+      orb3: "bg-[#8da8cf] dark:bg-[#172033]", 
     },
   };
 

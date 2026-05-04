@@ -242,11 +242,12 @@ export default function TodayCalendarWidget({ variant, searchQuery = '' }: Props
           )}
         </div>
 
-        <div className={`grid transition-all duration-300 ease-in-out ${!isCollapsed ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}>
-          <div className="overflow-hidden">
+        {/* Added strict w-full to prevent width shrinking during the grid row animation */}
+        <div className={`grid w-full transition-all duration-300 ease-in-out ${!isCollapsed ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}>
+          <div className="overflow-hidden w-full">
             <div 
               ref={scrollRef}
-              className={`flex flex-col overflow-y-auto no-scrollbar scroll-smooth ${variant === 'home' ? 'gap-2 px-4 pt-2 pb-4 max-h-[140px]' : 'gap-3 px-5 md:px-8 pt-4 pb-5 max-h-[180px]'}`}
+              className={`flex flex-col overflow-y-auto no-scrollbar scroll-smooth w-full ${variant === 'home' ? 'gap-2 px-4 pt-2 pb-4 max-h-[140px]' : 'gap-3 px-5 md:px-8 pt-4 pb-5 max-h-[180px]'}`}
             >
               {loading ? (
                 <div className="animate-pulse flex flex-col gap-2">
