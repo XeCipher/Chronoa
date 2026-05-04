@@ -35,7 +35,9 @@ export default function SidebarNav() {
     { name: "Analytics", href: "/analytics", icon: BarChart2 },
   ];
 
-  const currentItem = navItems.find(item => item.href === pathname) || { name: pathname === '/settings' ? 'Settings' : 'Chronoa' };
+  const currentItem = navItems.find(item => item.href === pathname) || { 
+    name: pathname === '/settings' ? 'Settings' : pathname === '/sessions' ? 'Time Log' : 'Chronoa' 
+  };
 
   return (
     <>

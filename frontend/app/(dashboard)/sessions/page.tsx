@@ -90,21 +90,20 @@ export default function SessionsPage() {
 
   return (
     <div className="max-w-5xl w-full min-h-full mx-auto p-4 md:p-8 lg:p-10 pb-32 md:pb-12 flex flex-col gap-8">
-      <header className="flex flex-col md:flex-row md:items-end justify-between gap-6 shrink-0">
-        <div>
+      
+      <header className="flex items-center justify-between shrink-0 mb-2">
+        <div className="flex items-center gap-4">
+          <button onClick={() => router.back()} className="flex items-center justify-center p-2.5 md:p-3 bg-white dark:bg-[#1a1a1a] text-[#888] rounded-xl border border-[#e0ddd5] dark:border-[#333] hover:text-[#3d3b33] dark:hover:text-[#f0f0f0] transition-all shadow-sm">
+            <ArrowLeft size={18} />
+          </button>
           <div className="flex items-center gap-2.5 text-[#3d3b33] dark:text-[#f0f0f0]">
             <Clock size={24} className="text-[#c2956e]" />
             <h1 className="text-2xl md:text-4xl font-serif font-medium tracking-tight">Time Log</h1>
           </div>
         </div>
-        <div className="flex items-center gap-4">
-          <button onClick={() => router.push('/')} className="md:hidden flex items-center justify-center gap-2 px-6 py-3 bg-white dark:bg-[#1a1a1a] text-[#888] rounded-xl text-[10px] font-bold uppercase tracking-widest border border-[#e0ddd5] dark:border-[#333] hover:text-[#3d3b33] dark:hover:text-[#f0f0f0] transition-all shadow-sm">
-            <ArrowLeft size={14} /> Home
-          </button>
-          <button onClick={handleDeleteAll} className="flex items-center justify-center gap-2 px-6 py-3 bg-red-50 dark:bg-red-900/10 text-red-500 rounded-xl text-[10px] font-bold uppercase tracking-widest md:hover:bg-red-500 md:hover:text-white transition-all shadow-sm">
-            <Trash2 size={14} /> Clear History
-          </button>
-        </div>
+        <button onClick={handleDeleteAll} className="flex items-center justify-center gap-2 px-4 py-2.5 md:px-6 md:py-3 bg-red-50 dark:bg-red-900/10 text-red-500 rounded-xl text-[10px] font-bold uppercase tracking-widest md:hover:bg-red-500 md:hover:text-white transition-all shadow-sm shrink-0">
+          <Trash2 size={14} /> <span className="hidden md:inline">Clear History</span>
+        </button>
       </header>
 
       <div className="bg-white dark:bg-[#1a1a1a] border border-[#ebe8e2] dark:border-[#2a2a2a] rounded-[2.5rem] p-6 md:p-12 shadow-sm space-y-8">

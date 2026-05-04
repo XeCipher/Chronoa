@@ -4,7 +4,7 @@
 import { useEffect, useState, useMemo, useCallback, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import DistractionFreeEditor from "@/components/notes/DistractionFreeEditor";
-import { Search, Plus, Trash, BookOpen, FileText, ChevronLeft, RotateCcw, Trash2, Library, Sparkles, CalendarDays, X, ChevronRight } from "lucide-react";
+import { Search, Plus, Trash2, BookOpen, FileText, ChevronLeft, RotateCcw, Library, Sparkles, CalendarDays, X, ChevronRight } from "lucide-react";
 import { useUiStore } from "@/store/uiStore";
 
 type Tab = 'notes' | 'journal';
@@ -492,7 +492,7 @@ export default function NotesPage() {
                 data-tooltip-id="global-tooltip" data-tooltip-content={isTrashOpen ? "Exit Trash" : "Open Trash"}
                 className={`w-8 h-8 flex items-center justify-center rounded-full transition-all ${isTrashOpen ? 'bg-[#ebe8e2] dark:bg-[#2a2a2a] text-[#888] md:hover:text-[#3d3b33] md:dark:hover:text-white' : 'text-[#888] md:hover:text-red-400 md:hover:bg-red-50 md:dark:hover:bg-red-900/10'}`}
               >
-                {isTrashOpen ? <X size={16} /> : <Trash size={16} />}
+                {isTrashOpen ? <X size={16} /> : <Trash2 size={16} />}
               </button>
               
               {!isTrashOpen && notesTab === 'notes' && (
@@ -608,7 +608,7 @@ export default function NotesPage() {
                       <RotateCcw size={14} /> Restore
                     </button>
                     <button data-tooltip-id="global-tooltip" data-tooltip-content="Delete Permanently" onClick={() => permanentlyDelete(selectedItem)} className="p-2 text-red-500 md:hover:bg-red-50 md:dark:hover:bg-red-900/10 rounded-xl transition-all">
-                      <Trash size={18} />
+                      <Trash2 size={18} />
                     </button>
                   </div>
                 )}

@@ -543,11 +543,11 @@ export default function CalendarPage() {
               <button onClick={handleNext} className="px-3 text-[#888] hover:text-[#3d3b33] dark:hover:text-white transition-colors h-full flex items-center justify-center rounded-r-full"><ChevronRight size={16} className="md:w-[18px] md:h-[18px]" /></button>
             </div>
 
-            <div className="flex bg-[#ebe8e2]/50 dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] shadow-inner p-1.5 rounded-[1.25rem] overflow-x-auto no-scrollbar h-10 w-full justify-between shrink-0">
+            <div className="flex bg-[#ebe8e2]/50 dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] shadow-inner p-1 md:p-1.5 rounded-[1.25rem] overflow-x-auto no-scrollbar h-9 md:h-10 w-auto shrink-0">
               {(['day', '2-day', 'week', 'month'] as const).map(v => (
                 <button 
                   key={v} onClick={() => setCalendarView(v)}
-                  className={`flex-1 md:flex-none px-4 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all h-full flex items-center justify-center ${v === 'week' ? 'hidden md:flex' : 'flex'} ${calendarView === v ? 'bg-white dark:bg-[#2a2a2a] text-[#c2956e] dark:text-[#d1a784] shadow-sm' : 'text-[#888] dark:text-[#7a7a7a] md:hover:text-[#3d3b33] md:dark:hover:text-white'}`}
+                  className={`flex-none px-3 md:px-4 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all h-full flex items-center justify-center ${v === 'week' ? 'hidden md:flex' : 'flex'} ${calendarView === v ? 'bg-white dark:bg-[#2a2a2a] text-[#c2956e] dark:text-[#d1a784] shadow-sm' : 'text-[#888] dark:text-[#7a7a7a] md:hover:text-[#3d3b33] md:dark:hover:text-white'}`}
                 >
                   {v === '2-day' ? '2D' : v}
                 </button>
