@@ -31,4 +31,16 @@ export type CalendarEvent = {
   repeat_pattern?: string | null;
   meeting_url?: string | null;
   location?: string | null;
+  is_readonly?: boolean;
+  source_id?: string | null;
+};
+
+export type CalendarSource = {
+  id: string;
+  user_id: string;
+  name: string;
+  type: 'link' | 'file';
+  url?: string | null;
+  color: string;
+  created_at: string;
 };

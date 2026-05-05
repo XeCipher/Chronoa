@@ -2,9 +2,10 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { X, Calendar as CalendarIcon, AlignLeft, Palette, Trash2, CheckCircle2, Repeat, MapPin, Video } from "lucide-react";
+import { X, Calendar as CalendarIcon, AlignLeft, Palette, Trash2, CheckCircle2, Repeat, MapPin, Video, Lock } from "lucide-react";
 import { CalendarEvent } from "@/types/app.types";
 import { useUiStore } from "@/store/uiStore";
+import { supabase } from "@/lib/supabase";
 import CustomDateTimePicker from "./CustomDateTimePicker";
 
 interface Props {
@@ -56,20 +57,18 @@ export default function EventModal({ isOpen, onClose, onSave, onDelete, initialE
   const [startTime, setStartTime] = useState(new Date());
   const [endTime, setEndTime] = useState(new Date());
   const [color, setColor] = useState("amber");
+  const [isReadOnly, setIsReadOnly] = useState(false);
   
   const [repeatSelect, setRepeatSelect] = useState("none");
   const [customDays, setCustomDays] = useState<number[]>([]);
 
-  // Prevent background scrolling on mobile when modal is open
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = 'hidden';
     } else {
       document.body.style.overflow = '';
     }
-    return () => {
-      document.body.style.overflow = '';
-    };
+    return () => { document.body.style.overflow = ''; };
   }, [isOpen]);
 
   useEffect(() => {
@@ -83,6 +82,7 @@ export default function EventModal({ isOpen, onClose, onSave, onDelete, initialE
         setStartTime(new Date(initialEvent.start_time));
         setEndTime(new Date(initialEvent.end_time));
         setColor(initialEvent.color || "amber");
+        setIsReadOnly(initialEvent.is_readonly || false);
         
         const pattern = initialEvent.series_id ? (initialEvent.repeat_pattern || 'none') : 'none';
         if (pattern.startsWith('custom:')) {
@@ -100,6 +100,7 @@ export default function EventModal({ isOpen, onClose, onSave, onDelete, initialE
         setColor("amber");
         setIsAllDay(false);
         setRepeatSelect("none");
+        setIsReadOnly(false);
 
         if (dragTimeRange) {
           setStartTime(dragTimeRange.start);
@@ -112,16 +113,12 @@ export default function EventModal({ isOpen, onClose, onSave, onDelete, initialE
              const isTodayBase = start.getFullYear() === defaultBaseDate.getFullYear() &&
                                  start.getMonth() === defaultBaseDate.getMonth() &&
                                  start.getDate() === defaultBaseDate.getDate();
-             
-             if (!isTodayBase) {
-                start.setFullYear(defaultBaseDate.getFullYear(), defaultBaseDate.getMonth(), defaultBaseDate.getDate());
-             }
+             if (!isTodayBase) start.setFullYear(defaultBaseDate.getFullYear(), defaultBaseDate.getMonth(), defaultBaseDate.getDate());
           }
 
           const m = start.getMinutes();
-          if (m < 30) {
-             start.setMinutes(30, 0, 0);
-          } else {
+          if (m < 30) start.setMinutes(30, 0, 0);
+          else {
              start.setHours(start.getHours() + 1);
              start.setMinutes(0, 0, 0);
           }
@@ -138,11 +135,15 @@ export default function EventModal({ isOpen, onClose, onSave, onDelete, initialE
 
   const isEndTimeInvalid = !isAllDay && endTime <= startTime;
 
-  // Track Unsaved Changes For ESC
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && isOpen) {
         e.preventDefault();
+        
+        if (isReadOnly) {
+          onClose();
+          return;
+        }
         
         let hasChanges = false;
         if (!initialEvent) {
@@ -173,11 +174,12 @@ export default function EventModal({ isOpen, onClose, onSave, onDelete, initialE
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, initialEvent, title, description, location, meetingUrl, isAllDay, color, onClose, showConfirmDialog]);
+  }, [isOpen, initialEvent, title, description, location, meetingUrl, isAllDay, color, isReadOnly, onClose, showConfirmDialog]);
 
   if (!isOpen) return null;
 
   const toggleCustomDay = (dayId: number) => {
+    if (isReadOnly) return;
     setCustomDays(prev => prev.includes(dayId) ? prev.filter(d => d !== dayId) : [...prev, dayId].sort());
   };
 
@@ -214,8 +216,18 @@ export default function EventModal({ isOpen, onClose, onSave, onDelete, initialE
     onClose();
   };
 
+  const handleColorChange = async (newColor: string) => {
+    setColor(newColor);
+    // If it's a read-only calendar integration, immediately update the entire calendar's colors
+    if (isReadOnly && initialEvent?.source_id) {
+      await supabase.from('calendar_sources').update({ color: newColor }).eq('id', initialEvent.source_id);
+      await supabase.from('calendar_events').update({ color: newColor }).eq('source_id', initialEvent.source_id);
+      onSave({ id: initialEvent.id, color: newColor }, 'this', initialEvent);
+    }
+  };
+
   const handleSaveWrapper = () => {
-    if (!title.trim() || isEndTimeInvalid) return;
+    if (isReadOnly || !title.trim() || isEndTimeInvalid) return;
 
     if (initialEvent && initialEvent.series_id) {
       showConfirmDialog({
@@ -235,7 +247,7 @@ export default function EventModal({ isOpen, onClose, onSave, onDelete, initialE
   };
 
   const handleDeleteWrapper = () => {
-    if (!initialEvent || !onDelete) return;
+    if (isReadOnly || !initialEvent || !onDelete) return;
     if (initialEvent.series_id) {
       showConfirmDialog({
         title: "Delete Series",
@@ -259,12 +271,18 @@ export default function EventModal({ isOpen, onClose, onSave, onDelete, initialE
     <div className="fixed inset-0 z-[500] flex items-center justify-center px-4 bg-black/40 dark:bg-black/60 backdrop-blur-sm animate-fade-in">
       <div className="bg-[#f7f5f0] dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] rounded-[2.5rem] w-full max-w-xl shadow-2xl animate-fade-up flex flex-col max-h-[90vh]">
         
-        <header className="px-6 py-5 border-b border-[#e0ddd5] dark:border-[#2a2a2a] flex justify-between items-center bg-white dark:bg-[#1e1e1e] shrink-0 rounded-t-[2.5rem]">
+        {isReadOnly && (
+          <div className="bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 px-6 py-2.5 flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest rounded-t-[2.5rem] shadow-inner">
+            <Lock size={14} /> Imported from external calendar
+          </div>
+        )}
+
+        <header className={`px-6 py-5 border-b border-[#e0ddd5] dark:border-[#2a2a2a] flex justify-between items-center bg-white dark:bg-[#1e1e1e] shrink-0 ${!isReadOnly ? 'rounded-t-[2.5rem]' : ''}`}>
           <h3 className="text-xl font-serif text-[#3d3b33] dark:text-[#f0f0f0] font-medium">
-            {initialEvent ? "Edit Event" : "New Event"}
+            {isReadOnly ? "View Event" : (initialEvent ? "Edit Event" : "New Event")}
           </h3>
           <div className="flex items-center gap-2">
-            {initialEvent && onDelete && (
+            {!isReadOnly && initialEvent && onDelete && (
                <button onClick={handleDeleteWrapper} className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-full transition-colors">
                   <Trash2 size={18} />
                </button>
@@ -279,12 +297,13 @@ export default function EventModal({ isOpen, onClose, onSave, onDelete, initialE
           
           <div className="flex items-center justify-between gap-3 w-full">
             <input 
-              autoFocus
+              autoFocus={!isReadOnly}
               type="text" 
               placeholder="Event Title" 
               value={title} 
               onChange={e => setTitle(e.target.value)}
-              className="flex-1 min-w-0 w-full text-2xl sm:text-3xl font-serif bg-transparent outline-none text-[#3d3b33] dark:text-white placeholder:text-[#c4c0b8] dark:placeholder:text-[#555]"
+              disabled={isReadOnly}
+              className={`flex-1 min-w-0 w-full text-2xl sm:text-3xl font-serif outline-none placeholder:text-[#c4c0b8] dark:placeholder:text-[#555] transition-colors ${isReadOnly ? 'bg-transparent text-[#3d3b33] dark:text-white cursor-default' : 'bg-transparent text-[#3d3b33] dark:text-white'}`}
             />
             {meetingUrl && (
               <button 
@@ -298,34 +317,35 @@ export default function EventModal({ isOpen, onClose, onSave, onDelete, initialE
 
           <div className="space-y-4">
             
-            <div className="flex items-center justify-between p-4 bg-white dark:bg-[#252525] border border-[#e0ddd5] dark:border-[#333] rounded-2xl cursor-pointer shadow-sm" onClick={() => setIsAllDay(!isAllDay)}>
+            <div className={`flex items-center justify-between p-4 bg-white dark:bg-[#252525] border border-[#e0ddd5] dark:border-[#333] rounded-2xl shadow-sm ${!isReadOnly ? 'cursor-pointer' : 'opacity-80'}`} onClick={() => !isReadOnly && setIsAllDay(!isAllDay)}>
               <div className="flex items-center gap-3 text-[#3d3b33] dark:text-[#f0f0f0]">
                 <CalendarIcon size={18} className="text-[#888]" />
                 <span className="text-sm font-medium">All-day</span>
               </div>
-              <button className={`w-10 h-5 rounded-full transition-colors relative ${isAllDay ? 'bg-[#c2956e]' : 'bg-[#e0ddd5] dark:bg-[#444]'}`}>
+              <button disabled={isReadOnly} className={`w-10 h-5 rounded-full transition-colors relative ${isAllDay ? 'bg-[#c2956e]' : 'bg-[#e0ddd5] dark:bg-[#444]'}`}>
                 <div className={`w-4 h-4 bg-white rounded-full absolute top-0.5 transition-transform ${isAllDay ? 'translate-x-5' : 'translate-x-0.5 shadow-sm'}`} />
               </button>
             </div>
 
-            <div className="flex flex-col sm:flex-row gap-4 w-full relative">
-               <CustomDateTimePicker value={startTime} onChange={setStartTime} isAllDay={isAllDay} label="Starts" />
+            <div className={`flex flex-col sm:flex-row gap-4 w-full relative ${isReadOnly ? 'pointer-events-none opacity-80' : ''}`}>
+               <CustomDateTimePicker value={startTime} onChange={d => !isReadOnly && setStartTime(d)} isAllDay={isAllDay} label="Starts" minDate={undefined} />
                <div className="flex-1 flex flex-col relative">
-                  <CustomDateTimePicker value={endTime} onChange={setEndTime} isAllDay={isAllDay} label="Ends" minDate={startTime} />
-                  {isEndTimeInvalid && (
+                  <CustomDateTimePicker value={endTime} onChange={d => !isReadOnly && setEndTime(d)} isAllDay={isAllDay} label="Ends" minDate={startTime} />
+                  {isEndTimeInvalid && !isReadOnly && (
                      <span className="absolute -bottom-4 left-1 text-[9px] text-red-500 font-bold uppercase tracking-widest animate-fade-in">Must be after start time</span>
                   )}
                </div>
             </div>
 
-            <div className="flex flex-col gap-1.5 relative w-full pt-1">
+            <div className={`flex flex-col gap-1.5 relative w-full pt-1 ${isReadOnly ? 'pointer-events-none opacity-80' : ''}`}>
                <span className="text-[10px] font-bold uppercase tracking-widest text-[#888] ml-1">Repeat</span>
                <div className="relative">
                  <Repeat size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#b0ad9a]" />
                  <select 
                    value={repeatSelect} 
                    onChange={e => setRepeatSelect(e.target.value)}
-                   className="w-full bg-white dark:bg-[#252525] border border-[#e0ddd5] dark:border-[#333] rounded-2xl pl-10 pr-4 py-3 text-sm outline-none focus:border-[#c2956e] dark:focus:border-[#b0855f] text-[#3d3b33] dark:text-white transition-colors appearance-none shadow-sm"
+                   disabled={isReadOnly}
+                   className="w-full bg-white dark:bg-[#252525] border border-[#e0ddd5] dark:border-[#333] rounded-2xl pl-10 pr-4 py-3 text-sm outline-none focus:border-[#c2956e] dark:focus:border-[#b0855f] text-[#3d3b33] dark:text-white transition-colors appearance-none shadow-sm disabled:opacity-100"
                  >
                    {REPEAT_OPTIONS.map(opt => <option key={opt.id} value={opt.id}>{opt.label}</option>)}
                  </select>
@@ -333,10 +353,11 @@ export default function EventModal({ isOpen, onClose, onSave, onDelete, initialE
             </div>
 
             {repeatSelect === 'custom' && (
-              <div className="flex justify-between items-center bg-white dark:bg-[#252525] border border-[#e0ddd5] dark:border-[#333] rounded-2xl p-2 shadow-sm animate-fade-in">
+              <div className={`flex justify-between items-center bg-white dark:bg-[#252525] border border-[#e0ddd5] dark:border-[#333] rounded-2xl p-2 shadow-sm animate-fade-in ${isReadOnly ? 'opacity-80' : ''}`}>
                  {DAYS_OF_WEEK.map(day => (
                    <button 
                      key={day.id} 
+                     disabled={isReadOnly}
                      onClick={() => toggleCustomDay(day.id)}
                      className={`w-10 h-10 rounded-xl flex items-center justify-center text-xs font-bold transition-all ${customDays.includes(day.id) ? 'bg-[#c2956e] text-white shadow-md' : 'text-[#888] hover:bg-[#f0ede8] dark:hover:bg-[#333]'}`}
                    >
@@ -346,13 +367,14 @@ export default function EventModal({ isOpen, onClose, onSave, onDelete, initialE
               </div>
             )}
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className={`grid grid-cols-1 sm:grid-cols-2 gap-4 ${isReadOnly ? 'opacity-90' : ''}`}>
               <div className="relative w-full">
                 <MapPin size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#b0ad9a]" />
                 <input 
                   type="text" placeholder="Location..." 
                   value={location} onChange={e => setLocation(e.target.value)}
-                  className="w-full bg-white dark:bg-[#252525] border border-[#e0ddd5] dark:border-[#333] rounded-2xl pl-10 pr-4 py-3 text-sm outline-none focus:border-[#c2956e] dark:focus:border-[#b0855f] text-[#3d3b33] dark:text-white transition-colors shadow-sm"
+                  disabled={isReadOnly}
+                  className="w-full bg-white dark:bg-[#252525] border border-[#e0ddd5] dark:border-[#333] rounded-2xl pl-10 pr-4 py-3 text-sm outline-none focus:border-[#c2956e] dark:focus:border-[#b0855f] text-[#3d3b33] dark:text-white transition-colors shadow-sm disabled:opacity-100"
                 />
               </div>
               <div className="relative w-full">
@@ -360,18 +382,20 @@ export default function EventModal({ isOpen, onClose, onSave, onDelete, initialE
                 <input 
                   type="url" placeholder="Meeting URL..." 
                   value={meetingUrl} onChange={e => setMeetingUrl(e.target.value)}
-                  className="w-full bg-white dark:bg-[#252525] border border-[#e0ddd5] dark:border-[#333] rounded-2xl pl-10 pr-4 py-3 text-sm outline-none focus:border-[#c2956e] dark:focus:border-[#b0855f] text-[#3d3b33] dark:text-white transition-colors shadow-sm"
+                  disabled={isReadOnly}
+                  className="w-full bg-white dark:bg-[#252525] border border-[#e0ddd5] dark:border-[#333] rounded-2xl pl-10 pr-4 py-3 text-sm outline-none focus:border-[#c2956e] dark:focus:border-[#b0855f] text-[#3d3b33] dark:text-white transition-colors shadow-sm disabled:opacity-100"
                 />
               </div>
             </div>
 
-            <div className="relative w-full">
+            <div className={`relative w-full ${isReadOnly ? 'opacity-90' : ''}`}>
               <AlignLeft size={16} className="absolute left-3.5 top-3.5 text-[#b0ad9a]" />
               <textarea 
                 placeholder="Description or notes..." 
                 value={description} 
                 onChange={e => setDescription(e.target.value)}
-                className="w-full bg-white dark:bg-[#252525] border border-[#e0ddd5] dark:border-[#333] rounded-2xl pl-10 pr-4 py-3 min-h-[90px] text-sm outline-none focus:border-[#c2956e] dark:focus:border-[#b0855f] text-[#3d3b33] dark:text-white transition-colors resize-none shadow-sm"
+                disabled={isReadOnly}
+                className="w-full bg-white dark:bg-[#252525] border border-[#e0ddd5] dark:border-[#333] rounded-2xl pl-10 pr-4 py-3 min-h-[90px] text-sm outline-none focus:border-[#c2956e] dark:focus:border-[#b0855f] text-[#3d3b33] dark:text-white transition-colors resize-none shadow-sm disabled:opacity-100"
               />
             </div>
 
@@ -384,7 +408,7 @@ export default function EventModal({ isOpen, onClose, onSave, onDelete, initialE
                 {COLORS.map(c => (
                    <button
                      key={c.id}
-                     onClick={() => setColor(c.id)}
+                     onClick={() => handleColorChange(c.id)}
                      className={`w-8 h-8 rounded-full flex items-center justify-center transition-transform ${c.colorClass} ${color === c.id ? 'ring-2 ring-offset-2 ring-[#c2956e] dark:ring-offset-[#1a1a1a] scale-110' : 'opacity-80 hover:opacity-100 hover:scale-110'}`}
                    >
                      {color === c.id && <CheckCircle2 size={16} className="text-white drop-shadow-md" />}
@@ -396,18 +420,20 @@ export default function EventModal({ isOpen, onClose, onSave, onDelete, initialE
           </div>
         </div>
 
-        <footer className="px-6 py-5 border-t border-[#e0ddd5] dark:border-[#2a2a2a] flex justify-end gap-3 bg-white dark:bg-[#1e1e1e] shrink-0 rounded-b-[2.5rem]">
-          <button onClick={onClose} className="px-5 py-2.5 rounded-xl font-bold text-[11px] uppercase tracking-widest text-[#888] hover:bg-gray-50 dark:hover:bg-[#2a2a2a] hover:text-[#3d3b33] dark:hover:text-white transition-colors">
-            Cancel
-          </button>
-          <button 
-            onClick={handleSaveWrapper} 
-            disabled={!title.trim() || isEndTimeInvalid}
-            className="px-6 py-2.5 rounded-xl font-bold text-[11px] uppercase tracking-widest text-white bg-[#c2956e] hover:bg-[#b0855f] disabled:opacity-50 disabled:cursor-not-allowed shadow-md transition-colors"
-          >
-            Save Event
-          </button>
-        </footer>
+        {!isReadOnly && (
+          <footer className="px-6 py-5 border-t border-[#e0ddd5] dark:border-[#2a2a2a] flex justify-end gap-3 bg-white dark:bg-[#1e1e1e] shrink-0 rounded-b-[2.5rem]">
+            <button onClick={onClose} className="px-5 py-2.5 rounded-xl font-bold text-[11px] uppercase tracking-widest text-[#888] hover:bg-gray-50 dark:hover:bg-[#2a2a2a] hover:text-[#3d3b33] dark:hover:text-white transition-colors">
+              Cancel
+            </button>
+            <button 
+              onClick={handleSaveWrapper} 
+              disabled={!title.trim() || isEndTimeInvalid}
+              className="px-6 py-2.5 rounded-xl font-bold text-[11px] uppercase tracking-widest text-white bg-[#c2956e] hover:bg-[#b0855f] disabled:opacity-50 disabled:cursor-not-allowed shadow-md transition-colors"
+            >
+              Save Event
+            </button>
+          </footer>
+        )}
 
       </div>
     </div>

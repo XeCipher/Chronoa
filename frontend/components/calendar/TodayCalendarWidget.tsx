@@ -8,6 +8,7 @@ import { format, isSameDay, addYears, addDays, addWeeks, addMonths } from "date-
 import { Calendar as CalendarIcon, ChevronDown, ChevronUp, Video } from "lucide-react";
 import { useUiStore } from "@/store/uiStore";
 import EventModal from "./EventModal";
+import { syncExternalCalendars } from "@/lib/icsParser";
 
 const EVENT_COLORS: Record<string, string> = {
   amber: 'bg-[#c2956e]/20 text-[#9e7653] dark:bg-[#c2956e]/20 dark:text-[#d1a784]',
@@ -56,6 +57,19 @@ export default function TodayCalendarWidget({ variant, searchQuery = '' }: Props
   const fetchTodayEvents = useCallback(async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
+
+    // Background sync on mount for external widgets
+    syncExternalCalendars(user.id).then(() => {
+      supabase.from('calendar_events').select('*').eq('user_id', user.id).then(({ data }) => {
+        if (data) {
+          const todayEvents = (data as CalendarEvent[]).filter(e => {
+            return isSameDay(new Date(e.start_time), new Date()) || (new Date(e.start_time) <= new Date(new Date().setHours(23, 59, 59, 999)) && new Date(e.end_time) >= new Date(new Date().setHours(0, 0, 0, 0)));
+          }).sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime());
+          setEvents(todayEvents);
+          localStorage.setItem('chronoa_cache_calendar_today', JSON.stringify(todayEvents));
+        }
+      });
+    });
 
     const today = new Date();
     const start = new Date(today);
@@ -115,7 +129,6 @@ export default function TodayCalendarWidget({ variant, searchQuery = '' }: Props
         const container = scrollRef.current;
         const now = new Date();
         
-        // Find the FIRST event whose start time has NOT completely passed
         const firstFutureIndex = filteredEvents.findIndex(e => new Date(e.start_time) > now);
         
         if (firstFutureIndex !== -1) {
@@ -126,7 +139,6 @@ export default function TodayCalendarWidget({ variant, searchQuery = '' }: Props
              container.scrollTo({ top: Math.max(0, offsetTop), behavior: 'smooth' });
           }
         } else {
-          // If all events have started already, stay gracefully at the bottom
           container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' });
         }
       }
@@ -189,6 +201,13 @@ export default function TodayCalendarWidget({ variant, searchQuery = '' }: Props
 
   const handleSaveEvent = async (updates: Partial<CalendarEvent>, updateMode: 'this' | 'future', originalEventObj?: CalendarEvent | null) => {
     const referenceEvent = originalEventObj || selectedEvent;
+    
+    // Refresh fetching immediately if it was an external color update
+    if (referenceEvent?.is_readonly) {
+       await fetchTodayEvents();
+       return;
+    }
+
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 

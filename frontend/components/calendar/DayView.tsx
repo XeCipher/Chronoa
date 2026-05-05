@@ -265,7 +265,7 @@ export default function DayView({ currentDate, events, onEventClick, onTimeRange
             const eventId = e.dataTransfer.getData('text/plain');
             const grabY = parseInt(e.dataTransfer.getData('grabY') || '0', 10);
             const ev = events.find(x => x.id === eventId);
-            if (!ev) return;
+            if (!ev || ev.is_readonly) return;
             
             const rect = e.currentTarget.getBoundingClientRect();
             const y = Math.max(0, e.clientY - rect.top - grabY);
@@ -316,17 +316,18 @@ export default function DayView({ currentDate, events, onEventClick, onTimeRange
             return (
               <div 
                 key={event.id}
-                draggable 
+                draggable={!event.is_readonly} 
                 onMouseDown={(e) => e.stopPropagation()}
                 onDragStart={(e) => {
                   e.stopPropagation();
+                  if (event.is_readonly) return;
                   e.dataTransfer.setData('text/plain', event.id);
                   const rect = e.currentTarget.getBoundingClientRect();
                   const offsetY = e.clientY - rect.top;
                   e.dataTransfer.setData('grabY', offsetY.toString());
                 }}
                 onClick={(e) => { e.stopPropagation(); onEventClick(event); }}
-                className={`absolute rounded-md md:rounded-md border cursor-grab active:cursor-grabbing shadow-sm overflow-hidden hover:z-30 transition-transform flex flex-col ${colorClasses} z-20 border-black/5 dark:border-white/5`}
+                className={`absolute rounded-md md:rounded-md border ${!event.is_readonly ? 'cursor-grab active:cursor-grabbing' : 'cursor-pointer'} shadow-sm overflow-hidden hover:z-30 transition-transform flex flex-col ${colorClasses} z-20 border-black/5 dark:border-white/5`}
                 style={{ top: pos.top, height: pos.height, left: pos.left, width: pos.width }}
               >
                 <div className={`flex-1 min-h-0 flex flex-col relative overflow-hidden ${isShort ? 'p-0.5 px-1.5 justify-center' : 'p-1.5'}`}>

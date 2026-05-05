@@ -12,6 +12,7 @@ import MonthView from "@/components/calendar/MonthView";
 import WeekView from "@/components/calendar/WeekView";
 import DayView from "@/components/calendar/DayView";
 import EventModal from "@/components/calendar/EventModal";
+import { syncExternalCalendars } from "@/lib/icsParser";
 
 const EVENT_COLORS: Record<string, string> = {
   amber: 'bg-[#c2956e]/20 dark:bg-[#c2956e]/20 text-[#9e7653] dark:text-[#d1a784] border-[#c2956e]/30',
@@ -117,6 +118,17 @@ export default function CalendarPage() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
     
+    // Trigger background sync for external calendars
+    syncExternalCalendars(user.id).then(() => {
+      // Re-fetch after background sync completes in case of updates
+      supabase.from('calendar_events').select('*').eq('user_id', user.id).then(({ data }) => {
+        if (data) {
+           setEvents(data as CalendarEvent[]);
+           localStorage.setItem('chronoa_cache_calendar_main', JSON.stringify(data));
+        }
+      });
+    });
+
     const start = new Date(referenceDate);
     start.setFullYear(start.getFullYear() - 1);
     const end = new Date(referenceDate);
