@@ -47,7 +47,68 @@ h1, h2, h3, h4 { font-family: var(--font-display); font-weight: 500; }
 /* ─── Scrollbar ──────────────────────────────────────────────────────────── */
 ::-webkit-scrollbar { width: 5px; height: 5px; }
 ::-webkit-scrollbar-thumb { background: #e0ddd5; border-radius: 10px; }
-.dark ::-webkit-scrollbar-thumb { background: #333333; }
+.dark ::-webkit-scrollbar-thumb { background: #3f3f3f; }
+
+/* ─── Global Contrast & Readability Enhancements ─────────────────────────── */
+@layer utilities {
+  /* LIGHT MODE TEXT ENHANCEMENTS */
+  .text-\[\#888\], .text-\[\#888888\] { color: #666666 !important; }
+  .text-\[\#7a7a7a\] { color: #5c5c5c !important; }
+  .text-\[\#555\] { color: #444444 !important; }
+  .text-\[\#b0ad9a\] { color: #8c8874 !important; } 
+  .text-\[\#c4c0b8\] { color: #a8a398 !important; }
+
+  /* DARK MODE READABILITY OVERRIDES */
+  .dark {
+    /* Push muted text to higher contrast ratios */
+    .text-\[\#888\], .text-\[\#888888\] { color: #a3a3a3 !important; }
+    .text-\[\#7a7a7a\] { color: #9ca3af !important; }
+    .text-\[\#555\] { color: #8a8a8a !important; }
+    .text-\[\#b0ad9a\] { color: #b3b3b3 !important; }
+    .text-\[\#c4c0b8\] { color: #737373 !important; }
+    
+    /* Deepen main backgrounds for better surface popping */
+    .bg-\[\#121212\] { background-color: #0a0a0a !important; }
+    .bg-\[\#1a1a1a\] { background-color: #141414 !important; }
+    .bg-\[\#161616\] { background-color: #111111 !important; }
+    .bg-\[\#1e1e1e\] { background-color: #1a1a1a !important; }
+    
+    /* Brighten dark mode borders slightly to separate elements */
+    .border-\[\#333\] { border-color: #3f3f3f !important; }
+    .border-\[\#2a2a2a\] { border-color: #383838 !important; }
+    .border-\[\#222\] { border-color: #303030 !important; }
+  }
+}
+
+@layer base {
+  /* Button Distinction: Adds a slight tactile bezel & shadow to pop off the page */
+  button {
+    @apply active:scale-[0.97] transition-all duration-200;
+  }
+  
+  button:not(.bg-transparent):not(.bg-opacity-0):not(.event-card):not(.month-event-card) {
+    box-shadow: inset 0 1px 0px rgba(255, 255, 255, 0.15), 0 1px 2px rgba(0,0,0,0.05);
+  }
+  
+  .dark button:not(.bg-transparent):not(.bg-opacity-0):not(.event-card):not(.month-event-card) {
+    box-shadow: inset 0 1px 0px rgba(255, 255, 255, 0.08), 0 1px 3px rgba(0,0,0,0.2);
+  }
+
+  /* Form Element Enhancements */
+  input, textarea {
+    @apply transition-all duration-200;
+  }
+  
+  .dark input, .dark textarea {
+    background-color: #1a1a1a !important;
+    border-color: #404040 !important;
+  }
+  
+  .dark input:focus, .dark textarea:focus {
+    border-color: #b0855f !important;
+    box-shadow: 0 0 0 1px rgba(176, 133, 95, 0.3) !important;
+  }
+}
 
 /* ─── CHRONOA JOURNAL EDITOR STYLING ─────────────────────────────────────── */
 

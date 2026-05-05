@@ -1,7 +1,7 @@
 // frontend/components/calendar/MonthView.tsx
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useEffect, useState, useRef } from "react";
 import { startOfMonth, endOfMonth, startOfWeek, endOfWeek, eachDayOfInterval, format, isSameMonth, isSameDay, isToday } from "date-fns";
 import { CalendarEvent } from "@/types/app.types";
 import { MapPin, Video } from "lucide-react";
@@ -21,6 +21,24 @@ const formatEventTime = (d: Date) => d.getMinutes() === 0 ? format(d, 'h a') : f
 
 export default function MonthView({ currentDate, events, onEventClick, onDayClick, eventColors, selectedDate, isMobile }: Props) {
   
+  const rightPanelScrollRef = useRef<HTMLDivElement>(null);
+  const scrollTimeout = useRef<NodeJS.Timeout | null>(null);
+  const [isUserScrolling, setIsUserScrolling] = useState(false);
+
+  useEffect(() => {
+    return () => {
+      if (scrollTimeout.current) clearTimeout(scrollTimeout.current);
+    };
+  }, []);
+
+  const handleUserScroll = () => {
+    setIsUserScrolling(true);
+    if (scrollTimeout.current) clearTimeout(scrollTimeout.current);
+    scrollTimeout.current = setTimeout(() => {
+      setIsUserScrolling(false);
+    }, 10000);
+  };
+
   const days = useMemo(() => {
     const monthStart = startOfMonth(currentDate);
     const startDate = startOfWeek(monthStart);
@@ -39,6 +57,35 @@ export default function MonthView({ currentDate, events, onEventClick, onDayClic
 
   const selectedDayEvents = getEventsForDay(selectedDate);
   const rowsCount = days.length / 7;
+
+  // Auto-scroll logic for today's date
+  useEffect(() => {
+    if (isUserScrolling || !isToday(selectedDate)) return;
+
+    const timer = setTimeout(() => {
+      if (selectedDayEvents.length > 0 && rightPanelScrollRef.current) {
+        const container = rightPanelScrollRef.current;
+        const now = new Date();
+
+        // Find the FIRST event whose end time has NOT completely passed
+        const firstFutureIndex = selectedDayEvents.findIndex(e => new Date(e.end_time) > now);
+
+        if (firstFutureIndex !== -1) {
+          const eventNodes = container.querySelectorAll('.month-event-card');
+          if (eventNodes[firstFutureIndex]) {
+             const targetEl = eventNodes[firstFutureIndex] as HTMLElement;
+             const offsetTop = targetEl.offsetTop - 16;
+             container.scrollTo({ top: Math.max(0, offsetTop), behavior: 'smooth' });
+          }
+        } else {
+          // If all events have passed, stay at the bottom
+          container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' });
+        }
+      }
+    }, 100);
+
+    return () => clearTimeout(timer);
+  }, [selectedDate, selectedDayEvents, isUserScrolling]);
 
   return (
     <div className="flex flex-col lg:flex-row gap-4 h-full w-full overflow-y-auto lg:overflow-hidden no-scrollbar">
@@ -159,17 +206,29 @@ export default function MonthView({ currentDate, events, onEventClick, onDayClic
           </div>
         </div>
         
-        <div className="flex-1 overflow-y-auto no-scrollbar p-3 md:p-4 space-y-2">
+        <div 
+          ref={rightPanelScrollRef}
+          onWheel={handleUserScroll}
+          onTouchMove={handleUserScroll}
+          className="flex-1 overflow-y-auto no-scrollbar p-3 md:p-4 space-y-2"
+        >
            {selectedDayEvents.length > 0 ? selectedDayEvents.map(e => {
              const durationMins = (new Date(e.end_time).getTime() - new Date(e.start_time).getTime()) / 60000;
              const showTime = durationMins >= 45;
              const now = new Date();
-             const isHappeningNow = new Date(e.start_time) <= now && new Date(e.end_time) >= now;
+             
+             const isPast = isToday(selectedDate) && new Date(e.end_time) < now;
+             const isHappeningNow = isToday(selectedDate) && new Date(e.start_time) <= now && new Date(e.end_time) >= now;
              
              const activeBorder = isHappeningNow ? 'ring-1 ring-offset-1 ring-offset-transparent ring-[#c2956e] dark:ring-[#b0855f]' : 'border border-[#e0ddd5] dark:border-[#333]';
+             const dimClass = isPast ? 'opacity-40 grayscale-[20%]' : 'opacity-100';
 
              return (
-               <div key={e.id} onClick={() => onEventClick(e)} className={`px-4 py-3 rounded-[1rem] cursor-pointer hover:scale-[1.02] transition-all shadow-sm flex justify-between items-center ${eventColors[e.color] || eventColors['amber']} ${activeBorder}`}>
+               <div 
+                 key={e.id} 
+                 onClick={() => onEventClick(e)} 
+                 className={`month-event-card px-4 py-3 rounded-[1rem] cursor-pointer hover:scale-[1.02] transition-all shadow-sm flex justify-between items-center ${eventColors[e.color] || eventColors['amber']} ${activeBorder} ${dimClass}`}
+               >
                   <div className="flex flex-col min-w-0 pr-2">
                     <div className={`text-sm font-bold truncate leading-tight flex items-center gap-1.5`}>
                        {e.title}

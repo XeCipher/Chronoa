@@ -134,8 +134,24 @@ export default function SettingsPage() {
         const { data: { user } } = await supabase.auth.getUser();
         await supabase.from('profiles').update({ weather_city: loc.name, weather_lat: loc.latitude, weather_lon: loc.longitude }).eq('id', user?.id);
         setCurrentCity(loc.name);
-      } else { alert("City not found."); }
-    } catch (err) { console.error(err); } 
+      } else {
+        // Replaced window.alert with custom showConfirmDialog
+        showConfirmDialog({
+          title: "City Not Found",
+          message: `We couldn't find any results for "${cityInput}". Please double-check the spelling and try again.`,
+          confirmText: "Understood",
+          onConfirm: () => {}
+        });
+      }
+    } catch (err) {
+      console.error(err);
+      showConfirmDialog({
+        title: "Search Error",
+        message: "There was a problem connecting to the weather service. Please try again in a few moments.",
+        confirmText: "Dismiss",
+        onConfirm: () => {}
+      });
+    } 
     finally { setIsSearching(false); }
   };
 
@@ -154,7 +170,15 @@ export default function SettingsPage() {
           setCityInput(city);
         } catch(e) { console.error(e); }
         finally { setIsSearching(false); }
-      }, () => setIsSearching(false));
+      }, () => {
+        setIsSearching(false);
+        showConfirmDialog({
+          title: "Permission Denied",
+          message: "We couldn't access your location. Please check your browser settings or search for your city manually.",
+          confirmText: "Dismiss",
+          onConfirm: () => {}
+        });
+      });
     }
   };
 
@@ -559,10 +583,10 @@ export default function SettingsPage() {
               <Star size={28} className="fill-current" />
             </div>
             <h3 className="text-2xl md:text-3xl font-serif text-[#3d3b33] dark:text-[#f0f0f0] mb-2 leading-tight">
-              Support Chronoa
+              Let's grow together
             </h3>
             <p className="text-[13px] text-[#888] dark:text-[#7a7a7a] mb-6 leading-relaxed px-2">
-              If you find Chronoa helpful, please consider giving it a star on GitHub.
+              If you value this workspace, consider starring us on GitHub.
             </p>
             <div className="w-full flex items-center justify-center gap-2 text-[11px] font-bold uppercase tracking-widest text-[#b0ad9a] dark:text-[#7a7a7a]">
               Redirecting in <span className="text-[#c2956e] text-sm tabular-nums">{githubCountdown}</span>
