@@ -135,7 +135,6 @@ export default function SettingsPage() {
         await supabase.from('profiles').update({ weather_city: loc.name, weather_lat: loc.latitude, weather_lon: loc.longitude }).eq('id', user?.id);
         setCurrentCity(loc.name);
       } else {
-        // Replaced window.alert with custom showConfirmDialog
         showConfirmDialog({
           title: "City Not Found",
           message: `We couldn't find any results for "${cityInput}". Please double-check the spelling and try again.`,
@@ -539,41 +538,47 @@ export default function SettingsPage() {
   const visibleSections = sections.filter(s => isVisible(s.keys));
 
   return (
-    <div className="max-w-4xl w-full min-h-full mx-auto p-4 md:p-8 lg:p-10 pb-32 md:pb-12 flex flex-col gap-8">
+    <div className="w-full h-full flex flex-col overflow-hidden max-w-4xl mx-auto">
       
-      <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 shrink-0 mb-2">
-        <div className="flex items-center gap-4">
-          <button onClick={() => router.back()} className="flex items-center justify-center p-2.5 md:p-3 bg-white dark:bg-[#1a1a1a] text-[#888] rounded-xl border border-[#e0ddd5] dark:border-[#333] hover:text-[#3d3b33] dark:hover:text-[#f0f0f0] transition-all shadow-sm">
-            <ArrowLeft size={18} />
-          </button>
-          <div className="flex items-center gap-2.5 text-[#3d3b33] dark:text-[#f0f0f0]">
-            <SettingsIcon size={24} className="text-[#c2956e]" />
-            <h1 className="text-2xl md:text-4xl font-serif font-medium tracking-tight">Settings</h1>
+      {/* Fixed Header Layer */}
+      <div className="px-4 md:px-8 lg:px-10 pt-4 md:pt-8 lg:pt-10 pb-4 shrink-0">
+        <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 shrink-0 mb-0">
+          <div className="flex items-center gap-4">
+            <button onClick={() => router.back()} className="md:hidden flex items-center justify-center p-2.5 md:p-3 bg-white dark:bg-[#1a1a1a] text-[#888] rounded-xl border border-[#e0ddd5] dark:border-[#333] hover:text-[#3d3b33] dark:hover:text-[#f0f0f0] transition-all shadow-sm">
+              <ArrowLeft size={18} />
+            </button>
+            <div className="flex items-center gap-2.5 text-[#3d3b33] dark:text-[#f0f0f0]">
+              <SettingsIcon size={24} className="text-[#c2956e]" />
+              <h1 className="text-2xl md:text-4xl font-serif font-medium tracking-tight">Settings</h1>
+            </div>
           </div>
-        </div>
 
-        <div className="relative w-full md:w-64 shrink-0">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-[#b0ad9a]" size={16} />
-          <input 
-            type="text" placeholder="Search settings..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
-            spellCheck={false}
-            className="w-full bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] rounded-full md:rounded-xl pl-11 pr-4 py-3 outline-none focus:border-[#c2956e] dark:focus:border-[#b0855f] text-sm text-[#3d3b33] dark:text-[#f0f0f0] shadow-sm transition-all"
-          />
-        </div>
-      </header>
+          <div className="relative w-full md:w-64 shrink-0">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-[#b0ad9a]" size={16} />
+            <input 
+              type="text" placeholder="Search settings..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
+              spellCheck={false}
+              className="w-full bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] rounded-full md:rounded-xl pl-11 pr-4 py-3 outline-none focus:border-[#c2956e] dark:focus:border-[#b0855f] text-sm text-[#3d3b33] dark:text-[#f0f0f0] shadow-sm transition-all"
+            />
+          </div>
+        </header>
+      </div>
 
-      <div className="bg-white dark:bg-[#1a1a1a] border border-[#ebe8e2] dark:border-[#2a2a2a] rounded-[2.5rem] p-6 md:p-10 shadow-sm flex flex-col gap-10 transition-all">
-        {visibleSections.map((sec, i) => (
-          <div key={sec.id} className={`flex flex-col gap-10 ${sec.className}`}>
-             {sec.render()}
-             {i < visibleSections.length - 1 && <hr className="border-[#f0ede8] dark:border-[#2a2a2a]" />}
-          </div>
-        ))}
-        {visibleSections.length === 0 && (
-          <div className="text-center py-12 text-[#b0ad9a] dark:text-[#7a7a7a] italic text-sm">
-            No settings match your search.
-          </div>
-        )}
+      {/* Scrollable Content Layer */}
+      <div className="flex-1 overflow-y-scroll overflow-x-hidden no-scrollbar px-4 md:px-8 lg:px-10 pb-32 md:pb-12">
+        <div className="bg-white dark:bg-[#1a1a1a] border border-[#ebe8e2] dark:border-[#2a2a2a] rounded-[2.5rem] p-6 md:p-10 shadow-sm flex flex-col gap-10 transition-all">
+          {visibleSections.map((sec, i) => (
+            <div key={sec.id} className={`flex flex-col gap-10 ${sec.className}`}>
+               {sec.render()}
+               {i < visibleSections.length - 1 && <hr className="border-[#f0ede8] dark:border-[#2a2a2a]" />}
+            </div>
+          ))}
+          {visibleSections.length === 0 && (
+            <div className="text-center py-12 text-[#b0ad9a] dark:text-[#7a7a7a] italic text-sm">
+              No settings match your search.
+            </div>
+          )}
+        </div>
       </div>
 
       {showGithubModal && (

@@ -397,119 +397,125 @@ export default function AnalyticsPage() {
   }
 
   return (
-    <div className="w-full min-h-full mx-auto p-4 md:p-8 lg:p-10 pb-24 overflow-x-hidden flex flex-col gap-4 md:gap-8">
+    <div className="w-full h-full flex flex-col overflow-hidden bg-[#f7f5f0] dark:bg-[#121212]">
       
-      <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 shrink-0 w-full mb-2">
-        <div className="flex items-center justify-between w-full md:w-auto relative">
-          <div className="flex items-center gap-2.5 text-[#3d3b33] dark:text-[#f0f0f0]">
-            <BarChart2 size={24} className="text-[#c2956e]" />
-            <h1 className="text-2xl md:text-4xl font-serif font-medium tracking-tight">Analytics</h1>
-          </div>
-        </div>
-        
-        <div className="flex items-center gap-3 w-full md:w-auto shrink-0">
-          {filterType !== 'all' && (
-            <button 
-              onClick={() => setIsTrackerModalOpen(true)}
-              data-tooltip-id="global-tooltip"
-              data-tooltip-content={`Track Specific ${filterType === 'routine' ? 'Routines' : 'Tasks'}`}
-              className={`order-2 md:order-1 relative flex items-center justify-center w-[42px] h-[42px] rounded-xl transition-colors shadow-sm border shrink-0 ${selectedTrackedIds.size > 0 ? 'bg-[#c2956e] text-white border-[#c2956e]' : 'bg-white dark:bg-[#1a1a1a] text-[#888] border-[#e0ddd5] dark:border-[#333] hover:text-[#c2956e]'}`}
-            >
-              <Target size={18} /> 
-              {selectedTrackedIds.size > 0 && (
-                <span className="absolute -top-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 border-2 border-[#f7f5f0] dark:border-[#121212] text-[8px] font-bold text-white">
-                  {selectedTrackedIds.size}
-                </span>
-              )}
-            </button>
-          )}
-          
-          <div className="order-1 md:order-2 flex w-full md:w-auto bg-[#ebe8e2]/50 dark:bg-[#1a1a1a] p-1.5 rounded-[1.25rem] border border-[#e0ddd5] dark:border-[#333] shadow-inner shrink-0">
-            {['all', 'routine', 'normal'].map(f => (
-              <button 
-                key={f} 
-                onClick={() => setFilterType(f as any)}
-                className={`flex-1 md:flex-none flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all ${filterType === f ? 'bg-white dark:bg-[#2a2a2a] text-[#c2956e] dark:text-[#d1a784] shadow-sm' : 'text-[#888] md:hover:text-[#3d3b33] md:dark:hover:text-white'}`}
-              >
-                {f}
-              </button>
-            ))}
-          </div>
-        </div>
-      </header>
-
-      <div className="w-full bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] rounded-[2.5rem] p-6 md:p-8 shadow-sm flex flex-col md:flex-row items-center gap-6 md:gap-10">
-        
-        <div className="flex items-center gap-6 shrink-0">
-          <RankBadge rank={data?.levelInfo.rank || "Novice"} className="w-20 h-20" />
-          <div>
-            <div className="flex items-center gap-2 mb-1">
-              <p className="text-[10px] text-[#c2956e] dark:text-[#b0855f] font-bold uppercase tracking-widest">Chronoa Rank</p>
-              <button onClick={() => setIsRankModalOpen(true)} className="outline-none p-1 -m-1">
-                <Info size={14} className="text-[#888] hover:text-[#c2956e] transition-colors" />
-              </button>
+      {/* Fixed Header Layer */}
+      <div className="px-4 md:px-8 lg:px-10 pt-4 md:pt-8 lg:pt-10 pb-4 shrink-0">
+        <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 shrink-0 w-full mb-0">
+          <div className="flex items-center justify-between w-full md:w-auto relative">
+            <div className="flex items-center gap-2.5 text-[#3d3b33] dark:text-[#f0f0f0]">
+              <BarChart2 size={24} className="text-[#c2956e]" />
+              <h1 className="text-2xl md:text-4xl font-serif font-medium tracking-tight">Analytics</h1>
             </div>
-            <h2 className="text-2xl md:text-3xl font-medium text-[#3d3b33] dark:text-white leading-none font-serif">
-              {data?.levelInfo.rank}
-            </h2>
           </div>
-        </div>
-        
-        <div className="flex-1 w-full mt-2 md:mt-0">
-          <div className="flex justify-between items-end mb-2">
-            <span className="text-xs font-medium text-[#888] dark:text-[#aaa]">Experience</span>
-            <span className="text-[10px] font-bold tracking-widest text-[#3d3b33] dark:text-[#e0e0e0] uppercase">{data?.levelInfo.xp} / {Math.pow(data?.levelInfo.level || 1, 2) * 50} XP</span>
+          
+          <div className="flex items-center gap-3 w-full md:w-auto shrink-0">
+            {filterType !== 'all' && (
+              <button 
+                onClick={() => setIsTrackerModalOpen(true)}
+                data-tooltip-id="global-tooltip"
+                data-tooltip-content={`Track Specific ${filterType === 'routine' ? 'Routines' : 'Tasks'}`}
+                className={`order-2 md:order-1 relative flex items-center justify-center w-[42px] h-[42px] rounded-xl transition-colors shadow-sm border shrink-0 ${selectedTrackedIds.size > 0 ? 'bg-[#c2956e] text-white border-[#c2956e]' : 'bg-white dark:bg-[#1a1a1a] text-[#888] border-[#e0ddd5] dark:border-[#333] hover:text-[#c2956e]'}`}
+              >
+                <Target size={18} /> 
+                {selectedTrackedIds.size > 0 && (
+                  <span className="absolute -top-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 border-2 border-[#f7f5f0] dark:border-[#121212] text-[8px] font-bold text-white">
+                    {selectedTrackedIds.size}
+                  </span>
+                )}
+              </button>
+            )}
+            
+            <div className="order-1 md:order-2 flex w-full md:w-auto bg-[#ebe8e2]/50 dark:bg-[#1a1a1a] p-1.5 rounded-[1.25rem] border border-[#e0ddd5] dark:border-[#333] shadow-inner shrink-0">
+              {['all', 'routine', 'normal'].map(f => (
+                <button 
+                  key={f} 
+                  onClick={() => setFilterType(f as any)}
+                  className={`flex-1 md:flex-none flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all ${filterType === f ? 'bg-white dark:bg-[#2a2a2a] text-[#c2956e] dark:text-[#d1a784] shadow-sm' : 'text-[#888] md:hover:text-[#3d3b33] md:dark:hover:text-white'}`}
+                >
+                  {f}
+                </button>
+              ))}
+            </div>
           </div>
-          <div className="w-full h-3 bg-[#f0ede8] dark:bg-[#2a2a2a] rounded-full overflow-hidden border border-black/5 dark:border-white/5">
-            <div 
-              className="h-full bg-gradient-to-r from-[#c2956e] to-[#a882c2] transition-all duration-1000 ease-out"
-              style={{ width: `${data?.levelInfo.progress}%` }}
-            />
-          </div>
-        </div>
+        </header>
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
-        <StatCard 
-          title={selectedTrackedIds.size > 0 ? "Tracked Tasks Done" : filterType === 'all' ? "Tasks Done" : filterType === 'routine' ? "Routines Done" : "Normal Tasks"} 
-          value={data?.totalFilteredTasks || 0} 
-          icon={CheckCircle2} 
-          color="sage"
-        />
-        <StatCard 
-          title="Focus Time" 
-          value={`${Math.floor((data?.totalFocusMinutes || 0) / 60)}h ${(data?.totalFocusMinutes || 0) % 60}m`} 
-          icon={Timer} 
-          color="amber"
-        />
-        <StatCard 
-          title="Activity Streak" 
-          value={`${data?.currentStreak || 0} Days`} 
-          subValue={data?.bestStreak}
-          icon={Flame} 
-          color="purple"
-        />
-        <StatCard 
-          title="Journal Streak" 
-          value={`${data?.journalCurrentStreak || 0} Days`} 
-          subValue={data?.journalBestStreak}
-          icon={PenTool} 
-          color="blue"
-        />
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
-        <div className="lg:col-span-2">
-          <ProductivityChart dailyMap={data?.dailyMap || {}} />
+      {/* Scrollable Content Layer */}
+      <div className="flex-1 overflow-y-scroll overflow-x-hidden no-scrollbar px-4 md:px-8 lg:px-10 pb-24 md:pb-12 flex flex-col gap-4 md:gap-8">
+        <div className="w-full bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] rounded-[2.5rem] p-6 md:p-8 shadow-sm flex flex-col md:flex-row items-center gap-6 md:gap-10">
+          
+          <div className="flex items-center gap-6 shrink-0">
+            <RankBadge rank={data?.levelInfo.rank || "Novice"} className="w-20 h-20" />
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <p className="text-[10px] text-[#c2956e] dark:text-[#b0855f] font-bold uppercase tracking-widest">Chronoa Rank</p>
+                <button onClick={() => setIsRankModalOpen(true)} className="outline-none p-1 -m-1">
+                  <Info size={14} className="text-[#888] hover:text-[#c2956e] transition-colors" />
+                </button>
+              </div>
+              <h2 className="text-2xl md:text-3xl font-medium text-[#3d3b33] dark:text-white leading-none font-serif">
+                {data?.levelInfo.rank}
+              </h2>
+            </div>
+          </div>
+          
+          <div className="flex-1 w-full mt-2 md:mt-0">
+            <div className="flex justify-between items-end mb-2">
+              <span className="text-xs font-medium text-[#888] dark:text-[#aaa]">Experience</span>
+              <span className="text-[10px] font-bold tracking-widest text-[#3d3b33] dark:text-[#e0e0e0] uppercase">{data?.levelInfo.xp} / {Math.pow(data?.levelInfo.level || 1, 2) * 50} XP</span>
+            </div>
+            <div className="w-full h-3 bg-[#f0ede8] dark:bg-[#2a2a2a] rounded-full overflow-hidden border border-black/5 dark:border-white/5">
+              <div 
+                className="h-full bg-gradient-to-r from-[#c2956e] to-[#a882c2] transition-all duration-1000 ease-out"
+                style={{ width: `${data?.levelInfo.progress}%` }}
+              />
+            </div>
+          </div>
         </div>
-        <div className="lg:col-span-1">
-          <TimeOfDayRadar dailyMap={data?.dailyMap || {}} />
-        </div>
-      </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
-        <ActivityHeatmap dailyMap={data?.dailyMap || {}} />
-        <FocusDistribution rawSessions={data?.rawSessions || []} />
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
+          <StatCard 
+            title={selectedTrackedIds.size > 0 ? "Tracked Tasks Done" : filterType === 'all' ? "Tasks Done" : filterType === 'routine' ? "Routines Done" : "Normal Tasks"} 
+            value={data?.totalFilteredTasks || 0} 
+            icon={CheckCircle2} 
+            color="sage"
+          />
+          <StatCard 
+            title="Focus Time" 
+            value={`${Math.floor((data?.totalFocusMinutes || 0) / 60)}h ${(data?.totalFocusMinutes || 0) % 60}m`} 
+            icon={Timer} 
+            color="amber"
+          />
+          <StatCard 
+            title="Activity Streak" 
+            value={`${data?.currentStreak || 0} Days`} 
+            subValue={data?.bestStreak}
+            icon={Flame} 
+            color="purple"
+          />
+          <StatCard 
+            title="Journal Streak" 
+            value={`${data?.journalCurrentStreak || 0} Days`} 
+            subValue={data?.journalBestStreak}
+            icon={PenTool} 
+            color="blue"
+          />
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
+          <div className="lg:col-span-2">
+            <ProductivityChart dailyMap={data?.dailyMap || {}} />
+          </div>
+          <div className="lg:col-span-1">
+            <TimeOfDayRadar dailyMap={data?.dailyMap || {}} />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
+          <ActivityHeatmap dailyMap={data?.dailyMap || {}} />
+          <FocusDistribution rawSessions={data?.rawSessions || []} />
+        </div>
       </div>
 
       {isTrackerModalOpen && (

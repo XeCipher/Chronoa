@@ -74,6 +74,7 @@ export default function NotesPage() {
   const [isListVisible, setIsListVisible] = useState(true);
   const [isTrashOpen, setIsTrashOpen] = useState(false);
   const [autoSelectPending, setAutoSelectPending] = useState(true);
+  const [isScrolled, setIsScrolled] = useState(false);
 
   const [showCalendar, setShowCalendar] = useState(false);
   const [calMonth, setCalMonth] = useState(new Date());
@@ -199,6 +200,8 @@ export default function NotesPage() {
                    notesTab === 'notes' ? notes.find(n => n.id === selectedId) : journals.find(j => j.entry_date === selectedId);
       if (item) setEditTitle(item.title || "");
     }
+    // Reset scroll state when changing notes
+    setIsScrolled(false);
   }, [selectedId, notesTab, notes, journals, trash, isTrashOpen]);
 
   useEffect(() => {
@@ -294,21 +297,33 @@ export default function NotesPage() {
     syncOfflineData();
   };
 
+  const getNextId = (idToDelete: string) => {
+    if (typeof window !== 'undefined' && window.innerWidth < 1024) return null;
+    const idx = filteredItems.findIndex(item => (item.entry_date || item.id) === idToDelete);
+    if (idx > -1) {
+      if (idx + 1 < filteredItems.length) return filteredItems[idx + 1].entry_date || filteredItems[idx + 1].id;
+      if (idx - 1 >= 0) return filteredItems[idx - 1].entry_date || filteredItems[idx - 1].id;
+    }
+    return null;
+  };
+
   const moveToTrash = async (id: string) => {
+    const nextId = getNextId(id);
     const deleted_at = new Date().toISOString();
+    
     if (notesTab === 'journal') {
        const journal = journals.find(j => j.entry_date === id);
        setJournals(prev => prev.filter(j => j.entry_date !== id));
        setTrash([{ ...journal, deleted_at, isJournal: true }, ...trash]);
-       setSelectedId(null);
-       setIsListVisible(true);
+       setSelectedId(nextId);
+       if (!nextId) setIsListVisible(true);
        if (navigator.onLine) await supabase.from('journal_entries').update({ deleted_at }).eq('entry_date', id);
     } else {
        const note = notes.find(n => n.id === id);
        setNotes(prev => prev.filter(n => n.id !== id));
        setTrash([{ ...note, deleted_at, isJournal: false }, ...trash]);
-       setSelectedId(null);
-       setIsListVisible(true);
+       setSelectedId(nextId);
+       if (!nextId) setIsListVisible(true);
        if (navigator.onLine) await supabase.from('notes').update({ deleted_at }).eq('id', id);
     }
   };
@@ -335,14 +350,17 @@ export default function NotesPage() {
       isDestructive: true,
       onConfirm: async () => {
         const id = item.entry_date || item.id;
+        const nextId = getNextId(id);
+        
         setTrash(prev => prev.filter(t => (t.entry_date || t.id) !== id));
         
         if (navigator.onLine) {
            if (item.isJournal) await supabase.from('journal_entries').delete().eq('entry_date', id);
            else await supabase.from('notes').delete().eq('id', id);
         }
-        setSelectedId(null);
-        setIsListVisible(true);
+        
+        setSelectedId(nextId);
+        if (!nextId) setIsListVisible(true);
       }
     });
   };
@@ -479,6 +497,55 @@ export default function NotesPage() {
     );
   };
 
+  const renderEditorHeader = (isMobile: boolean = false) => (
+    <div className="flex flex-row items-center justify-between gap-3 relative group w-full">
+      <div className="flex items-center gap-3 flex-1 min-w-0">
+        {isMobile && (
+          <button 
+            onClick={() => { setSelectedId(null); setIsListVisible(true); }} 
+            className="flex items-center justify-center p-2.5 bg-[#f7f5f0] dark:bg-[#1a1a1a] text-[#888] rounded-xl border border-[#e0ddd5] dark:border-[#333] hover:text-[#3d3b33] dark:hover:text-[#f0f0f0] transition-all shadow-sm shrink-0"
+          >
+            <ArrowLeft size={18} />
+          </button>
+        )}
+        <div className="flex-1 min-w-0">
+          {(!isTrashOpen && notesTab === 'journal') || selectedItem?.isJournal ? (
+            <div className="space-y-0.5">
+              <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-[#c2956e]">Daily Entry</p>
+              <h1 className="text-2xl lg:text-4xl text-[#3d3b33] dark:text-white font-serif leading-tight truncate lg:whitespace-normal">
+                {formatDateLabel(selectedItem?.entry_date || "")}
+              </h1>
+            </div>
+          ) : (
+            <input 
+              value={editTitle} onChange={e => setEditTitle(e.target.value)} onBlur={updateNoteTitle} disabled={isTrashOpen}
+              placeholder="Title..."
+              spellCheck={false}
+              className="text-2xl lg:text-4xl text-[#3d3b33] dark:text-white font-serif leading-tight bg-transparent outline-none w-full placeholder:text-[#e0ddd5] dark:placeholder:text-[#2a2a2a] transition-all truncate lg:whitespace-normal" 
+            />
+          )}
+        </div>
+      </div>
+
+      <div className="flex items-center gap-1 shrink-0">
+        {!isTrashOpen ? (
+          <button data-tooltip-id="global-tooltip" data-tooltip-content="Move to Trash" onClick={() => moveToTrash(selectedItem?.entry_date || selectedItem?.id)} className="w-9 h-9 lg:w-10 lg:h-10 text-[#b0ad9a] hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-full transition-all flex items-center justify-center bg-transparent outline-none">
+            <Trash2 size={18} />
+          </button>
+        ) : (
+          <>
+            <button data-tooltip-id="global-tooltip" data-tooltip-content="Restore" onClick={() => restoreNote(selectedItem)} className="w-9 h-9 lg:w-10 lg:h-10 text-[#7ca982] hover:bg-[#7ca982]/10 rounded-full transition-all flex items-center justify-center bg-transparent outline-none">
+              <RotateCcw size={18} />
+            </button>
+            <button data-tooltip-id="global-tooltip" data-tooltip-content="Delete Permanently" onClick={() => permanentlyDelete(selectedItem)} className="w-9 h-9 lg:w-10 lg:h-10 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-full transition-all flex items-center justify-center bg-transparent outline-none">
+              <Trash2 size={18} />
+            </button>
+          </>
+        )}
+      </div>
+    </div>
+  );
+
   return (
     <div className="relative flex h-full w-full bg-[#f7f5f0] dark:bg-[#121212] overflow-hidden">
       
@@ -598,7 +665,7 @@ export default function NotesPage() {
                     {isSelected && <div className="hidden lg:block absolute left-0 top-0 bottom-0 w-1 bg-[#c2956e]" />}
                     <div className="flex justify-between items-baseline mb-1 gap-3">
                       <span className={`font-semibold text-[14px] truncate ${isSelected ? 'text-[#c2956e] dark:text-[#d1a784]' : 'text-[#3d3b33] dark:text-[#f0f0f0]'}`}>{title}</span>
-                      <span className="text-[9px] font-bold text-[#b0ad9a] dark:text-[#555] uppercase shrink-0">{formatDateLabel(item.updated_at || item.entry_date)}</span>
+                      <span className="text-[9px] font-bold text-[#b0ad9a] dark:text-[#555] uppercase tracking-widest shrink-0">{formatDateLabel(item.updated_at || item.entry_date)}</span>
                     </div>
                     <div className="text-[11px] leading-relaxed line-clamp-2 text-[#888] dark:text-[#888]">
                       {isTrashOpen && <span className="text-red-500 font-bold block mb-1 text-[9px] uppercase tracking-tighter">Deletes in {daysLeft} days</span>}
@@ -623,56 +690,27 @@ export default function NotesPage() {
         ${isListVisible ? 'max-lg:translate-x-full' : 'max-lg:translate-x-0'}
       `}>
         {selectedItem ? (
-          <div className="flex-1 flex flex-col w-full overflow-hidden">
+          <div className="flex-1 flex flex-col w-full overflow-hidden relative">
             
-            <div id="notes-scroll-container" className="flex-1 overflow-y-auto no-scrollbar scroll-smooth">
-              <div className="max-w-[1000px] mx-auto px-6 pt-[calc(1.5rem+max(1rem,env(safe-area-inset-top)))] md:pt-6 lg:pt-10 pb-[calc(1.5rem+72px+env(safe-area-inset-bottom))] lg:pb-10 lg:px-12 w-full">
-                
-                {/* Title & Top Right Actions */}
-                <div className="mb-4 flex flex-row items-center justify-between gap-4 relative group w-full">
-                  <div className="flex items-center gap-3 flex-1 min-w-0">
-                    <button 
-                      onClick={() => { setSelectedId(null); setIsListVisible(true); }} 
-                      className="lg:hidden flex items-center justify-center p-2.5 bg-[#f7f5f0] dark:bg-[#1a1a1a] text-[#888] rounded-xl border border-[#e0ddd5] dark:border-[#333] hover:text-[#3d3b33] dark:hover:text-[#f0f0f0] transition-all shadow-sm shrink-0"
-                    >
-                      <ArrowLeft size={18} />
-                    </button>
-                    <div className="flex-1 min-w-0">
-                      {(!isTrashOpen && notesTab === 'journal') || selectedItem.isJournal ? (
-                        <div className="space-y-0.5">
-                          <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-[#c2956e]">Daily Entry</p>
-                          <h1 className="text-3xl lg:text-4xl text-[#3d3b33] dark:text-white font-serif leading-tight">
-                            {formatDateLabel(selectedItem.entry_date)}
-                          </h1>
-                        </div>
-                      ) : (
-                        <input 
-                          value={editTitle} onChange={e => setEditTitle(e.target.value)} onBlur={updateNoteTitle} disabled={isTrashOpen}
-                          placeholder="Title..."
-                          spellCheck={false}
-                          className="text-3xl lg:text-4xl text-[#3d3b33] dark:text-white font-serif leading-tight bg-transparent outline-none w-full placeholder:text-[#e0ddd5] dark:placeholder:text-[#2a2a2a] transition-all" 
-                        />
-                      )}
-                    </div>
-                  </div>
+            <div 
+              id="notes-scroll-container" 
+              className="flex-1 overflow-y-auto no-scrollbar scroll-smooth w-full relative"
+              onScroll={(e) => setIsScrolled(e.currentTarget.scrollTop > 10)}
+            >
+              {/* MOBILE STICKY HEADER (Scrolls out smoothly, but sticks to top) */}
+              <div className={`lg:hidden sticky top-0 left-0 right-0 z-50 px-4 sm:px-6 pt-[calc(0.75rem+max(1rem,env(safe-area-inset-top)))] pb-3 transition-all duration-300 ${
+                isScrolled 
+                  ? 'bg-white/80 dark:bg-[#121212]/80 backdrop-blur-xl border-b border-[#e0ddd5] dark:border-[#2a2a2a] shadow-sm' 
+                  : 'bg-white dark:bg-[#121212] border-b border-transparent'
+              }`}>
+                 {renderEditorHeader(true)}
+              </div>
 
-                  {/* Top-Right Action Buttons (Perfectly Inline with Title) */}
-                  <div className="flex items-center gap-1 shrink-0">
-                    {!isTrashOpen ? (
-                      <button data-tooltip-id="global-tooltip" data-tooltip-content="Move to Trash" onClick={() => moveToTrash(selectedItem.entry_date || selectedItem.id)} className="w-10 h-10 text-[#b0ad9a] hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-full transition-all flex items-center justify-center bg-transparent outline-none">
-                        <Trash2 size={18} />
-                      </button>
-                    ) : (
-                      <>
-                        <button data-tooltip-id="global-tooltip" data-tooltip-content="Restore" onClick={() => restoreNote(selectedItem)} className="w-10 h-10 text-[#7ca982] hover:bg-[#7ca982]/10 rounded-full transition-all flex items-center justify-center bg-transparent outline-none">
-                          <RotateCcw size={18} />
-                        </button>
-                        <button data-tooltip-id="global-tooltip" data-tooltip-content="Delete Permanently" onClick={() => permanentlyDelete(selectedItem)} className="w-10 h-10 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-full transition-all flex items-center justify-center bg-transparent outline-none">
-                          <Trash2 size={18} />
-                        </button>
-                      </>
-                    )}
-                  </div>
+              <div className="max-w-[1000px] mx-auto px-5 sm:px-6 lg:px-12 pt-2 lg:pt-10 pb-[calc(1.5rem+72px+env(safe-area-inset-bottom))] lg:pb-10 w-full">
+                
+                {/* DESKTOP SCROLLING HEADER (Scrolls naturally on laptops) */}
+                <div className="hidden lg:block mb-8">
+                  {renderEditorHeader(false)}
                 </div>
 
                 {/* Editor Content Area */}

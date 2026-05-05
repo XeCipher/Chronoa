@@ -102,81 +102,86 @@ export default function TasksPage() {
   );
 
   return (
-    <div className="w-full min-h-full bg-[#f7f5f0] dark:bg-[#121212] p-4 md:p-8 lg:p-10 relative">
-      <div className="max-w-[1600px] mx-auto w-full flex flex-col h-full gap-4 md:gap-8">
+    <div className="w-full h-full bg-[#f7f5f0] dark:bg-[#121212] flex flex-col relative overflow-hidden">
+      <div className="max-w-[1600px] mx-auto w-full flex flex-col h-full overflow-hidden">
         
-        <header className="flex flex-col gap-4 shrink-0 w-full mb-2">
-          <div className="flex flex-col md:flex-row md:items-center justify-between w-full gap-4">
-            
-            <div className="flex flex-row items-center justify-between w-full md:w-auto">
-              <div className="flex items-center gap-4 shrink-0">
-                {(isTrashOpen || currentViewMode === 'archive') && (
-                  <button onClick={() => { setIsTrashOpen(false); setTasksView('focus'); }} className="flex items-center justify-center p-2.5 md:p-3 bg-white dark:bg-[#1a1a1a] text-[#888] rounded-xl border border-[#e0ddd5] dark:border-[#333] hover:text-[#3d3b33] dark:hover:text-[#f0f0f0] transition-all shadow-sm">
-                    <ArrowLeft size={18} />
-                  </button>
-                )}
-                <div className="flex items-center gap-2.5 text-[#3d3b33] dark:text-[#f0f0f0]">
-                  {isTrashOpen ? <Trash2 size={24} className="text-[#c2956e]" /> : currentViewMode === 'archive' ? <History size={24} className="text-[#c2956e]" /> : <CheckSquare size={24} className="text-[#c2956e]" />}
-                  <h1 className="text-2xl md:text-4xl font-serif font-medium tracking-tight">
-                    {isTrashOpen ? 'Trash' : currentViewMode === 'archive' ? 'History' : 'Tasks'}
-                  </h1>
+        {/* Fixed Header Layer */}
+        <div className="px-4 md:px-8 lg:px-10 pt-4 md:pt-8 lg:pt-10 pb-2 md:pb-4 shrink-0">
+          <header className="flex flex-col gap-4 w-full mb-0">
+            <div className="flex flex-col md:flex-row md:items-center justify-between w-full gap-4">
+              
+              <div className="flex flex-row items-center justify-between w-full md:w-auto">
+                <div className="flex items-center gap-4 shrink-0">
+                  {(isTrashOpen || currentViewMode === 'archive') && (
+                    <button onClick={() => { setIsTrashOpen(false); setTasksView('focus'); }} className="flex items-center justify-center p-2.5 md:p-3 bg-white dark:bg-[#1a1a1a] text-[#888] rounded-xl border border-[#e0ddd5] dark:border-[#333] hover:text-[#3d3b33] dark:hover:text-[#f0f0f0] transition-all shadow-sm">
+                      <ArrowLeft size={18} />
+                    </button>
+                  )}
+                  <div className="flex items-center gap-2.5 text-[#3d3b33] dark:text-[#f0f0f0]">
+                    {isTrashOpen ? <Trash2 size={24} className="text-[#c2956e]" /> : currentViewMode === 'archive' ? <History size={24} className="text-[#c2956e]" /> : <CheckSquare size={24} className="text-[#c2956e]" />}
+                    <h1 className="text-2xl md:text-4xl font-serif font-medium tracking-tight">
+                      {isTrashOpen ? 'Trash' : currentViewMode === 'archive' ? 'History' : 'Tasks'}
+                    </h1>
+                  </div>
+                </div>
+
+                {/* Mobile Actions (Hidden on Desktop) */}
+                <div className="flex md:hidden items-center gap-2">
+                  <ActionButtons />
                 </div>
               </div>
 
-              {/* Mobile Actions (Hidden on Desktop) */}
-              <div className="flex md:hidden items-center gap-2">
-                <ActionButtons />
+              <div className="flex flex-col md:flex-row items-center gap-3 md:gap-4 w-full md:w-auto">
+                {/* Search Bar */}
+                <div className="relative w-full md:w-64 shrink-0">
+                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-[#b0ad9a]" size={16} />
+                  <input 
+                    value={searchQuery} onChange={e => setSearchQuery(e.target.value)} 
+                    placeholder="Search tasks..." 
+                    spellCheck={false}
+                    className="w-full bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] rounded-xl pl-11 pr-4 py-3 outline-none focus:border-[#c2956e] dark:focus:border-[#b0855f] text-sm text-[#3d3b33] dark:text-[#f0f0f0] shadow-sm transition-all" 
+                  />
+                </div>
+                
+                {/* Desktop Actions (Hidden on Mobile) */}
+                <div className="hidden md:flex items-center gap-2 w-full md:w-auto justify-end">
+                  <ActionButtons />
+                </div>
               </div>
             </div>
 
-            <div className="flex flex-col md:flex-row items-center gap-3 md:gap-4 w-full md:w-auto">
-              {/* Search Bar */}
-              <div className="relative w-full md:w-64 shrink-0">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-[#b0ad9a]" size={16} />
-                <input 
-                  value={searchQuery} onChange={e => setSearchQuery(e.target.value)} 
-                  placeholder="Search tasks..." 
-                  spellCheck={false}
-                  className="w-full bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] rounded-xl pl-11 pr-4 py-3 outline-none focus:border-[#c2956e] dark:focus:border-[#b0855f] text-sm text-[#3d3b33] dark:text-[#f0f0f0] shadow-sm transition-all" 
-                />
+            {/* Second Row for Archive Tools (if active) */}
+            {currentViewMode === 'archive' && (
+              <div className="flex items-center gap-3 w-full overflow-x-auto no-scrollbar pb-1 md:pb-0 justify-start md:justify-end">
+                 <div className="flex bg-[#ebe8e2]/50 dark:bg-[#1a1a1a] p-1.5 rounded-[1.25rem] border border-[#e0ddd5] dark:border-[#333] shadow-inner shrink-0 w-full md:w-auto">
+                   <button onClick={() => setArchiveLayout('nested')} className={`flex-1 md:flex-none flex items-center justify-center p-2.5 rounded-xl transition-all ${archiveLayout === 'nested' ? 'bg-white dark:bg-[#2a2a2a] text-[#c2956e] dark:text-[#d1a784] shadow-sm' : 'text-[#888] md:hover:text-[#3d3b33] md:dark:hover:text-white'}`} data-tooltip-id="task-tooltip" data-tooltip-content="Nested View"><LayoutGrid size={18} /></button>
+                   <button onClick={() => setArchiveLayout('list')} className={`flex-1 md:flex-none flex items-center justify-center p-2.5 rounded-xl transition-all ${archiveLayout === 'list' ? 'bg-white dark:bg-[#2a2a2a] text-[#c2956e] dark:text-[#d1a784] shadow-sm' : 'text-[#888] md:hover:text-[#3d3b33] md:dark:hover:text-white'}`} data-tooltip-id="task-tooltip" data-tooltip-content="Flat List"><List size={18} /></button>
+                 </div>
+                 
+                 <div className="flex bg-[#ebe8e2]/50 dark:bg-[#1a1a1a] p-1.5 rounded-[1.25rem] border border-[#e0ddd5] dark:border-[#333] shadow-inner shrink-0 w-full md:w-auto">
+                   <button onClick={() => setArchiveSort('newest')} className={`flex-1 md:flex-none flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all ${archiveSort === 'newest' ? 'bg-white dark:bg-[#2a2a2a] text-[#c2956e] dark:text-[#d1a784] shadow-sm' : 'text-[#888] md:hover:text-[#3d3b33] md:dark:hover:text-white'}`}><SortDesc size={14} /> Newest</button>
+                   <button onClick={() => setArchiveSort('oldest')} className={`flex-1 md:flex-none flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all ${archiveSort === 'oldest' ? 'bg-white dark:bg-[#2a2a2a] text-[#c2956e] dark:text-[#d1a784] shadow-sm' : 'text-[#888] md:hover:text-[#3d3b33] md:dark:hover:text-white'}`}><SortAsc size={14} /> Oldest</button>
+                 </div>
               </div>
-              
-              {/* Desktop Actions (Hidden on Mobile) */}
-              <div className="hidden md:flex items-center gap-2 w-full md:w-auto justify-end">
-                <ActionButtons />
-              </div>
-            </div>
-          </div>
-
-          {/* Second Row for Archive Tools (if active) */}
-          {currentViewMode === 'archive' && (
-            <div className="flex items-center gap-3 w-full overflow-x-auto no-scrollbar pb-1 md:pb-0 justify-start md:justify-end">
-               <div className="flex bg-[#ebe8e2]/50 dark:bg-[#1a1a1a] p-1.5 rounded-[1.25rem] border border-[#e0ddd5] dark:border-[#333] shadow-inner shrink-0 w-full md:w-auto">
-                 <button onClick={() => setArchiveLayout('nested')} className={`flex-1 md:flex-none flex items-center justify-center p-2.5 rounded-xl transition-all ${archiveLayout === 'nested' ? 'bg-white dark:bg-[#2a2a2a] text-[#c2956e] dark:text-[#d1a784] shadow-sm' : 'text-[#888] md:hover:text-[#3d3b33] md:dark:hover:text-white'}`} data-tooltip-id="task-tooltip" data-tooltip-content="Nested View"><LayoutGrid size={18} /></button>
-                 <button onClick={() => setArchiveLayout('list')} className={`flex-1 md:flex-none flex items-center justify-center p-2.5 rounded-xl transition-all ${archiveLayout === 'list' ? 'bg-white dark:bg-[#2a2a2a] text-[#c2956e] dark:text-[#d1a784] shadow-sm' : 'text-[#888] md:hover:text-[#3d3b33] md:dark:hover:text-white'}`} data-tooltip-id="task-tooltip" data-tooltip-content="Flat List"><List size={18} /></button>
-               </div>
-               
-               <div className="flex bg-[#ebe8e2]/50 dark:bg-[#1a1a1a] p-1.5 rounded-[1.25rem] border border-[#e0ddd5] dark:border-[#333] shadow-inner shrink-0 w-full md:w-auto">
-                 <button onClick={() => setArchiveSort('newest')} className={`flex-1 md:flex-none flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all ${archiveSort === 'newest' ? 'bg-white dark:bg-[#2a2a2a] text-[#c2956e] dark:text-[#d1a784] shadow-sm' : 'text-[#888] md:hover:text-[#3d3b33] md:dark:hover:text-white'}`}><SortDesc size={14} /> Newest</button>
-                 <button onClick={() => setArchiveSort('oldest')} className={`flex-1 md:flex-none flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all ${archiveSort === 'oldest' ? 'bg-white dark:bg-[#2a2a2a] text-[#c2956e] dark:text-[#d1a784] shadow-sm' : 'text-[#888] md:hover:text-[#3d3b33] md:dark:hover:text-white'}`}><SortAsc size={14} /> Oldest</button>
-               </div>
-            </div>
-          )}
-        </header>
-
-        <div className="flex flex-col lg:flex-row items-start gap-4 lg:gap-12 w-full">
-          <div className="w-full lg:w-1/2 min-w-0 flex flex-col gap-4 lg:gap-8">
-            <div className="hidden lg:block">
-               <TodayCalendarWidget variant="tasks" searchQuery={searchQuery} />
-            </div>
-            <TaskSection type="routine" title={currentViewMode === 'trash' ? 'Routine Trash' : (currentViewMode === 'archive' ? 'Routine History' : "My Routine")} viewMode={currentViewMode} searchQuery={searchQuery} />
-          </div>
-          <div className="w-full lg:w-1/2 min-w-0">
-            <TaskSection type="normal" title={currentViewMode === 'trash' ? 'Task Trash' : (currentViewMode === 'archive' ? 'Task History' : "Tasks & Ideas")} viewMode={currentViewMode} searchQuery={searchQuery} />
-          </div>
+            )}
+          </header>
         </div>
 
-        <div className="h-28 lg:h-0 w-full shrink-0 pointer-events-none" />
+        {/* Scrollable Content Layer */}
+        <div className="flex-1 overflow-y-scroll overflow-x-hidden no-scrollbar px-4 md:px-8 lg:px-10 pb-24 md:pb-12 w-full min-h-0">
+          <div className="flex flex-col lg:flex-row items-start gap-4 lg:gap-12 w-full">
+            <div className="w-full lg:w-1/2 min-w-0 flex flex-col gap-4 lg:gap-8">
+              <div className="hidden lg:block">
+                 <TodayCalendarWidget variant="tasks" searchQuery={searchQuery} />
+              </div>
+              <TaskSection type="routine" title={currentViewMode === 'trash' ? 'Routine Trash' : (currentViewMode === 'archive' ? 'Routine History' : "My Routine")} viewMode={currentViewMode} searchQuery={searchQuery} />
+            </div>
+            <div className="w-full lg:w-1/2 min-w-0">
+              <TaskSection type="normal" title={currentViewMode === 'trash' ? 'Task Trash' : (currentViewMode === 'archive' ? 'Task History' : "Tasks & Ideas")} viewMode={currentViewMode} searchQuery={searchQuery} />
+            </div>
+          </div>
+          <div className="h-28 lg:h-0 w-full shrink-0 pointer-events-none" />
+        </div>
 
       </div>
 
