@@ -213,10 +213,7 @@ export default function MonthView({ currentDate, events, onEventClick, onDayClic
           className="flex-1 overflow-y-auto no-scrollbar p-3 md:p-4 space-y-2"
         >
            {selectedDayEvents.length > 0 ? selectedDayEvents.map(e => {
-             const durationMins = (new Date(e.end_time).getTime() - new Date(e.start_time).getTime()) / 60000;
-             const showTime = durationMins >= 45;
              const now = new Date();
-             
              const isPast = isToday(selectedDate) && new Date(e.end_time) < now;
              const isHappeningNow = isToday(selectedDate) && new Date(e.start_time) <= now && new Date(e.end_time) >= now;
              
@@ -235,7 +232,7 @@ export default function MonthView({ currentDate, events, onEventClick, onDayClic
                     </div>
                     <div className="text-[10px] opacity-80 mt-1 uppercase tracking-wider font-semibold flex items-center gap-2">
                       {e.is_all_day && 'All-day'}
-                      {!e.is_all_day && showTime && `${formatEventTime(new Date(e.start_time))} - ${formatEventTime(new Date(e.end_time))}`}
+                      {!e.is_all_day && `${formatEventTime(new Date(e.start_time))} - ${formatEventTime(new Date(e.end_time))}`}
                       {e.location && <span className="flex items-center gap-0.5"><MapPin size={10}/> {e.location}</span>}
                     </div>
                   </div>
