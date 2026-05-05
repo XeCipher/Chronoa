@@ -98,7 +98,10 @@ export default function SessionsPage() {
             <button onClick={() => router.back()} className="md:hidden flex items-center justify-center p-2.5 md:p-3 bg-white dark:bg-[#1a1a1a] text-[#888] rounded-xl border border-[#e0ddd5] dark:border-[#333] hover:text-[#3d3b33] dark:hover:text-[#f0f0f0] transition-all shadow-sm">
               <ArrowLeft size={18} />
             </button>
-            <div className="flex items-center gap-2.5 text-[#3d3b33] dark:text-[#f0f0f0]">
+            <div 
+              className="flex items-center gap-2.5 text-[#3d3b33] dark:text-[#f0f0f0] cursor-pointer hover:opacity-80 transition-opacity"
+              onClick={() => document.getElementById('sessions-scroll-container')?.scrollTo({ top: 0, behavior: 'smooth' })}
+            >
               <Clock size={24} className="text-[#c2956e]" />
               <h1 className="text-2xl md:text-4xl font-serif font-medium tracking-tight">Time Log</h1>
             </div>
@@ -114,7 +117,7 @@ export default function SessionsPage() {
       </div>
 
       {/* Scrollable Content Layer */}
-      <div className="flex-1 overflow-y-scroll overflow-x-hidden no-scrollbar px-4 md:px-8 lg:px-10 pb-32 md:pb-12 flex flex-col gap-8">
+      <div id="sessions-scroll-container" className="flex-1 overflow-y-scroll overflow-x-hidden no-scrollbar px-4 md:px-8 lg:px-10 pb-32 md:pb-12 flex flex-col gap-8">
         <div className="bg-white dark:bg-[#1a1a1a] border border-[#ebe8e2] dark:border-[#2a2a2a] rounded-[2.5rem] p-6 md:p-12 shadow-sm space-y-8">
           <div className="flex flex-col md:flex-row gap-4 justify-between">
             <div className="relative flex-1 w-full max-w-md shrink-0">

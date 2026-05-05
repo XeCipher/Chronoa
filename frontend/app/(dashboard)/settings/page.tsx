@@ -547,7 +547,10 @@ export default function SettingsPage() {
             <button onClick={() => router.back()} className="md:hidden flex items-center justify-center p-2.5 md:p-3 bg-white dark:bg-[#1a1a1a] text-[#888] rounded-xl border border-[#e0ddd5] dark:border-[#333] hover:text-[#3d3b33] dark:hover:text-[#f0f0f0] transition-all shadow-sm">
               <ArrowLeft size={18} />
             </button>
-            <div className="flex items-center gap-2.5 text-[#3d3b33] dark:text-[#f0f0f0]">
+            <div 
+              className="flex items-center gap-2.5 text-[#3d3b33] dark:text-[#f0f0f0] cursor-pointer hover:opacity-80 transition-opacity"
+              onClick={() => document.getElementById('settings-scroll-container')?.scrollTo({ top: 0, behavior: 'smooth' })}
+            >
               <SettingsIcon size={24} className="text-[#c2956e]" />
               <h1 className="text-2xl md:text-4xl font-serif font-medium tracking-tight">Settings</h1>
             </div>
@@ -565,7 +568,7 @@ export default function SettingsPage() {
       </div>
 
       {/* Scrollable Content Layer */}
-      <div className="flex-1 overflow-y-scroll overflow-x-hidden no-scrollbar px-4 md:px-8 lg:px-10 pb-32 md:pb-12">
+      <div id="settings-scroll-container" className="flex-1 overflow-y-scroll overflow-x-hidden no-scrollbar px-4 md:px-8 lg:px-10 pb-32 md:pb-12">
         <div className="bg-white dark:bg-[#1a1a1a] border border-[#ebe8e2] dark:border-[#2a2a2a] rounded-[2.5rem] p-6 md:p-10 shadow-sm flex flex-col gap-10 transition-all">
           {visibleSections.map((sec, i) => (
             <div key={sec.id} className={`flex flex-col gap-10 ${sec.className}`}>

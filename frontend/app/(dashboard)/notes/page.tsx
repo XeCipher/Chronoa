@@ -510,7 +510,10 @@ export default function NotesPage() {
         )}
         <div className="flex-1 min-w-0">
           {(!isTrashOpen && notesTab === 'journal') || selectedItem?.isJournal ? (
-            <div className="space-y-0.5">
+            <div 
+              className="space-y-0.5 cursor-pointer hover:opacity-80 transition-opacity"
+              onClick={() => document.getElementById('notes-scroll-container')?.scrollTo({ top: 0, behavior: 'smooth' })}
+            >
               <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-[#c2956e]">Daily Entry</p>
               <h1 className="text-2xl lg:text-4xl text-[#3d3b33] dark:text-white font-serif leading-tight truncate lg:whitespace-normal">
                 {formatDateLabel(selectedItem?.entry_date || "")}
@@ -556,9 +559,12 @@ export default function NotesPage() {
       `}>
         <div className="p-4 md:p-8 lg:px-10 lg:pt-10 lg:pb-4 pb-4 space-y-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2.5 text-[#3d3b33] dark:text-[#f0f0f0]">
+            <div 
+              className="flex items-center gap-2.5 text-[#3d3b33] dark:text-[#f0f0f0] cursor-pointer hover:opacity-80 transition-opacity"
+              onClick={() => document.getElementById('notes-library-scroll-container')?.scrollTo({ top: 0, behavior: 'smooth' })}
+            >
               {isTrashOpen && (
-                <button onClick={() => { setIsTrashOpen(false); setSelectedId(null); setAutoSelectPending(true); setShowCalendar(false); }} className="flex items-center justify-center p-2.5 md:p-3 bg-white dark:bg-[#1a1a1a] text-[#888] rounded-xl border border-[#e0ddd5] dark:border-[#333] hover:text-[#3d3b33] dark:hover:text-[#f0f0f0] transition-all shadow-sm mr-1">
+                <button onClick={(e) => { e.stopPropagation(); setIsTrashOpen(false); setSelectedId(null); setAutoSelectPending(true); setShowCalendar(false); }} className="flex items-center justify-center p-2.5 md:p-3 bg-white dark:bg-[#1a1a1a] text-[#888] rounded-xl border border-[#e0ddd5] dark:border-[#333] hover:text-[#3d3b33] dark:hover:text-[#f0f0f0] transition-all shadow-sm mr-1">
                   <ArrowLeft size={18} />
                 </button>
               )}

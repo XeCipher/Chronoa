@@ -745,7 +745,10 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
           
           <div className="flex items-center justify-between gap-4 w-full">
             <div className="flex items-center gap-2">
-              <h2 className="text-[22px] md:text-[26px] text-[#3d3b33] dark:text-[#f0f0f0] leading-none font-medium font-serif tracking-tight">
+              <h2 
+                className="text-[22px] md:text-[26px] text-[#3d3b33] dark:text-[#f0f0f0] leading-none font-medium font-serif tracking-tight cursor-pointer hover:opacity-80 transition-opacity"
+                onClick={() => document.getElementById('tasks-scroll-container')?.scrollTo({ top: 0, behavior: 'smooth' })}
+              >
                 {title}
               </h2>
               <button 

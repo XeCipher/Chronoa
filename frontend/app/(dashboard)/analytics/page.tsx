@@ -403,7 +403,10 @@ export default function AnalyticsPage() {
       <div className="px-4 md:px-8 lg:px-10 pt-4 md:pt-8 lg:pt-10 pb-4 shrink-0">
         <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 shrink-0 w-full mb-0">
           <div className="flex items-center justify-between w-full md:w-auto relative">
-            <div className="flex items-center gap-2.5 text-[#3d3b33] dark:text-[#f0f0f0]">
+            <div 
+              className="flex items-center gap-2.5 text-[#3d3b33] dark:text-[#f0f0f0] cursor-pointer hover:opacity-80 transition-opacity"
+              onClick={() => document.getElementById('analytics-scroll-container')?.scrollTo({ top: 0, behavior: 'smooth' })}
+            >
               <BarChart2 size={24} className="text-[#c2956e]" />
               <h1 className="text-2xl md:text-4xl font-serif font-medium tracking-tight">Analytics</h1>
             </div>
@@ -442,7 +445,7 @@ export default function AnalyticsPage() {
       </div>
 
       {/* Scrollable Content Layer */}
-      <div className="flex-1 overflow-y-scroll overflow-x-hidden no-scrollbar px-4 md:px-8 lg:px-10 pb-24 md:pb-12 flex flex-col gap-4 md:gap-8">
+      <div id="analytics-scroll-container" className="flex-1 overflow-y-scroll overflow-x-hidden no-scrollbar px-4 md:px-8 lg:px-10 pb-24 md:pb-12 flex flex-col gap-4 md:gap-8">
         <div className="w-full bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] rounded-[2.5rem] p-6 md:p-8 shadow-sm flex flex-col md:flex-row items-center gap-6 md:gap-10">
           
           <div className="flex items-center gap-6 shrink-0">

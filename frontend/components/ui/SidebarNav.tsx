@@ -44,7 +44,7 @@ export default function SidebarNav() {
       e.preventDefault();
       window.dispatchEvent(new CustomEvent('chronoa-reset-tab', { detail: href }));
       
-      const containers = ["notes-library-scroll-container", "notes-scroll-container", "main-scroll-container", "calendar-scroll-container"];
+      const containers = ["notes-library-scroll-container", "notes-scroll-container", "tasks-scroll-container", "analytics-scroll-container", "sessions-scroll-container", "settings-scroll-container"];
       for (const id of containers) {
         const el = document.getElementById(id);
         if (el) el.scrollTo({ top: 0, behavior: "smooth" });
