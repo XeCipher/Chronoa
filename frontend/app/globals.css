@@ -25,6 +25,14 @@
   --radius-pill: 999px;
 }
 
+html, body {
+  overscroll-behavior: none;
+  height: 100%;
+  overflow: hidden;
+  position: fixed;
+  width: 100%;
+}
+
 /* ─── Base Reset ─────────────────────────────────────────────────────────── */
 body {
   font-family: var(--font-body);

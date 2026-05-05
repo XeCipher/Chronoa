@@ -168,7 +168,7 @@ export default function TasksPage() {
         </div>
 
         {/* Scrollable Content Layer */}
-        <div className="flex-1 overflow-y-scroll overflow-x-hidden no-scrollbar px-4 md:px-8 lg:px-10 pb-24 md:pb-12 w-full min-h-0">
+        <div className="flex-1 overflow-y-scroll overflow-x-hidden no-scrollbar px-4 md:px-8 lg:px-10 pt-2 md:pt-0 pb-8 md:pb-12 w-full min-h-0">
           <div className="flex flex-col lg:flex-row items-start gap-4 lg:gap-12 w-full">
             <div className="w-full lg:w-1/2 min-w-0 flex flex-col gap-4 lg:gap-8">
               <div className="hidden lg:block">
@@ -180,7 +180,6 @@ export default function TasksPage() {
               <TaskSection type="normal" title={currentViewMode === 'trash' ? 'Task Trash' : (currentViewMode === 'archive' ? 'Task History' : "Tasks & Ideas")} viewMode={currentViewMode} searchQuery={searchQuery} />
             </div>
           </div>
-          <div className="h-28 lg:h-0 w-full shrink-0 pointer-events-none" />
         </div>
 
       </div>
