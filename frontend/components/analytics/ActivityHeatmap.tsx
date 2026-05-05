@@ -12,12 +12,20 @@ const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', '
 export default function ActivityHeatmap({ dailyMap }: { dailyMap: Record<string, DailyRecord> }) {
   const { theme } = useUiStore();
   const isDark = theme === 'dark' || (theme === 'system' && typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches);
-
+  
+  const [isMobile, setIsMobile] = useState(false);
   const today = new Date();
   const [endMonth, setEndMonth] = useState({ month: today.getMonth(), year: today.getFullYear() });
   const [showPicker, setShowPicker] = useState(false);
   const [pickerYear, setPickerYear] = useState(today.getFullYear());
   const pickerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -140,8 +148,8 @@ export default function ActivityHeatmap({ dailyMap }: { dailyMap: Record<string,
           {(endMonth.year !== today.getFullYear() || endMonth.month !== today.getMonth()) && (
             <button 
               onClick={() => setEndMonth({ year: today.getFullYear(), month: today.getMonth() })} 
-              className="hidden md:flex items-center justify-center p-2 rounded-xl bg-[#c2956e]/10 text-[#c2956e] hover:bg-[#c2956e] hover:text-white transition-colors"
-              data-tooltip-id="canvas-tooltip" data-tooltip-content="Return to Present"
+              className="flex items-center justify-center p-2 rounded-xl bg-[#c2956e]/10 text-[#c2956e] hover:bg-[#c2956e] hover:text-white transition-colors shrink-0"
+              data-tooltip-id={!isMobile ? "canvas-tooltip" : undefined} data-tooltip-content="Return to Present"
             >
               <Target size={16} />
             </button>
@@ -178,9 +186,9 @@ export default function ActivityHeatmap({ dailyMap }: { dailyMap: Record<string,
                     return (
                       <div 
                         key={dIdx}
-                        data-tooltip-id="canvas-tooltip"
+                        data-tooltip-id={!isMobile ? "canvas-tooltip" : undefined}
                         data-tooltip-content={`${day.count} activities on ${day.date}`}
-                        className="w-[12px] h-[12px] rounded-[3px] transition-transform hover:scale-125 cursor-crosshair border border-black/5 dark:border-white/5"
+                        className={`w-[12px] h-[12px] rounded-[3px] border border-black/5 dark:border-white/5 ${!isMobile ? 'transition-transform hover:scale-125 cursor-crosshair' : ''}`}
                         style={{ backgroundColor: colors[day.level] }}
                       />
                     );

@@ -19,6 +19,7 @@ export default function ProductivityChart({ dailyMap }: { dailyMap: Record<strin
   const { theme } = useUiStore();
   const isDark = theme === 'dark' || (theme === 'system' && typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches);
 
+  const [isMobile, setIsMobile] = useState(false);
   const today = new Date();
   today.setHours(0,0,0,0);
   
@@ -28,6 +29,13 @@ export default function ProductivityChart({ dailyMap }: { dailyMap: Record<strin
   const [showCalendar, setShowCalendar] = useState(false);
   const [calMonth, setCalMonth] = useState<Date>(new Date());
   const calRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -205,8 +213,8 @@ export default function ProductivityChart({ dailyMap }: { dailyMap: Record<strin
            {endDate.getTime() !== today.getTime() && (
              <button 
                onClick={() => setEndDate(today)} 
-               className="hidden md:flex items-center justify-center p-2 rounded-xl bg-[#c2956e]/10 text-[#c2956e] hover:bg-[#c2956e] hover:text-white transition-colors"
-               data-tooltip-id="global-tooltip" data-tooltip-content="Return to Present"
+               className="flex items-center justify-center p-2 rounded-xl bg-[#c2956e]/10 text-[#c2956e] hover:bg-[#c2956e] hover:text-white transition-colors shrink-0"
+               data-tooltip-id={!isMobile ? "global-tooltip" : undefined} data-tooltip-content="Return to Present"
              >
                <Target size={16} />
              </button>
@@ -239,7 +247,7 @@ export default function ProductivityChart({ dailyMap }: { dailyMap: Record<strin
             
             <YAxis yAxisId="right" orientation="right" hide={true} width={0} axisLine={false} tickLine={false} tick={false} />
             
-            <RechartsTooltip content={<CustomTooltip />} cursor={{ fill: isDark ? '#2a2a2a' : '#f7f5f0' }} />
+            {!isMobile && <RechartsTooltip content={<CustomTooltip />} cursor={{ fill: isDark ? '#2a2a2a' : '#f7f5f0' }} />}
             <Bar yAxisId="left" dataKey="tasks" name="Tasks Done" fill="url(#colorTasks)" radius={[6, 6, 0, 0]} maxBarSize={40} />
             <Line yAxisId="right" type="monotone" dataKey="focus" name="Focus Time" stroke={isDark ? '#b0855f' : '#c2956e'} strokeWidth={4} dot={{ r: 4, strokeWidth: 2, fill: isDark ? '#1a1a1a' : '#fff' }} activeDot={{ r: 7 }} />
           </ComposedChart>

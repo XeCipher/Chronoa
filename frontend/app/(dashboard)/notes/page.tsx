@@ -700,11 +700,11 @@ export default function NotesPage() {
             
             <div 
               id="notes-scroll-container" 
-              className="flex-1 overflow-y-auto no-scrollbar scroll-smooth w-full relative"
+              className="flex-1 overflow-y-auto no-scrollbar scroll-smooth w-full relative overscroll-none"
               onScroll={(e) => setIsScrolled(e.currentTarget.scrollTop > 10)}
             >
-              {/* MOBILE STICKY HEADER (Scrolls out smoothly, but sticks to top) */}
-              <div className={`lg:hidden sticky top-0 left-0 right-0 z-50 px-4 sm:px-6 pt-[calc(0.75rem+max(1rem,env(safe-area-inset-top)))] pb-3 transition-all duration-300 ${
+              {/* MOBILE STICKY HEADER (Scrolls out smoothly, but sticks to top). Fixed overscroll trigger with touch-none */}
+              <div className={`lg:hidden touch-none sticky top-0 left-0 right-0 z-50 px-4 sm:px-6 pt-[calc(0.75rem+max(1rem,env(safe-area-inset-top)))] pb-3 transition-all duration-300 ${
                 isScrolled 
                   ? 'bg-white/80 dark:bg-[#121212]/80 backdrop-blur-xl border-b border-[#e0ddd5] dark:border-[#2a2a2a] shadow-sm' 
                   : 'bg-white dark:bg-[#121212] border-b border-transparent'

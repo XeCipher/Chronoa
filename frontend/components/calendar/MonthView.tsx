@@ -152,7 +152,7 @@ export default function MonthView({ currentDate, events, onEventClick, onDayClic
                   </div>
 
                   <div className="hidden lg:flex flex-col gap-1 flex-1 min-h-0 overflow-hidden relative z-10">
-                    <div className="flex flex-col gap-1 overflow-hidden">
+                    <div className="flex flex-col gap-1 overflow-hidden pointer-events-none">
                       {visibleEvents.map(event => {
                         const isStart = format(new Date(event.start_time), 'yyyy-MM-dd') === format(day, 'yyyy-MM-dd');
                         const isEnd = format(new Date(event.end_time), 'yyyy-MM-dd') === format(day, 'yyyy-MM-dd');
@@ -164,8 +164,7 @@ export default function MonthView({ currentDate, events, onEventClick, onDayClic
                         return (
                           <div 
                             key={event.id}
-                            onClick={(e) => { e.stopPropagation(); onEventClick(event); }}
-                            className={`px-1.5 py-0.5 text-[10px] font-semibold flex justify-between items-center transition-transform hover:scale-[1.02] border border-transparent shadow-sm shrink-0 ${colorClasses} ${isStart ? 'rounded-md md:rounded-md' : 'rounded-none border-l-0'} ${isEnd ? 'rounded-md md:rounded-md' : 'rounded-none border-r-0'}`}
+                            className={`px-1.5 py-0.5 text-[10px] font-semibold flex justify-between items-center border border-transparent shadow-sm shrink-0 ${colorClasses} ${isStart ? 'rounded-md md:rounded-md' : 'rounded-none border-l-0'} ${isEnd ? 'rounded-md md:rounded-md' : 'rounded-none border-r-0'}`}
                           >
                             <div className="truncate flex items-center min-w-0 pr-1">
                               <span className="truncate">{event.title}</span>
@@ -180,13 +179,13 @@ export default function MonthView({ currentDate, events, onEventClick, onDayClic
                       })}
                     </div>
                     {extraCount > 0 && (
-                      <div className="px-1.5 py-0.5 text-[9px] font-bold text-[#b0ad9a] dark:text-[#7a7a7a] bg-[#f0ede8] dark:bg-[#252525] border border-[#e0ddd5] dark:border-[#333] rounded-md mt-auto text-center transition-colors shadow-sm shrink-0">
+                      <div className="px-1.5 py-0.5 text-[9px] font-bold text-[#b0ad9a] dark:text-[#7a7a7a] bg-[#f0ede8] dark:bg-[#252525] border border-[#e0ddd5] dark:border-[#333] rounded-md mt-auto text-center transition-colors shadow-sm shrink-0 pointer-events-none">
                         And more
                       </div>
                     )}
                   </div>
 
-                  <div className="lg:hidden flex flex-wrap gap-1 justify-start mt-auto relative z-10 mb-0.5 ml-0.5">
+                  <div className="lg:hidden flex flex-wrap gap-1 justify-start mt-auto relative z-10 mb-0.5 ml-0.5 pointer-events-none">
                     {dayEvents.map((e, idx) => (
                       <div key={idx} className={`w-1.5 h-1.5 rounded-full ${eventColors[e.color]?.split(' ')[0] || 'bg-[#c2956e]'}`} />
                     ))}

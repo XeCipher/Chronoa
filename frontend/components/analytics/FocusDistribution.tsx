@@ -1,7 +1,7 @@
 // frontend/components/analytics/FocusDistribution.tsx
 "use client";
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip } from 'recharts';
 import { useUiStore } from "@/store/uiStore";
 import { Filter } from 'lucide-react';
@@ -11,6 +11,14 @@ const COLORS = ['#7ca982', '#c2956e', '#6e90c2', '#a882c2', '#5b9ea0', '#b895d1'
 export default function FocusDistribution({ rawSessions }: { rawSessions: any[] }) {
   const { theme } = useUiStore();
   const isDark = theme === 'dark' || (theme === 'system' && typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const [excludedCategories, setExcludedCategories] = useState<Set<string>>(new Set());
 
@@ -103,7 +111,7 @@ export default function FocusDistribution({ rawSessions }: { rawSessions: any[] 
                   <Cell key={`cell-${index}`} fill={entry.name === 'Others' ? '#888888' : COLORS[groupedData.findIndex(c => c.name === entry.name) % COLORS.length]} />
                 ))}
               </Pie>
-              <RechartsTooltip content={<CustomTooltip />} />
+              {!isMobile && <RechartsTooltip content={<CustomTooltip />} />}
             </PieChart>
           </ResponsiveContainer>
         ) : (

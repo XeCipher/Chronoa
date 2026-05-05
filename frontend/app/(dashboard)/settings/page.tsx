@@ -272,13 +272,15 @@ export default function SettingsPage() {
           const errorData = await res.json();
           throw new Error(errorData.error || "Failed to fetch new calendar URL");
         }
-        const icsText = await res.text();
         
+        // Fetch & Parse BEFORE deleting the old events
+        const icsText = await res.text();
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) throw new Error("Unauthenticated");
+        
+        const events = parseICS(icsText, source.color, user.id, id);
 
         await supabase.from('calendar_events').delete().eq('source_id', id);
-        const events = parseICS(icsText, source.color, user.id, id);
         
         const chunkSize = 200;
         for (let i = 0; i < events.length; i += chunkSize) {

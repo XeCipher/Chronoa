@@ -29,6 +29,7 @@ export default function CalendarPage() {
   const [referenceDate, setReferenceDate] = useState(startOfDay(new Date()));
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [syncErrors, setSyncErrors] = useState<string[]>([]);
+  const [isSyncErrorModalOpen, setIsSyncErrorModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
   // Search States
@@ -516,13 +517,12 @@ export default function CalendarPage() {
 
             <div className="md:hidden relative shrink-0 flex items-center gap-2" ref={mobileSearchRef}>
               {syncErrors.length > 0 && (
-                <div 
-                  data-tooltip-id="global-tooltip" 
-                  data-tooltip-content={`Sync failed: ${syncErrors.join(', ')}`}
-                  className="flex items-center justify-center w-10 h-10 rounded-full bg-red-50 dark:bg-red-900/10 text-red-500 border border-red-100 dark:border-red-900/30 shadow-sm cursor-help shrink-0"
+                <button 
+                  onClick={() => setIsSyncErrorModalOpen(true)}
+                  className="flex items-center justify-center w-10 h-10 rounded-full bg-red-50 dark:bg-red-900/10 text-red-500 border border-red-100 dark:border-red-900/30 shadow-sm shrink-0"
                 >
                   <AlertCircle size={16} />
-                </div>
+                </button>
               )}
               <button 
                   onClick={() => setIsSearchOpen(!isSearchOpen)}
@@ -567,13 +567,12 @@ export default function CalendarPage() {
 
           <div className="flex flex-col md:flex-row items-center gap-2 md:gap-3 w-full md:w-auto shrink-0">
             {syncErrors.length > 0 && (
-              <div 
-                data-tooltip-id="global-tooltip" 
-                data-tooltip-content={`Sync failed: ${syncErrors.join(', ')}`}
-                className="hidden md:flex items-center justify-center w-10 h-10 rounded-full bg-red-50 dark:bg-red-900/10 text-red-500 border border-red-100 dark:border-red-900/30 shadow-sm cursor-help shrink-0"
+              <button 
+                onClick={() => setIsSyncErrorModalOpen(true)}
+                className="hidden md:flex items-center justify-center w-10 h-10 rounded-full bg-red-50 dark:bg-red-900/10 text-red-500 border border-red-100 dark:border-red-900/30 shadow-sm shrink-0"
               >
                 <AlertCircle size={18} />
-              </div>
+              </button>
             )}
             <div className="hidden md:block relative shrink-0 h-10" ref={desktopSearchRef}>
               <button 
@@ -677,6 +676,25 @@ export default function CalendarPage() {
         dragTimeRange={dragTimeRange}
         defaultBaseDate={defaultBaseDate}
       />
+
+      {/* Sync Error Persistent Modal */}
+      {isSyncErrorModalOpen && (
+        <div className="fixed inset-0 z-[600] flex items-center justify-center px-4 bg-black/40 dark:bg-black/60 backdrop-blur-sm animate-fade-in">
+          <div className="bg-[#f7f5f0] dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] rounded-[2rem] p-8 max-w-sm w-full shadow-2xl animate-fade-up flex flex-col items-center text-center">
+             <div className="w-14 h-14 rounded-full flex items-center justify-center mb-5 bg-red-100 text-red-500 dark:bg-red-900/30">
+               <AlertCircle size={28} />
+             </div>
+             <h3 className="text-2xl font-serif text-[#3d3b33] dark:text-[#f0f0f0] mb-2 leading-tight">Sync Issues</h3>
+             <p className="text-[13px] text-[#888] dark:text-[#7a7a7a] mb-8 leading-relaxed">
+               Could not fetch latest events from: <span className="font-semibold text-[#3d3b33] dark:text-[#e0e0e0]">{syncErrors.join(', ')}</span>. Please check if the source URLs are still valid in Settings.
+             </p>
+             <button onClick={() => setIsSyncErrorModalOpen(false)} className="w-full px-6 py-3.5 bg-white dark:bg-[#252525] border border-[#e0ddd5] dark:border-[#333] text-[#3d3b33] dark:text-white rounded-xl text-[11px] font-bold uppercase tracking-widest shadow-sm transition-colors hover:bg-gray-50 dark:hover:bg-[#333]">
+               Understood
+             </button>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }

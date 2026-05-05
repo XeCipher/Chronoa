@@ -116,6 +116,9 @@ export default function RecursiveCheckbox({
 
   const isRoutine = task.task_type === 'routine';
   const isNormal = task.task_type === 'normal';
+  
+  // Feature 6: Normal completed tasks shouldn't have the 3-dot action menu to keep it clean.
+  const disableMenu = isNormal && task.is_completed;
 
   useEffect(() => {
     const el = textRef.current;
@@ -586,7 +589,7 @@ export default function RecursiveCheckbox({
         </div>
 
         <div className={`flex items-center shrink-0 ml-auto gap-1 transition-opacity duration-200 ${isMenuOpen ? 'opacity-100' : 'opacity-100 md:opacity-0 md:group-hover:opacity-100'}`}>
-            {viewMode === 'focus' && showManagementActions && (
+            {viewMode === 'focus' && showManagementActions && !disableMenu && (
                <button 
                   onClick={(e) => { e.stopPropagation(); onAdd(task.parent_id, task); }} 
                   className="w-8 h-8 flex items-center justify-center rounded-lg text-[#c4c0b8] md:hover:text-[#c2956e] md:hover:bg-[#c2956e]/10 transition-all" 
@@ -595,12 +598,14 @@ export default function RecursiveCheckbox({
                </button>
             )}
             
-            <button 
-               onClick={toggleMenu} 
-               className={`menu-toggle-btn w-8 h-8 flex items-center justify-center rounded-lg text-[#c4c0b8] md:hover:text-[#3d3b33] md:dark:hover:text-white md:hover:bg-[#ebe8e2] md:dark:hover:bg-[#333] transition-all ${isMenuOpen ? 'bg-[#ebe8e2] dark:bg-[#333] text-[#3d3b33] dark:text-white' : ''}`}
-            >
-               <MoreVertical size={16} />
-            </button>
+            {!disableMenu && (
+              <button 
+                 onClick={toggleMenu} 
+                 className={`menu-toggle-btn w-8 h-8 flex items-center justify-center rounded-lg text-[#c4c0b8] md:hover:text-[#3d3b33] md:dark:hover:text-white md:hover:bg-[#ebe8e2] md:dark:hover:bg-[#333] transition-all ${isMenuOpen ? 'bg-[#ebe8e2] dark:bg-[#333] text-[#3d3b33] dark:text-white' : ''}`}
+              >
+                 <MoreVertical size={16} />
+              </button>
+            )}
         </div>
       </div>
 

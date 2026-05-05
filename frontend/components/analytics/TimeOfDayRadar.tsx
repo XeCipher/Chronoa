@@ -90,7 +90,7 @@ export default function TimeOfDayRadar({ dailyMap }: { dailyMap: Record<string, 
                 fontWeight: 'bold' 
               }} 
             />
-            <RechartsTooltip content={<CustomTooltip />} cursor={false} />
+            {!isMobile && <RechartsTooltip content={<CustomTooltip />} cursor={false} />}
             <Radar 
               name="Productivity" 
               dataKey="A" 

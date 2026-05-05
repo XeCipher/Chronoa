@@ -174,10 +174,12 @@ export async function syncExternalCalendars(userId: string, force: boolean = fal
           failedSources.push(source.name);
           continue;
         }
+        
+        // Fully parse before deleting existing events to prevent flickering & logic crashes
         const icsText = await res.text();
+        const events = parseICS(icsText, source.color, userId, source.id);
         
         await supabase.from('calendar_events').delete().eq('source_id', source.id);
-        const events = parseICS(icsText, source.color, userId, source.id);
         
         const chunkSize = 200;
         for (let i = 0; i < events.length; i += chunkSize) {
