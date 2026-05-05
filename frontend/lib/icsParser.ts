@@ -26,15 +26,17 @@ export function parseICS(icsText: string, color: string, userId: string, sourceI
       const m = parseInt(str.substring(4, 6), 10) - 1;
       const d = parseInt(str.substring(6, 8), 10);
       
+      const tIdx = str.indexOf('T');
+      
       // All-day events MUST be parsed in local time midnight to prevent timezone shifting
-      if (isAllDay || str.length === 8) {
+      if (isAllDay || tIdx === -1) {
         return new Date(y, m, d, 0, 0, 0);
       }
 
-      if (str.length >= 14) {
-        const h = parseInt(str.substring(8, 10), 10);
-        const min = parseInt(str.substring(10, 12), 10);
-        const s = parseInt(str.substring(12, 14), 10);
+      if (tIdx !== -1 && str.length >= tIdx + 7) {
+        const h = parseInt(str.substring(tIdx + 1, tIdx + 3), 10);
+        const min = parseInt(str.substring(tIdx + 3, tIdx + 5), 10);
+        const s = parseInt(str.substring(tIdx + 5, tIdx + 7), 10);
         
         // If it ends with Z, it's UTC time
         if (str.endsWith('Z')) {
@@ -139,14 +141,23 @@ export function exportICS(events: CalendarEvent[]): string {
   return ics;
 }
 
+// In-memory lock to prevent concurrent overlapping sync operations 
+// during simultaneous component mounts on strict mode or parallel fetches.
+let isSyncing = false;
+
 // Background Auto-Sync Utility
 export async function syncExternalCalendars(userId: string) {
-  // Throttle syncs to once every 15 minutes per user
+  if (isSyncing) return;
+  
+  // NOTE: Throttled to 3 minutes minimum. Public services (Google/Apple) 
+  // will rate-limit or IP ban if fetched every 5 seconds.
   const lastSyncKey = `chronoa_last_cal_sync_${userId}`;
   const lastSync = localStorage.getItem(lastSyncKey);
-  if (lastSync && Date.now() - parseInt(lastSync) < 15 * 60 * 1000) {
+  if (lastSync && Date.now() - parseInt(lastSync) < 3 * 60 * 1000) {
     return;
   }
+
+  isSyncing = true;
 
   try {
     const { data: sources } = await supabase
@@ -179,5 +190,7 @@ export async function syncExternalCalendars(userId: string) {
     localStorage.setItem(lastSyncKey, Date.now().toString());
   } catch (e) {
     console.error("Failed background calendar sync", e);
+  } finally {
+    isSyncing = false;
   }
 }

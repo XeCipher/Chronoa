@@ -118,9 +118,8 @@ export default function CalendarPage() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
     
-    // Trigger background sync for external calendars
+    // Trigger background sync for external calendars (Throttled inside the function)
     syncExternalCalendars(user.id).then(() => {
-      // Re-fetch after background sync completes in case of updates
       supabase.from('calendar_events').select('*').eq('user_id', user.id).then(({ data }) => {
         if (data) {
            setEvents(data as CalendarEvent[]);
@@ -150,9 +149,20 @@ export default function CalendarPage() {
 
   useEffect(() => {
     fetchEvents();
+    
+    // 5-second recurring local refresh
+    const intervalId = setInterval(() => {
+      fetchEvents();
+    }, 5000);
+
     const channel = supabase.channel('calendar_changes')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'calendar_events' }, fetchEvents).subscribe();
-    return () => { supabase.removeChannel(channel); };
+      
+    return () => { 
+      clearInterval(intervalId);
+      supabase.removeChannel(channel); 
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [referenceDate]);
 
   const handlePrev = () => {
@@ -251,6 +261,12 @@ export default function CalendarPage() {
 
   const handleSaveEvent = async (updates: Partial<CalendarEvent>, updateMode: 'this' | 'future', originalEventObj?: CalendarEvent | null) => {
     const referenceEvent = originalEventObj || selectedEvent;
+    
+    if (referenceEvent?.is_readonly) {
+       await fetchEvents();
+       return;
+    }
+
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 

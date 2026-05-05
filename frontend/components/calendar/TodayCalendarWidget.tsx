@@ -105,12 +105,20 @@ export default function TodayCalendarWidget({ variant, searchQuery = '' }: Props
     }
     
     fetchTodayEvents();
+
+    // 5-second recurring local refresh
+    const intervalId = setInterval(() => {
+      fetchTodayEvents();
+    }, 5000);
     
     const channel = supabase.channel('calendar_today')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'calendar_events' }, fetchTodayEvents)
       .subscribe();
       
-    return () => { supabase.removeChannel(channel); };
+    return () => { 
+      clearInterval(intervalId);
+      supabase.removeChannel(channel); 
+    };
   }, [fetchTodayEvents]);
 
   const filteredEvents = events.filter(e => {

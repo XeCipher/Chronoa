@@ -10,7 +10,7 @@ import { CalendarSource, CalendarEvent } from "@/types/app.types";
 import { 
   MapPin, Search, Clock, Sparkles, 
   X, Monitor, LogOut, Navigation, AlertTriangle, Keyboard, CheckCircle2, Settings as SettingsIcon,
-  Info, Mail, ArrowLeft, Star, CalendarDays, Link as LinkIcon, Download, UploadCloud, Trash2, Plus, ChevronDown, ChevronUp, Palette
+  Info, Mail, ArrowLeft, Star, CalendarDays, Link as LinkIcon, Download, UploadCloud, Trash2, ChevronDown, ChevronUp, Edit3, FileText, Palette, ExternalLink
 } from "lucide-react";
 
 const escapeRegExp = (string: string) => string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -68,11 +68,17 @@ export default function SettingsPage() {
   const [calSources, setCalSources] = useState<CalendarSource[]>([]);
   const [newLinkUrl, setNewLinkUrl] = useState("");
   const [newLinkName, setNewLinkName] = useState("");
-  const [newLinkColor, setNewLinkColor] = useState("amber");
   const [isAddingLink, setIsAddingLink] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [showGithubModal, setShowGithubModal] = useState(false);
   const [githubCountdown, setGithubCountdown] = useState(-1);
+
+  // Calendar Editing & Interaction States
+  const [editingSourceId, setEditingSourceId] = useState<string | null>(null);
+  const [editSourceName, setEditSourceName] = useState("");
+  const [editSourceUrl, setEditSourceUrl] = useState("");
+  const [isUpdatingSource, setIsUpdatingSource] = useState(false);
+  const [openColorDropdown, setOpenColorDropdown] = useState<string | null>(null);
 
   useEffect(() => {
     const platform = window.navigator.platform.toLowerCase();
@@ -105,6 +111,16 @@ export default function SettingsPage() {
     }
     return () => clearTimeout(timer);
   }, [showGithubModal, githubCountdown]);
+
+  // Click outside listener for color dropdown
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest('.color-dropdown-container')) setOpenColorDropdown(null);
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const updateRemoteSetting = async (key: string, value: any) => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -182,20 +198,21 @@ export default function SettingsPage() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Unauthenticated");
 
+      // Default to Amber initially. User can change later via compact dropdown.
       const { data: source, error: sourceErr } = await supabase.from('calendar_sources').insert({
-        user_id: user.id, name: newLinkName, url: newLinkUrl, type: 'link', color: newLinkColor
+        user_id: user.id, name: newLinkName, url: newLinkUrl, type: 'link', color: 'amber'
       }).select().single();
 
       if (sourceErr || !source) throw sourceErr;
 
-      const events = parseICS(icsText, newLinkColor, user.id, source.id);
+      const events = parseICS(icsText, 'amber', user.id, source.id);
       const chunkSize = 200;
       for (let i = 0; i < events.length; i += chunkSize) {
          await supabase.from('calendar_events').insert(events.slice(i, i + chunkSize));
       }
 
       setCalSources([source as CalendarSource, ...calSources]);
-      setNewLinkUrl(""); setNewLinkName(""); setNewLinkColor("amber");
+      setNewLinkUrl(""); setNewLinkName("");
     } catch (err: any) {
       showConfirmDialog({ title: "Unable to Add Calendar", message: err.message || "Please check the URL or try again.", confirmText: "Understood", onConfirm: () => {} });
     } finally { setIsAddingLink(false); }
@@ -211,12 +228,12 @@ export default function SettingsPage() {
       if (!user) throw new Error("Unauthenticated");
 
       const { data: source, error: sourceErr } = await supabase.from('calendar_sources').insert({
-        user_id: user.id, name: file.name.replace('.ics', ''), type: 'file', color: newLinkColor
+        user_id: user.id, name: file.name.replace('.ics', ''), type: 'file', color: 'amber'
       }).select().single();
 
       if (sourceErr || !source) throw sourceErr;
 
-      const events = parseICS(icsText, newLinkColor, user.id, source.id);
+      const events = parseICS(icsText, 'amber', user.id, source.id);
       const chunkSize = 200;
       for (let i = 0; i < events.length; i += chunkSize) {
          await supabase.from('calendar_events').insert(events.slice(i, i + chunkSize));
@@ -233,6 +250,50 @@ export default function SettingsPage() {
     setCalSources(prev => prev.map(s => s.id === id ? { ...s, color: newColor } : s));
     await supabase.from('calendar_sources').update({ color: newColor }).eq('id', id);
     await supabase.from('calendar_events').update({ color: newColor }).eq('source_id', id);
+  };
+
+  const handleEditSourceSave = async (id: string) => {
+    if (!editSourceName.trim()) return;
+    setIsUpdatingSource(true);
+    try {
+      const source = calSources.find(s => s.id === id);
+      if (!source) throw new Error("Source not found");
+
+      const urlChanged = source.url !== editSourceUrl;
+      
+      const { error } = await supabase.from('calendar_sources').update({
+        name: editSourceName,
+        url: editSourceUrl
+      }).eq('id', id);
+      if (error) throw error;
+
+      if (urlChanged && editSourceUrl) {
+        const res = await fetch(`/api/calendar/fetch-ics?url=${encodeURIComponent(editSourceUrl)}`);
+        if (!res.ok) {
+          const errorData = await res.json();
+          throw new Error(errorData.error || "Failed to fetch new calendar URL");
+        }
+        const icsText = await res.text();
+        
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error("Unauthenticated");
+
+        await supabase.from('calendar_events').delete().eq('source_id', id);
+        const events = parseICS(icsText, source.color, user.id, id);
+        
+        const chunkSize = 200;
+        for (let i = 0; i < events.length; i += chunkSize) {
+           await supabase.from('calendar_events').insert(events.slice(i, i + chunkSize));
+        }
+      }
+
+      setCalSources(prev => prev.map(s => s.id === id ? { ...s, name: editSourceName, url: editSourceUrl } : s));
+      setEditingSourceId(null);
+    } catch (err: any) {
+      showConfirmDialog({ title: "Update Failed", message: err.message || "Please check the URL.", confirmText: "Dismiss", onConfirm: () => {} });
+    } finally {
+      setIsUpdatingSource(false);
+    }
   };
 
   const handleRemoveSource = (id: string) => {
@@ -325,7 +386,7 @@ export default function SettingsPage() {
     },
     {
       id: 'calendars',
-      keys: ['calendar', 'integration', 'import', 'export', 'google', 'apple', 'link', 'sync', 'ics'],
+      keys: ['calendar', 'integration', 'import', 'export', 'google', 'apple', 'link', 'sync', 'ics', 'f1', 'schedule'],
       className: 'flex flex-col',
       render: () => (
         <section className="space-y-6">
@@ -333,10 +394,10 @@ export default function SettingsPage() {
             <div className="space-y-1">
               <div className="flex items-center gap-3 text-[#c2956e] dark:text-[#d1a784]">
                 <CalendarDays size={20} />
-                <h3 className="text-xl font-medium text-[#3d3b33] dark:text-[#f0f0f0]"><HighlightText text="Connected Calendars" query={searchQuery} /></h3>
+                <h3 className="text-xl font-medium text-[#3d3b33] dark:text-[#f0f0f0]"><HighlightText text="Calendars" query={searchQuery} /></h3>
               </div>
               <p className="text-xs text-[#b0ad9a] dark:text-[#7a7a7a]">
-                <HighlightText text="Link external calendars, import files, and export your schedule." query={searchQuery} />
+                <HighlightText text="Connect Apple/Google or subscribe to F1, holidays, and work schedules." query={searchQuery} />
               </p>
             </div>
             <button className="p-2 text-[#888] md:hover:bg-[#f0ede8] md:dark:hover:bg-[#2a2a2a] rounded-xl transition-colors">
@@ -345,99 +406,128 @@ export default function SettingsPage() {
           </div>
 
           {isCalendarExpanded && (
-            <div className="space-y-6 animate-fade-in border-t border-[#e0ddd5] dark:border-[#2a2a2a] pt-6">
+            <div className="space-y-4 animate-fade-in border-t border-[#e0ddd5] dark:border-[#2a2a2a] pt-6">
               
               {/* Connected Sources List */}
               {calSources.length > 0 && (
-                <div className="bg-[#fdfbf7] dark:bg-[#161616] border border-[#e0ddd5] dark:border-[#333] rounded-2xl overflow-hidden shadow-sm">
-                  {calSources.map((source, i) => (
-                    <div key={source.id} className={`flex flex-col sm:flex-row sm:items-center justify-between p-4 gap-4 ${i > 0 ? 'border-t border-[#e0ddd5] dark:border-[#333]' : ''}`}>
-                      <div className="flex items-start sm:items-center gap-3 min-w-0">
-                        <div className="min-w-0">
-                          <div className="text-sm font-semibold text-[#3d3b33] dark:text-[#f0f0f0] flex items-center gap-2">
-                            <span className="truncate">{source.name}</span>
-                            <span className="shrink-0 px-1.5 py-0.5 rounded text-[8px] uppercase tracking-widest font-bold bg-[#ebe8e2] dark:bg-[#2a2a2a] text-[#888]">
-                              {source.type}
-                            </span>
+                <div className="flex flex-col gap-3">
+                  {calSources.map((source) => (
+                    <div key={source.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-[#fdfbf7] dark:bg-[#161616] border border-[#e0ddd5] dark:border-[#333] rounded-[1.25rem] gap-3 transition-all">
+                      {editingSourceId === source.id ? (
+                        <div className="flex flex-col gap-2 w-full animate-fade-in">
+                          <input type="text" value={editSourceName} onChange={e => setEditSourceName(e.target.value)} className="w-full bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#444] rounded-xl px-4 py-2.5 text-sm outline-none focus:border-[#c2956e] transition-colors shadow-sm" placeholder="Calendar Name" />
+                          {source.type === 'link' && <input type="url" value={editSourceUrl} onChange={e => setEditSourceUrl(e.target.value)} className="w-full bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#444] rounded-xl px-4 py-2.5 text-sm outline-none focus:border-[#c2956e] transition-colors shadow-sm" placeholder="https://..." />}
+                          <div className="flex gap-2 justify-end mt-1">
+                             <button onClick={() => setEditingSourceId(null)} className="px-5 py-2 bg-white dark:bg-[#1a1a1a] text-[#888] border border-[#e0ddd5] dark:border-[#444] rounded-lg text-[10px] font-bold uppercase tracking-widest hover:bg-gray-50 dark:hover:bg-[#222] transition-all shadow-sm">Cancel</button>
+                             <button onClick={() => handleEditSourceSave(source.id)} className="px-6 py-2 bg-[#3d3b33] dark:bg-[#f0f0f0] text-white dark:text-[#1a1a1a] rounded-lg text-[10px] font-bold uppercase tracking-[0.2em] hover:bg-black dark:hover:bg-white transition-all shadow-md">
+                                {isUpdatingSource ? 'Saving...' : 'Save'}
+                             </button>
                           </div>
-                          {source.url && <div className="text-[10px] text-[#b0ad9a] dark:text-[#7a7a7a] truncate max-w-[250px] md:max-w-[400px] mt-0.5">{source.url}</div>}
                         </div>
-                      </div>
-                      <div className="flex items-center gap-2 sm:gap-3 shrink-0 ml-0">
-                        <div className="flex gap-1.5 bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] p-1.5 rounded-xl shadow-inner">
-                           {CALENDAR_COLORS.map(c => (
-                             <button
-                               key={c.id}
-                               onClick={() => handleColorChange(source.id, c.id)}
-                               className={`w-4 h-4 rounded-full ${c.bg} transition-all ${source.color === c.id ? 'ring-2 ring-offset-2 ring-[#c2956e] dark:ring-offset-[#1a1a1a] scale-110' : 'opacity-40 hover:opacity-100 hover:scale-110'}`}
-                             />
-                           ))}
-                        </div>
-                        <button onClick={() => handleRemoveSource(source.id)} data-tooltip-id="global-tooltip" data-tooltip-content="Remove" className="p-2 text-[#888] hover:text-red-500 bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-colors shadow-sm">
-                           <Trash2 size={14} />
-                        </button>
-                      </div>
+                      ) : (
+                        <>
+                          <div className="flex items-center gap-3 min-w-0 flex-1">
+                            <div className="w-10 h-10 bg-white dark:bg-[#252525] rounded-xl flex items-center justify-center text-[#c2956e] shadow-sm shrink-0 border border-[#e0ddd5] dark:border-[#333]">
+                              {source.type === 'link' ? <LinkIcon size={16} /> : <FileText size={16} />}
+                            </div>
+                            <div className="min-w-0">
+                              <p className="text-[14px] font-medium text-[#3d3b33] dark:text-[#f0f0f0] truncate leading-tight">{source.name}</p>
+                              {source.url && <p className="text-[10px] text-[#b0ad9a] dark:text-[#7a7a7a] mt-0.5 truncate">{source.url}</p>}
+                            </div>
+                          </div>
+                          
+                          <div className="flex items-center gap-1.5 shrink-0 self-end sm:self-auto">
+                            <div className="color-dropdown-container relative">
+                               <button 
+                                 onClick={() => setOpenColorDropdown(openColorDropdown === source.id ? null : source.id)} 
+                                 className="flex items-center gap-1 p-2 rounded-lg border border-[#e0ddd5] dark:border-[#333] bg-white dark:bg-[#1a1a1a] shadow-sm hover:bg-gray-50 dark:hover:bg-[#222] transition-colors"
+                                 data-tooltip-id="global-tooltip" data-tooltip-content="Change Color"
+                               >
+                                 <div className={`w-3.5 h-3.5 rounded-full ${CALENDAR_COLORS.find(c => c.id === source.color)?.bg || 'bg-[#c2956e]'}`} />
+                                 <ChevronDown size={14} className="text-[#888]" />
+                               </button>
+                               {openColorDropdown === source.id && (
+                                 <div className="absolute top-10 right-0 sm:left-1/2 sm:-translate-x-1/2 bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#444] p-2.5 rounded-xl shadow-xl z-50 flex gap-1.5 animate-fade-in w-max">
+                                    {CALENDAR_COLORS.map(c => (
+                                      <button 
+                                        key={c.id} 
+                                        onClick={() => { handleColorChange(source.id, c.id); setOpenColorDropdown(null); }} 
+                                        className={`w-5 h-5 rounded-full transition-transform hover:scale-110 ${c.bg} ${source.color === c.id ? 'ring-2 ring-offset-2 ring-[#c2956e] dark:ring-offset-[#1a1a1a]' : ''}`} 
+                                      />
+                                    ))}
+                                 </div>
+                               )}
+                            </div>
+                            
+                            {source.type === 'link' && (
+                              <button onClick={() => { setEditingSourceId(source.id); setEditSourceName(source.name); setEditSourceUrl(source.url || ""); }} className="p-2 bg-white dark:bg-[#1a1a1a] text-[#888] hover:text-[#c2956e] border border-[#e0ddd5] dark:border-[#333] hover:bg-gray-50 dark:hover:bg-[#222] rounded-lg shadow-sm transition-colors">
+                                 <Edit3 size={16} />
+                              </button>
+                            )}
+                            <button onClick={() => handleRemoveSource(source.id)} className="p-2 bg-white dark:bg-[#1a1a1a] text-red-400 hover:text-red-500 border border-red-100 dark:border-red-900/30 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg shadow-sm transition-colors">
+                               <Trash2 size={16} />
+                            </button>
+                          </div>
+                        </>
+                      )}
                     </div>
                   ))}
                 </div>
               )}
 
               {/* Add New Source Section */}
-              <div className="flex flex-col gap-4">
-                 <h4 className="text-xs font-bold text-[#b0ad9a] dark:text-[#7a7a7a] uppercase tracking-widest pl-1">Add New Source</h4>
-                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="flex flex-col gap-3 mt-2">
+                 <h4 className="text-[11px] font-bold text-[#b0ad9a] dark:text-[#7a7a7a] uppercase tracking-widest pl-1">Add Calendar</h4>
+                 <div className="flex flex-col md:flex-row gap-3">
+                    <input type="text" placeholder="Name (e.g. Work, Personal)" value={newLinkName} onChange={e => setNewLinkName(e.target.value)} spellCheck={false} className="flex-1 min-w-[150px] bg-[#f7f5f0] dark:bg-[#252525] border border-[#e0ddd5] dark:border-[#444] rounded-xl px-4 py-3 text-sm outline-none focus:border-[#c2956e] transition-colors shadow-sm" />
+                    <input type="url" placeholder="Public ICS Link (https://...)" value={newLinkUrl} onChange={e => setNewLinkUrl(e.target.value)} spellCheck={false} className="flex-[2] min-w-[200px] bg-[#f7f5f0] dark:bg-[#252525] border border-[#e0ddd5] dark:border-[#444] rounded-xl px-4 py-3 text-sm outline-none focus:border-[#c2956e] transition-colors shadow-sm" />
                     
-                    {/* Add Link */}
-                    <div className="bg-[#f7f5f0]/50 dark:bg-[#222]/50 border border-[#e0ddd5] dark:border-[#333] p-5 rounded-2xl flex flex-col gap-3 shadow-sm hover:border-[#c2956e]/50 transition-colors group">
-                       <div className="flex items-center gap-2 text-sm font-bold text-[#3d3b33] dark:text-[#f0f0f0]">
-                         <LinkIcon size={16} className="text-[#c2956e] dark:text-[#b0855f]" /> Sync via Link
-                       </div>
-                       <input type="text" placeholder="Calendar Name..." value={newLinkName} onChange={e => setNewLinkName(e.target.value)} spellCheck={false} className="w-full bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#444] rounded-xl px-4 py-2.5 text-sm outline-none focus:border-[#c2956e] transition-colors" />
-                       <input type="url" placeholder="URL (webcal:// or https://)..." value={newLinkUrl} onChange={e => setNewLinkUrl(e.target.value)} spellCheck={false} className="w-full bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#444] rounded-xl px-4 py-2.5 text-sm outline-none focus:border-[#c2956e] transition-colors" />
-                       <div className="flex items-center justify-between mt-1">
-                         <div className="flex gap-1.5">
-                           {CALENDAR_COLORS.map(c => (
-                             <button key={c.id} onClick={() => setNewLinkColor(c.id)} className={`w-4 h-4 rounded-full ${c.bg} transition-all ${newLinkColor === c.id ? 'ring-2 ring-offset-2 ring-[#c2956e] dark:ring-offset-[#222] scale-110' : 'opacity-40 hover:opacity-100 hover:scale-110'}`} />
-                           ))}
-                         </div>
-                         <button onClick={handleAddLink} disabled={isAddingLink || !newLinkUrl || !newLinkName} className="flex items-center gap-1.5 px-4 py-2 bg-[#c2956e] text-white rounded-lg text-[10px] font-bold uppercase tracking-widest shadow-sm hover:bg-[#b0855f] disabled:opacity-50 transition-colors">
-                           {isAddingLink ? <Plus className="animate-spin" size={14} /> : <Plus size={14} />} Add
-                         </button>
-                       </div>
+                    <div className="flex gap-2">
+                       <button onClick={handleAddLink} disabled={isAddingLink || !newLinkUrl || !newLinkName} className="flex-1 md:flex-none px-6 py-3 bg-[#3d3b33] dark:bg-[#f0f0f0] text-white dark:text-[#1a1a1a] rounded-xl text-[10px] font-bold uppercase tracking-[0.2em] hover:bg-black dark:hover:bg-white transition-all disabled:opacity-50 shadow-md whitespace-nowrap">
+                         {isAddingLink ? "Adding..." : "Add Link"}
+                       </button>
+                       <div className="flex items-center justify-center px-2 text-[#b0ad9a] text-[10px] font-bold uppercase">or</div>
+                       <label className={`flex items-center justify-center px-4 py-3 bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#444] text-[#3d3b33] dark:text-[#f0f0f0] rounded-xl shadow-sm transition-colors cursor-pointer whitespace-nowrap ${isAddingLink ? 'opacity-50 pointer-events-none' : 'hover:bg-gray-50 dark:hover:bg-[#222]'}`}>
+                         <UploadCloud size={16} className="mr-1.5" /> <span className="text-[10px] font-bold uppercase tracking-widest">Upload .ics</span>
+                         <input ref={fileInputRef} type="file" accept=".ics" className="hidden" onChange={handleImportFile} disabled={isAddingLink} />
+                       </label>
                     </div>
+                 </div>
 
-                    {/* Import File */}
-                    <div className="bg-[#f7f5f0]/50 dark:bg-[#222]/50 border border-[#e0ddd5] dark:border-[#333] p-5 rounded-2xl flex flex-col gap-3 shadow-sm hover:border-[#c2956e]/50 transition-colors group">
-                       <div className="flex items-center gap-2 text-sm font-bold text-[#3d3b33] dark:text-[#f0f0f0]">
-                         <UploadCloud size={16} className="text-[#c2956e] dark:text-[#b0855f]" /> Import File
-                       </div>
-                       <p className="text-[11px] text-[#b0ad9a] dark:text-[#7a7a7a] leading-relaxed flex-1">
-                         Upload a standard .ics file from Apple or Google Calendar to map events onto your workspace.
-                       </p>
-                       <div className="flex items-center justify-between mt-1">
-                         <div className="flex gap-1.5">
-                           {CALENDAR_COLORS.map(c => (
-                             <button key={c.id} onClick={() => setNewLinkColor(c.id)} className={`w-4 h-4 rounded-full ${c.bg} transition-all ${newLinkColor === c.id ? 'ring-2 ring-offset-2 ring-[#c2956e] dark:ring-offset-[#222] scale-110' : 'opacity-40 hover:opacity-100 hover:scale-110'}`} />
-                           ))}
-                         </div>
-                         <label className={`flex items-center gap-1.5 px-4 py-2 bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#444] text-[#3d3b33] dark:text-[#f0f0f0] rounded-lg text-[10px] font-bold uppercase tracking-widest shadow-sm transition-colors cursor-pointer ${isAddingLink ? 'opacity-50 pointer-events-none' : 'hover:bg-gray-50 dark:hover:bg-[#333]'}`}>
-                           <UploadCloud size={14} /> Upload
-                           <input ref={fileInputRef} type="file" accept=".ics" className="hidden" onChange={handleImportFile} disabled={isAddingLink} />
-                         </label>
-                       </div>
-                    </div>
-
+                 {/* Help Texts */}
+                 <div className="flex flex-col sm:flex-row gap-4 mt-2">
+                   <a href="https://support.google.com/calendar/answer/37648" target="_blank" rel="noopener noreferrer" className="flex-1 p-3 bg-[#fdfbf7] dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] rounded-xl flex items-center justify-between group hover:border-[#c2956e]/50 transition-colors">
+                      <div className="flex items-center gap-2">
+                         <Info size={14} className="text-[#888]" />
+                         <span className="text-xs text-[#3d3b33] dark:text-[#f0f0f0] font-medium">Google Calendar Guide</span>
+                      </div>
+                      <ExternalLink size={14} className="text-[#b0ad9a] group-hover:text-[#c2956e] transition-colors" />
+                   </a>
+                   <a href="https://support.apple.com/guide/calendar/share-icloud-calendars-icl227ba2f64/mac" target="_blank" rel="noopener noreferrer" className="flex-1 p-3 bg-[#fdfbf7] dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] rounded-xl flex items-center justify-between group hover:border-[#c2956e]/50 transition-colors">
+                      <div className="flex items-center gap-2">
+                         <Info size={14} className="text-[#888]" />
+                         <span className="text-xs text-[#3d3b33] dark:text-[#f0f0f0] font-medium">Apple Calendar Guide</span>
+                      </div>
+                      <ExternalLink size={14} className="text-[#b0ad9a] group-hover:text-[#c2956e] transition-colors" />
+                   </a>
+                   <a href="https://f1calendar.com" target="_blank" rel="noopener noreferrer" className="flex-1 p-3 bg-[#fdfbf7] dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] rounded-xl flex items-center justify-between group hover:border-[#c2956e]/50 transition-colors">
+                      <div className="flex items-center gap-2">
+                         <Info size={14} className="text-[#888]" />
+                         <span className="text-xs text-[#3d3b33] dark:text-[#f0f0f0] font-medium">Sports (e.g., F1 Calendar)</span>
+                      </div>
+                      <ExternalLink size={14} className="text-[#b0ad9a] group-hover:text-[#c2956e] transition-colors" />
+                   </a>
                  </div>
               </div>
 
               {/* Export Native Calendar */}
-              <div className="pt-6 border-t border-[#e0ddd5] dark:border-[#333] flex justify-between items-center">
+              <div className="pt-6 mt-2 border-t border-[#e0ddd5] dark:border-[#333] flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                  <div>
-                    <h4 className="text-sm font-bold text-[#3d3b33] dark:text-[#f0f0f0]">Export Personal Events</h4>
-                    <p className="text-[11px] text-[#b0ad9a] dark:text-[#7a7a7a]">Download your created Chronoa calendar as an .ics file.</p>
+                    <h4 className="text-sm font-bold text-[#3d3b33] dark:text-[#f0f0f0]">Export Calendar</h4>
+                    <p className="text-[11px] text-[#b0ad9a] dark:text-[#7a7a7a]">Download your created Chronoa events locally.</p>
                  </div>
-                 <button onClick={handleExportCalendar} className="flex items-center gap-1.5 px-5 py-2.5 bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#444] text-[#3d3b33] dark:text-[#f0f0f0] rounded-xl text-[10px] font-bold uppercase tracking-widest shadow-sm hover:bg-gray-50 dark:hover:bg-[#222] transition-colors shrink-0">
-                    <Download size={14} /> Export
+                 <button onClick={handleExportCalendar} className="flex items-center gap-2 px-6 py-3 bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#444] text-[#3d3b33] dark:text-[#f0f0f0] rounded-xl text-[10px] font-bold uppercase tracking-widest shadow-sm hover:bg-gray-50 dark:hover:bg-[#222] transition-colors shrink-0">
+                    <Download size={16} /> Export .ics
                  </button>
               </div>
 
@@ -545,7 +635,6 @@ export default function SettingsPage() {
                 <div className={`w-4 h-4 bg-white rounded-full absolute top-0.5 transition-transform ${moveCompletedToBottom ? 'translate-x-5' : 'translate-x-0.5 shadow-sm'}`} />
               </button>
             </div>
-            {/* Keeping code succinct; assuming keepParentTaskAlive, addTaskAtTop, showHomeTaskProgress behave identically */}
             <div className="flex items-center justify-between p-4 bg-[#f7f5f0]/50 dark:bg-[#222] border border-[#e0ddd5] dark:border-[#333] rounded-2xl cursor-pointer" onClick={() => { setKeepParentTaskAlive(!keepParentTaskAlive); updateRemoteSetting('keep_parent_task_alive', !keepParentTaskAlive); }}>
               <div className="space-y-1 pr-4">
                 <span className="text-[13px] text-[#3d3b33] dark:text-[#f0f0f0] font-medium"><HighlightText text="Keep Parent Tasks" query={searchQuery} /></span>
@@ -670,7 +759,7 @@ export default function SettingsPage() {
           <p className="text-xs text-[#b0ad9a] dark:text-[#7a7a7a]"><HighlightText text="Permanently delete your account. This is irreversible." query={searchQuery} /></p>
           <div className="flex flex-col sm:flex-row items-center gap-4">
             <button onClick={handleDeleteAccount} className="w-full sm:w-auto px-6 py-3 bg-red-50 dark:bg-red-900/10 text-red-500 border border-red-200 dark:border-red-900/50 rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-red-500 hover:text-white transition-all shadow-sm">Delete Account</button>
-            <button onClick={handleLogout} className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-3 bg-[#f7f5f0] dark:bg-[#252525] text-[#888] border border-[#e0ddd5] dark:border-[#333] rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-gray-50 transition-all shadow-sm"><LogOut size={16} /> Sign Out</button>
+            <button onClick={handleLogout} className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-3 bg-[#f7f5f0] dark:bg-[#252525] text-[#888] border border-[#e0ddd5] dark:border-[#333] rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-gray-50 dark:hover:bg-[#222] transition-all shadow-sm"><LogOut size={16} /> Sign Out</button>
           </div>
         </section>
       )
