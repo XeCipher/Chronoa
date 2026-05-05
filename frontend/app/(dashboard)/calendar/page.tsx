@@ -452,7 +452,7 @@ export default function CalendarPage() {
   const isCurrentDateToday = isSameDay(referenceDate, new Date());
 
   return (
-    <div className="absolute inset-0 flex flex-col pt-[max(1.5rem,calc(1rem+env(safe-area-inset-top)))] md:pt-[max(3.5rem,calc(2.5rem+env(safe-area-inset-top)))] px-4 md:p-8 lg:p-10 pb-[calc(5.5rem+env(safe-area-inset-bottom))] md:pb-8 min-w-0 bg-[#f7f5f0] dark:bg-[#121212] overflow-hidden">
+    <div className="absolute inset-0 flex flex-col pt-[max(1.5rem,calc(1rem+env(safe-area-inset-top)))] md:pt-[max(3.5rem,calc(2.5rem+env(safe-area-inset-top)))] px-4 md:p-8 lg:p-10 pb-[calc(6.125rem+env(safe-area-inset-bottom))] md:pb-8 min-w-0 bg-[#f7f5f0] dark:bg-[#121212] overflow-hidden">
       
       <div className="flex-1 flex flex-col relative z-10 min-w-0 min-h-0 max-w-full w-full h-full">
         <header className="mb-6 lg:mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4 shrink-0 relative z-50">

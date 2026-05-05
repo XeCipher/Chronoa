@@ -122,7 +122,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         and preventing elements like centered headers/buttons from shifting left or right 
         when internal expanding widgets (like calendars) change the page height. 
       */}
-      <main id="main-scroll-container" className="flex-1 h-full overflow-y-scroll overflow-x-hidden relative min-w-0 pb-[calc(72px+env(safe-area-inset-bottom))] md:pb-0 pt-[max(1rem,env(safe-area-inset-top))] md:pt-0 scroll-smooth">
+      <main id="main-scroll-container" className="flex-1 h-full overflow-y-scroll overflow-x-hidden relative min-w-0 pb-[calc(82px+env(safe-area-inset-bottom))] md:pb-0 pt-[max(1rem,env(safe-area-inset-top))] md:pt-0 scroll-smooth">
         {children}
       </main>
 

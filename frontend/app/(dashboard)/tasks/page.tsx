@@ -38,6 +38,11 @@ export default function TasksPage() {
     });
   };
 
+  useEffect(() => {
+    setTasksView('focus');
+    setIsTrashOpen(false);
+  }, [setTasksView]);
+
   // Reset View Event Listener
   useEffect(() => {
     const handleReset = (e: any) => {
