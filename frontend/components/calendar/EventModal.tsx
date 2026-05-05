@@ -58,6 +58,7 @@ export default function EventModal({ isOpen, onClose, onSave, onDelete, initialE
   const [endTime, setEndTime] = useState(new Date());
   const [color, setColor] = useState("amber");
   const [isReadOnly, setIsReadOnly] = useState(false);
+  const [sourceName, setSourceName] = useState<string | null>(null);
   
   const [repeatSelect, setRepeatSelect] = useState("none");
   const [customDays, setCustomDays] = useState<number[]>([]);
@@ -84,6 +85,14 @@ export default function EventModal({ isOpen, onClose, onSave, onDelete, initialE
         setColor(initialEvent.color || "amber");
         setIsReadOnly(initialEvent.is_readonly || false);
         
+        if (initialEvent.source_id) {
+           supabase.from('calendar_sources').select('name').eq('id', initialEvent.source_id).single().then(({data}) => {
+             if (data) setSourceName(data.name);
+           });
+        } else {
+           setSourceName(null);
+        }
+        
         const pattern = initialEvent.series_id ? (initialEvent.repeat_pattern || 'none') : 'none';
         if (pattern.startsWith('custom:')) {
            setRepeatSelect('custom');
@@ -101,6 +110,7 @@ export default function EventModal({ isOpen, onClose, onSave, onDelete, initialE
         setIsAllDay(false);
         setRepeatSelect("none");
         setIsReadOnly(false);
+        setSourceName(null);
 
         if (dragTimeRange) {
           setStartTime(dragTimeRange.start);
@@ -270,18 +280,19 @@ export default function EventModal({ isOpen, onClose, onSave, onDelete, initialE
   return (
     <div className="fixed inset-0 z-[500] flex items-center justify-center px-4 bg-black/40 dark:bg-black/60 backdrop-blur-sm animate-fade-in">
       <div className="bg-[#f7f5f0] dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] rounded-[2.5rem] w-full max-w-xl shadow-2xl animate-fade-up flex flex-col max-h-[90vh]">
-        
-        {isReadOnly && (
-          <div className="bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 px-6 py-2.5 flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest rounded-t-[2.5rem] shadow-inner">
-            <Lock size={14} /> Imported from external calendar
-          </div>
-        )}
 
-        <header className={`px-6 py-5 border-b border-[#e0ddd5] dark:border-[#2a2a2a] flex justify-between items-center bg-white dark:bg-[#1e1e1e] shrink-0 ${!isReadOnly ? 'rounded-t-[2.5rem]' : ''}`}>
-          <h3 className="text-xl font-serif text-[#3d3b33] dark:text-[#f0f0f0] font-medium">
-            {isReadOnly ? "View Event" : (initialEvent ? "Edit Event" : "New Event")}
-          </h3>
-          <div className="flex items-center gap-2">
+        <header className="px-6 py-5 border-b border-[#e0ddd5] dark:border-[#2a2a2a] flex justify-between items-center bg-white dark:bg-[#1e1e1e] shrink-0 rounded-t-[2.5rem]">
+          <div className="flex flex-col gap-0.5">
+            <h3 className="text-xl font-serif text-[#3d3b33] dark:text-[#f0f0f0] font-medium">
+              {isReadOnly ? "View Event" : (initialEvent ? "Edit Event" : "New Event")}
+            </h3>
+            {isReadOnly && sourceName && (
+              <div className="flex items-center gap-1.5 text-[10px] font-bold text-[#888] uppercase tracking-widest mt-1">
+                <CalendarIcon size={10} className="mb-[1px]" /> Read-only from {sourceName}
+              </div>
+            )}
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
             {!isReadOnly && initialEvent && onDelete && (
                <button onClick={handleDeleteWrapper} className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-full transition-colors">
                   <Trash2 size={18} />

@@ -5,7 +5,7 @@ import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import { CalendarEvent } from "@/types/app.types";
 import { useUiStore } from "@/store/uiStore";
-import { CalendarDays, ChevronLeft, ChevronRight, Plus, Search } from "lucide-react";
+import { CalendarDays, ChevronLeft, ChevronRight, Plus, Search, AlertCircle } from "lucide-react";
 import { format, addMonths, subMonths, addDays, startOfDay, endOfDay, startOfWeek, endOfWeek, addWeeks, addYears, subYears, isSameDay, startOfMonth, isToday } from "date-fns";
 
 import MonthView from "@/components/calendar/MonthView";
@@ -28,6 +28,7 @@ export default function CalendarPage() {
   
   const [referenceDate, setReferenceDate] = useState(startOfDay(new Date()));
   const [events, setEvents] = useState<CalendarEvent[]>([]);
+  const [syncErrors, setSyncErrors] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   // Search States
@@ -119,7 +120,13 @@ export default function CalendarPage() {
     if (!user) return;
     
     // Trigger background sync for external calendars (Throttled inside the function)
-    syncExternalCalendars(user.id).then(() => {
+    syncExternalCalendars(user.id).then((errors) => {
+      if (errors && errors.length > 0) {
+        setSyncErrors(errors);
+      } else {
+        setSyncErrors([]);
+      }
+      
       supabase.from('calendar_events').select('*').eq('user_id', user.id).then(({ data }) => {
         if (data) {
            setEvents(data as CalendarEvent[]);
@@ -381,9 +388,13 @@ export default function CalendarPage() {
     return format(referenceDate, 'MMMM d, yyyy');
   };
 
+  const escapeRegExp = (string: string) => {
+    return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  };
+
   const renderHighlightedText = (text: string) => {
     if (!searchQuery) return text;
-    const parts = text.split(new RegExp(`(${searchQuery.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi'));
+    const parts = text.split(new RegExp(`(${escapeRegExp(searchQuery)})`, 'gi'));
     return parts.map((part, i) =>
       part.toLowerCase() === searchQuery.toLowerCase() ? (
         <span key={i} className="bg-[#c2956e]/40 dark:bg-[#b0855f]/50 text-[#3d3b33] dark:text-white rounded-[4px] px-[2px] font-bold">{part}</span>
@@ -503,7 +514,16 @@ export default function CalendarPage() {
             
             {isDatePickerOpen && renderDatePicker()}
 
-            <div className="md:hidden relative shrink-0" ref={mobileSearchRef}>
+            <div className="md:hidden relative shrink-0 flex items-center gap-2" ref={mobileSearchRef}>
+              {syncErrors.length > 0 && (
+                <div 
+                  data-tooltip-id="global-tooltip" 
+                  data-tooltip-content={`Sync failed: ${syncErrors.join(', ')}`}
+                  className="flex items-center justify-center w-10 h-10 rounded-full bg-red-50 dark:bg-red-900/10 text-red-500 border border-red-100 dark:border-red-900/30 shadow-sm cursor-help shrink-0"
+                >
+                  <AlertCircle size={16} />
+                </div>
+              )}
               <button 
                   onClick={() => setIsSearchOpen(!isSearchOpen)}
                   className={`w-10 h-10 flex items-center justify-center rounded-full transition-colors shadow-sm border ${isSearchOpen ? 'bg-[#c2956e] text-white border-[#c2956e]' : 'bg-white dark:bg-[#1a1a1a] text-[#888] hover:text-[#c2956e] border-[#e0ddd5] dark:border-[#333]'}`}
@@ -546,6 +566,15 @@ export default function CalendarPage() {
           </div>
 
           <div className="flex flex-col md:flex-row items-center gap-2 md:gap-3 w-full md:w-auto shrink-0">
+            {syncErrors.length > 0 && (
+              <div 
+                data-tooltip-id="global-tooltip" 
+                data-tooltip-content={`Sync failed: ${syncErrors.join(', ')}`}
+                className="hidden md:flex items-center justify-center w-10 h-10 rounded-full bg-red-50 dark:bg-red-900/10 text-red-500 border border-red-100 dark:border-red-900/30 shadow-sm cursor-help shrink-0"
+              >
+                <AlertCircle size={18} />
+              </div>
+            )}
             <div className="hidden md:block relative shrink-0 h-10" ref={desktopSearchRef}>
               <button 
                 onClick={() => setIsSearchOpen(!isSearchOpen)}

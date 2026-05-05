@@ -258,15 +258,15 @@ export default function SettingsPage() {
       const source = calSources.find(s => s.id === id);
       if (!source) throw new Error("Source not found");
 
-      const urlChanged = source.url !== editSourceUrl;
+      const urlChanged = source.type === 'link' && source.url !== editSourceUrl;
       
-      const { error } = await supabase.from('calendar_sources').update({
-        name: editSourceName,
-        url: editSourceUrl
-      }).eq('id', id);
+      const updates: any = { name: editSourceName };
+      if (source.type === 'link') updates.url = editSourceUrl;
+
+      const { error } = await supabase.from('calendar_sources').update(updates).eq('id', id);
       if (error) throw error;
 
-      if (urlChanged && editSourceUrl) {
+      if (urlChanged && editSourceUrl && source.type === 'link') {
         const res = await fetch(`/api/calendar/fetch-ics?url=${encodeURIComponent(editSourceUrl)}`);
         if (!res.ok) {
           const errorData = await res.json();
@@ -286,7 +286,7 @@ export default function SettingsPage() {
         }
       }
 
-      setCalSources(prev => prev.map(s => s.id === id ? { ...s, name: editSourceName, url: editSourceUrl } : s));
+      setCalSources(prev => prev.map(s => s.id === id ? { ...s, name: editSourceName, url: source.type === 'link' ? editSourceUrl : s.url } : s));
       setEditingSourceId(null);
     } catch (err: any) {
       showConfirmDialog({ title: "Update Failed", message: err.message || "Please check the URL.", confirmText: "Dismiss", onConfirm: () => {} });
@@ -458,11 +458,9 @@ export default function SettingsPage() {
                                )}
                             </div>
                             
-                            {source.type === 'link' && (
-                              <button onClick={() => { setEditingSourceId(source.id); setEditSourceName(source.name); setEditSourceUrl(source.url || ""); }} className="w-9 h-9 flex items-center justify-center bg-white dark:bg-[#1a1a1a] text-[#888] hover:text-[#c2956e] border border-[#e0ddd5] dark:border-[#333] hover:bg-gray-50 dark:hover:bg-[#222] rounded-lg shadow-sm transition-colors">
-                                 <Edit3 size={16} />
-                              </button>
-                            )}
+                            <button onClick={() => { setEditingSourceId(source.id); setEditSourceName(source.name); setEditSourceUrl(source.url || ""); }} className="w-9 h-9 flex items-center justify-center bg-white dark:bg-[#1a1a1a] text-[#888] hover:text-[#c2956e] border border-[#e0ddd5] dark:border-[#333] hover:bg-gray-50 dark:hover:bg-[#222] rounded-lg shadow-sm transition-colors">
+                               <Edit3 size={16} />
+                            </button>
                             <button onClick={() => handleRemoveSource(source.id)} className="w-9 h-9 flex items-center justify-center bg-white dark:bg-[#1a1a1a] text-red-400 hover:text-red-500 border border-red-100 dark:border-red-900/30 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg shadow-sm transition-colors">
                                <Trash2 size={16} />
                             </button>
@@ -478,7 +476,7 @@ export default function SettingsPage() {
               <div className="flex flex-col gap-3 mt-2">
                  <h4 className="text-[11px] font-bold text-[#b0ad9a] dark:text-[#7a7a7a] uppercase tracking-widest pl-1">Add Calendar</h4>
                  <div className="flex flex-col md:flex-row gap-3">
-                    <input type="text" placeholder="Name (e.g. Work, Personal)" value={newLinkName} onChange={e => setNewLinkName(e.target.value)} spellCheck={false} className="flex-1 min-w-[150px] bg-[#f7f5f0] dark:bg-[#252525] border border-[#e0ddd5] dark:border-[#444] rounded-xl px-4 py-3 text-sm outline-none focus:border-[#c2956e] transition-colors shadow-sm" />
+                    <input type="text" placeholder="Name (e.g. Work)" value={newLinkName} onChange={e => setNewLinkName(e.target.value)} spellCheck={false} className="flex-1 min-w-[150px] bg-[#f7f5f0] dark:bg-[#252525] border border-[#e0ddd5] dark:border-[#444] rounded-xl px-4 py-3 text-sm outline-none focus:border-[#c2956e] transition-colors shadow-sm" />
                     <input type="url" placeholder="Public ICS Link (https://...)" value={newLinkUrl} onChange={e => setNewLinkUrl(e.target.value)} spellCheck={false} className="flex-[2] min-w-[200px] bg-[#f7f5f0] dark:bg-[#252525] border border-[#e0ddd5] dark:border-[#444] rounded-xl px-4 py-3 text-sm outline-none focus:border-[#c2956e] transition-colors shadow-sm" />
                     
                     <div className="flex gap-2">
@@ -495,21 +493,25 @@ export default function SettingsPage() {
 
                  {/* Help Texts */}
                  <div className="flex flex-col gap-3 mt-4 bg-[#f7f5f0]/50 dark:bg-[#222]/50 p-4 rounded-2xl border border-[#e0ddd5] dark:border-[#333]">
-                   <p className="text-xs text-[#888] dark:text-[#a0a0a0] leading-relaxed">
-                     You can easily import your current Apple or Google calendar here. You can also find sports or other event calendar links online if you want to import your favorite sports schedule to this calendar, for example F1 or cricket.
-                   </p>
+                   <div className="flex items-start gap-2.5 mb-1">
+                     <Info className="text-[#888] shrink-0 mt-0.5" size={16} />
+                     <div className="text-xs text-[#888] dark:text-[#a0a0a0] leading-relaxed flex flex-col gap-1">
+                       <p>Import your Apple or Google calendar to view your schedule here.</p>
+                       <p>Subscribe to public calendars online, such as F1 or cricket match schedules.</p>
+                     </div>
+                   </div>
                    <div className="flex flex-col sm:flex-row gap-3">
-                     <a href="https://support.google.com/calendar/answer/37648" target="_blank" rel="noopener noreferrer" className="flex-1 p-3 bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#444] rounded-xl flex items-center justify-between group hover:border-[#c2956e]/50 transition-colors shadow-sm">
-                        <div className="flex items-center gap-2">
-                           <Info size={14} className="text-[#888]" />
-                           <span className="text-xs text-[#3d3b33] dark:text-[#f0f0f0] font-medium">Google Calendar Guide</span>
-                        </div>
-                        <ExternalLink size={14} className="text-[#b0ad9a] group-hover:text-[#c2956e] transition-colors" />
-                     </a>
-                     <a href="https://support.apple.com/guide/calendar/share-icloud-calendars-icl227ba2f64/mac" target="_blank" rel="noopener noreferrer" className="flex-1 p-3 bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#444] rounded-xl flex items-center justify-between group hover:border-[#c2956e]/50 transition-colors shadow-sm">
+                     <a href="https://support.apple.com/en-in/guide/iphone/iph7613c4fb/ios#iph7e03288fc" target="_blank" rel="noopener noreferrer" className="flex-1 p-3 bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#444] rounded-xl flex items-center justify-between group hover:border-[#c2956e]/50 transition-colors shadow-sm">
                         <div className="flex items-center gap-2">
                            <Info size={14} className="text-[#888]" />
                            <span className="text-xs text-[#3d3b33] dark:text-[#f0f0f0] font-medium">Apple Calendar Guide</span>
+                        </div>
+                        <ExternalLink size={14} className="text-[#b0ad9a] group-hover:text-[#c2956e] transition-colors" />
+                     </a>
+                     <a href="https://support.google.com/calendar/answer/37083?hl=en#link" target="_blank" rel="noopener noreferrer" className="flex-1 p-3 bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#444] rounded-xl flex items-center justify-between group hover:border-[#c2956e]/50 transition-colors shadow-sm">
+                        <div className="flex items-center gap-2">
+                           <Info size={14} className="text-[#888]" />
+                           <span className="text-xs text-[#3d3b33] dark:text-[#f0f0f0] font-medium">Google Calendar Guide</span>
                         </div>
                         <ExternalLink size={14} className="text-[#b0ad9a] group-hover:text-[#c2956e] transition-colors" />
                      </a>

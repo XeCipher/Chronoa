@@ -146,12 +146,13 @@ export function exportICS(events: CalendarEvent[]): string {
 const syncRecord: Record<string, number> = {};
 let isSyncing = false;
 
-export async function syncExternalCalendars(userId: string, force: boolean = false) {
-  if (isSyncing) return;
+export async function syncExternalCalendars(userId: string, force: boolean = false): Promise<string[]> {
+  const failedSources: string[] = [];
+  if (isSyncing) return failedSources;
   
   const now = Date.now();
   if (!force && syncRecord[userId] && now - syncRecord[userId] < 30 * 1000) {
-    return;
+    return failedSources;
   }
 
   isSyncing = true;
@@ -163,13 +164,16 @@ export async function syncExternalCalendars(userId: string, force: boolean = fal
       .eq('user_id', userId)
       .eq('type', 'link');
 
-    if (!sources || sources.length === 0) return;
+    if (!sources || sources.length === 0) return failedSources;
 
     for (const source of sources) {
       if (!source.url) continue;
       try {
         const res = await fetch(`/api/calendar/fetch-ics?url=${encodeURIComponent(source.url)}`);
-        if (!res.ok) continue;
+        if (!res.ok) {
+          failedSources.push(source.name);
+          continue;
+        }
         const icsText = await res.text();
         
         await supabase.from('calendar_events').delete().eq('source_id', source.id);
@@ -181,6 +185,7 @@ export async function syncExternalCalendars(userId: string, force: boolean = fal
         }
       } catch (e) {
         console.error(`Failed to background sync source ${source.name}`, e);
+        failedSources.push(source.name);
       }
     }
 
@@ -190,4 +195,6 @@ export async function syncExternalCalendars(userId: string, force: boolean = fal
   } finally {
     isSyncing = false;
   }
+  
+  return failedSources;
 }
