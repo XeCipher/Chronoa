@@ -14,13 +14,40 @@ interface Props {
   onEventMove: (event: CalendarEvent, newStart: Date, newEnd: Date) => void;
   eventColors: Record<string, string>;
   targetScrollTime: string | null;
+  scrollToNowTrigger?: number;
 }
 
 const HOURS = Array.from({ length: 24 }, (_, i) => i);
 
 const formatEventTime = (d: Date) => d.getMinutes() === 0 ? format(d, 'h a') : format(d, 'h:mm a');
 
-export default function DayView({ currentDate, events, onEventClick, onTimeRangeSelected, onEventMove, eventColors, targetScrollTime }: Props) {
+// Custom smooth scroll utility for a deliberate, slow animation
+const smoothScrollTo = (element: HTMLElement, targetPosition: number, duration: number) => {
+  const startPosition = element.scrollTop;
+  const distance = targetPosition - startPosition;
+  let startTime: number | null = null;
+
+  const animation = (currentTime: number) => {
+    if (startTime === null) startTime = currentTime;
+    const timeElapsed = currentTime - startTime;
+    const progress = Math.min(timeElapsed / duration, 1);
+    
+    // Cubic ease-in-out curve
+    const ease = progress < 0.5 
+      ? 4 * progress * progress * progress 
+      : 1 - Math.pow(-2 * progress + 2, 3) / 2;
+    
+    element.scrollTop = startPosition + distance * ease;
+
+    if (timeElapsed < duration) {
+      requestAnimationFrame(animation);
+    }
+  };
+
+  requestAnimationFrame(animation);
+};
+
+export default function DayView({ currentDate, events, onEventClick, onTimeRangeSelected, onEventMove, eventColors, targetScrollTime, scrollToNowTrigger }: Props) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [now, setNow] = useState(new Date());
 
@@ -33,18 +60,31 @@ export default function DayView({ currentDate, events, onEventClick, onTimeRange
     return () => clearInterval(timer);
   }, []);
 
+  // For initial mount / search target scroll
   useEffect(() => {
     if (scrollRef.current) {
       if (targetScrollTime) {
          const d = new Date(targetScrollTime);
          const targetMins = d.getHours() * 60 + d.getMinutes();
-         scrollRef.current.scrollTop = Math.max(0, targetMins - scrollRef.current.clientHeight / 2);
+         smoothScrollTo(scrollRef.current, Math.max(0, targetMins - scrollRef.current.clientHeight / 2), 1200);
       } else {
-         const currentMins = now.getHours() * 60 + now.getMinutes();
-         scrollRef.current.scrollTop = Math.max(0, currentMins - scrollRef.current.clientHeight / 2);
+         const current = new Date();
+         const currentMins = current.getHours() * 60 + current.getMinutes();
+         scrollRef.current.scrollTop = Math.max(0, currentMins - scrollRef.current.clientHeight / 2); // Instant on mount
       }
     }
-  }, [targetScrollTime, now]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [targetScrollTime]); 
+
+  // For "Today" button click
+  useEffect(() => {
+    if (scrollToNowTrigger && scrollToNowTrigger > 0 && scrollRef.current) {
+       const current = new Date();
+       const currentMins = current.getHours() * 60 + current.getMinutes();
+       smoothScrollTo(scrollRef.current, Math.max(0, currentMins - scrollRef.current.clientHeight / 2), 500);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scrollToNowTrigger]);
 
   const allDayEvents = useMemo(() => {
     return events.filter(e => e.is_all_day && isSameDay(new Date(e.start_time), currentDate));

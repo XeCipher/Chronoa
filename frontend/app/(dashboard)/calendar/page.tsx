@@ -37,6 +37,9 @@ export default function CalendarPage() {
   const desktopSearchRef = useRef<HTMLDivElement>(null);
   const [targetScrollTime, setTargetScrollTime] = useState<string | null>(null);
 
+  // Used to cleanly inform the views to smoothly scroll down to the current time red-line
+  const [scrollToNowTrigger, setScrollToNowTrigger] = useState(0);
+
   // Date Picker States
   const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
   const [pickerMonth, setPickerMonth] = useState(startOfMonth(referenceDate));
@@ -159,6 +162,7 @@ export default function CalendarPage() {
 
   const handleToday = () => {
     setReferenceDate(startOfDay(new Date()));
+    setScrollToNowTrigger(Date.now());
   };
 
   const getDefaultAddDate = () => {
@@ -592,9 +596,9 @@ export default function CalendarPage() {
               openAddModal={openAddModal}
             />
           )}
-          {calendarView === 'week' && <WeekView targetScrollTime={targetScrollTime} currentDate={referenceDate} events={events} onEventClick={openEditModal} onTimeRangeSelected={openAddModal} onEventMove={handleEventMove} eventColors={EVENT_COLORS} daysCount={7} />}
-          {calendarView === '2-day' && <WeekView targetScrollTime={targetScrollTime} currentDate={referenceDate} events={events} onEventClick={openEditModal} onTimeRangeSelected={openAddModal} onEventMove={handleEventMove} eventColors={EVENT_COLORS} daysCount={2} />}
-          {calendarView === 'day' && <DayView targetScrollTime={targetScrollTime} currentDate={referenceDate} events={events} onEventClick={openEditModal} onTimeRangeSelected={openAddModal} onEventMove={handleEventMove} eventColors={EVENT_COLORS} />}
+          {calendarView === 'week' && <WeekView targetScrollTime={targetScrollTime} currentDate={referenceDate} events={events} onEventClick={openEditModal} onTimeRangeSelected={openAddModal} onEventMove={handleEventMove} eventColors={EVENT_COLORS} daysCount={7} scrollToNowTrigger={scrollToNowTrigger} />}
+          {calendarView === '2-day' && <WeekView targetScrollTime={targetScrollTime} currentDate={referenceDate} events={events} onEventClick={openEditModal} onTimeRangeSelected={openAddModal} onEventMove={handleEventMove} eventColors={EVENT_COLORS} daysCount={2} scrollToNowTrigger={scrollToNowTrigger} />}
+          {calendarView === 'day' && <DayView targetScrollTime={targetScrollTime} currentDate={referenceDate} events={events} onEventClick={openEditModal} onTimeRangeSelected={openAddModal} onEventMove={handleEventMove} eventColors={EVENT_COLORS} scrollToNowTrigger={scrollToNowTrigger} />}
         </div>
       </div>
 
