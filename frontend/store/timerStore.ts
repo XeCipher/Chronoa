@@ -66,22 +66,33 @@ export const useTimerStore = create<TimerState>()(
       setForceShowWidgets: (val) => set({ forceShowWidgets: val }),
 
       addInstance: (tab, title) => {
-        const newId = generateId();
+        let returnedId = '';
         set((state) => {
           const listName = tab === 'timer' ? 'timers' : 'stopwatches';
           const list = state[listName];
+          const checkTitle = title || 'Focus Task';
+
+          // Prevent duplication of same-named timers/stopwatches per user request
+          const existing = list.find(i => i.title.trim() === checkTitle.trim());
+          if (existing) {
+            returnedId = existing.id;
+            return state;
+          }
+
+          const newId = generateId();
+          returnedId = newId;
           const newInst = tab === 'timer' ? createDefaultTimer() : createDefaultStopwatch();
           newInst.id = newId;
-          if (title) newInst.title = title;
+          newInst.title = checkTitle;
 
-          // Replace the single default item if untouched AND a title is provided (meaning it came from "Send to timer" context)
+          // Replace the single default item if untouched AND a title is provided
           if (title && list.length === 1 && list[0].title === 'Focus Task' && list[0].accumulatedSeconds === 0 && !list[0].isRunning) {
             return { [listName]: [newInst] };
           }
 
           return { [listName]: [...list, newInst] };
         });
-        return newId;
+        return returnedId;
       },
 
       removeInstance: (tab, id) => set((state) => {

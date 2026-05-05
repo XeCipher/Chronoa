@@ -88,7 +88,7 @@ export default function MonthView({ currentDate, events, onEventClick, onDayClic
   }, [selectedDate, selectedDayEvents, isUserScrolling]);
 
   return (
-    <div className="flex flex-col lg:flex-row gap-4 h-full w-full overflow-y-auto lg:overflow-hidden no-scrollbar">
+    <div className={`flex flex-col lg:flex-row gap-4 h-full w-full overflow-y-auto lg:overflow-hidden no-scrollbar ${isMobile ? 'pb-[calc(6.125rem+1rem+env(safe-area-inset-bottom))]' : ''}`}>
       
       <div className={`flex flex-col bg-white dark:bg-[#1a1a1a] rounded-[2rem] border border-[#e0ddd5] dark:border-[#333] shadow-sm overflow-hidden shrink-0 lg:flex-1 ${isMobile ? 'h-[50vh] min-h-[350px]' : 'h-full min-h-0'}`}>
         <div className="flex flex-col h-full w-full">
@@ -254,6 +254,10 @@ export default function MonthView({ currentDate, events, onEventClick, onDayClic
            )}
         </div>
       </div>
+      
+      {isMobile && (
+        <div className="h-[calc(env(safe-area-inset-bottom))] w-full shrink-0 lg:hidden pointer-events-none" />
+      )}
 
     </div>
   );
