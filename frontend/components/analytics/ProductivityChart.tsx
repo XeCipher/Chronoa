@@ -4,7 +4,7 @@
 import { useState, useMemo, useRef, useEffect } from 'react';
 import { ResponsiveContainer, ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip } from 'recharts';
 import { useUiStore } from "@/store/uiStore";
-import { ChevronLeft, ChevronRight, Calendar as CalIcon, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Calendar as CalIcon, X, Target } from 'lucide-react';
 import { DailyRecord } from '@/app/(dashboard)/analytics/page';
 
 const getSaturday = (date: Date) => {
@@ -195,7 +195,7 @@ export default function ProductivityChart({ dailyMap }: { dailyMap: Record<strin
     <div className="bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] rounded-[2.5rem] p-6 md:p-8 shadow-sm h-[400px] flex flex-col transition-colors relative">
       <div className="flex justify-between items-start mb-6">
         <div>
-          <h3 className="text-2xl font-medium text-[#3d3b33] dark:text-[#f0f0f0] font-serif tracking-tight">Productivity Pulse</h3>
+          <h3 className="text-2xl font-medium text-[#3d3b33] dark:text-[#f0f0f0] font-serif tracking-tight">Activity Flow</h3>
           <p className="text-[10px] font-bold uppercase tracking-widest text-[#b0ad9a] dark:text-[#7a7a7a] mt-1">
             {chartData[0].fullDate} - {chartData[6].fullDate}
           </p>
@@ -203,8 +203,12 @@ export default function ProductivityChart({ dailyMap }: { dailyMap: Record<strin
         
         <div className="flex items-center gap-2 relative">
            {endDate.getTime() !== today.getTime() && (
-             <button onClick={() => setEndDate(today)} className="hidden md:block px-3 py-1.5 rounded-xl bg-[#c2956e]/10 text-[#c2956e] text-[10px] font-bold uppercase tracking-widest hover:bg-[#c2956e] hover:text-white transition-colors">
-               Present
+             <button 
+               onClick={() => setEndDate(today)} 
+               className="hidden md:flex items-center justify-center p-2 rounded-xl bg-[#c2956e]/10 text-[#c2956e] hover:bg-[#c2956e] hover:text-white transition-colors"
+               data-tooltip-id="global-tooltip" data-tooltip-content="Return to Present"
+             >
+               <Target size={16} />
              </button>
            )}
            <button onClick={() => setShowCalendar(!showCalendar)} className={`p-2 rounded-xl border transition-colors ${showCalendar ? 'bg-[#c2956e] text-white border-[#c2956e]' : 'bg-[#f7f5f0] dark:bg-[#222] text-[#888] border-[#e0ddd5] dark:border-[#333] hover:text-[#c2956e]'}`}>

@@ -91,7 +91,6 @@ export default function NotesPage() {
     }
   }, [notesTab]);
 
-  // Reset View Event Listener
   useEffect(() => {
     const handleReset = (e: any) => {
       if (e.detail === '/notes') {
@@ -133,7 +132,6 @@ export default function NotesPage() {
     
     let jList = jData || [];
 
-    // Auto-delete empty journals that are not today's
     const emptyJournals = jList.filter(j => {
       if (j.entry_date === todayStr) return false;
       const plain = (j.content || "").replace(/<[^>]+>/g, '').trim();
@@ -619,38 +617,43 @@ export default function NotesPage() {
 
       {/* MAIN CONTENT VIEW */}
       <main className={`
-        flex-1 flex flex-col bg-white dark:bg-[#121212] lg:static absolute inset-0 transition-transform duration-500 ease-in-out z-40
-        ${isListVisible ? 'translate-x-full lg:translate-x-0' : 'translate-x-0'}
+        flex-1 flex flex-col bg-white dark:bg-[#121212] transition-transform duration-500 ease-in-out z-40
+        max-lg:fixed max-lg:inset-0
+        lg:static lg:translate-x-0
+        ${isListVisible ? 'max-lg:translate-x-full' : 'max-lg:translate-x-0'}
       `}>
         {selectedItem ? (
           <div className="flex-1 flex flex-col w-full overflow-hidden">
             
             <div id="notes-scroll-container" className="flex-1 overflow-y-auto no-scrollbar scroll-smooth">
-              <div className="max-w-[1000px] mx-auto px-6 py-6 lg:py-10 lg:px-12 w-full">
+              <div className="max-w-[1000px] mx-auto px-6 pt-[calc(1.5rem+max(1rem,env(safe-area-inset-top)))] md:pt-6 lg:pt-10 pb-[calc(1.5rem+72px+env(safe-area-inset-bottom))] lg:pb-10 lg:px-12 w-full">
                 
-                {/* Mobile Back Button */}
-                <button onClick={() => setIsListVisible(true)} className="lg:hidden flex items-center gap-1.5 text-xs font-bold uppercase text-[#b0ad9a] tracking-widest hover:text-[#c2956e] mb-4 outline-none">
-                  <ChevronLeft size={16} /> Library
-                </button>
-
                 {/* Title & Top Right Actions */}
                 <div className="mb-4 flex flex-row items-center justify-between gap-4 relative group w-full">
-                  <div className="flex-1 min-w-0">
-                    {(!isTrashOpen && notesTab === 'journal') || selectedItem.isJournal ? (
-                      <div className="space-y-1">
-                        <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#c2956e]">Daily Entry</p>
-                        <h1 className="text-4xl lg:text-5xl text-[#3d3b33] dark:text-white font-serif leading-tight">
-                          {formatDateLabel(selectedItem.entry_date)}
-                        </h1>
-                      </div>
-                    ) : (
-                      <input 
-                        value={editTitle} onChange={e => setEditTitle(e.target.value)} onBlur={updateNoteTitle} disabled={isTrashOpen}
-                        placeholder="Title..."
-                        spellCheck={false}
-                        className="text-4xl lg:text-5xl text-[#3d3b33] dark:text-white font-serif leading-tight bg-transparent outline-none w-full placeholder:text-[#e0ddd5] dark:placeholder:text-[#2a2a2a] transition-all" 
-                      />
-                    )}
+                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                    <button 
+                      onClick={() => { setSelectedId(null); setIsListVisible(true); }} 
+                      className="flex items-center justify-center p-2.5 bg-[#f7f5f0] dark:bg-[#1a1a1a] text-[#888] rounded-xl border border-[#e0ddd5] dark:border-[#333] hover:text-[#3d3b33] dark:hover:text-[#f0f0f0] transition-all shadow-sm shrink-0"
+                    >
+                      <ArrowLeft size={18} />
+                    </button>
+                    <div className="flex-1 min-w-0">
+                      {(!isTrashOpen && notesTab === 'journal') || selectedItem.isJournal ? (
+                        <div className="space-y-0.5">
+                          <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-[#c2956e]">Daily Entry</p>
+                          <h1 className="text-3xl lg:text-4xl text-[#3d3b33] dark:text-white font-serif leading-tight">
+                            {formatDateLabel(selectedItem.entry_date)}
+                          </h1>
+                        </div>
+                      ) : (
+                        <input 
+                          value={editTitle} onChange={e => setEditTitle(e.target.value)} onBlur={updateNoteTitle} disabled={isTrashOpen}
+                          placeholder="Title..."
+                          spellCheck={false}
+                          className="text-3xl lg:text-4xl text-[#3d3b33] dark:text-white font-serif leading-tight bg-transparent outline-none w-full placeholder:text-[#e0ddd5] dark:placeholder:text-[#2a2a2a] transition-all" 
+                        />
+                      )}
+                    </div>
                   </div>
 
                   {/* Top-Right Action Buttons (Perfectly Inline with Title) */}
@@ -684,7 +687,6 @@ export default function NotesPage() {
                   />
                 </div>
               </div>
-              <div className="h-28 lg:h-0 w-full shrink-0 pointer-events-none" />
             </div>
           </div>
         ) : (

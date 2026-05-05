@@ -147,7 +147,8 @@ export default function WeekView({ currentDate, events, onEventClick, onTimeRang
 
   const handleMouseDown = (e: React.MouseEvent, day: Date) => {
     if (e.button !== 0) return;
-    const y = e.nativeEvent.offsetY;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const y = e.clientY - rect.top;
     const hour = Math.floor(y / 60);
     const min = Math.floor((y % 60) / 15) * 15;
     const time = setMinutes(setHours(day, hour), min);
@@ -159,7 +160,8 @@ export default function WeekView({ currentDate, events, onEventClick, onTimeRang
 
   const handleMouseMove = (e: React.MouseEvent, day: Date) => {
     if (!isDragging || !dragStart) return;
-    const y = Math.max(0, Math.min(e.nativeEvent.offsetY, 1440));
+    const rect = e.currentTarget.getBoundingClientRect();
+    const y = Math.max(0, Math.min(e.clientY - rect.top, 1440));
     const hour = Math.floor(y / 60);
     const min = Math.floor((y % 60) / 15) * 15;
     const time = setMinutes(setHours(day, hour), min);
@@ -330,9 +332,8 @@ export default function WeekView({ currentDate, events, onEventClick, onTimeRang
                         const offsetY = e.clientY - rect.top;
                         e.dataTransfer.setData('grabY', offsetY.toString());
                       }}
-                      onMouseDown={(e) => e.stopPropagation()}
                       onClick={(e) => { e.stopPropagation(); onEventClick(event); }}
-                      className={`absolute rounded-md md:rounded-md border cursor-grab active:cursor-grabbing shadow-sm overflow-hidden hover:z-30 transition-transform flex flex-col ${colorClasses} z-20`}
+                      className={`absolute rounded-md md:rounded-md border cursor-grab active:cursor-grabbing shadow-sm overflow-hidden hover:z-30 transition-transform flex flex-col ${colorClasses} z-20 border-black/5 dark:border-white/5`}
                       style={{ top: pos.top, height: pos.height, left: pos.left, width: pos.width }}
                     >
                       <div className={`flex-1 min-h-0 flex flex-col relative overflow-hidden ${isShort ? 'justify-center p-0.5 px-1' : 'p-1.5'}`}>

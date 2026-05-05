@@ -104,7 +104,12 @@ export default function SettingsPage() {
     if (showGithubModal && githubCountdown > 0) {
       timer = setTimeout(() => setGithubCountdown(githubCountdown - 1), 1000);
     } else if (showGithubModal && githubCountdown === 0) {
-      window.location.href = "https://github.com/XeCipher/Chronoa";
+      const isStandalone = window.matchMedia('(display-mode: standalone)').matches || ('standalone' in navigator && (navigator as any).standalone);
+      if (isStandalone) {
+        window.location.href = "https://github.com/XeCipher/Chronoa";
+      } else {
+        window.open("https://github.com/XeCipher/Chronoa", "_blank");
+      }
       setShowGithubModal(false);
       setGithubCountdown(-1);
     }

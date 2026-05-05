@@ -35,6 +35,23 @@ export default function TodayCalendarWidget({ variant, searchQuery = '' }: Props
   
   const { calendarWidgetCollapsed, setCalendarWidgetCollapsed } = useUiStore();
   const scrollRef = useRef<HTMLDivElement>(null);
+  
+  const scrollTimeout = useRef<NodeJS.Timeout | null>(null);
+  const [isUserScrolling, setIsUserScrolling] = useState(false);
+
+  useEffect(() => {
+    return () => {
+      if (scrollTimeout.current) clearTimeout(scrollTimeout.current);
+    };
+  }, []);
+
+  const handleUserScroll = () => {
+    setIsUserScrolling(true);
+    if (scrollTimeout.current) clearTimeout(scrollTimeout.current);
+    scrollTimeout.current = setTimeout(() => {
+      setIsUserScrolling(false);
+    }, 10000);
+  };
 
   const fetchTodayEvents = useCallback(async () => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -91,21 +108,32 @@ export default function TodayCalendarWidget({ variant, searchQuery = '' }: Props
   const isCollapsed = variant === 'tasks' ? calendarWidgetCollapsed : false;
 
   useEffect(() => {
-    if (!loading && filteredEvents.length > 0 && scrollRef.current && !isCollapsed) {
-      const container = scrollRef.current;
-      // Find events actively happening right now
-      const happeningEvents = container.querySelectorAll('.event-happening-now');
-      
-      if (happeningEvents.length > 0) {
-        const targetEl = happeningEvents[0] as HTMLElement;
-        const offsetTop = targetEl.offsetTop - 16; 
-        container.scrollTo({ top: Math.max(0, offsetTop), behavior: 'smooth' });
-      } else {
-        // If nothing is actively happening, stay elegantly at the top
-        container.scrollTo({ top: 0, behavior: 'smooth' });
+    if (isUserScrolling) return;
+
+    const timer = setTimeout(() => {
+      if (!loading && filteredEvents.length > 0 && scrollRef.current && !isCollapsed) {
+        const container = scrollRef.current;
+        const now = new Date();
+        
+        // Find the FIRST event whose start time has NOT completely passed
+        const firstFutureIndex = filteredEvents.findIndex(e => new Date(e.start_time) > now);
+        
+        if (firstFutureIndex !== -1) {
+          const eventNodes = container.querySelectorAll('.event-card');
+          if (eventNodes[firstFutureIndex]) {
+             const targetEl = eventNodes[firstFutureIndex] as HTMLElement;
+             const offsetTop = targetEl.offsetTop - 16;
+             container.scrollTo({ top: Math.max(0, offsetTop), behavior: 'smooth' });
+          }
+        } else {
+          // If all events have started already, stay gracefully at the bottom
+          container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' });
+        }
       }
-    }
-  }, [loading, filteredEvents, isCollapsed]);
+    }, 100);
+
+    return () => clearTimeout(timer);
+  }, [loading, filteredEvents, isCollapsed, isUserScrolling]);
 
   const renderHighlightedText = (text: string) => {
     if (!searchQuery) return text;
@@ -236,12 +264,13 @@ export default function TodayCalendarWidget({ variant, searchQuery = '' }: Props
           )}
         </div>
 
-        {/* Added strict w-full to prevent width shrinking during the grid row animation */}
         <div className={`grid w-full transition-all duration-300 ease-in-out ${!isCollapsed ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}>
           <div className="overflow-hidden w-full">
             <div 
               ref={scrollRef}
-              className={`flex flex-col overflow-y-auto no-scrollbar scroll-smooth w-full ${variant === 'home' ? 'gap-2 px-4 pt-2 pb-4 max-h-[140px]' : 'gap-3 px-5 md:px-8 pt-4 pb-5 max-h-[180px]'}`}
+              onWheel={handleUserScroll}
+              onTouchMove={handleUserScroll}
+              className={`relative flex flex-col overflow-y-auto no-scrollbar scroll-smooth w-full ${variant === 'home' ? 'gap-2 px-4 pt-2 pb-4 max-h-[140px]' : 'gap-3 px-5 md:px-8 pt-4 pb-5 max-h-[180px]'}`}
             >
               {loading ? (
                 <div className="animate-pulse flex flex-col gap-2">
@@ -257,11 +286,13 @@ export default function TodayCalendarWidget({ variant, searchQuery = '' }: Props
                   
                   const timeStr = e.is_all_day ? 'All-day' : `${formatTimeStr(new Date(e.start_time))} - ${formatTimeStr(new Date(e.end_time))}`;
                   
+                  const activeBorder = isHappeningNow ? 'ring-[1.5px] ring-offset-2 ring-offset-transparent ring-[#c2956e] dark:ring-[#b0855f] z-10' : 'border border-black/5 dark:border-white/5';
+
                   return (
                     <div 
                       key={e.id}
                       onClick={() => handleEventClick(e)}
-                      className={`event-card flex items-center justify-between p-3 md:p-3.5 rounded-xl shadow-sm border border-black/5 dark:border-white/5 transition-all duration-300 ${variant === 'tasks' ? 'cursor-pointer hover:scale-[1.02]' : ''} ${variant === 'home' ? 'bg-white/60 dark:bg-black/40' : colorClass} ${isPast ? 'opacity-40 grayscale-[20%]' : 'event-active opacity-100'} ${isHappeningNow ? 'event-happening-now' : ''}`}
+                      className={`event-card flex items-center justify-between p-3 md:p-3.5 rounded-xl shadow-sm transition-all duration-300 ${variant === 'tasks' ? 'cursor-pointer hover:scale-[1.02]' : ''} ${variant === 'home' ? 'bg-white/60 dark:bg-black/40' : colorClass} ${isPast ? 'opacity-40 grayscale-[20%]' : 'event-active opacity-100'} ${isHappeningNow ? 'event-happening-now' : ''} ${activeBorder}`}
                     >
                        <div className="flex flex-col min-w-0 pr-2">
                          <span className={`font-semibold text-sm truncate ${variant === 'home' ? 'text-[#3d3b33] dark:text-[#e0e0e0]' : ''}`}>

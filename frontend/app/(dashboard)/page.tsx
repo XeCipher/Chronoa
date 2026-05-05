@@ -31,7 +31,6 @@ export default function HomePage() {
     <div className="relative w-full h-full overflow-hidden flex items-center justify-center touch-none overscroll-none">
       <SceneryBackground />
       
-      {/* Elegant Mobile Settings Link Button positioned gracefully at the top left */}
       <div className="fixed top-[calc(1.5rem+env(safe-area-inset-top))] left-[calc(1.5rem+env(safe-area-inset-left))] md:hidden z-40">
         <button 
           onClick={() => router.push('/settings')} 
@@ -41,13 +40,11 @@ export default function HomePage() {
         </button>
       </div>
 
-      {/* Weather & Progress Widget Stack (Top Right on Mobile and Desktop) */}
       <div className="fixed top-[calc(1.5rem+env(safe-area-inset-top))] right-[calc(1.5rem+env(safe-area-inset-right))] md:top-10 md:right-12 z-40 md:z-20 flex flex-col items-end gap-3 pointer-events-none [&>*]:pointer-events-auto">
         <WeatherWidget />
         <HomeTaskProgress />
       </div>
 
-      {/* Calendar Widget (Bottom Right) */}
       <div className="fixed z-40 flex flex-col items-end gap-4 md:bottom-10 md:right-10 bottom-[calc(90px+env(safe-area-inset-bottom))] right-6 pointer-events-none [&>*]:pointer-events-auto">
         <div className="hidden md:block">
           <TodayCalendarWidget variant="home" />
@@ -55,7 +52,7 @@ export default function HomePage() {
       </div>
 
       <div 
-        className={`relative z-10 transition-all duration-[1000ms] ease-[cubic-bezier(0.16,1,0.3,1)] will-change-[transform,opacity] ${showWidget ? '-translate-y-[16vh] scale-90 opacity-80' : 'max-md:-translate-y-[8vh] md:-translate-y-[4vh] scale-100 opacity-100'}`}
+        className={`relative z-10 transition-all duration-[1000ms] ease-[cubic-bezier(0.16,1,0.3,1)] will-change-[transform,opacity,filter] ${showWidget ? '-translate-y-[16vh] scale-90 opacity-80' : 'max-md:-translate-y-[8vh] md:-translate-y-[4vh] scale-100 opacity-100'}`}
       >
         <CenterClock />
       </div>
@@ -64,7 +61,7 @@ export default function HomePage() {
         className="hidden md:flex absolute bottom-8 left-1/2 -translate-x-1/2 flex-col items-center gap-2 pointer-events-none transition-all duration-700 z-20" 
         style={{ opacity: showWidget ? 0 : 0.5, transform: showWidget ? 'translateY(10px)' : 'translateY(0)' }}
       >
-        <div className={`transition-all duration-500 rounded-full animate-pulse ${isAnyRunning ? 'w-16 h-1.5 bg-red-500 shadow-[0_0_12px_rgba(239,68,68,0.8)]' : 'w-8 h-[2px] bg-[#888]/80 dark:bg-[#a0a0a0]/80'}`} />
+        <div className={`transition-colors duration-500 rounded-full animate-pulse ${isAnyRunning ? 'w-16 h-1.5 bg-red-500 shadow-[0_0_12px_rgba(239,68,68,0.8)]' : 'w-8 h-[2px] bg-[#888]/80 dark:bg-[#a0a0a0]/80'}`} />
       </div>
 
       <div 
@@ -89,7 +86,7 @@ export default function HomePage() {
             if (forceShow) setForceShow(false);
           }}
         >
-          <div className={`transition-all duration-500 rounded-full ${isAnyRunning ? 'w-16 h-1.5 bg-red-500 shadow-[0_0_12px_rgba(239,68,68,0.8)] animate-pulse' : 'w-12 h-1.5 bg-[#3d3b33]/20 dark:bg-[#e0e0e0]/20'}`} />
+          <div className={`transition-colors duration-500 rounded-full ${isAnyRunning ? 'w-16 h-1.5 bg-red-500 shadow-[0_0_12px_rgba(239,68,68,0.8)] animate-pulse' : 'w-12 h-1.5 bg-[#3d3b33]/20 dark:bg-[#e0e0e0]/20'}`} />
         </div>
 
         {isTouched && !isPinned && (

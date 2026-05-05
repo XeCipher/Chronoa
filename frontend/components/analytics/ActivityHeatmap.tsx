@@ -4,7 +4,7 @@
 import { useMemo, useState, useRef, useEffect } from 'react';
 import { useUiStore } from "@/store/uiStore";
 import { Tooltip } from 'react-tooltip';
-import { Calendar as CalIcon, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Calendar as CalIcon, ChevronLeft, ChevronRight, Target } from 'lucide-react';
 import { DailyRecord } from '@/app/(dashboard)/analytics/page';
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -132,11 +132,20 @@ export default function ActivityHeatmap({ dailyMap }: { dailyMap: Record<string,
     <div className="bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] rounded-[2.5rem] p-6 lg:p-8 shadow-sm flex flex-col transition-colors h-auto lg:h-[350px] min-h-[300px]">
       <div className="flex justify-between items-start mb-6 shrink-0">
         <div>
-          <h3 className="text-2xl font-medium text-[#3d3b33] dark:text-[#f0f0f0] font-serif tracking-tight">Master Canvas</h3>
-          <p className="text-[10px] font-bold uppercase tracking-widest text-[#b0ad9a] dark:text-[#7a7a7a] mt-1">12 Months of Focus</p>
+          <h3 className="text-2xl font-medium text-[#3d3b33] dark:text-[#f0f0f0] font-serif tracking-tight">Activity Map</h3>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-[#b0ad9a] dark:text-[#7a7a7a] mt-1">Recent focus history</p>
         </div>
         
-        <div className="relative">
+        <div className="flex items-center gap-2 relative">
+          {(endMonth.year !== today.getFullYear() || endMonth.month !== today.getMonth()) && (
+            <button 
+              onClick={() => setEndMonth({ year: today.getFullYear(), month: today.getMonth() })} 
+              className="hidden md:flex items-center justify-center p-2 rounded-xl bg-[#c2956e]/10 text-[#c2956e] hover:bg-[#c2956e] hover:text-white transition-colors"
+              data-tooltip-id="canvas-tooltip" data-tooltip-content="Return to Present"
+            >
+              <Target size={16} />
+            </button>
+          )}
           <button onClick={() => setShowPicker(!showPicker)} className={`flex items-center gap-2 px-4 py-2 rounded-xl border text-[10px] font-bold uppercase tracking-widest transition-colors ${showPicker ? 'bg-[#c2956e] text-white border-[#c2956e]' : 'bg-[#f7f5f0] dark:bg-[#222] text-[#888] border-[#e0ddd5] dark:border-[#333] hover:text-[#c2956e]'}`}>
              <CalIcon size={14} /> {MONTHS[endMonth.month]} {endMonth.year}
           </button>
@@ -145,18 +154,14 @@ export default function ActivityHeatmap({ dailyMap }: { dailyMap: Record<string,
       </div>
       
       <div className="flex flex-1 w-full relative min-h-0">
-        <div className="w-8 shrink-0 flex flex-col relative text-[9px] font-bold uppercase tracking-widest text-[#b0ad9a] dark:text-[#555] mr-2 mt-[24px]">
-           <span className="absolute top-[1px]">Sun</span>
+        <div className="w-8 shrink-0 flex flex-col relative text-[9px] font-bold uppercase tracking-widest text-[#b0ad9a] dark:text-[#555] mr-2 my-auto h-[104px]">
            <span className="absolute top-[16px]">Mon</span>
-           <span className="absolute top-[31px]">Tue</span>
            <span className="absolute top-[46px]">Wed</span>
-           <span className="absolute top-[61px]">Thu</span>
            <span className="absolute top-[76px]">Fri</span>
-           <span className="absolute top-[91px]">Sat</span>
         </div>
 
-        <div className="flex-1 overflow-hidden" dir="rtl">
-          <div className="flex flex-col w-max pl-1 pr-3 pb-1" dir="ltr">
+        <div className="flex-1 overflow-hidden flex items-center" dir="rtl">
+          <div className="flex flex-col w-max pl-1 pr-3 pb-1 my-auto" dir="ltr">
             <div className="relative w-full h-[20px] mb-1">
                {monthLabels.map((m, i) => (
                  <span key={i} className="absolute text-[9px] font-bold uppercase tracking-widest text-[#b0ad9a] dark:text-[#7a7a7a]" style={{ left: `calc(${m.weekIndex} * 15px)` }}>

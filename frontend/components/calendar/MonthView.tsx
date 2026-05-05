@@ -163,9 +163,13 @@ export default function MonthView({ currentDate, events, onEventClick, onDayClic
            {selectedDayEvents.length > 0 ? selectedDayEvents.map(e => {
              const durationMins = (new Date(e.end_time).getTime() - new Date(e.start_time).getTime()) / 60000;
              const showTime = durationMins >= 45;
+             const now = new Date();
+             const isHappeningNow = new Date(e.start_time) <= now && new Date(e.end_time) >= now;
+             
+             const activeBorder = isHappeningNow ? 'ring-[1.5px] ring-offset-2 ring-offset-transparent ring-[#c2956e] dark:ring-[#b0855f]' : 'border border-[#e0ddd5] dark:border-[#333]';
 
              return (
-               <div key={e.id} onClick={() => onEventClick(e)} className={`px-4 py-3 rounded-[1rem] border cursor-pointer hover:scale-[1.02] transition-transform shadow-sm flex justify-between items-center ${eventColors[e.color] || eventColors['amber']}`}>
+               <div key={e.id} onClick={() => onEventClick(e)} className={`px-4 py-3 rounded-[1rem] cursor-pointer hover:scale-[1.02] transition-all shadow-sm flex justify-between items-center ${eventColors[e.color] || eventColors['amber']} ${activeBorder}`}>
                   <div className="flex flex-col min-w-0 pr-2">
                     <div className={`text-sm font-bold truncate leading-tight flex items-center gap-1.5`}>
                        {e.title}
