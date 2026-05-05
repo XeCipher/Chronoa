@@ -277,6 +277,7 @@ export default function DayView({ currentDate, events, onEventClick, onTimeRange
               <div 
                 key={event.id}
                 draggable 
+                onMouseDown={(e) => e.stopPropagation()}
                 onDragStart={(e) => {
                   e.stopPropagation();
                   e.dataTransfer.setData('text/plain', event.id);

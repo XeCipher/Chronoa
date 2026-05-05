@@ -573,7 +573,7 @@ export default function CalendarPage() {
               </div>
             </div>
 
-            <button onClick={() => openAddModal()} className="hidden md:flex h-10 aspect-square items-center justify-center bg-[#f7f5f0] dark:bg-[#252525] text-[#c2956e] dark:text-[#d1a784] rounded-full hover:bg-[#c2956e]/10 dark:hover:bg-[#b0855f]/20 transition-all shadow-sm border border-[#e0ddd5] dark:border-[#333] shrink-0">
+            <button onClick={() => openAddModal()} className="hidden md:flex h-10 aspect-square items-center justify-center bg-[#c2956e] dark:bg-[#b0855f] text-white rounded-full md:hover:scale-105 transition-all shadow-lg shrink-0">
               <Plus size={18} strokeWidth={2.5} />
             </button>
           </div>

@@ -512,7 +512,7 @@ export default function NotesPage() {
                   >
                     <Trash2 size={16} />
                   </button>
-                  <button onClick={createNote} data-tooltip-id="global-tooltip" data-tooltip-content="New Note" className="hidden lg:flex w-10 h-10 items-center justify-center bg-[#3d3b33] dark:bg-[#f0f0f0] text-white dark:text-[#121212] rounded-full md:hover:scale-105 transition-all shadow-lg">
+                  <button onClick={createNote} data-tooltip-id="global-tooltip" data-tooltip-content="New Note" className="hidden lg:flex w-10 h-10 items-center justify-center bg-[#c2956e] text-white dark:bg-[#b0855f] rounded-full md:hover:scale-105 transition-all shadow-lg">
                     <Plus size={18} />
                   </button>
                 </>
@@ -527,7 +527,7 @@ export default function NotesPage() {
                   >
                     <Trash2 size={16} />
                   </button>
-                  <button onClick={() => setShowCalendar(!showCalendar)} data-tooltip-id="global-tooltip" data-tooltip-content="Calendar" className="desktop-cal-toggle hidden lg:flex w-10 h-10 items-center justify-center bg-[#3d3b33] dark:bg-[#f0f0f0] text-white dark:text-[#121212] rounded-full md:hover:scale-105 transition-all shadow-lg">
+                  <button onClick={() => setShowCalendar(!showCalendar)} data-tooltip-id="global-tooltip" data-tooltip-content="Calendar" className="desktop-cal-toggle hidden lg:flex w-10 h-10 items-center justify-center bg-[#c2956e] text-white dark:bg-[#b0855f] rounded-full md:hover:scale-105 transition-all shadow-lg">
                     {showCalendar ? <X size={16} /> : <CalendarDays size={16} />}
                   </button>
                   {showCalendar && (
@@ -633,7 +633,7 @@ export default function NotesPage() {
                   <div className="flex items-center gap-3 flex-1 min-w-0">
                     <button 
                       onClick={() => { setSelectedId(null); setIsListVisible(true); }} 
-                      className="flex items-center justify-center p-2.5 bg-[#f7f5f0] dark:bg-[#1a1a1a] text-[#888] rounded-xl border border-[#e0ddd5] dark:border-[#333] hover:text-[#3d3b33] dark:hover:text-[#f0f0f0] transition-all shadow-sm shrink-0"
+                      className="lg:hidden flex items-center justify-center p-2.5 bg-[#f7f5f0] dark:bg-[#1a1a1a] text-[#888] rounded-xl border border-[#e0ddd5] dark:border-[#333] hover:text-[#3d3b33] dark:hover:text-[#f0f0f0] transition-all shadow-sm shrink-0"
                     >
                       <ArrowLeft size={18} />
                     </button>

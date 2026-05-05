@@ -367,7 +367,7 @@ export default function DistractionFreeEditor({
           <div
             className={[
               "hidden md:flex",
-              "md:sticky md:top-0 md:z-[100]",
+              "md:sticky md:top-6 lg:top-8 md:z-[100]",
               "md:p-2 md:border md:border-[#e0ddd5] md:dark:border-[#2a2a2a] md:rounded-2xl",
               "md:bg-white/95 md:dark:bg-[#121212]/95 md:backdrop-blur-md",
               "md:shadow-[0_2px_16px_0_rgba(0,0,0,0.07)] md:dark:shadow-[0_2px_16px_0_rgba(0,0,0,0.4)]",

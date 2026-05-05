@@ -286,7 +286,7 @@ export default function TodayCalendarWidget({ variant, searchQuery = '' }: Props
                   
                   const timeStr = e.is_all_day ? 'All-day' : `${formatTimeStr(new Date(e.start_time))} - ${formatTimeStr(new Date(e.end_time))}`;
                   
-                  const activeBorder = isHappeningNow ? 'ring-[1.5px] ring-offset-2 ring-offset-transparent ring-[#c2956e] dark:ring-[#b0855f] z-10' : 'border border-black/5 dark:border-white/5';
+                  const activeBorder = isHappeningNow ? 'ring-1 ring-offset-1 ring-offset-transparent ring-[#c2956e] dark:ring-[#b0855f] z-10' : 'border border-black/5 dark:border-white/5';
 
                   return (
                     <div 
