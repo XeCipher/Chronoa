@@ -44,6 +44,11 @@ function MiniEngineCard({ engine, tab }: { engine: EngineInstance, tab: 'timer' 
   const store = useTimerStore();
   const [liveSeconds, setLiveSeconds] = useState(engine.accumulatedSeconds);
 
+  const list = tab === 'timer' ? store.timers : store.stopwatches;
+  const isOnlyInstance = list.length === 1;
+  const isUntouched = engine.title === 'Focus Task' && engine.accumulatedSeconds === 0 && !engine.isRunning && (tab === 'stopwatch' || engine.targetMinutes === 25);
+  const hideDelete = isOnlyInstance && isUntouched;
+
   useEffect(() => {
     let interval: NodeJS.Timeout;
     if (engine.isRunning && engine.startTime) {
@@ -132,12 +137,15 @@ function MiniEngineCard({ engine, tab }: { engine: EngineInstance, tab: 'timer' 
 
   return (
     <div className="bg-[#f7f5f0]/50 dark:bg-[#222]/50 border border-[#e0ddd5] dark:border-[#444] rounded-[1.5rem] p-5 flex flex-col gap-3 group relative transition-colors hover:border-[#c2956e]/50 dark:hover:border-[#b0855f]/50 shadow-sm shrink-0">
-      <button 
-        onClick={() => store.removeInstance(tab, engine.id)}
-        className="absolute top-4 right-4 text-[#b0ad9a] hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
-      >
-        <Trash2 size={16} />
-      </button>
+      
+      {!hideDelete && (
+        <button 
+          onClick={() => store.removeInstance(tab, engine.id)}
+          className="absolute top-4 right-4 text-[#b0ad9a] hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+        >
+          <Trash2 size={16} />
+        </button>
+      )}
 
       <div className="flex justify-between items-center mt-1 px-1">
         <div className="flex flex-col flex-1">

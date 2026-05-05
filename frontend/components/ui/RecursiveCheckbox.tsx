@@ -75,6 +75,9 @@ export default function RecursiveCheckbox({
   const [mounted, setMounted] = useState(false);
   const [menuRect, setMenuRect] = useState<DOMRect | null>(null);
 
+  // Local override to prevent annoying flickers before the DB commits
+  const [optimisticCollapsed, setOptimisticCollapsed] = useState<boolean | null>(null);
+  
   const [localCollapsed, setLocalCollapsed] = useState<boolean>(() => {
     return getDescendantCount(task) > 5;
   });
@@ -91,6 +94,12 @@ export default function RecursiveCheckbox({
       }
     }
   }, [task.id, viewMode]);
+
+  useEffect(() => {
+    if (optimisticCollapsed === task.is_collapsed) {
+       setOptimisticCollapsed(null);
+    }
+  }, [task.is_collapsed, optimisticCollapsed]);
 
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ 
     id: task.id,
@@ -144,7 +153,6 @@ export default function RecursiveCheckbox({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [activeTaskIdWithMenu, task.id, setActiveTaskIdWithMenu]);
 
-  // Global scroll listener to dismiss the context menu
   useEffect(() => {
     if (activeTaskIdWithMenu !== task.id) return;
     const handleScroll = (e: Event) => {
@@ -248,11 +256,12 @@ export default function RecursiveCheckbox({
   const showKeepAliveToggle = showManagementActions && hasChildren;
 
   const hasSearchMatch = hasSearchMatchInDescendants(task, searchQuery);
+  
   let isCollapsed = false;
   if (hasSearchMatch) {
       isCollapsed = false;
   } else if (viewMode === 'focus') {
-      isCollapsed = task.is_collapsed ?? false;
+      isCollapsed = optimisticCollapsed !== null ? optimisticCollapsed : (task.is_collapsed ?? false);
   } else {
       isCollapsed = localCollapsed;
   }
@@ -364,13 +373,12 @@ export default function RecursiveCheckbox({
     let top: number | string = menuRect.bottom + 8;
     let bottom: number | string = 'auto';
 
-    // Smart positioning: flip upwards if in the lower half of the viewport
     if (menuRect.bottom > window.innerHeight / 2) {
         top = 'auto';
         bottom = window.innerHeight - menuRect.top + 8;
     }
 
-    let left = menuRect.right - 180; // Compact width
+    let left = menuRect.right - 180; 
     if (left < 16) left = 16;
 
     return createPortal(
@@ -390,7 +398,6 @@ export default function RecursiveCheckbox({
                  <MenuItem icon={CornerDownRight} label="Add Subtask" onClick={() => onAdd(task.id)} />
                  
                  <MenuDivider />
-                 {/* Ultra-compact directional layout row */}
                  <div className="flex items-center justify-between px-1.5 py-1">
                    <button onClick={(e) => { e.stopPropagation(); onMoveUp(task); setActiveTaskIdWithMenu(null); }} className="p-1.5 text-[#888] md:hover:text-[#3d3b33] md:dark:hover:text-white rounded-lg md:hover:bg-[#f0ede8] md:dark:hover:bg-[#2a2a2a] transition-colors"><ArrowUp size={16} /></button>
                    <button onClick={(e) => { e.stopPropagation(); onMoveDown(task); setActiveTaskIdWithMenu(null); }} className="p-1.5 text-[#888] md:hover:text-[#3d3b33] md:dark:hover:text-white rounded-lg md:hover:bg-[#f0ede8] md:dark:hover:bg-[#2a2a2a] transition-colors"><ArrowDown size={16} /></button>
@@ -476,10 +483,11 @@ export default function RecursiveCheckbox({
            <button 
              onClick={(e) => { 
                e.stopPropagation(); 
+               const newVal = !isCollapsed;
                if (viewMode === 'focus') {
-                   onUpdate(task.id, { is_collapsed: !isCollapsed }); 
+                   setOptimisticCollapsed(newVal); 
+                   onUpdate(task.id, { is_collapsed: newVal }); 
                } else {
-                   const newVal = !isCollapsed;
                    setLocalCollapsed(newVal);
                    const stored = localStorage.getItem('chronoa_archive_collapsed');
                    const parsed = stored ? JSON.parse(stored) : {};

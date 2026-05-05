@@ -43,6 +43,11 @@ function EngineCard({ engine, tab }: { engine: EngineInstance, tab: 'timer' | 's
   const store = useTimerStore();
   const [liveSeconds, setLiveSeconds] = useState(engine.accumulatedSeconds);
 
+  const list = tab === 'timer' ? store.timers : store.stopwatches;
+  const isOnlyInstance = list.length === 1;
+  const isUntouched = engine.title === 'Focus Task' && engine.accumulatedSeconds === 0 && !engine.isRunning && (tab === 'stopwatch' || engine.targetMinutes === 25);
+  const hideDelete = isOnlyInstance && isUntouched;
+
   useEffect(() => {
     let interval: NodeJS.Timeout;
     if (engine.isRunning && engine.startTime) {
@@ -132,13 +137,15 @@ function EngineCard({ engine, tab }: { engine: EngineInstance, tab: 'timer' | 's
   return (
     <div className="relative shrink-0 w-[24rem] max-w-[85vw] bg-white/20 dark:bg-black/30 backdrop-blur-3xl border border-white/40 dark:border-white/10 rounded-[2.5rem] p-6 shadow-[0_20px_50px_-10px_rgba(0,0,0,0.15)] flex flex-col gap-5 transition-colors snap-center group">
       
-      <button 
-        onClick={() => store.removeInstance(tab, engine.id)} 
-        data-tooltip-id="global-tooltip" data-tooltip-content="Remove"
-        className="absolute top-5 right-6 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity text-gray-400 md:hover:text-red-500 dark:text-gray-500 md:dark:hover:text-red-400"
-      >
-        <Trash2 size={18} />
-      </button>
+      {!hideDelete && (
+        <button 
+          onClick={() => store.removeInstance(tab, engine.id)} 
+          data-tooltip-id="global-tooltip" data-tooltip-content="Remove"
+          className="absolute top-5 right-6 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity text-gray-400 md:hover:text-red-500 dark:text-gray-500 md:dark:hover:text-red-400"
+        >
+          <Trash2 size={18} />
+        </button>
+      )}
 
       <div className="flex items-center justify-between px-2 pt-2">
         <div className="flex flex-col">

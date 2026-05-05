@@ -117,7 +117,6 @@ export default function DistractionFreeEditor({
     };
   }, [editor]);
 
-  // Overriding Browser Default Zoom
   useEffect(() => {
     const handleGlobalWheel = (e: WheelEvent) => {
       if (!isEditable) return;
@@ -160,7 +159,6 @@ export default function DistractionFreeEditor({
     };
   }, [isEditable]);
 
-  // Handle the logic for calculating exactly where the text is on mobile
   useEffect(() => {
     if (!editor) return;
 
@@ -335,22 +333,28 @@ export default function DistractionFreeEditor({
   return (
     <div className="relative w-full flex flex-col gap-4">
       
-      {/* Mobile Inline Tools (Timestamp & Zoom) — No longer Absolute */}
-      <div className="md:hidden flex w-full justify-end items-center gap-1.5 z-10 mb-2">
-        {isEditable && (
-          <button
-            onMouseDown={(e) => { e.preventDefault(); insertTimestamp(); }}
-            className="flex items-center justify-center w-[30px] h-[30px] rounded-xl bg-[#f7f5f0] dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#2a2a2a] text-[#888] hover:text-[#c2956e] shadow-sm transition-colors"
-          >
-            <Clock size={14} />
-          </button>
-        )}
-        <ZoomControl preventFocus={isEditable} />
+      {/* Mobile Inline Tools (Save Status, Timestamp & Zoom) */}
+      <div className="md:hidden flex w-full justify-between items-center gap-1.5 z-10 mb-2">
+        <span className={`text-[9px] font-bold uppercase tracking-widest whitespace-nowrap transition-colors pl-1 ${
+           saveStatus === "Saving..." ? "text-[#c2956e] dark:text-[#d1a784]" : "text-[#c4c0b8] dark:text-[#555]"
+        }`}>
+          {saveStatus}
+        </span>
+        <div className="flex items-center gap-1.5">
+           {isEditable && (
+             <button
+               onMouseDown={(e) => { e.preventDefault(); insertTimestamp(); }}
+               className="flex items-center justify-center w-[30px] h-[30px] rounded-xl bg-[#f7f5f0] dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#2a2a2a] text-[#888] hover:text-[#c2956e] shadow-sm transition-colors"
+             >
+               <Clock size={14} />
+             </button>
+           )}
+           <ZoomControl preventFocus={isEditable} />
+        </div>
       </div>
 
       {isEditable && (
         <>
-          {/* Mobile Bubble Menu (Text selection popup) */}
           <div
             className="md:hidden flex items-center gap-2 px-3 py-2 border border-[#e0ddd5] dark:border-[#2a2a2a] bg-white/95 dark:bg-[#121212]/95 backdrop-blur-md shadow-xl rounded-2xl w-max max-w-[92vw] overflow-x-auto no-scrollbar transition-opacity duration-200"
             style={bubbleStyle}
@@ -360,7 +364,6 @@ export default function DistractionFreeEditor({
             </div>
           </div>
 
-          {/* Desktop Toolbar */}
           <div
             className={[
               "hidden md:flex",

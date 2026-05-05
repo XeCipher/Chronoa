@@ -104,7 +104,7 @@ export default function SettingsPage() {
     if (showGithubModal && githubCountdown > 0) {
       timer = setTimeout(() => setGithubCountdown(githubCountdown - 1), 1000);
     } else if (showGithubModal && githubCountdown === 0) {
-      window.open("https://github.com/XeCipher/Chronoa", "_blank");
+      window.location.href = "https://github.com/XeCipher/Chronoa";
       setShowGithubModal(false);
       setGithubCountdown(-1);
     }
@@ -479,9 +479,9 @@ export default function SettingsPage() {
             <a href="mailto:chaitanyapatil.xe@gmail.com" className="flex items-center gap-2 px-5 py-3 bg-[#f7f5f0] dark:bg-[#252525] text-[#888] dark:text-[#a0a0a0] border border-[#e0ddd5] dark:border-[#333] rounded-xl text-[10px] font-bold uppercase tracking-widest hover:text-[#c2956e] transition-all shadow-sm">
               <Mail size={16} /> Email
             </a>
-            <a href="https://github.com/XeCipher/Chronoa" onClick={handleGithubClick} className="flex items-center gap-2 px-5 py-3 bg-[#f7f5f0] dark:bg-[#252525] text-[#888] dark:text-[#a0a0a0] border border-[#e0ddd5] dark:border-[#333] rounded-xl text-[10px] font-bold uppercase tracking-widest hover:text-[#c2956e] transition-all shadow-sm">
+            <button onClick={handleGithubClick} className="flex items-center gap-2 px-5 py-3 bg-[#f7f5f0] dark:bg-[#252525] text-[#888] dark:text-[#a0a0a0] border border-[#e0ddd5] dark:border-[#333] rounded-xl text-[10px] font-bold uppercase tracking-widest hover:text-[#c2956e] transition-all shadow-sm">
               <GitHubIcon size={16} /> GitHub
-            </a>
+            </button>
           </div>
         </section>
       )
@@ -562,12 +562,6 @@ export default function SettingsPage() {
             <div className="w-full flex items-center justify-center gap-2 text-[11px] font-bold uppercase tracking-widest text-[#b0ad9a] dark:text-[#7a7a7a]">
               Redirecting in <span className="text-[#c2956e] text-sm tabular-nums">{githubCountdown}</span>
             </div>
-            <button
-              onClick={() => { setShowGithubModal(false); setGithubCountdown(-1); }}
-              className="absolute top-4 right-4 p-2 text-gray-400 hover:text-[#3d3b33] dark:hover:text-white transition-colors"
-            >
-              <X size={16} />
-            </button>
           </div>
         </div>
       )}

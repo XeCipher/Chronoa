@@ -399,10 +399,10 @@ export default function AnalyticsPage() {
   return (
     <div className="w-full min-h-full mx-auto p-4 md:p-8 lg:p-10 pb-24 overflow-x-hidden flex flex-col gap-4 md:gap-8">
       
-      <header className="flex flex-col md:flex-row md:items-end justify-between gap-4 md:gap-6 shrink-0">
-        <div>
-          <div className="flex items-center gap-2.5 text-[#3d3b33] dark:text-[#f0f0f0] mb-2">
-            <BarChart2 size={20} className="text-[#c2956e]" />
+      <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 shrink-0 w-full mb-2">
+        <div className="flex items-center justify-between w-full md:w-auto relative">
+          <div className="flex items-center gap-2.5 text-[#3d3b33] dark:text-[#f0f0f0]">
+            <BarChart2 size={24} className="text-[#c2956e]" />
             <h1 className="text-2xl md:text-4xl font-serif font-medium tracking-tight">Analytics</h1>
           </div>
         </div>

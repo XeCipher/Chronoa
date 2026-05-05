@@ -114,7 +114,6 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
     };
   }, [type]);
 
-  // Sync tasks state to cache whenever it changes (after initial load)
   useEffect(() => {
     if (!isLoading) {
       localStorage.setItem(`chronoa_cache_tasks_${type}`, JSON.stringify(tasks));
@@ -123,6 +122,9 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
+      // Prevents closing edit mode if clicking inside the floating context menu
+      if ((e.target as Element).closest?.('.context-menu-portal')) return;
+      
       if (
         isEditMode &&
         type === "routine" &&
@@ -232,8 +234,6 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
         tasks
           .filter((t) => t.parent_id === parentId)
           .forEach((child) => {
-            // Evaluates whether the child is currently visible in the active focus view.
-            // If they are not visible, they have likely transitioned securely into the archive.
             const isVisibleInFocus = !child.is_completed || taskArchiveDelay < 0 || (child.completed_at && now - new Date(child.completed_at).getTime() < delayMs);
 
             if (isDone) {
@@ -245,7 +245,6 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
               }
               addChildrenToUpdate(child.id);
             } else {
-              // When unchecking parent, only uncheck children that are NOT safely archived
               if (isVisibleInFocus) {
                 if (child.is_completed) {
                   tasksToUpdate.push({
@@ -326,14 +325,11 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
     let shiftUpdates: { id: string, updates: Partial<Task> }[] = [];
 
     if (relativeToTask) {
-      // Add just below the specific task
       newPosition = relativeToTask.position + 1;
-      // Shift all siblings that currently occupy this or later positions
       tasks
         .filter(t => t.parent_id === parentId && t.position >= newPosition)
         .forEach(t => shiftUpdates.push({ id: t.id, updates: { position: t.position + 1 } }));
     } else {
-      // Default top/bottom logic for when parent is known but specific location isn't (like adding subtask)
       const siblings = tasks.filter((t) => t.parent_id === parentId);
       if (siblings.length > 0) {
         if (addTaskAtTop) {
@@ -363,7 +359,6 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
     };
 
     flushSync(() => {
-      // Apply shifts and new task locally
       setTasks((prev) => {
         const updatedList = prev.map(t => {
           const shift = shiftUpdates.find(s => s.id === t.id);
@@ -374,7 +369,6 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
       setNewTaskId(newId);
     });
 
-    // Sync to DB
     const results = await Promise.all([
       supabase.from("tasks").insert({
         id: newId,
@@ -390,7 +384,7 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
     const error = results.find(r => r.error);
     if (error) {
       console.error("Failed adding task or shifting siblings", error);
-      fetchTasks(); // Re-sync if atomic operation failed
+      fetchTasks();
     }
   };
 

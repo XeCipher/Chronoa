@@ -42,10 +42,8 @@ export default function SidebarNav() {
   const handleTabClick = (e: React.MouseEvent, href: string, isActive: boolean) => {
     if (isActive) {
       e.preventDefault();
-      // Reset view to default
       window.dispatchEvent(new CustomEvent('chronoa-reset-tab', { detail: href }));
       
-      // Scroll to top
       const containers = ["notes-library-scroll-container", "notes-scroll-container", "main-scroll-container", "calendar-scroll-container"];
       for (const id of containers) {
         const el = document.getElementById(id);
@@ -155,7 +153,8 @@ export default function SidebarNav() {
                 isActive ? "text-[#c2956e] dark:text-[#d1a784]" : "text-[#888888] dark:text-[#a0a0a0] active:text-[#3d3b33] dark:active:text-[#fff]"
               }`}
             >
-              <item.icon className="w-[26px] h-[26px]" strokeWidth={isActive ? 2.5 : 2} />
+              {/* EDIT ICON SIZE HERE (e.g., w-[22px] h-[22px]) */}
+              <item.icon className="w-[22px] h-[22px]" strokeWidth={isActive ? 2.5 : 2} />
             </Link>
           );
         })}

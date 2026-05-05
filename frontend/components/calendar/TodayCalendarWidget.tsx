@@ -93,22 +93,16 @@ export default function TodayCalendarWidget({ variant, searchQuery = '' }: Props
   useEffect(() => {
     if (!loading && filteredEvents.length > 0 && scrollRef.current && !isCollapsed) {
       const container = scrollRef.current;
-      const activeEvents = container.querySelectorAll('.event-active');
+      // Find events actively happening right now
+      const happeningEvents = container.querySelectorAll('.event-happening-now');
       
-      let targetEl: HTMLElement | null = null;
-      
-      if (activeEvents.length > 0) {
-        targetEl = activeEvents[0] as HTMLElement;
-      } else {
-        const allEvents = container.querySelectorAll('.event-card');
-        if (allEvents.length > 0) {
-          targetEl = allEvents[allEvents.length - 1] as HTMLElement;
-        }
-      }
-
-      if (targetEl) {
+      if (happeningEvents.length > 0) {
+        const targetEl = happeningEvents[0] as HTMLElement;
         const offsetTop = targetEl.offsetTop - 16; 
         container.scrollTo({ top: Math.max(0, offsetTop), behavior: 'smooth' });
+      } else {
+        // If nothing is actively happening, stay elegantly at the top
+        container.scrollTo({ top: 0, behavior: 'smooth' });
       }
     }
   }, [loading, filteredEvents, isCollapsed]);
@@ -257,14 +251,17 @@ export default function TodayCalendarWidget({ variant, searchQuery = '' }: Props
               ) : filteredEvents.length > 0 ? (
                 filteredEvents.map(e => {
                   const colorClass = EVENT_COLORS[e.color] || EVENT_COLORS['amber'];
-                  const isPast = new Date(e.end_time) < new Date();
+                  const now = new Date();
+                  const isPast = new Date(e.end_time) < now;
+                  const isHappeningNow = new Date(e.start_time) <= now && new Date(e.end_time) >= now;
+                  
                   const timeStr = e.is_all_day ? 'All-day' : `${formatTimeStr(new Date(e.start_time))} - ${formatTimeStr(new Date(e.end_time))}`;
                   
                   return (
                     <div 
                       key={e.id}
                       onClick={() => handleEventClick(e)}
-                      className={`event-card flex items-center justify-between p-3 md:p-3.5 rounded-xl shadow-sm border border-black/5 dark:border-white/5 transition-all duration-300 ${variant === 'tasks' ? 'cursor-pointer hover:scale-[1.02]' : ''} ${variant === 'home' ? 'bg-white/60 dark:bg-black/40' : colorClass} ${isPast ? 'opacity-40 grayscale-[20%]' : 'event-active opacity-100'}`}
+                      className={`event-card flex items-center justify-between p-3 md:p-3.5 rounded-xl shadow-sm border border-black/5 dark:border-white/5 transition-all duration-300 ${variant === 'tasks' ? 'cursor-pointer hover:scale-[1.02]' : ''} ${variant === 'home' ? 'bg-white/60 dark:bg-black/40' : colorClass} ${isPast ? 'opacity-40 grayscale-[20%]' : 'event-active opacity-100'} ${isHappeningNow ? 'event-happening-now' : ''}`}
                     >
                        <div className="flex flex-col min-w-0 pr-2">
                          <span className={`font-semibold text-sm truncate ${variant === 'home' ? 'text-[#3d3b33] dark:text-[#e0e0e0]' : ''}`}>

@@ -713,7 +713,7 @@ export default function NotesPage() {
                if (notesTab === 'notes') createNote();
                else setShowCalendar(!showCalendar);
             }}
-            className="mobile-cal-toggle relative z-50 w-14 h-14 bg-white/30 dark:bg-black/30 backdrop-blur-lg border-2 border-[#c2956e]/50 dark:border-[#b0855f]/50 text-[#c2956e] dark:text-[#b0855f] rounded-full shadow-lg shadow-black/10 dark:shadow-black/30 flex items-center justify-center md:hover:scale-105 active:scale-95 transition-all"
+            className="mobile-cal-toggle relative z-50 w-14 h-14 bg-[#c2956e] text-white rounded-full shadow-xl flex items-center justify-center md:hover:scale-105 active:scale-95 transition-all"
           >
             {notesTab === 'notes' ? <Plus size={24} strokeWidth={2.5} /> : (showCalendar ? <X size={22} /> : <CalendarDays size={22} />)}
           </button>
