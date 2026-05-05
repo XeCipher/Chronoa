@@ -10,7 +10,7 @@ import { CalendarSource, CalendarEvent } from "@/types/app.types";
 import { 
   MapPin, Search, Clock, Sparkles, 
   X, Monitor, LogOut, Navigation, AlertTriangle, Keyboard, CheckCircle2, Settings as SettingsIcon,
-  Info, Mail, ArrowLeft, Star, CalendarDays, Link as LinkIcon, Download, UploadCloud, Trash2, ChevronDown, ChevronUp, Edit3, FileText, Palette, ExternalLink
+  Info, Mail, ArrowLeft, Star, CalendarDays, Link as LinkIcon, Download, UploadCloud, Trash2, ChevronDown, ChevronUp, Edit3, FileText, ExternalLink
 } from "lucide-react";
 
 const escapeRegExp = (string: string) => string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -198,7 +198,6 @@ export default function SettingsPage() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Unauthenticated");
 
-      // Default to Amber initially. User can change later via compact dropdown.
       const { data: source, error: sourceErr } = await supabase.from('calendar_sources').insert({
         user_id: user.id, name: newLinkName, url: newLinkUrl, type: 'link', color: 'amber'
       }).select().single();
@@ -386,7 +385,7 @@ export default function SettingsPage() {
     },
     {
       id: 'calendars',
-      keys: ['calendar', 'integration', 'import', 'export', 'google', 'apple', 'link', 'sync', 'ics', 'f1', 'schedule'],
+      keys: ['calendar', 'integration', 'import', 'export', 'google', 'apple', 'link', 'sync', 'ics', 'f1', 'schedule', 'sports'],
       className: 'flex flex-col',
       render: () => (
         <section className="space-y-6">
@@ -397,7 +396,7 @@ export default function SettingsPage() {
                 <h3 className="text-xl font-medium text-[#3d3b33] dark:text-[#f0f0f0]"><HighlightText text="Calendars" query={searchQuery} /></h3>
               </div>
               <p className="text-xs text-[#b0ad9a] dark:text-[#7a7a7a]">
-                <HighlightText text="Connect Apple/Google or subscribe to F1, holidays, and work schedules." query={searchQuery} />
+                <HighlightText text="Connect Apple/Google or subscribe to holidays and work schedules." query={searchQuery} />
               </p>
             </div>
             <button className="p-2 text-[#888] md:hover:bg-[#f0ede8] md:dark:hover:bg-[#2a2a2a] rounded-xl transition-colors">
@@ -412,7 +411,7 @@ export default function SettingsPage() {
               {calSources.length > 0 && (
                 <div className="flex flex-col gap-3">
                   {calSources.map((source) => (
-                    <div key={source.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-[#fdfbf7] dark:bg-[#161616] border border-[#e0ddd5] dark:border-[#333] rounded-[1.25rem] gap-3 transition-all">
+                    <div key={source.id} className="flex flex-row items-center justify-between p-4 bg-[#fdfbf7] dark:bg-[#161616] border border-[#e0ddd5] dark:border-[#333] rounded-[1.25rem] gap-3 transition-all">
                       {editingSourceId === source.id ? (
                         <div className="flex flex-col gap-2 w-full animate-fade-in">
                           <input type="text" value={editSourceName} onChange={e => setEditSourceName(e.target.value)} className="w-full bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#444] rounded-xl px-4 py-2.5 text-sm outline-none focus:border-[#c2956e] transition-colors shadow-sm" placeholder="Calendar Name" />
@@ -430,24 +429,24 @@ export default function SettingsPage() {
                             <div className="w-10 h-10 bg-white dark:bg-[#252525] rounded-xl flex items-center justify-center text-[#c2956e] shadow-sm shrink-0 border border-[#e0ddd5] dark:border-[#333]">
                               {source.type === 'link' ? <LinkIcon size={16} /> : <FileText size={16} />}
                             </div>
-                            <div className="min-w-0">
+                            <div className="min-w-0 flex-1">
                               <p className="text-[14px] font-medium text-[#3d3b33] dark:text-[#f0f0f0] truncate leading-tight">{source.name}</p>
                               {source.url && <p className="text-[10px] text-[#b0ad9a] dark:text-[#7a7a7a] mt-0.5 truncate">{source.url}</p>}
                             </div>
                           </div>
                           
-                          <div className="flex items-center gap-1.5 shrink-0 self-end sm:self-auto">
+                          <div className="flex items-center gap-1.5 shrink-0">
                             <div className="color-dropdown-container relative">
                                <button 
                                  onClick={() => setOpenColorDropdown(openColorDropdown === source.id ? null : source.id)} 
-                                 className="flex items-center gap-1 p-2 rounded-lg border border-[#e0ddd5] dark:border-[#333] bg-white dark:bg-[#1a1a1a] shadow-sm hover:bg-gray-50 dark:hover:bg-[#222] transition-colors"
+                                 className="flex items-center justify-center gap-1 w-[52px] h-9 rounded-lg border border-[#e0ddd5] dark:border-[#333] bg-white dark:bg-[#1a1a1a] shadow-sm hover:bg-gray-50 dark:hover:bg-[#222] transition-colors"
                                  data-tooltip-id="global-tooltip" data-tooltip-content="Change Color"
                                >
                                  <div className={`w-3.5 h-3.5 rounded-full ${CALENDAR_COLORS.find(c => c.id === source.color)?.bg || 'bg-[#c2956e]'}`} />
-                                 <ChevronDown size={14} className="text-[#888]" />
+                                 <ChevronDown size={14} className="text-[#888] -mr-1" />
                                </button>
                                {openColorDropdown === source.id && (
-                                 <div className="absolute top-10 right-0 sm:left-1/2 sm:-translate-x-1/2 bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#444] p-2.5 rounded-xl shadow-xl z-50 flex gap-1.5 animate-fade-in w-max">
+                                 <div className="absolute top-10 right-0 bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#444] p-2.5 rounded-xl shadow-xl z-50 flex gap-1.5 animate-fade-in w-max">
                                     {CALENDAR_COLORS.map(c => (
                                       <button 
                                         key={c.id} 
@@ -460,11 +459,11 @@ export default function SettingsPage() {
                             </div>
                             
                             {source.type === 'link' && (
-                              <button onClick={() => { setEditingSourceId(source.id); setEditSourceName(source.name); setEditSourceUrl(source.url || ""); }} className="p-2 bg-white dark:bg-[#1a1a1a] text-[#888] hover:text-[#c2956e] border border-[#e0ddd5] dark:border-[#333] hover:bg-gray-50 dark:hover:bg-[#222] rounded-lg shadow-sm transition-colors">
+                              <button onClick={() => { setEditingSourceId(source.id); setEditSourceName(source.name); setEditSourceUrl(source.url || ""); }} className="w-9 h-9 flex items-center justify-center bg-white dark:bg-[#1a1a1a] text-[#888] hover:text-[#c2956e] border border-[#e0ddd5] dark:border-[#333] hover:bg-gray-50 dark:hover:bg-[#222] rounded-lg shadow-sm transition-colors">
                                  <Edit3 size={16} />
                               </button>
                             )}
-                            <button onClick={() => handleRemoveSource(source.id)} className="p-2 bg-white dark:bg-[#1a1a1a] text-red-400 hover:text-red-500 border border-red-100 dark:border-red-900/30 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg shadow-sm transition-colors">
+                            <button onClick={() => handleRemoveSource(source.id)} className="w-9 h-9 flex items-center justify-center bg-white dark:bg-[#1a1a1a] text-red-400 hover:text-red-500 border border-red-100 dark:border-red-900/30 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg shadow-sm transition-colors">
                                <Trash2 size={16} />
                             </button>
                           </div>
@@ -495,28 +494,26 @@ export default function SettingsPage() {
                  </div>
 
                  {/* Help Texts */}
-                 <div className="flex flex-col sm:flex-row gap-4 mt-2">
-                   <a href="https://support.google.com/calendar/answer/37648" target="_blank" rel="noopener noreferrer" className="flex-1 p-3 bg-[#fdfbf7] dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] rounded-xl flex items-center justify-between group hover:border-[#c2956e]/50 transition-colors">
-                      <div className="flex items-center gap-2">
-                         <Info size={14} className="text-[#888]" />
-                         <span className="text-xs text-[#3d3b33] dark:text-[#f0f0f0] font-medium">Google Calendar Guide</span>
-                      </div>
-                      <ExternalLink size={14} className="text-[#b0ad9a] group-hover:text-[#c2956e] transition-colors" />
-                   </a>
-                   <a href="https://support.apple.com/guide/calendar/share-icloud-calendars-icl227ba2f64/mac" target="_blank" rel="noopener noreferrer" className="flex-1 p-3 bg-[#fdfbf7] dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] rounded-xl flex items-center justify-between group hover:border-[#c2956e]/50 transition-colors">
-                      <div className="flex items-center gap-2">
-                         <Info size={14} className="text-[#888]" />
-                         <span className="text-xs text-[#3d3b33] dark:text-[#f0f0f0] font-medium">Apple Calendar Guide</span>
-                      </div>
-                      <ExternalLink size={14} className="text-[#b0ad9a] group-hover:text-[#c2956e] transition-colors" />
-                   </a>
-                   <a href="https://f1calendar.com" target="_blank" rel="noopener noreferrer" className="flex-1 p-3 bg-[#fdfbf7] dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] rounded-xl flex items-center justify-between group hover:border-[#c2956e]/50 transition-colors">
-                      <div className="flex items-center gap-2">
-                         <Info size={14} className="text-[#888]" />
-                         <span className="text-xs text-[#3d3b33] dark:text-[#f0f0f0] font-medium">Sports (e.g., F1 Calendar)</span>
-                      </div>
-                      <ExternalLink size={14} className="text-[#b0ad9a] group-hover:text-[#c2956e] transition-colors" />
-                   </a>
+                 <div className="flex flex-col gap-3 mt-4 bg-[#f7f5f0]/50 dark:bg-[#222]/50 p-4 rounded-2xl border border-[#e0ddd5] dark:border-[#333]">
+                   <p className="text-xs text-[#888] dark:text-[#a0a0a0] leading-relaxed">
+                     You can easily import your current Apple or Google calendar here. You can also find sports or other event calendar links online if you want to import your favorite sports schedule to this calendar, for example F1 or cricket.
+                   </p>
+                   <div className="flex flex-col sm:flex-row gap-3">
+                     <a href="https://support.google.com/calendar/answer/37648" target="_blank" rel="noopener noreferrer" className="flex-1 p-3 bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#444] rounded-xl flex items-center justify-between group hover:border-[#c2956e]/50 transition-colors shadow-sm">
+                        <div className="flex items-center gap-2">
+                           <Info size={14} className="text-[#888]" />
+                           <span className="text-xs text-[#3d3b33] dark:text-[#f0f0f0] font-medium">Google Calendar Guide</span>
+                        </div>
+                        <ExternalLink size={14} className="text-[#b0ad9a] group-hover:text-[#c2956e] transition-colors" />
+                     </a>
+                     <a href="https://support.apple.com/guide/calendar/share-icloud-calendars-icl227ba2f64/mac" target="_blank" rel="noopener noreferrer" className="flex-1 p-3 bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#444] rounded-xl flex items-center justify-between group hover:border-[#c2956e]/50 transition-colors shadow-sm">
+                        <div className="flex items-center gap-2">
+                           <Info size={14} className="text-[#888]" />
+                           <span className="text-xs text-[#3d3b33] dark:text-[#f0f0f0] font-medium">Apple Calendar Guide</span>
+                        </div>
+                        <ExternalLink size={14} className="text-[#b0ad9a] group-hover:text-[#c2956e] transition-colors" />
+                     </a>
+                   </div>
                  </div>
               </div>
 

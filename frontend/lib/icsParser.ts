@@ -141,19 +141,16 @@ export function exportICS(events: CalendarEvent[]): string {
   return ics;
 }
 
-// In-memory lock to prevent concurrent overlapping sync operations 
-// during simultaneous component mounts on strict mode or parallel fetches.
+// In-memory lock and records to ensure sync on reload or rapid SPA navigation
+// (Restricted to a 30s throttle to prevent Google/Apple from throwing an API rate-limit/ban)
+const syncRecord: Record<string, number> = {};
 let isSyncing = false;
 
-// Background Auto-Sync Utility
-export async function syncExternalCalendars(userId: string) {
+export async function syncExternalCalendars(userId: string, force: boolean = false) {
   if (isSyncing) return;
   
-  // NOTE: Throttled to 3 minutes minimum. Public services (Google/Apple) 
-  // will rate-limit or IP ban if fetched every 5 seconds.
-  const lastSyncKey = `chronoa_last_cal_sync_${userId}`;
-  const lastSync = localStorage.getItem(lastSyncKey);
-  if (lastSync && Date.now() - parseInt(lastSync) < 3 * 60 * 1000) {
+  const now = Date.now();
+  if (!force && syncRecord[userId] && now - syncRecord[userId] < 30 * 1000) {
     return;
   }
 
@@ -187,7 +184,7 @@ export async function syncExternalCalendars(userId: string) {
       }
     }
 
-    localStorage.setItem(lastSyncKey, Date.now().toString());
+    syncRecord[userId] = Date.now();
   } catch (e) {
     console.error("Failed background calendar sync", e);
   } finally {
