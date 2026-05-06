@@ -13,7 +13,7 @@ export default function ConfirmDialog() {
     <div className="fixed inset-0 z-[500] flex items-center justify-center px-4 bg-black/40 dark:bg-black/60 backdrop-blur-sm animate-fade-in transition-all">
       <div className="bg-[#f7f5f0] dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] rounded-[2rem] p-8 max-w-sm w-full shadow-2xl animate-fade-up flex flex-col items-center text-center">
         
-        <div className={`w-14 h-14 rounded-full flex items-center justify-center mb-5 ${confirmDialog.isDestructive ? 'bg-red-100 text-red-500 dark:bg-red-900/30' : 'bg-[#c2956e]/20 text-[#c2956e] dark:bg-[#b0855f]/20 dark:text-[#d1a784]'}`}>
+        <div className={`w-14 h-14 rounded-full flex items-center justify-center mb-5 ${confirmDialog.isDestructive ? 'bg-[#d45b5b]/10 text-[#d45b5b] dark:bg-[#d45b5b]/20 dark:text-[#e07a7a]' : 'bg-[#c2956e]/20 text-[#c2956e] dark:bg-[#b0855f]/20 dark:text-[#d1a784]'}`}>
            {confirmDialog.isDestructive ? <AlertTriangle size={28} /> : <Info size={28} />}
         </div>
         
@@ -42,7 +42,7 @@ export default function ConfirmDialog() {
            </button>
            <button 
              onClick={() => { confirmDialog.onConfirm(); closeConfirmDialog(); }} 
-             className={`flex-1 px-3 py-3.5 rounded-xl font-bold text-[10px] sm:text-[11px] uppercase tracking-widest text-white transition-colors shadow-md ${confirmDialog.isDestructive ? 'bg-red-500 hover:bg-red-600' : 'bg-[#c2956e] hover:bg-[#b0855f]'}`}
+             className={`flex-1 px-3 py-3.5 rounded-xl font-bold text-[10px] sm:text-[11px] uppercase tracking-widest text-white transition-colors shadow-md ${confirmDialog.isDestructive ? 'bg-[#d45b5b] hover:bg-[#b94a4a]' : 'bg-[#c2956e] hover:bg-[#b0855f]'}`}
            >
               {confirmDialog.confirmText || "Confirm"}
            </button>

@@ -58,11 +58,16 @@ export default function TodayCalendarWidget({ variant, searchQuery = '' }: Props
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
+    // Fetch inactive sources to filter them out of display locally
+    const { data: sourcesData } = await supabase.from('calendar_sources').select('id, is_active').eq('user_id', user.id);
+    const inactiveSourceIds = sourcesData?.filter(s => s.is_active === false).map(s => s.id) || [];
+
     // Background sync on mount for external widgets
     syncExternalCalendars(user.id).then(() => {
       supabase.from('calendar_events').select('*').eq('user_id', user.id).then(({ data }) => {
         if (data) {
-          const todayEvents = (data as CalendarEvent[]).filter(e => {
+          const validData = (data as CalendarEvent[]).filter(e => !e.source_id || !inactiveSourceIds.includes(e.source_id));
+          const todayEvents = validData.filter(e => {
             return isSameDay(new Date(e.start_time), new Date()) || (new Date(e.start_time) <= new Date(new Date().setHours(23, 59, 59, 999)) && new Date(e.end_time) >= new Date(new Date().setHours(0, 0, 0, 0)));
           }).sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime());
           setEvents(todayEvents);
@@ -85,7 +90,8 @@ export default function TodayCalendarWidget({ variant, searchQuery = '' }: Props
       .lte('start_time', end.toISOString());
 
     if (data) {
-      const todayEvents = (data as CalendarEvent[]).filter(e => {
+      const validData = (data as CalendarEvent[]).filter(e => !e.source_id || !inactiveSourceIds.includes(e.source_id));
+      const todayEvents = validData.filter(e => {
         return isSameDay(new Date(e.start_time), today) || (new Date(e.start_time) <= end && new Date(e.end_time) >= start);
       }).sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime());
       

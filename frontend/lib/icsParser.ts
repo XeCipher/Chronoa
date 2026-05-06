@@ -163,7 +163,8 @@ export async function syncExternalCalendars(userId: string, force: boolean = fal
       .from('calendar_sources')
       .select('*')
       .eq('user_id', userId)
-      .eq('type', 'link');
+      .eq('type', 'link')
+      .eq('is_active', true); // Only sync active links
 
     if (!sources || sources.length === 0) {
       syncErrorsCache[userId] = [];

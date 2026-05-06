@@ -42,5 +42,6 @@ export type CalendarSource = {
   type: 'link' | 'file';
   url?: string | null;
   color: string;
+  is_active?: boolean;
   created_at: string;
 };

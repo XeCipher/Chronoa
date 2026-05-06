@@ -187,6 +187,13 @@ export default function SettingsPage() {
 
   const handleAddLink = async () => {
     if (!newLinkUrl || !newLinkName) return;
+    
+    // Prevent duplicate URL additions
+    if (calSources.some(s => s.url === newLinkUrl)) {
+      showConfirmDialog({ title: "Duplicate Calendar", message: "This calendar link has already been added.", confirmText: "Understood", onConfirm: () => {} });
+      return;
+    }
+
     setIsAddingLink(true);
     try {
       const res = await fetch(`/api/calendar/fetch-ics?url=${encodeURIComponent(newLinkUrl)}`);
@@ -199,7 +206,7 @@ export default function SettingsPage() {
       if (!user) throw new Error("Unauthenticated");
 
       const { data: source, error: sourceErr } = await supabase.from('calendar_sources').insert({
-        user_id: user.id, name: newLinkName, url: newLinkUrl, type: 'link', color: 'amber'
+        user_id: user.id, name: newLinkName, url: newLinkUrl, type: 'link', color: 'amber', is_active: true
       }).select().single();
 
       if (sourceErr || !source) throw sourceErr;
@@ -220,6 +227,15 @@ export default function SettingsPage() {
   const handleImportFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+
+    const newName = file.name.replace('.ics', '');
+    // Prevent duplicate File imports
+    if (calSources.some(s => s.name === newName && s.type === 'file')) {
+       showConfirmDialog({ title: "Duplicate File", message: "A calendar file with this name already exists.", confirmText: "Understood", onConfirm: () => {} });
+       if (fileInputRef.current) fileInputRef.current.value = "";
+       return;
+    }
+
     setIsAddingLink(true);
     try {
       const icsText = await file.text();
@@ -227,7 +243,7 @@ export default function SettingsPage() {
       if (!user) throw new Error("Unauthenticated");
 
       const { data: source, error: sourceErr } = await supabase.from('calendar_sources').insert({
-        user_id: user.id, name: file.name.replace('.ics', ''), type: 'file', color: 'amber'
+        user_id: user.id, name: newName, type: 'file', color: 'amber', is_active: true
       }).select().single();
 
       if (sourceErr || !source) throw sourceErr;
@@ -249,6 +265,42 @@ export default function SettingsPage() {
     setCalSources(prev => prev.map(s => s.id === id ? { ...s, color: newColor } : s));
     await supabase.from('calendar_sources').update({ color: newColor }).eq('id', id);
     await supabase.from('calendar_events').update({ color: newColor }).eq('source_id', id);
+  };
+
+  const handleToggleSourceActive = async (source: CalendarSource) => {
+    const newActive = source.is_active === false ? true : false;
+    
+    // Optimistic UI update
+    setCalSources(prev => prev.map(s => s.id === source.id ? { ...s, is_active: newActive } : s));
+    setIsUpdatingSource(true);
+    
+    try {
+      await supabase.from('calendar_sources').update({ is_active: newActive }).eq('id', source.id);
+      
+      if (source.type === 'link') {
+        if (!newActive) {
+          await supabase.from('calendar_events').delete().eq('source_id', source.id);
+        } else if (source.url) {
+          const res = await fetch(`/api/calendar/fetch-ics?url=${encodeURIComponent(source.url)}`);
+          if (res.ok) {
+            const icsText = await res.text();
+            const { data: { user } } = await supabase.auth.getUser();
+            if (user) {
+              const events = parseICS(icsText, source.color, user.id, source.id);
+              const chunkSize = 200;
+              for (let i = 0; i < events.length; i += chunkSize) {
+                await supabase.from('calendar_events').insert(events.slice(i, i + chunkSize));
+              }
+            }
+          }
+        }
+      }
+    } catch (err: any) {
+      showConfirmDialog({ title: "Toggle Failed", message: err.message || "Failed to update calendar status.", confirmText: "Dismiss", onConfirm: () => {} });
+      setCalSources(prev => prev.map(s => s.id === source.id ? { ...s, is_active: !newActive } : s));
+    } finally {
+      setIsUpdatingSource(false);
+    }
   };
 
   const handleEditSourceSave = async (id: string) => {
@@ -413,7 +465,7 @@ export default function SettingsPage() {
               {calSources.length > 0 && (
                 <div className="flex flex-col gap-3">
                   {calSources.map((source) => (
-                    <div key={source.id} className="flex flex-row items-center justify-between p-4 bg-[#fdfbf7] dark:bg-[#161616] border border-[#e0ddd5] dark:border-[#333] rounded-[1.25rem] gap-3 transition-all">
+                    <div key={source.id} className={`flex flex-row items-center justify-between p-4 bg-[#fdfbf7] dark:bg-[#161616] border border-[#e0ddd5] dark:border-[#333] rounded-[1.25rem] gap-3 transition-all ${source.is_active === false ? 'opacity-60' : ''}`}>
                       {editingSourceId === source.id ? (
                         <div className="flex flex-col gap-2 w-full animate-fade-in">
                           <input type="text" value={editSourceName} onChange={e => setEditSourceName(e.target.value)} className="w-full bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#444] rounded-xl px-4 py-2.5 text-sm outline-none focus:border-[#c2956e] transition-colors shadow-sm" placeholder="Calendar Name" />
@@ -428,6 +480,13 @@ export default function SettingsPage() {
                       ) : (
                         <>
                           <div className="flex items-center gap-3 min-w-0 flex-1">
+                            <button 
+                              onClick={() => handleToggleSourceActive(source)}
+                              data-tooltip-id="global-tooltip" data-tooltip-content={source.is_active !== false ? "Disable Calendar" : "Enable Calendar"}
+                              className={`shrink-0 w-10 h-5 rounded-full transition-colors relative ${source.is_active !== false ? 'bg-[#7ca982] dark:bg-[#6a9a70]' : 'bg-[#e0ddd5] dark:bg-[#444]'}`}
+                            >
+                              <div className={`w-4 h-4 bg-white rounded-full absolute top-0.5 transition-transform ${source.is_active !== false ? 'translate-x-5' : 'translate-x-0.5 shadow-sm'}`} />
+                            </button>
                             <div className="w-10 h-10 bg-white dark:bg-[#252525] rounded-xl flex items-center justify-center text-[#c2956e] shadow-sm shrink-0 border border-[#e0ddd5] dark:border-[#333]">
                               {source.type === 'link' ? <LinkIcon size={16} /> : <FileText size={16} />}
                             </div>

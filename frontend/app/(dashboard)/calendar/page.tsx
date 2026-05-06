@@ -120,6 +120,10 @@ export default function CalendarPage() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
     
+    // Determine inactive sources to filter out
+    const { data: sourcesData } = await supabase.from('calendar_sources').select('id, is_active').eq('user_id', user.id);
+    const inactiveSourceIds = sourcesData?.filter(s => s.is_active === false).map(s => s.id) || [];
+    
     // Trigger background sync for external calendars (Throttled inside the function)
     syncExternalCalendars(user.id).then((errors) => {
       if (errors && errors.length > 0) {
@@ -130,8 +134,9 @@ export default function CalendarPage() {
       
       supabase.from('calendar_events').select('*').eq('user_id', user.id).then(({ data }) => {
         if (data) {
-           setEvents(data as CalendarEvent[]);
-           localStorage.setItem('chronoa_cache_calendar_main', JSON.stringify(data));
+           const validData = (data as CalendarEvent[]).filter(e => !e.source_id || !inactiveSourceIds.includes(e.source_id));
+           setEvents(validData);
+           localStorage.setItem('chronoa_cache_calendar_main', JSON.stringify(validData));
         }
       });
     });
@@ -149,8 +154,9 @@ export default function CalendarPage() {
       .lte('start_time', end.toISOString());
 
     if (data) {
-      setEvents(data as CalendarEvent[]);
-      localStorage.setItem('chronoa_cache_calendar_main', JSON.stringify(data));
+      const validData = (data as CalendarEvent[]).filter(e => !e.source_id || !inactiveSourceIds.includes(e.source_id));
+      setEvents(validData);
+      localStorage.setItem('chronoa_cache_calendar_main', JSON.stringify(validData));
     }
     setIsLoading(false);
   };
@@ -681,7 +687,7 @@ export default function CalendarPage() {
       {isSyncErrorModalOpen && (
         <div className="fixed inset-0 z-[600] flex items-center justify-center px-4 bg-black/40 dark:bg-black/60 backdrop-blur-sm animate-fade-in">
           <div className="bg-[#f7f5f0] dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] rounded-[2rem] p-8 max-w-sm w-full shadow-2xl animate-fade-up flex flex-col items-center text-center">
-             <div className="w-14 h-14 rounded-full flex items-center justify-center mb-5 bg-red-100 text-red-500 dark:bg-red-900/30">
+             <div className="w-14 h-14 rounded-full flex items-center justify-center mb-5 bg-[#d45b5b]/10 text-[#d45b5b] dark:bg-[#d45b5b]/20 dark:text-[#e07a7a]">
                <AlertCircle size={28} />
              </div>
              <h3 className="text-2xl font-serif text-[#3d3b33] dark:text-[#f0f0f0] mb-2 leading-tight">Sync Issues</h3>
