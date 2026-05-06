@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "app.vercel.chronoa.twa",
+      "sha256_cert_fingerprints": [
+        "67:D6:B6:BB:12:38:4E:54:61:64:D1:4C:94:58:9F:BF:A0:9B:43:82:33:A4:41:F4:BA:DF:46:B6:5E:46:E8:5F"
+      ]
+    }
+  }
+]
