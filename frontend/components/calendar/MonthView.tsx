@@ -1,4 +1,4 @@
-// frontend/components/calendar/MonthView.tsx
+// FILE: frontend/components/calendar/MonthView.tsx
 "use client";
 
 import { useMemo, useEffect, useState, useRef } from "react";
@@ -18,6 +18,16 @@ interface Props {
 }
 
 const formatEventTime = (d: Date) => d.getMinutes() === 0 ? format(d, 'h a') : format(d, 'h:mm a');
+
+// Dedicated dark mappings for the indicator dots on month calendar view
+const DOT_COLORS: Record<string, string> = {
+  amber: 'bg-[#c2956e] dark:bg-[#b0855f]',
+  blue: 'bg-blue-500 dark:bg-blue-400',
+  purple: 'bg-purple-500 dark:bg-purple-400',
+  rose: 'bg-rose-500 dark:bg-rose-400',
+  emerald: 'bg-emerald-500 dark:bg-emerald-400',
+  sage: 'bg-[#7ca982] dark:bg-[#6a9a70]',
+};
 
 export default function MonthView({ currentDate, events, onEventClick, onDayClick, eventColors, selectedDate, isMobile }: Props) {
   
@@ -146,7 +156,7 @@ export default function MonthView({ currentDate, events, onEventClick, onDayClic
                     
                     <div className="hidden lg:flex flex-wrap gap-1 max-w-[40px] justify-end mt-1">
                       {Array.from(new Set(dayEvents.map(e => e.color))).map((color, idx) => (
-                        <div key={idx} className={`w-1.5 h-1.5 rounded-full ${eventColors[color]?.split(' ')[0] || 'bg-[#c2956e]'}`} />
+                        <div key={idx} className={`w-1.5 h-1.5 rounded-full ${DOT_COLORS[color] || DOT_COLORS['amber']}`} />
                       ))}
                     </div>
                   </div>
@@ -187,7 +197,7 @@ export default function MonthView({ currentDate, events, onEventClick, onDayClic
 
                   <div className="lg:hidden flex flex-wrap gap-1 justify-start mt-auto relative z-10 mb-0.5 ml-0.5 pointer-events-none">
                     {dayEvents.map((e, idx) => (
-                      <div key={idx} className={`w-1.5 h-1.5 rounded-full ${eventColors[e.color]?.split(' ')[0] || 'bg-[#c2956e]'}`} />
+                      <div key={idx} className={`w-1.5 h-1.5 rounded-full ${DOT_COLORS[e.color] || DOT_COLORS['amber']}`} />
                     ))}
                   </div>
                 </div>

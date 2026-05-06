@@ -1,4 +1,4 @@
-// frontend/components/ui/SidebarNav.tsx
+// FILE: frontend/components/ui/SidebarNav.tsx
 "use client";
 
 import { useState, useEffect } from "react";
@@ -141,7 +141,7 @@ export default function SidebarNav() {
       </aside>
 
       {/* Mobile Bottom Nav */}
-      <nav className={`md:hidden fixed bottom-0 left-0 w-full h-[calc(82px+env(safe-area-inset-bottom))] pb-[calc(1.5rem+env(safe-area-inset-bottom))] pt-0 px-6 bg-[#f7f5f0]/90 dark:bg-[#121212]/90 backdrop-blur-xl border-t border-[#e0ddd5] dark:border-[#2a2a2a] flex items-center justify-between z-[100] transition-transform duration-300 ease-in-out overflow-x-auto no-scrollbar ${mobileNoteOpen ? 'translate-y-full' : 'translate-y-0'}`}>
+      <nav className={`md:hidden fixed bottom-0 left-0 w-full h-[calc(82px+env(safe-area-inset-bottom))] pb-[calc(1.5rem+env(safe-area-inset-bottom))] pt-0 px-6 bg-white/95 dark:bg-[#121212]/95 backdrop-blur-xl border-t border-[#e0ddd5] dark:border-[#2a2a2a] flex items-center justify-between z-[100] transition-transform duration-300 ease-in-out overflow-x-auto no-scrollbar ${mobileNoteOpen ? 'translate-y-full' : 'translate-y-0'}`}>
         {navItems.map((item) => {
           const isActive = pathname === item.href;
           return (

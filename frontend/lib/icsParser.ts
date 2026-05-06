@@ -1,4 +1,4 @@
-// frontend/lib/icsParser.ts
+// FILE: frontend/lib/icsParser.ts
 import { CalendarEvent } from "@/types/app.types";
 import { supabase } from "@/lib/supabase";
 
@@ -192,7 +192,9 @@ export async function syncExternalCalendars(userId: string, force: boolean = fal
         const existingMap = new Map<string, any>();
         if (existingData) {
           existingData.forEach((e: any) => {
-            const baseKey = `${e.start_time}_${e.title}_${e.is_all_day}`;
+            // Strictly base the map key off the absolute time epochs to prevent ISO-string variants matching bugs
+            const startEpoch = new Date(e.start_time).getTime();
+            const baseKey = `${startEpoch}_${e.title}_${e.is_all_day}`;
             let counter = 0;
             let finalKey = baseKey;
             while (existingMap.has(finalKey)) {
@@ -207,7 +209,8 @@ export async function syncExternalCalendars(userId: string, force: boolean = fal
         const toUpdate: any[] = [];
 
         events.forEach(newEvent => {
-          const baseKey = `${newEvent.start_time}_${newEvent.title}_${newEvent.is_all_day}`;
+          const startEpoch = new Date(newEvent.start_time!).getTime();
+          const baseKey = `${startEpoch}_${newEvent.title}_${newEvent.is_all_day}`;
           let foundKey: string | null = null;
 
           if (existingMap.has(baseKey)) {
@@ -224,9 +227,9 @@ export async function syncExternalCalendars(userId: string, force: boolean = fal
             const existing = existingMap.get(foundKey);
             existingMap.delete(foundKey); // Removing indicates it has been matched
 
-            // Determine if anything mutated
+            // Determine if anything mutated using strict Time Epochs
             if (
-              existing.end_time !== newEvent.end_time ||
+              new Date(existing.end_time).getTime() !== new Date(newEvent.end_time!).getTime() ||
               existing.location !== newEvent.location ||
               existing.description !== newEvent.description
             ) {

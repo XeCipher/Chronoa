@@ -1,4 +1,4 @@
-// frontend/components/notes/DistractionFreeEditor.tsx
+// FILE: frontend/components/notes/DistractionFreeEditor.tsx
 "use client";
 
 import { useState, useEffect, useRef } from "react";
@@ -196,6 +196,12 @@ export default function DistractionFreeEditor({
       });
     };
 
+    let rafId: number;
+    const updateBubbleThrottled = () => {
+      if (rafId) cancelAnimationFrame(rafId);
+      rafId = requestAnimationFrame(updateBubble);
+    };
+
     const handleBlur = () => {
       setTimeout(() => {
         if (!editor.isFocused) {
@@ -204,19 +210,19 @@ export default function DistractionFreeEditor({
       }, 100);
     };
 
-    editor.on("selectionUpdate", updateBubble);
-    editor.on("focus", updateBubble);
+    editor.on("selectionUpdate", updateBubbleThrottled);
+    editor.on("focus", updateBubbleThrottled);
     editor.on("blur", handleBlur);
 
-    window.addEventListener("resize", updateBubble);
-    window.addEventListener("scroll", updateBubble, true);
+    window.addEventListener("resize", updateBubbleThrottled);
+    window.addEventListener("scroll", updateBubbleThrottled, true);
 
     return () => {
-      editor.off("selectionUpdate", updateBubble);
-      editor.off("focus", updateBubble);
+      editor.off("selectionUpdate", updateBubbleThrottled);
+      editor.off("focus", updateBubbleThrottled);
       editor.off("blur", handleBlur);
-      window.removeEventListener("resize", updateBubble);
-      window.removeEventListener("scroll", updateBubble, true);
+      window.removeEventListener("resize", updateBubbleThrottled);
+      window.removeEventListener("scroll", updateBubbleThrottled, true);
     };
   }, [editor]);
 
