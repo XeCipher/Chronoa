@@ -29,6 +29,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const toggleFirstActive = useTimerStore((state) => state.toggleFirstActive);
   const initialRestoreDone = useRef(false);
   const lastSyncedTimerState = useRef<string>("");
+  const previousTimerState = useRef<any>(null);
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -56,6 +57,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         // Sync Timer State from DB on load
         if (profile.timer_state) {
           lastSyncedTimerState.current = JSON.stringify(profile.timer_state);
+          previousTimerState.current = profile.timer_state;
           useTimerStore.setState({
             timers: profile.timer_state.timers || [],
             stopwatches: profile.timer_state.stopwatches || [],
@@ -84,6 +86,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               const remoteStr = JSON.stringify(rec.timer_state);
               if (remoteStr !== lastSyncedTimerState.current) {
                  lastSyncedTimerState.current = remoteStr;
+                 previousTimerState.current = rec.timer_state; // Deeply reflect remote state to prevent local overrides
                  useTimerStore.setState({
                     timers: rec.timer_state.timers || [],
                     stopwatches: rec.timer_state.stopwatches || [],
@@ -101,29 +104,90 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   // Sync Local Timer State to DB whenever user performs an action
   useEffect(() => {
     if (isLoading) return;
+    let timeoutId: NodeJS.Timeout;
+
     const unsub = useTimerStore.subscribe((state) => {
-      const currentStateStr = JSON.stringify({
+      const currentState = {
         timers: state.timers,
         stopwatches: state.stopwatches,
         activeTab: state.activeTab
-      });
+      };
+      const currentStateStr = JSON.stringify(currentState);
 
       if (currentStateStr !== lastSyncedTimerState.current) {
         lastSyncedTimerState.current = currentStateStr;
-        supabase.auth.getUser().then(({data}) => {
-          if (data.user) {
-            supabase.from('profiles').update({
-              timer_state: JSON.parse(currentStateStr)
-            }).eq('id', data.user.id);
+
+        let isCritical = false;
+        const prev = previousTimerState.current;
+
+        // Detect if the user initiated a critical action that needs INSTANT syncing across devices
+        if (!prev) {
+          isCritical = true;
+        } else {
+          if (
+            prev.activeTab !== currentState.activeTab || 
+            prev.timers.length !== currentState.timers.length || 
+            prev.stopwatches.length !== currentState.stopwatches.length
+          ) {
+            isCritical = true;
+          } else {
+            // Check for play/pause/reset states
+            for (let i = 0; i < currentState.timers.length; i++) {
+              if (currentState.timers[i].isRunning !== prev.timers[i].isRunning || 
+                  currentState.timers[i].accumulatedSeconds !== prev.timers[i].accumulatedSeconds) {
+                isCritical = true;
+                break;
+              }
+            }
+            if (!isCritical) {
+              for (let i = 0; i < currentState.stopwatches.length; i++) {
+                if (currentState.stopwatches[i].isRunning !== prev.stopwatches[i].isRunning || 
+                    currentState.stopwatches[i].accumulatedSeconds !== prev.stopwatches[i].accumulatedSeconds) {
+                  isCritical = true;
+                  break;
+                }
+              }
+            }
           }
-        });
+        }
+
+        previousTimerState.current = JSON.parse(currentStateStr); // Deep copy 
+
+        const saveToDb = () => {
+          supabase.auth.getUser().then(({data}) => {
+            if (data.user) {
+              supabase.from('profiles').update({
+                timer_state: currentState
+              }).eq('id', data.user.id);
+            }
+          });
+        };
+
+        clearTimeout(timeoutId);
+        if (isCritical) {
+          saveToDb(); // Save instantly on Start/Pause/Add/Remove/Tab switch
+        } else {
+          timeoutId = setTimeout(saveToDb, 800); // 800ms debounce prevents keystroke network flooding
+        }
       }
     });
-    return unsub;
+
+    // Ensure we start with a clean baseline
+    if (!previousTimerState.current) {
+      previousTimerState.current = {
+        timers: useTimerStore.getState().timers,
+        stopwatches: useTimerStore.getState().stopwatches,
+        activeTab: useTimerStore.getState().activeTab
+      };
+    }
+
+    return () => {
+      unsub();
+      clearTimeout(timeoutId);
+    };
   }, [isLoading]);
 
   useEffect(() => {
-    if (!hotkeysEnabled) return;
     const handleKeyDown = (e: KeyboardEvent) => {
       const isAlt = e.altKey;
       const isTyping = ['INPUT', 'TEXTAREA'].includes((e.target as HTMLElement).tagName) || (e.target as HTMLElement).isContentEditable;
