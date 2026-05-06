@@ -107,7 +107,7 @@ export default function HomeTaskProgress() {
 
       {/* Normal Tasks Section */}
       <div className={`flex items-center ${showFull ? 'w-full' : 'w-auto'}`}>
-        <div className={`w-9 h-9 md:w-10 md:h-10 flex items-center justify-center rounded-full shrink-0 transition-all duration-500 ${normalLeft >= 1 ? 'bg-[#c2956e] dark:bg-[#b0855f] text-white shadow-md' : 'bg-white/20 dark:bg-black/40 text-[#3d3b33] dark:text-white'}`}>
+        <div className={`w-9 h-9 md:w-10 md:h-10 flex items-center justify-center rounded-full shrink-0 transition-all duration-500 ${normalLeft >= 1 ? 'bg-[#c2956e] dark:bg-[#b0855f] text-white shadow-md' : 'bg-white/20 dark:bg-black/20 border border-black/10 dark:border-white/10 text-[#3d3b33] dark:text-white'}`}>
           <span className="text-[14px] md:text-[15px] font-semibold tabular-nums">{normalLeft}</span>
         </div>
         

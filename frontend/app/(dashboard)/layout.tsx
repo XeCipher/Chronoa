@@ -1,3 +1,4 @@
+// frontend/app/(dashboard)/layout.tsx
 "use client";
 
 import { useEffect, useState, useRef } from "react";
@@ -246,7 +247,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         if (key === 'j' && !disabledHotkeys?.includes('journal')) { e.preventDefault(); setNotesTab('journal'); router.push('/notes'); }
         if (key === 'c' && !disabledHotkeys?.includes('calendar')) { e.preventDefault(); router.push('/calendar'); }
         if (key === 'a' && !disabledHotkeys?.includes('analytics')) { e.preventDefault(); router.push('/analytics'); }
-        if (key === 's' && !disabledHotkeys?.includes('settings')) { e.preventDefault(); router.push('/settings'); }
+        if (key === 'p' && !disabledHotkeys?.includes('settings')) { e.preventDefault(); router.push('/settings'); }
       }
       if (e.code === 'Space' && pathname === '/home' && !isTyping && !disabledHotkeys?.includes('space')) { e.preventDefault(); toggleFirstActive(); }
       if (e.key === 'Escape' && isSidebarPinned && !disabledHotkeys?.includes('escape')) toggleSidebarPin();

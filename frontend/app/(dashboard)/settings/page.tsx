@@ -1,3 +1,4 @@
+// frontend/app/(dashboard)/settings/page.tsx
 "use client";
 
 import { useEffect, useState, useRef } from "react";
@@ -656,7 +657,7 @@ export default function SettingsPage() {
                 { id: 'notes', keys: [altKeyDisplay, 'N'], desc: 'Go to Notes' },
                 { id: 'calendar', keys: [altKeyDisplay, 'C'], desc: 'Go to Calendar' },
                 { id: 'analytics', keys: [altKeyDisplay, 'A'], desc: 'Go to Analytics' },
-                { id: 'settings', keys: [altKeyDisplay, 'S'], desc: 'Go to Profile' },
+                { id: 'settings', keys: [altKeyDisplay, 'P'], desc: 'Go to Profile' },
                 { id: 'up', keys: [altKeyDisplay, '↑'], desc: 'Move Task Up' },
                 { id: 'down', keys: [altKeyDisplay, '↓'], desc: 'Move Task Down' },
                 { id: 'focus_up', keys: ['Shift', '↑'], desc: 'Focus Task Above' },
