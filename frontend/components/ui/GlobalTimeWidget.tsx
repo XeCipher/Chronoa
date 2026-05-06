@@ -207,6 +207,7 @@ function MiniEngineCard({ engine, tab }: { engine: EngineInstance, tab: 'timer' 
 export default function GlobalTimeWidget() {
   const [time, setTime] = useState<Date | null>(null);
   const [isHovered, setIsHovered] = useState(false);
+  const [isTouch, setIsTouch] = useState(false);
   const inactivityTimerRef = useRef<NodeJS.Timeout | null>(null);
   const { isGlobalTimeWidgetExpanded, setGlobalTimeWidgetExpanded } = useUiStore();
   
@@ -215,6 +216,8 @@ export default function GlobalTimeWidget() {
   const router = useRouter();
 
   useEffect(() => {
+    setIsTouch(window.matchMedia('(hover: none)').matches || ('ontouchstart' in window) || navigator.maxTouchPoints > 0);
+    
     setTime(new Date());
     const timer = setInterval(() => setTime(new Date()), 1000);
     return () => {
@@ -225,7 +228,7 @@ export default function GlobalTimeWidget() {
 
   const resetInactivityTimer = () => {
     if (inactivityTimerRef.current) clearTimeout(inactivityTimerRef.current);
-    if (isGlobalTimeWidgetExpanded) {
+    if (useUiStore.getState().isGlobalTimeWidgetExpanded) {
       inactivityTimerRef.current = setTimeout(() => {
         setGlobalTimeWidgetExpanded(false);
       }, 3000);
@@ -253,9 +256,10 @@ export default function GlobalTimeWidget() {
   return (
     <div 
       className="hidden md:flex fixed bottom-8 right-10 z-[150] flex-col items-end group"
-      onMouseEnter={() => { setIsHovered(true); setGlobalTimeWidgetExpanded(false); }}
-      onMouseLeave={() => setIsHovered(false)}
-      onMouseMove={resetInactivityTimer}
+      onMouseEnter={() => { if (!isTouch) { setIsHovered(true); setGlobalTimeWidgetExpanded(false); } }}
+      onMouseLeave={() => { if (!isTouch) setIsHovered(false); }}
+      onMouseMove={() => { if (isTouch) resetInactivityTimer(); }}
+      onTouchStart={() => { if (isTouch) resetInactivityTimer(); }}
     >
       <div className="absolute bottom-full right-0 w-full h-[15%] bg-transparent z-[-1]" />
 
@@ -319,7 +323,10 @@ export default function GlobalTimeWidget() {
       <div 
         onClick={() => {
           setGlobalTimeWidgetExpanded(true);
-          resetInactivityTimer();
+          if (inactivityTimerRef.current) clearTimeout(inactivityTimerRef.current);
+          inactivityTimerRef.current = setTimeout(() => {
+            setGlobalTimeWidgetExpanded(false);
+          }, 3000);
         }}
         className={`relative flex items-center gap-3 bg-white/70 dark:bg-[#1a1a1a]/80 backdrop-blur-xl border border-[#e0ddd5] dark:border-[#333] rounded-2xl px-6 py-3.5 transition-all duration-400 ease-out cursor-pointer overflow-hidden ${isExpanded ? 'shadow-[0_8px_30px_rgba(194,149,110,0.2)] dark:shadow-[0_8px_30px_rgba(0,0,0,0.6)] border-[#c2956e] dark:border-[#b0855f] scale-105' : 'shadow-[0_4px_20px_rgba(0,0,0,0.05)] dark:shadow-[0_4px_20px_rgba(0,0,0,0.4)] hover:shadow-md hover:scale-[1.02]'}`}
       >

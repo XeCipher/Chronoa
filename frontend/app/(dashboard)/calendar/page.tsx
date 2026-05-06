@@ -505,9 +505,9 @@ export default function CalendarPage() {
     <div className={`absolute inset-0 flex flex-col pt-[max(1.5rem,calc(1rem+env(safe-area-inset-top)))] md:pt-[max(3.5rem,calc(2.5rem+env(safe-area-inset-top)))] px-4 md:p-8 lg:p-10 min-w-0 bg-[#f7f5f0] dark:bg-[#121212] overflow-hidden ${calendarView === 'month' ? 'pb-0 md:pb-8' : 'pb-[calc(6.125rem+env(safe-area-inset-bottom))] md:pb-8'}`}>
       
       <div className="flex-1 flex flex-col relative z-10 min-w-0 min-h-0 max-w-full w-full h-full">
-        <header className="mb-6 lg:mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4 shrink-0 relative z-50">
+        <header className="mb-6 lg:mb-8 flex flex-col lg:flex-row lg:items-center justify-between gap-4 shrink-0 relative z-50">
           
-          <div className="flex items-center justify-between w-full md:w-auto relative">
+          <div className="flex items-center justify-between w-full lg:w-auto relative">
             <div 
               ref={titleRef}
               onClick={() => setIsDatePickerOpen(!isDatePickerOpen)}
@@ -515,13 +515,13 @@ export default function CalendarPage() {
             >
               <CalendarDays size={24} className="text-[#c2956e] shrink-0" />
               <div className="flex flex-col min-w-0">
-                <h1 className="text-2xl md:text-4xl font-serif font-medium tracking-tight leading-normal truncate pb-0.5 select-none">{displayTitle()}</h1>
+                <h1 className="text-2xl lg:text-4xl font-serif font-medium tracking-tight leading-normal truncate pb-0.5 select-none">{displayTitle()}</h1>
               </div>
             </div>
             
             {isDatePickerOpen && renderDatePicker()}
 
-            <div className="md:hidden relative shrink-0 flex items-center gap-2" ref={mobileSearchRef}>
+            <div className="lg:hidden relative shrink-0 flex items-center gap-2" ref={mobileSearchRef}>
               {syncErrors.length > 0 && (
                 <button 
                   onClick={() => setIsSyncErrorModalOpen(true)}
@@ -571,16 +571,16 @@ export default function CalendarPage() {
             </div>
           </div>
 
-          <div className="flex flex-col md:flex-row items-center gap-2 md:gap-3 w-full md:w-auto shrink-0">
+          <div className="flex flex-col lg:flex-row items-center gap-2 lg:gap-3 w-full lg:w-auto shrink-0">
             {syncErrors.length > 0 && (
               <button 
                 onClick={() => setIsSyncErrorModalOpen(true)}
-                className="hidden md:flex items-center justify-center w-10 h-10 rounded-full bg-red-50 dark:bg-red-900/10 text-red-500 border border-red-100 dark:border-red-900/30 shadow-sm shrink-0"
+                className="hidden lg:flex items-center justify-center w-10 h-10 rounded-full bg-red-50 dark:bg-red-900/10 text-red-500 border border-red-100 dark:border-red-900/30 shadow-sm shrink-0"
               >
                 <AlertCircle size={18} />
               </button>
             )}
-            <div className="hidden md:block relative shrink-0 h-10" ref={desktopSearchRef}>
+            <div className="hidden lg:block relative shrink-0 h-10" ref={desktopSearchRef}>
               <button 
                 onClick={() => setIsSearchOpen(!isSearchOpen)}
                 className={`h-full aspect-square rounded-full border transition-colors shadow-sm flex items-center justify-center ${isSearchOpen ? 'bg-[#c2956e] border-[#c2956e] text-white' : 'bg-white dark:bg-[#1a1a1a] border-[#e0ddd5] dark:border-[#333] text-[#888] hover:text-[#c2956e]'}`}
@@ -620,25 +620,25 @@ export default function CalendarPage() {
               )}
             </div>
 
-            <div className="flex w-full md:w-auto gap-2 md:gap-3 h-10 md:h-10">
-              <div className="flex items-center bg-white dark:bg-[#1a1a1a] rounded-full p-0.5 border border-[#e0ddd5] dark:border-[#333] shadow-sm w-full md:w-auto h-full">
-                <button onClick={handlePrev} className="flex-1 md:flex-none px-3 text-[#888] hover:text-[#3d3b33] dark:hover:text-white transition-colors h-full flex items-center justify-center rounded-l-full"><ChevronLeft size={16} className="md:w-[18px] md:h-[18px]" /></button>
-                <button onClick={handleToday} className={`flex-1 md:flex-none px-2 md:px-4 text-[10px] md:text-[11px] font-bold uppercase tracking-widest transition-colors h-full flex items-center justify-center ${isCurrentDateToday ? 'text-[#c2956e] dark:text-[#b0855f]' : 'text-[#3d3b33] dark:text-[#f0f0f0] hover:text-[#c2956e]'}`}>Today</button>
-                <button onClick={handleNext} className="flex-1 md:flex-none px-3 text-[#888] hover:text-[#3d3b33] dark:hover:text-white transition-colors h-full flex items-center justify-center rounded-r-full"><ChevronRight size={16} className="md:w-[18px] md:h-[18px]" /></button>
+            <div className="flex w-full lg:w-auto gap-2 lg:gap-3 h-10 lg:h-10">
+              <div className="flex items-center bg-white dark:bg-[#1a1a1a] rounded-full p-0.5 border border-[#e0ddd5] dark:border-[#333] shadow-sm w-full lg:w-auto h-full">
+                <button onClick={handlePrev} className="flex-1 lg:flex-none px-3 text-[#888] hover:text-[#3d3b33] dark:hover:text-white transition-colors h-full flex items-center justify-center rounded-l-full"><ChevronLeft size={16} className="lg:w-[18px] lg:h-[18px]" /></button>
+                <button onClick={handleToday} className={`flex-1 lg:flex-none px-2 lg:px-4 text-[10px] lg:text-[11px] font-bold uppercase tracking-widest transition-colors h-full flex items-center justify-center ${isCurrentDateToday ? 'text-[#c2956e] dark:text-[#b0855f]' : 'text-[#3d3b33] dark:text-[#f0f0f0] hover:text-[#c2956e]'}`}>Today</button>
+                <button onClick={handleNext} className="flex-1 lg:flex-none px-3 text-[#888] hover:text-[#3d3b33] dark:hover:text-white transition-colors h-full flex items-center justify-center rounded-r-full"><ChevronRight size={16} className="lg:w-[18px] lg:h-[18px]" /></button>
               </div>
 
-              <div className="flex bg-[#ebe8e2]/50 dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] shadow-inner p-1 rounded-full w-full md:w-auto h-full">
+              <div className="flex bg-[#ebe8e2]/50 dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] shadow-inner p-1 rounded-full w-full lg:w-auto h-full">
                 {(['day', '2-day', 'week', 'month'] as const).map(v => (
                   <button 
                     key={v} onClick={() => setCalendarView(v)}
-                    className={`flex-1 md:flex-none px-2 md:px-4 rounded-full text-[9px] md:text-[10px] font-bold uppercase tracking-widest transition-all h-full flex items-center justify-center ${v === 'week' ? 'hidden md:flex' : 'flex'} ${calendarView === v ? 'bg-white dark:bg-[#2a2a2a] text-[#c2956e] dark:text-[#d1a784] shadow-sm' : 'text-[#888] dark:text-[#7a7a7a] md:hover:text-[#3d3b33] md:dark:hover:text-white'}`}
+                    className={`flex-1 lg:flex-none px-2 lg:px-4 rounded-full text-[9px] lg:text-[10px] font-bold uppercase tracking-widest transition-all h-full flex items-center justify-center ${v === 'week' ? 'hidden md:flex' : 'flex'} ${calendarView === v ? 'bg-white dark:bg-[#2a2a2a] text-[#c2956e] dark:text-[#d1a784] shadow-sm' : 'text-[#888] dark:text-[#7a7a7a] lg:hover:text-[#3d3b33] lg:dark:hover:text-white'}`}
                   >
                     {v === '2-day' ? '2D' : v}
                   </button>
                 ))}
               </div>
               
-              <button onClick={() => openAddModal()} className="hidden md:flex h-10 aspect-square items-center justify-center bg-[#c2956e] dark:bg-[#b0855f] text-white rounded-full md:hover:scale-105 transition-all shadow-lg shrink-0">
+              <button onClick={() => openAddModal()} className="hidden md:flex h-10 aspect-square items-center justify-center bg-[#c2956e] dark:bg-[#b0855f] text-white rounded-full lg:hover:scale-105 transition-all shadow-lg shrink-0">
                 <Plus size={18} strokeWidth={2.5} />
               </button>
             </div>

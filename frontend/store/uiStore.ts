@@ -90,7 +90,7 @@ export const useUiStore = create<UiState>()(
       routineResetHour: 7,
       journalZoom: 100,
       isSidebarPinned: false,
-      isSidebarIconPinned: true, // Default to icon pin enabled
+      isSidebarIconPinned: false, // Default to icon pin disabled
       theme: 'system',
       isMobileMenuOpen: false,
       mobileNoteOpen: false,

@@ -26,16 +26,19 @@ export default function SidebarNav() {
     return () => clearTimeout(timeout);
   }, [isSidebarPinned, isHovered, touchOpen]);
 
-  // Auto-close touch-opened state in 3 seconds
+  // Handle iPad / Touch device interactions
   useEffect(() => {
     let timeout: NodeJS.Timeout;
-    if (touchOpen && !isSidebarPinned) {
+    const isTouch = window.matchMedia('(hover: none)').matches || ('ontouchstart' in window) || navigator.maxTouchPoints > 0;
+    
+    if (isTouch && (isHovered || touchOpen) && !isSidebarPinned) {
       timeout = setTimeout(() => {
+        setIsHovered(false);
         setTouchOpen(false);
       }, 3000);
     }
     return () => clearTimeout(timeout);
-  }, [touchOpen, isSidebarPinned]);
+  }, [isHovered, touchOpen, isSidebarPinned, pathname]);
 
   const isExpanded = isSidebarPinned || isHovered || touchOpen;
   const isHiddenMode = !isExpanded && isAsleep && !isSidebarIconPinned;
@@ -151,7 +154,7 @@ export default function SidebarNav() {
         <button
           onClick={toggleSidebarPin}
           data-tooltip-id="global-tooltip" data-tooltip-content={isSidebarPinned ? "Unpin Sidebar" : "Pin Sidebar"}
-          className={`hidden md:flex items-center justify-center absolute top-20 right-0 translate-x-1/2 z-50 p-2 bg-white dark:bg-[#1e1e1e] border border-[#e0ddd5] dark:border-[#333] rounded-full shadow-lg transition-all duration-500 ease-in-out
+          className={`hidden md:flex items-center justify-center absolute bottom-42 right-0 translate-x-1/2 z-50 p-2 bg-white dark:bg-[#1e1e1e] border border-[#e0ddd5] dark:border-[#333] rounded-full shadow-lg transition-all duration-500 ease-in-out
             ${isSidebarPinned ? 'text-[#c2956e] dark:text-[#d1a784]' : 'text-[#888] dark:text-[#a0a0a0] md:hover:text-[#c2956e] md:dark:hover:text-[#d1a784]'}
             ${isHiddenMode ? 'opacity-0 scale-0 pointer-events-none' : 'opacity-100 scale-100'}
           `}
@@ -163,7 +166,7 @@ export default function SidebarNav() {
         <button
           onClick={toggleSidebarIconPin}
           data-tooltip-id="global-tooltip" data-tooltip-content={isSidebarIconPinned ? "Auto-hide Sidebar completely" : "Keep Icons visible"}
-          className={`hidden md:flex items-center justify-center absolute top-32 right-0 translate-x-1/2 z-50 p-2 bg-white dark:bg-[#1e1e1e] border border-[#e0ddd5] dark:border-[#333] rounded-full shadow-lg transition-all duration-500 ease-in-out
+          className={`hidden md:flex items-center justify-center absolute bottom-30 right-0 translate-x-1/2 z-50 p-2 bg-white dark:bg-[#1e1e1e] border border-[#e0ddd5] dark:border-[#333] rounded-full shadow-lg transition-all duration-500 ease-in-out
             ${isSidebarIconPinned ? 'text-[#c2956e] dark:text-[#d1a784]' : 'text-[#888] dark:text-[#a0a0a0] md:hover:text-[#c2956e] md:dark:hover:text-[#d1a784]'}
             ${isHiddenMode ? 'opacity-0 scale-0 pointer-events-none' : 'opacity-100 scale-100'}
           `}
