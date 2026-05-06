@@ -1,4 +1,3 @@
-// frontend/app/(dashboard)/layout.tsx
 "use client";
 
 import { useEffect, useState, useRef } from "react";
@@ -43,7 +42,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     const checkAuth = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
-        router.push("/login");
+        // Safe redirect to landing page (which has login prompt)
+        router.push("/");
         return;
       }
       
@@ -215,7 +215,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       const isTyping = ['INPUT', 'TEXTAREA'].includes((e.target as HTMLElement).tagName) || (e.target as HTMLElement).isContentEditable;
       if (isAlt) {
         const key = e.key.toLowerCase();
-        if (key === 'h' && !disabledHotkeys?.includes('home')) { e.preventDefault(); router.push('/'); }
+        if (key === 'h' && !disabledHotkeys?.includes('home')) { e.preventDefault(); router.push('/home'); }
         if (key === 't' && !disabledHotkeys?.includes('tasks')) { e.preventDefault(); router.push('/tasks'); }
         if (key === 'n' && !disabledHotkeys?.includes('notes')) { e.preventDefault(); setNotesTab('notes'); router.push('/notes'); }
         if (key === 'j' && !disabledHotkeys?.includes('journal')) { e.preventDefault(); setNotesTab('journal'); router.push('/notes'); }
@@ -223,7 +223,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         if (key === 'a' && !disabledHotkeys?.includes('analytics')) { e.preventDefault(); router.push('/analytics'); }
         if (key === 's' && !disabledHotkeys?.includes('settings')) { e.preventDefault(); router.push('/settings'); }
       }
-      if (e.code === 'Space' && pathname === '/' && !isTyping && !disabledHotkeys?.includes('space')) { e.preventDefault(); toggleFirstActive(); }
+      if (e.code === 'Space' && pathname === '/home' && !isTyping && !disabledHotkeys?.includes('space')) { e.preventDefault(); toggleFirstActive(); }
       if (e.key === 'Escape' && isSidebarPinned && !disabledHotkeys?.includes('escape')) toggleSidebarPin();
     };
     window.addEventListener('keydown', handleKeyDown);
@@ -232,7 +232,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   useEffect(() => {
     if (!isLoading && !initialRestoreDone.current) {
-      if (pathname === '/' && lastVisitedPage && lastVisitedPage !== '/') { router.replace(lastVisitedPage); }
+      if (pathname === '/home' && lastVisitedPage && lastVisitedPage !== '/home') { router.replace(lastVisitedPage); }
       initialRestoreDone.current = true;
     }
     if (!isLoading) setLastVisitedPage(pathname);
@@ -244,7 +244,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     else document.documentElement.classList.remove('dark');
   }, [theme]);
   
-  const isHomePage = pathname === '/';
+  const isHomePage = pathname === '/home';
   if (isLoading) return <div className="min-h-screen bg-[#f7f5f0] dark:bg-[#121212]" />;
 
   return (

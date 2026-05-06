@@ -1,11 +1,30 @@
-// frontend/app/(auth)/login/page.tsx
 "use client";
 
 import { createBrowserClient } from '@supabase/ssr';
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 
-export default function LoginPage() {
+export default function AppLoginPage() {
+  const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
+  const [isChecking, setIsChecking] = useState(true);
+
+  const supabase = createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  );
+
+  useEffect(() => {
+    const checkSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        router.push('/home');
+      } else {
+        setIsChecking(false);
+      }
+    };
+    checkSession();
+  }, [router, supabase.auth]);
 
   useEffect(() => {
     try {
@@ -20,11 +39,6 @@ export default function LoginPage() {
     } catch (e) {}
   }, []);
 
-  const supabase = createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  );
-
   const handleGoogleLogin = async () => {
     setIsLoading(true);
     await supabase.auth.signInWithOAuth({
@@ -34,6 +48,8 @@ export default function LoginPage() {
       },
     });
   };
+
+  if (isChecking) return <div className="min-h-screen bg-[#f7f5f0] dark:bg-[#121212]" />;
 
   return (
     <div className="relative min-h-screen bg-[#f7f5f0] dark:bg-[#121212] flex flex-col items-center justify-center overflow-hidden transition-colors duration-300">

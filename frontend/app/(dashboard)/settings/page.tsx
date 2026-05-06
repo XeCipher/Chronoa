@@ -1,4 +1,3 @@
-// FILE: frontend/app/(dashboard)/settings/page.tsx
 "use client";
 
 import { useEffect, useState, useRef } from "react";
@@ -59,7 +58,12 @@ export default function SettingsPage() {
   
   const [userName, setUserName] = useState("");
   const [userEmail, setUserEmail] = useState("");
-  const [userAvatar, setUserAvatar] = useState("");
+  
+  // Cache user avatar for instant load without layout shifting
+  const [userAvatar, setUserAvatar] = useState<string | null>(() => {
+    if (typeof window !== 'undefined') return localStorage.getItem('chronoa_avatar');
+    return null;
+  });
 
   const [cityInput, setCityInput] = useState("");
   const [currentCity, setCurrentCity] = useState("");
@@ -98,7 +102,11 @@ export default function SettingsPage() {
       if (user) {
         setUserName(user.user_metadata?.full_name || "User");
         setUserEmail(user.email || "");
-        setUserAvatar(user.user_metadata?.avatar_url || "");
+        
+        if (user.user_metadata?.avatar_url) {
+          setUserAvatar(user.user_metadata.avatar_url);
+          localStorage.setItem('chronoa_avatar', user.user_metadata.avatar_url);
+        }
 
         const { data: profile } = await supabase.from('profiles').select('routine_reset_hour, weather_city, disabled_hotkeys').eq('id', user.id).single();
         if (profile?.routine_reset_hour !== undefined) setRoutineResetHour(profile.routine_reset_hour);
@@ -395,7 +403,11 @@ export default function SettingsPage() {
     }
   };
 
-  const handleLogout = async () => { await supabase.auth.signOut(); router.push("/login"); };
+  // Safe redirect for entire application logouts
+  const handleLogout = async () => { 
+    await supabase.auth.signOut(); 
+    router.push("/"); 
+  };
 
   const handleDeleteAccount = () => {
     showConfirmDialog({
@@ -408,7 +420,7 @@ export default function SettingsPage() {
             try {
                 await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/delete-account?user_id=${user.id}`, { method: 'DELETE' });
                 await supabase.auth.signOut();
-                router.push("/login");
+                router.push("/");
             } catch(e) { console.error(e); }
         }
       }

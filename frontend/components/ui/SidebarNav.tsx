@@ -1,4 +1,3 @@
-// FILE: frontend/components/ui/SidebarNav.tsx
 "use client";
 
 import { useState, useEffect } from "react";
@@ -15,11 +14,19 @@ export default function SidebarNav() {
   const [isHovered, setIsHovered] = useState(false);
   const [isAsleep, setIsAsleep] = useState(false);
   const [touchOpen, setTouchOpen] = useState(false);
-  const [userAvatar, setUserAvatar] = useState<string | null>(null);
+  
+  // Cache user avatar for instant load
+  const [userAvatar, setUserAvatar] = useState<string | null>(() => {
+    if (typeof window !== 'undefined') return localStorage.getItem('chronoa_avatar');
+    return null;
+  });
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
-      if (user?.user_metadata?.avatar_url) setUserAvatar(user.user_metadata.avatar_url);
+      if (user?.user_metadata?.avatar_url) {
+        setUserAvatar(user.user_metadata.avatar_url);
+        localStorage.setItem('chronoa_avatar', user.user_metadata.avatar_url);
+      }
     });
   }, []);
 
@@ -52,7 +59,7 @@ export default function SidebarNav() {
   const isHiddenMode = !isExpanded && isAsleep && !isSidebarIconPinned;
 
   const navItems = [
-    { name: "Home", href: "/", icon: Home },
+    { name: "Home", href: "/home", icon: Home },
     { name: "Tasks", href: "/tasks", icon: CheckSquare },
     { name: "Notes", href: "/notes", icon: FileText },
     { name: "Calendar", href: "/calendar", icon: CalendarDays },
@@ -153,7 +160,7 @@ export default function SidebarNav() {
             >
               <div className="w-[24px] h-[24px] flex items-center justify-center shrink-0">
                 {userAvatar ? (
-                  <img src={userAvatar} alt="Profile" className="w-[22px] h-[22px] rounded-full object-cover" />
+                  <img src={userAvatar} alt="Profile" className="w-[22px] h-[22px] rounded-full object-cover border border-[#e0ddd5] dark:border-[#333]" />
                 ) : (
                   <User className="w-[18px] h-[18px]" />
                 )}
