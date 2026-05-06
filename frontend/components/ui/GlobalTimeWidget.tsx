@@ -1,7 +1,7 @@
 // frontend/components/ui/GlobalTimeWidget.tsx
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { usePathname } from "next/navigation";
 import { useTimerStore, EngineInstance } from "@/store/timerStore";
 import { supabase } from "@/lib/supabase";
@@ -207,6 +207,7 @@ function MiniEngineCard({ engine, tab }: { engine: EngineInstance, tab: 'timer' 
 export default function GlobalTimeWidget() {
   const [time, setTime] = useState<Date | null>(null);
   const [isHovered, setIsHovered] = useState(false);
+  const inactivityTimerRef = useRef<NodeJS.Timeout | null>(null);
   const { isGlobalTimeWidgetExpanded, setGlobalTimeWidgetExpanded } = useUiStore();
   
   const pathname = usePathname();
@@ -216,8 +217,26 @@ export default function GlobalTimeWidget() {
   useEffect(() => {
     setTime(new Date());
     const timer = setInterval(() => setTime(new Date()), 1000);
-    return () => clearInterval(timer);
+    return () => {
+      clearInterval(timer);
+      if (inactivityTimerRef.current) clearTimeout(inactivityTimerRef.current);
+    };
   }, []);
+
+  const resetInactivityTimer = () => {
+    if (inactivityTimerRef.current) clearTimeout(inactivityTimerRef.current);
+    if (isGlobalTimeWidgetExpanded) {
+      inactivityTimerRef.current = setTimeout(() => {
+        setGlobalTimeWidgetExpanded(false);
+      }, 3000);
+    }
+  };
+
+  useEffect(() => {
+    resetInactivityTimer();
+    return () => { if (inactivityTimerRef.current) clearTimeout(inactivityTimerRef.current); };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isGlobalTimeWidgetExpanded]);
 
   if (!time || pathname === '/') return null;
 
@@ -228,6 +247,7 @@ export default function GlobalTimeWidget() {
 
   const hasRunning = isAnyRunning('timer') || isAnyRunning('stopwatch');
   const activeList = store.activeTab === 'timer' ? store.timers : store.stopwatches;
+  
   const isExpanded = isHovered || isGlobalTimeWidgetExpanded;
 
   return (
@@ -235,6 +255,7 @@ export default function GlobalTimeWidget() {
       className="hidden md:flex fixed bottom-8 right-10 z-[150] flex-col items-end group"
       onMouseEnter={() => { setIsHovered(true); setGlobalTimeWidgetExpanded(false); }}
       onMouseLeave={() => setIsHovered(false)}
+      onMouseMove={resetInactivityTimer}
     >
       <div className="absolute bottom-full right-0 w-full h-[15%] bg-transparent z-[-1]" />
 
@@ -295,7 +316,13 @@ export default function GlobalTimeWidget() {
 
       </div>
 
-      <div className={`relative flex items-center gap-3 bg-white/70 dark:bg-[#1a1a1a]/80 backdrop-blur-xl border border-[#e0ddd5] dark:border-[#333] rounded-2xl px-6 py-3.5 transition-all duration-400 ease-out cursor-default overflow-hidden ${isExpanded ? 'shadow-[0_8px_30px_rgba(194,149,110,0.2)] dark:shadow-[0_8px_30px_rgba(0,0,0,0.6)] border-[#c2956e] dark:border-[#b0855f] scale-105' : 'shadow-[0_4px_20px_rgba(0,0,0,0.05)] dark:shadow-[0_4px_20px_rgba(0,0,0,0.4)] hover:shadow-md hover:scale-[1.02]'}`}>
+      <div 
+        onClick={() => {
+          setGlobalTimeWidgetExpanded(true);
+          resetInactivityTimer();
+        }}
+        className={`relative flex items-center gap-3 bg-white/70 dark:bg-[#1a1a1a]/80 backdrop-blur-xl border border-[#e0ddd5] dark:border-[#333] rounded-2xl px-6 py-3.5 transition-all duration-400 ease-out cursor-pointer overflow-hidden ${isExpanded ? 'shadow-[0_8px_30px_rgba(194,149,110,0.2)] dark:shadow-[0_8px_30px_rgba(0,0,0,0.6)] border-[#c2956e] dark:border-[#b0855f] scale-105' : 'shadow-[0_4px_20px_rgba(0,0,0,0.05)] dark:shadow-[0_4px_20px_rgba(0,0,0,0.4)] hover:shadow-md hover:scale-[1.02]'}`}
+      >
         <div className={`absolute inset-0 bg-gradient-to-r from-[#c2956e]/0 via-[#c2956e]/5 dark:via-[#c2956e]/10 to-[#c2956e]/0 transition-opacity duration-500 ${isExpanded ? 'opacity-100' : 'opacity-0'}`} />
         
         <span className="relative z-10 text-[#3d3b33] dark:text-[#f0f0f0] font-serif text-xl leading-none">

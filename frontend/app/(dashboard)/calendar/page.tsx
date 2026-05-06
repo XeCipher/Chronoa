@@ -620,7 +620,7 @@ export default function CalendarPage() {
               )}
             </div>
 
-            <div className="grid grid-cols-2 md:flex md:flex-row gap-2 md:gap-3 w-full md:w-auto h-10 md:h-10">
+            <div className="flex w-full md:w-auto gap-2 md:gap-3 h-10 md:h-10">
               <div className="flex items-center bg-white dark:bg-[#1a1a1a] rounded-full p-0.5 border border-[#e0ddd5] dark:border-[#333] shadow-sm w-full md:w-auto h-full">
                 <button onClick={handlePrev} className="flex-1 md:flex-none px-3 text-[#888] hover:text-[#3d3b33] dark:hover:text-white transition-colors h-full flex items-center justify-center rounded-l-full"><ChevronLeft size={16} className="md:w-[18px] md:h-[18px]" /></button>
                 <button onClick={handleToday} className={`flex-1 md:flex-none px-2 md:px-4 text-[10px] md:text-[11px] font-bold uppercase tracking-widest transition-colors h-full flex items-center justify-center ${isCurrentDateToday ? 'text-[#c2956e] dark:text-[#b0855f]' : 'text-[#3d3b33] dark:text-[#f0f0f0] hover:text-[#c2956e]'}`}>Today</button>
@@ -637,11 +637,12 @@ export default function CalendarPage() {
                   </button>
                 ))}
               </div>
+              
+              <button onClick={() => openAddModal()} className="hidden md:flex h-10 aspect-square items-center justify-center bg-[#c2956e] dark:bg-[#b0855f] text-white rounded-full md:hover:scale-105 transition-all shadow-lg shrink-0">
+                <Plus size={18} strokeWidth={2.5} />
+              </button>
             </div>
-
-            <button onClick={() => openAddModal()} className="hidden md:flex h-10 aspect-square items-center justify-center bg-[#c2956e] dark:bg-[#b0855f] text-white rounded-full md:hover:scale-105 transition-all shadow-lg shrink-0">
-              <Plus size={18} strokeWidth={2.5} />
-            </button>
+            
           </div>
         </header>
 

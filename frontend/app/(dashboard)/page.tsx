@@ -65,7 +65,7 @@ export default function HomePage() {
       </div>
 
       <div 
-        className="absolute bottom-0 left-0 w-full h-[15vh] md:h-[25vh] z-30 flex items-end justify-center pb-6 md:pb-10 group pointer-events-none md:pointer-events-auto"
+        className="absolute bottom-0 left-0 w-full h-[15vh] md:h-[25vh] z-30 flex items-end justify-center pb-6 md:pb-10 group pointer-events-auto cursor-pointer md:cursor-default"
         onMouseEnter={() => {
           if (window.matchMedia('(hover: hover)').matches) {
             setIsHovered(true);
@@ -77,21 +77,24 @@ export default function HomePage() {
             setIsHovered(false);
           }
         }}
+        onClick={() => {
+          // If it's a touch device (iPad/Phone), explicitly toggle it open
+          if (window.matchMedia('(hover: none)').matches || ('ontouchstart' in window)) {
+            setIsTouched(true);
+            if (forceShow) setForceShow(false);
+          }
+        }}
       >
         <div
           className="md:hidden absolute bottom-4 left-1/2 -translate-x-1/2 flex flex-col items-center justify-center p-4 z-40 transition-opacity pointer-events-auto"
           style={{ opacity: showWidget ? 0 : 1 }}
-          onClick={() => {
-            setIsTouched(true);
-            if (forceShow) setForceShow(false);
-          }}
         >
           <div className={`transition-colors duration-500 rounded-full ${isAnyRunning ? 'w-16 h-1.5 bg-red-500 shadow-[0_0_12px_rgba(239,68,68,0.8)] animate-pulse' : 'w-12 h-1.5 bg-[#3d3b33]/20 dark:bg-[#e0e0e0]/20'}`} />
         </div>
 
         {isTouched && !isPinned && (
           <button
-            className="md:hidden fixed inset-0 w-full h-full z-0 cursor-default outline-none pointer-events-auto"
+            className="fixed inset-0 w-full h-full z-0 cursor-default outline-none pointer-events-auto"
             onClick={(e) => { e.stopPropagation(); setIsTouched(false); }}
             tabIndex={-1}
           />

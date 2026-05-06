@@ -5,27 +5,40 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useUiStore } from "@/store/uiStore";
-import { Home, CheckSquare, BarChart2, Settings, PanelLeftClose, Sun, FileText, CalendarDays } from "lucide-react";
+import { Home, CheckSquare, BarChart2, Settings, PanelLeftClose, PanelLeft, Sun, FileText, CalendarDays } from "lucide-react";
 
 export default function SidebarNav() {
   const pathname = usePathname();
   
-  const { isSidebarPinned, toggleSidebarPin, mobileNoteOpen } = useUiStore();
+  const { isSidebarPinned, toggleSidebarPin, isSidebarIconPinned, toggleSidebarIconPin, mobileNoteOpen } = useUiStore();
   const [isHovered, setIsHovered] = useState(false);
   const [isAsleep, setIsAsleep] = useState(false);
+  const [touchOpen, setTouchOpen] = useState(false);
 
+  // Auto-close to asleep (hidden) state in 3 seconds
   useEffect(() => {
     let timeout: NodeJS.Timeout;
-    if (!isSidebarPinned && !isHovered) {
-      timeout = setTimeout(() => setIsAsleep(true), 5000);
+    if (!isSidebarPinned && !isHovered && !touchOpen) {
+      timeout = setTimeout(() => setIsAsleep(true), 3000);
     } else {
       setIsAsleep(false);
     }
     return () => clearTimeout(timeout);
-  }, [isSidebarPinned, isHovered]);
+  }, [isSidebarPinned, isHovered, touchOpen]);
 
-  const isExpanded = isSidebarPinned || isHovered;
-  const isHiddenMode = !isExpanded && isAsleep;
+  // Auto-close touch-opened state in 3 seconds
+  useEffect(() => {
+    let timeout: NodeJS.Timeout;
+    if (touchOpen && !isSidebarPinned) {
+      timeout = setTimeout(() => {
+        setTouchOpen(false);
+      }, 3000);
+    }
+    return () => clearTimeout(timeout);
+  }, [touchOpen, isSidebarPinned]);
+
+  const isExpanded = isSidebarPinned || isHovered || touchOpen;
+  const isHiddenMode = !isExpanded && isAsleep && !isSidebarIconPinned;
 
   const navItems = [
     { name: "Home", href: "/", icon: Home },
@@ -61,8 +74,13 @@ export default function SidebarNav() {
           ${isExpanded ? 'w-60' : isHiddenMode ? 'w-10' : 'w-20'}
         `}
       >
-        <div className={`absolute top-1/2 left-11 -translate-y-1/2 -translate-x-1/2 pointer-events-none transition-all duration-500 delay-100 flex items-center justify-center w-10 z-50 ${
-          isHiddenMode ? 'opacity-100' : 'opacity-0'
+        {/* Tappable Vertical Text Area */}
+        <div 
+          onClick={() => {
+            if (isHiddenMode) setTouchOpen(true);
+          }}
+          className={`absolute top-1/2 left-11 -translate-y-1/2 -translate-x-1/2 transition-all duration-500 delay-100 flex items-center justify-center w-10 z-50 ${
+          isHiddenMode ? 'opacity-100 pointer-events-auto cursor-pointer' : 'opacity-0 pointer-events-none'
         }`}>
           <span className="-rotate-90 whitespace-nowrap text-[10px] tracking-[0.4em] uppercase font-bold text-[#b0ad9a] dark:text-[#7a7a7a]">
             {currentItem.name}
@@ -129,14 +147,28 @@ export default function SidebarNav() {
           </div>
         </div>
 
+        {/* Full Pin Button */}
         <button
           onClick={toggleSidebarPin}
           data-tooltip-id="global-tooltip" data-tooltip-content={isSidebarPinned ? "Unpin Sidebar" : "Pin Sidebar"}
-          className={`hidden md:block absolute top-20 right-0 translate-x-1/2 z-50 p-2 bg-white dark:bg-[#1e1e1e] border border-[#e0ddd5] dark:border-[#333] rounded-full shadow-lg text-[#888] dark:text-[#a0a0a0] md:hover:text-[#c2956e] md:dark:hover:text-[#d1a784] transition-all duration-500 ease-in-out
+          className={`hidden md:flex items-center justify-center absolute top-20 right-0 translate-x-1/2 z-50 p-2 bg-white dark:bg-[#1e1e1e] border border-[#e0ddd5] dark:border-[#333] rounded-full shadow-lg transition-all duration-500 ease-in-out
+            ${isSidebarPinned ? 'text-[#c2956e] dark:text-[#d1a784]' : 'text-[#888] dark:text-[#a0a0a0] md:hover:text-[#c2956e] md:dark:hover:text-[#d1a784]'}
             ${isHiddenMode ? 'opacity-0 scale-0 pointer-events-none' : 'opacity-100 scale-100'}
           `}
         >
-          <PanelLeftClose size={16} className={`transition-transform duration-300 ${isSidebarPinned ? '' : 'rotate-180'}`} />
+          <PanelLeftClose size={16} />
+        </button>
+
+        {/* Icon Pin Button */}
+        <button
+          onClick={toggleSidebarIconPin}
+          data-tooltip-id="global-tooltip" data-tooltip-content={isSidebarIconPinned ? "Auto-hide Sidebar completely" : "Keep Icons visible"}
+          className={`hidden md:flex items-center justify-center absolute top-32 right-0 translate-x-1/2 z-50 p-2 bg-white dark:bg-[#1e1e1e] border border-[#e0ddd5] dark:border-[#333] rounded-full shadow-lg transition-all duration-500 ease-in-out
+            ${isSidebarIconPinned ? 'text-[#c2956e] dark:text-[#d1a784]' : 'text-[#888] dark:text-[#a0a0a0] md:hover:text-[#c2956e] md:dark:hover:text-[#d1a784]'}
+            ${isHiddenMode ? 'opacity-0 scale-0 pointer-events-none' : 'opacity-100 scale-100'}
+          `}
+        >
+          <PanelLeft size={16} />
         </button>
       </aside>
 

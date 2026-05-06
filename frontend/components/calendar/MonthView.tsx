@@ -29,11 +29,22 @@ const DOT_COLORS: Record<string, string> = {
   sage: 'bg-[#7ca982] dark:bg-[#6a9a70]',
 };
 
-export default function MonthView({ currentDate, events, onEventClick, onDayClick, eventColors, selectedDate, isMobile }: Props) {
+export default function MonthView({ currentDate, events, onEventClick, onDayClick, eventColors, selectedDate, isMobile: isMobileProp, openAddModal }: Props) {
   
   const rightPanelScrollRef = useRef<HTMLDivElement>(null);
   const scrollTimeout = useRef<NodeJS.Timeout | null>(null);
   const [isUserScrolling, setIsUserScrolling] = useState(false);
+  
+  // Custom isMobile specifically for layout to ensure iPads stack perfectly
+  const [isMobile, setIsMobile] = useState(isMobileProp);
+
+  useEffect(() => {
+    // 1024 covers iPads in portrait mode to trigger the stacked flex layout
+    const handleResize = () => setIsMobile(window.innerWidth < 1024);
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   useEffect(() => {
     return () => {
@@ -174,16 +185,17 @@ export default function MonthView({ currentDate, events, onEventClick, onDayClic
                         return (
                           <div 
                             key={event.id}
-                            className={`px-1.5 py-0.5 text-[10px] font-semibold flex justify-between items-center border border-transparent shadow-sm shrink-0 ${colorClasses} ${isStart ? 'rounded-md md:rounded-md' : 'rounded-none border-l-0'} ${isEnd ? 'rounded-md md:rounded-md' : 'rounded-none border-r-0'}`}
+                            className={`px-1.5 py-0.5 text-[10px] font-semibold flex items-center border border-transparent shadow-sm shrink-0 ${colorClasses} ${isStart ? 'rounded-md md:rounded-md' : 'rounded-none border-l-0'} ${isEnd ? 'rounded-md md:rounded-md' : 'rounded-none border-r-0'}`}
                           >
-                            <div className="truncate flex items-center min-w-0 pr-1">
-                              <span className="truncate">{event.title}</span>
+                            <div className="flex-1 truncate min-w-0 pr-1">
+                              {event.title}
                             </div>
-                            <div className="flex items-center gap-1 shrink-0">
-                              {!event.is_all_day && showTime && (
-                                 <span className="opacity-70 text-[8px] font-bold tracking-wider">{formatEventTime(new Date(event.start_time))} - {formatEventTime(new Date(event.end_time))}</span>
-                              )}
-                            </div>
+                            {!event.is_all_day && showTime && (
+                               <div className="opacity-70 text-[8px] font-bold tracking-wider shrink-0 hidden md:block text-right">
+                                 <span>{formatEventTime(new Date(event.start_time))}</span>
+                                 <span className="hidden xl:inline"> - {formatEventTime(new Date(event.end_time))}</span>
+                               </div>
+                            )}
                           </div>
                         );
                       })}

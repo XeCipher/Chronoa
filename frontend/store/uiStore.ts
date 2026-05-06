@@ -25,6 +25,7 @@ interface UiState {
   routineResetHour: number;
   journalZoom: number;
   isSidebarPinned: boolean;
+  isSidebarIconPinned: boolean;
   theme: 'system' | 'light' | 'dark';
   isMobileMenuOpen: boolean;
   mobileNoteOpen: boolean;
@@ -54,6 +55,7 @@ interface UiState {
   setRoutineResetHour: (hour: number) => void;
   setJournalZoom: (zoom: number) => void;
   toggleSidebarPin: () => void;
+  toggleSidebarIconPin: () => void;
   setTheme: (theme: 'system' | 'light' | 'dark') => void;
   toggleMobileMenu: () => void;
   setMobileNoteOpen: (val: boolean) => void;
@@ -88,6 +90,7 @@ export const useUiStore = create<UiState>()(
       routineResetHour: 7,
       journalZoom: 100,
       isSidebarPinned: false,
+      isSidebarIconPinned: true, // Default to icon pin enabled
       theme: 'system',
       isMobileMenuOpen: false,
       mobileNoteOpen: false,
@@ -115,7 +118,17 @@ export const useUiStore = create<UiState>()(
       setTaskArchiveDelay: (delay) => set({ taskArchiveDelay: delay }),
       setRoutineResetHour: (hour) => set({ routineResetHour: hour }),
       setJournalZoom: (zoom) => set({ journalZoom: zoom }),
-      toggleSidebarPin: () => set((state) => ({ isSidebarPinned: !state.isSidebarPinned })),
+      
+      // Mutually exclusive pin states
+      toggleSidebarPin: () => set((state) => {
+        const next = !state.isSidebarPinned;
+        return { isSidebarPinned: next, isSidebarIconPinned: next ? false : state.isSidebarIconPinned };
+      }),
+      toggleSidebarIconPin: () => set((state) => {
+        const next = !state.isSidebarIconPinned;
+        return { isSidebarIconPinned: next, isSidebarPinned: next ? false : state.isSidebarPinned };
+      }),
+
       setTheme: (theme) => set({ theme }),
       toggleMobileMenu: () => set((state) => ({ isMobileMenuOpen: !state.isMobileMenuOpen })),
       setMobileNoteOpen: (val) => set({ mobileNoteOpen: val }),
