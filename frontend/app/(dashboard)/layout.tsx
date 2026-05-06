@@ -38,12 +38,28 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const lastLocalStateStr = useRef<string>("");
   const previousStateForDiff = useRef<any>(null);
 
+  // Global auth listener to handle sign-outs correctly
   useEffect(() => {
-    const checkAuth = async () => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'SIGNED_OUT') {
+        window.location.href = "/";
+      }
+    });
+    return () => subscription.unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    let channel: any;
+
+    const checkAuthAndSubscribe = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
-        // Safe redirect to landing page (which has login prompt)
-        router.push("/");
+        // Use a hard redirect for unauthenticated users to clear all state
+        if (pathname !== "/") {
+          window.location.href = "/";
+        } else {
+          setIsLoading(false);
+        }
         return;
       }
       
@@ -81,7 +97,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         }
       }
 
-      const channel = supabase.channel(`profile_${currentUserId}`)
+      // **FIXED**: Correctly chain .on() before .subscribe() and manage the channel instance
+      channel = supabase.channel(`profile_${currentUserId}`)
         .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'profiles', filter: `id=eq.${currentUserId}` }, (payload) => {
            const rec = payload.new;
            const state = useUiStore.getState();
@@ -114,17 +131,25 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                  useTimerStore.setState(parsedState);
 
                  previousStateForDiff.current = parsedState;
-                 lastLocalStateStr.current = JSON.stringify(parsedState); // Update tracker so we don't instantly bounce it back
+                 lastLocalStateStr.current = JSON.stringify(parsedState);
                  
                  setTimeout(() => { isApplyingRemote.current = false; }, 100);
               }
            }
-        }).subscribe();
-        
-      return () => { supabase.removeChannel(channel); };
+        })
+        .subscribe();
     };
-    checkAuth();
-  }, [router]);
+
+    checkAuthAndSubscribe();
+    
+    // **FIXED**: Correctly return the cleanup function from the useEffect hook
+    return () => { 
+      if (channel) {
+        supabase.removeChannel(channel); 
+      }
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Sync Local Timer State to DB whenever user performs an action
   useEffect(() => {
@@ -245,14 +270,23 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }, [theme]);
   
   const isHomePage = pathname === '/home';
+  const isLandingPage = pathname === '/';
+
   if (isLoading) return <div className="min-h-screen bg-[#f7f5f0] dark:bg-[#121212]" />;
+
+  if (isLandingPage) {
+    return (
+      <div className="flex h-screen w-full overflow-hidden bg-[#f7f5f0] dark:bg-[#121212]">
+        <main className="flex-1 h-full overflow-y-auto no-scrollbar relative min-w-0 scroll-smooth">
+          {children}
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className={`flex h-screen w-full overflow-hidden ${isHomePage ? 'bg-transparent' : 'bg-[#f7f5f0] dark:bg-[#121212]'}`}>
       <SidebarNav />
-      {/* 
-        Modified to use overflow-hidden. Children pages now manage their own scrolling regions.
-      */}
       <main id="main-scroll-container" className="flex-1 h-full overflow-hidden relative min-w-0 pb-[calc(82px+env(safe-area-inset-bottom))] md:pb-0 pt-[max(1rem,env(safe-area-inset-top))] md:pt-0 scroll-smooth">
         {children}
       </main>

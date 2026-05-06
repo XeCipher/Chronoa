@@ -158,11 +158,11 @@ export default function SidebarNav() {
                 ${pathname === "/settings" ? "bg-white dark:bg-[#252525] text-[#3d3b33] dark:text-[#fff] shadow-sm border border-[#e0ddd5] dark:border-[#333]" : "text-[#888888] dark:text-[#a0a0a0] md:hover:bg-white/50 md:dark:hover:bg-[#2a2a2a] md:hover:text-[#3d3b33] md:dark:hover:text-[#fff]"}
               `}
             >
-              <div className="w-[24px] h-[24px] flex items-center justify-center shrink-0">
+              <div className="w-[32px] h-[32px] flex items-center justify-center shrink-0">
                 {userAvatar ? (
-                  <img src={userAvatar} alt="Profile" className="w-[22px] h-[22px] rounded-full object-cover border border-[#e0ddd5] dark:border-[#333]" />
+                  <img src={userAvatar} alt="Profile" className="w-[30px] h-[30px] rounded-full object-cover border-[2px] border-[#c2956e]/80 dark:border-[#b0855f]/80 shadow-sm" />
                 ) : (
-                  <User className="w-[18px] h-[18px]" />
+                  <User className="w-[22px] h-[22px] text-[#c2956e] dark:text-[#b0855f]" />
                 )}
               </div>
                <span className={`transition-all duration-300 whitespace-nowrap ${isExpanded ? 'opacity-100 w-auto' : 'opacity-0 w-0'}`}>

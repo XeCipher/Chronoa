@@ -406,7 +406,7 @@ export default function SettingsPage() {
   // Safe redirect for entire application logouts
   const handleLogout = async () => { 
     await supabase.auth.signOut(); 
-    router.push("/"); 
+    window.location.href = "/"; 
   };
 
   const handleDeleteAccount = () => {
@@ -420,7 +420,7 @@ export default function SettingsPage() {
             try {
                 await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/delete-account?user_id=${user.id}`, { method: 'DELETE' });
                 await supabase.auth.signOut();
-                router.push("/");
+                window.location.href = "/";
             } catch(e) { console.error(e); }
         }
       }

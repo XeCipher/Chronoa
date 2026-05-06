@@ -52,9 +52,9 @@ export default function HomePage() {
           className="w-10 h-10 flex items-center justify-center rounded-full bg-white/20 dark:bg-black/30 backdrop-blur-md shadow-sm text-[#3d3b33] dark:text-white transition-all active:scale-95 p-0"
         >
           {userAvatar ? (
-            <img src={userAvatar} alt="Profile" className="w-full h-full object-cover rounded-full border border-white/40 dark:border-white/20" />
+            <img src={userAvatar} alt="Profile" className="w-full h-full object-cover rounded-full border-2 border-[#c2956e]/80 dark:border-[#b0855f]/80" />
           ) : (
-            <User size={20} strokeWidth={2} />
+            <User size={20} strokeWidth={2} className="text-[#c2956e] dark:text-[#b0855f]" />
           )}
         </button>
       </div>

@@ -1,4 +1,3 @@
-// frontend/components/ui/GlobalTimeWidget.tsx
 "use client";
 
 import { useState, useEffect, useRef } from "react";
@@ -263,7 +262,7 @@ export default function GlobalTimeWidget() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isGlobalTimeWidgetExpanded]);
 
-  if (!time || pathname === '/') return null;
+  if (!time || pathname === '/' || pathname === '/home') return null;
 
   const isAnyRunning = (tab: 'timer' | 'stopwatch') => {
     const list = tab === 'timer' ? store.timers : store.stopwatches;
