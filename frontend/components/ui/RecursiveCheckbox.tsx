@@ -75,7 +75,6 @@ export default function RecursiveCheckbox({
   const [mounted, setMounted] = useState(false);
   const [menuRect, setMenuRect] = useState<DOMRect | null>(null);
 
-  // Local override to prevent annoying flickers before the DB commits
   const [optimisticCollapsed, setOptimisticCollapsed] = useState<boolean | null>(null);
   
   const [localCollapsed, setLocalCollapsed] = useState<boolean>(() => {
@@ -117,7 +116,6 @@ export default function RecursiveCheckbox({
   const isRoutine = task.task_type === 'routine';
   const isNormal = task.task_type === 'normal';
   
-  // Normal mode routine & normal ticked tasks hide the 3-dot menu automatically for cleanliness
   const disableMenu = task.is_completed && (isNormal || (isRoutine && !isEditMode));
 
   useEffect(() => {
@@ -144,6 +142,8 @@ export default function RecursiveCheckbox({
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
+      if ((event.target as Element).closest?.('.context-menu-portal')) return;
+      
       if (activeTaskIdWithMenu !== task.id) return;
       if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
         const target = event.target as Element;
@@ -516,6 +516,7 @@ export default function RecursiveCheckbox({
           <div className="flex items-center gap-1.5 w-full">
             <span 
               ref={textRef}
+              data-task-id={task.id}
               contentEditable={allowTextEdit}
               suppressContentEditableWarning
               spellCheck={false}
@@ -527,6 +528,40 @@ export default function RecursiveCheckbox({
                 setIsExpanded(false); 
               }}
               onKeyDown={(e) => {
+                if (e.shiftKey && e.key === "ArrowUp" && !disabledHotkeys?.includes('focus_up')) {
+                  e.preventDefault();
+                  const inputs = Array.from(document.querySelectorAll('.task-input-field')) as HTMLElement[];
+                  const idx = inputs.findIndex(el => el.getAttribute('data-task-id') === task.id);
+                  if (idx > 0) inputs[idx - 1].focus();
+                  return;
+                }
+                if (e.shiftKey && e.key === "ArrowDown" && !disabledHotkeys?.includes('focus_down')) {
+                  e.preventDefault();
+                  const focusNext = () => {
+                    const inputs = Array.from(document.querySelectorAll('.task-input-field')) as HTMLElement[];
+                    const idx = inputs.findIndex(el => el.getAttribute('data-task-id') === task.id);
+                    if (idx !== -1 && idx < inputs.length - 1) inputs[idx + 1].focus();
+                  };
+                  
+                  if (!isFlatList && isCollapsed && hasChildren) {
+                     const newVal = false;
+                     if (viewMode === 'focus') {
+                         setOptimisticCollapsed(newVal); 
+                         onUpdate(task.id, { is_collapsed: newVal }); 
+                     } else {
+                         setLocalCollapsed(newVal);
+                         const stored = localStorage.getItem('chronoa_archive_collapsed');
+                         const parsed = stored ? JSON.parse(stored) : {};
+                         parsed[task.id] = newVal;
+                         localStorage.setItem('chronoa_archive_collapsed', JSON.stringify(parsed));
+                     }
+                     setTimeout(focusNext, 50); 
+                  } else {
+                     focusNext();
+                  }
+                  return;
+                }
+
                 if (e.altKey && e.key === "ArrowUp" && !disabledHotkeys?.includes('up')) { e.preventDefault(); onMoveUp(task); return; }
                 if (e.altKey && e.key === "ArrowDown" && !disabledHotkeys?.includes('down')) { e.preventDefault(); onMoveDown(task); return; }
                 
@@ -557,7 +592,7 @@ export default function RecursiveCheckbox({
                 }
               }}
               style={!isExpanded ? { display: '-webkit-box', WebkitLineClamp: 10, WebkitBoxOrient: 'vertical', overflow: 'hidden' } : { display: 'block' }}
-              className={`break-words whitespace-pre-wrap flex-1 min-w-[50px] transition-all duration-200 outline-none ${titleSize} ${titleWeight} ${allowTextEdit ? "cursor-text border-b border-transparent focus:border-[#c2956e]/30 pb-[1px]" : "cursor-default"} ${isStruckThrough ? "text-[#c4c0b8] dark:text-[#555] line-through" : "text-[#3d3b33] dark:text-[#e0e0e0]"}`}
+              className={`task-input-field break-words whitespace-pre-wrap flex-1 min-w-[50px] transition-all duration-200 outline-none ${titleSize} ${titleWeight} ${allowTextEdit ? "cursor-text border-b border-transparent focus:border-[#c2956e]/30 pb-[1px]" : "cursor-default"} ${isStruckThrough ? "text-[#c4c0b8] dark:text-[#555] line-through" : "text-[#3d3b33] dark:text-[#e0e0e0]"}`}
             >
               {renderTitle()}
             </span>

@@ -594,7 +594,7 @@ export default function SettingsPage() {
     },
     {
       id: 'hotkeys',
-      keys: ['global hotkeys', 'keyboard', 'shortcuts', 'navigation'],
+      keys: ['global hotkeys', 'keyboard', 'shortcuts', 'navigation', 'focus'],
       className: 'hidden md:flex flex-col',
       render: () => (
         <section className="space-y-6">
@@ -634,6 +634,8 @@ export default function SettingsPage() {
                 { id: 'settings', keys: [altKeyDisplay, 'S'], desc: 'Go to Settings' },
                 { id: 'up', keys: [altKeyDisplay, '↑'], desc: 'Move Task Up' },
                 { id: 'down', keys: [altKeyDisplay, '↓'], desc: 'Move Task Down' },
+                { id: 'focus_up', keys: ['Shift', '↑'], desc: 'Focus Task Above' },
+                { id: 'focus_down', keys: ['Shift', '↓'], desc: 'Focus Task Below' },
                 { id: 'indent', keys: ['Tab'], desc: 'Indent Task' },
                 { id: 'unindent', keys: ['Shift', 'Tab'], desc: 'Unindent Task' },
                 { id: 'new_sibling', keys: [ctrlKeyDisplay, 'Enter'], desc: 'New Sibling Task' },

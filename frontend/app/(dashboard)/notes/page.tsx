@@ -549,6 +549,11 @@ export default function NotesPage() {
     </div>
   );
 
+  const emptyTitle = notesTab === 'notes' ? "Create a new note" : "Select a journal entry";
+  const emptyDesc = notesTab === 'notes' 
+    ? "Tap the + icon to capture your thoughts." 
+    : "Tap the calendar icon to add an entry for a specific date.";
+
   return (
     <div className="relative flex h-full w-full bg-[#f7f5f0] dark:bg-[#121212] overflow-hidden">
       
@@ -739,10 +744,14 @@ export default function NotesPage() {
         ) : (
           <div className="flex-1 flex flex-col items-center justify-center p-12 text-center select-none bg-white dark:bg-[#121212]">
             <div className="w-16 h-16 bg-[#f7f5f0] dark:bg-[#1a1a1a] rounded-2xl flex items-center justify-center border border-[#e0ddd5] dark:border-[#333] mb-6">
-              <FileText size={24} strokeWidth={1.5} className="text-[#c2956e] opacity-40" />
+              {notesTab === 'notes' ? (
+                 <FileText size={24} strokeWidth={1.5} className="text-[#c2956e] opacity-40" />
+              ) : (
+                 <BookOpen size={24} strokeWidth={1.5} className="text-[#c2956e] opacity-40" />
+              )}
             </div>
-            <h2 className="text-lg font-medium text-[#3d3b33] dark:text-[#f0f0f0]">Select an entry</h2>
-            <p className="text-xs text-[#b0ad9a] dark:text-[#555] mt-1">Choose a note or journal to start writing.</p>
+            <h2 className="text-lg font-medium text-[#3d3b33] dark:text-[#f0f0f0]">{emptyTitle}</h2>
+            <p className="text-xs text-[#b0ad9a] dark:text-[#555] mt-1">{emptyDesc}</p>
           </div>
         )}
       </main>

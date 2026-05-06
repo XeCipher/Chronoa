@@ -104,37 +104,17 @@ export default function ProductivityChart({ dailyMap }: { dailyMap: Record<strin
     if (active && payload && payload.length) {
       const data = payload[0].payload;
       return (
-        <div className="bg-white dark:bg-[#222] border border-[#e0ddd5] dark:border-[#444] p-4 rounded-2xl shadow-xl w-64 max-h-[300px] flex flex-col z-[100]">
-          <p className="text-sm font-bold text-[#3d3b33] dark:text-[#f0f0f0] mb-3 pb-2 border-b border-[#e0ddd5] dark:border-[#333]">{data.fullDate}</p>
-          <div className="flex-1 overflow-y-auto no-scrollbar space-y-4">
-            {data.rawTasks.length > 0 && (
-              <div>
-                <p className="text-[10px] font-bold uppercase tracking-widest text-[#7ca982] mb-1">Tasks Completed</p>
-                <ul className="space-y-1">
-                  {data.rawTasks.map((t: any, i: number) => (
-                    <li key={i} className="text-xs text-[#3d3b33] dark:text-[#e0e0e0] flex items-start gap-1.5 leading-tight">
-                      <span className="text-[#7ca982] mt-0.5">•</span> {t.title}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-            {data.rawSessions.length > 0 && (
-              <div>
-                <p className="text-[10px] font-bold uppercase tracking-widest text-[#c2956e] mb-1">Focus Sessions</p>
-                <ul className="space-y-1">
-                  {data.rawSessions.map((s: any, i: number) => (
-                    <li key={i} className="text-xs text-[#3d3b33] dark:text-[#e0e0e0] flex justify-between items-start gap-2 leading-tight">
-                      <span className="flex items-start gap-1.5"><span className="text-[#c2956e] mt-0.5">•</span> {s.title}</span>
-                      <span className="text-[#b0ad9a] dark:text-[#7a7a7a] tabular-nums shrink-0">{Math.floor(s.duration_seconds/60)}m</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-            {data.rawTasks.length === 0 && data.rawSessions.length === 0 && (
-               <p className="text-xs text-[#b0ad9a] italic">No activity recorded.</p>
-            )}
+        <div className="bg-white dark:bg-[#222] border border-[#e0ddd5] dark:border-[#444] p-4 rounded-2xl shadow-xl flex flex-col z-[100] min-w-[140px]">
+          <p className="text-[11px] font-bold text-[#3d3b33] dark:text-[#f0f0f0] mb-3 pb-2 border-b border-[#e0ddd5] dark:border-[#333]">{data.fullDate}</p>
+          <div className="flex justify-between items-center gap-4">
+            <div className="flex flex-col">
+              <span className="text-[9px] font-bold uppercase tracking-widest text-[#7ca982] mb-0.5">Tasks</span>
+              <span className="text-sm font-semibold text-[#3d3b33] dark:text-[#e0e0e0]">{data.tasks}</span>
+            </div>
+            <div className="flex flex-col text-right">
+              <span className="text-[9px] font-bold uppercase tracking-widest text-[#c2956e] mb-0.5">Focus</span>
+              <span className="text-sm font-semibold text-[#3d3b33] dark:text-[#e0e0e0]">{Math.floor(data.focus)}m</span>
+            </div>
           </div>
         </div>
       );
@@ -247,7 +227,7 @@ export default function ProductivityChart({ dailyMap }: { dailyMap: Record<strin
             
             <YAxis yAxisId="right" orientation="right" hide={true} width={0} axisLine={false} tickLine={false} tick={false} />
             
-            {!isMobile && <RechartsTooltip content={<CustomTooltip />} cursor={{ fill: isDark ? '#2a2a2a' : '#f7f5f0' }} />}
+            <RechartsTooltip content={<CustomTooltip />} cursor={{ fill: isDark ? '#2a2a2a' : '#f7f5f0' }} />
             <Bar yAxisId="left" dataKey="tasks" name="Tasks Done" fill="url(#colorTasks)" radius={[6, 6, 0, 0]} maxBarSize={40} />
             <Line yAxisId="right" type="monotone" dataKey="focus" name="Focus Time" stroke={isDark ? '#b0855f' : '#c2956e'} strokeWidth={4} dot={{ r: 4, strokeWidth: 2, fill: isDark ? '#1a1a1a' : '#fff' }} activeDot={{ r: 7 }} />
           </ComposedChart>

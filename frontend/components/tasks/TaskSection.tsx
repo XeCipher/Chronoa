@@ -657,6 +657,16 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
     else setMobileTasksCollapsed(!mobileTasksCollapsed);
   };
 
+  const getEmptyMessage = () => {
+    if (viewMode === 'archive') return 'No Completed Records';
+    if (viewMode === 'trash') return 'Trash is Empty';
+    if (type === 'routine') {
+      if (tasks.length === 0) return 'Add habits or daily tasks to start tracking your routine.';
+      return "You're doing great!";
+    }
+    return 'Clear Space';
+  };
+
   const renderContent = () => {
     return (
       <div className={`px-3 md:px-5 pt-4 md:pt-5 pb-3 md:pb-4 min-h-[60px] ${isCollapsedMobile ? 'hidden md:block' : 'block'}`}>
@@ -670,12 +680,12 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
             ))}
           </div>
         ) : displayTasks.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-10 gap-2">
+          <div className="flex flex-col items-center justify-center py-10 gap-2 px-4 text-center">
             <span className="text-2xl opacity-20 dark:opacity-10 select-none text-[#3d3b33] dark:text-white">
               ✦
             </span>
-            <p className="text-[12px] text-[#c4c0b8] dark:text-[#555] tracking-wide uppercase font-bold">
-              {viewMode === 'archive' ? 'No Completed Records' : viewMode === 'trash' ? 'Trash is Empty' : 'Clear Space'}
+            <p className="text-[12px] text-[#c4c0b8] dark:text-[#555] tracking-wide uppercase font-bold leading-relaxed">
+              {getEmptyMessage()}
             </p>
           </div>
         ) : (

@@ -90,7 +90,7 @@ export const useUiStore = create<UiState>()(
       routineResetHour: 7,
       journalZoom: 100,
       isSidebarPinned: false,
-      isSidebarIconPinned: false, // Default to icon pin disabled
+      isSidebarIconPinned: false,
       theme: 'system',
       isMobileMenuOpen: false,
       mobileNoteOpen: false,
@@ -108,7 +108,7 @@ export const useUiStore = create<UiState>()(
       activeTaskIdWithMenu: null,
       archiveLayout: 'nested',
       archiveSort: 'newest',
-      mobileRoutineCollapsed: false,
+      mobileRoutineCollapsed: true,
       mobileTasksCollapsed: false,
       calendarWidgetCollapsed: false,
       

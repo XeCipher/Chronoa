@@ -1,4 +1,4 @@
-// FILE: frontend/components/notes/DistractionFreeEditor.tsx
+// frontend/components/notes/DistractionFreeEditor.tsx
 "use client";
 
 import { useState, useEffect, useRef } from "react";
@@ -35,6 +35,17 @@ type ActiveStates = {
   orderedList: boolean;
 };
 
+const PROMPTS = [
+  "What are you grateful for today?",
+  "What's on your mind right now?",
+  "Describe a small win from today.",
+  "What is one thing you learned recently?",
+  "How are you feeling at this exact moment?",
+  "What would make tomorrow a great day?",
+  "Write about a moment that brought you peace.",
+  "What are your main intentions for today?"
+];
+
 export default function DistractionFreeEditor({
   initialContent,
   isEditable = true,
@@ -45,6 +56,8 @@ export default function DistractionFreeEditor({
   const { journalZoom, setJournalZoom } = useUiStore();
   const [saveStatus, setSaveStatus] = useState("Saved");
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const [placeholder, setPlaceholder] = useState("");
 
   const [bubbleStyle, setBubbleStyle] = useState<React.CSSProperties>({
     opacity: 0,
@@ -69,6 +82,12 @@ export default function DistractionFreeEditor({
     bulletList: false,
     orderedList: false,
   });
+
+  useEffect(() => {
+    if (noteType === 'journal') {
+      setPlaceholder(PROMPTS[Math.floor(Math.random() * PROMPTS.length)]);
+    }
+  }, [noteType]);
 
   const editor = useEditor({
     editable: isEditable,
@@ -411,11 +430,17 @@ export default function DistractionFreeEditor({
       )}
 
       <div
+        className="relative w-full"
         style={{
           fontSize: `${(journalZoom / 100) * 1.05}rem`,
           fontFamily: "inherit",
         }}
       >
+        {editor.isEmpty && (
+          <div className="absolute top-0 left-0 pointer-events-none text-[#c4c0b8] dark:text-[#666] opacity-70 italic w-full">
+            {placeholder}
+          </div>
+        )}
         <EditorContent editor={editor} />
       </div>
     </div>

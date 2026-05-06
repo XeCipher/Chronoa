@@ -42,6 +42,17 @@ export const RANKS = [
   { name: "Chronoa Ascendant", minLevel: 50, minXp: 125000 }
 ];
 
+const RANK_MESSAGES: Record<string, string> = {
+  "Novice": "Your journey begins.",
+  "Apprentice": "You are mastering the basics.",
+  "Scholar": "Wisdom guides your workflow.",
+  "Adept": "Balance and consistency achieved.",
+  "Blossom": "Your productivity is in full bloom.",
+  "Grandmaster": "A true master of time and focus.",
+  "Legend": "Your dedication is legendary.",
+  "Chronoa Ascendant": "You have transcended time itself."
+};
+
 const escapeRegExp = (string: string) => {
   return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 };
@@ -142,6 +153,10 @@ export default function AnalyticsPage() {
   
   const [filterType, setFilterType] = useState<'all' | 'routine' | 'normal'>('all');
   const [isRankModalOpen, setIsRankModalOpen] = useState(false);
+  
+  // Celebration State
+  const [showRankUp, setShowRankUp] = useState(false);
+  const [newRankName, setNewRankName] = useState("");
 
   const [isTrackerModalOpen, setIsTrackerModalOpen] = useState(false);
   const [selectedTrackedIds, setSelectedTrackedIds] = useState<Set<string>>(new Set());
@@ -204,13 +219,13 @@ export default function AnalyticsPage() {
   }, []);
 
   useEffect(() => {
-    if (isRankModalOpen || isTrackerModalOpen) {
+    if (isRankModalOpen || isTrackerModalOpen || showRankUp) {
       document.body.style.overflow = 'hidden';
     } else {
       document.body.style.overflow = '';
     }
     return () => { document.body.style.overflow = ''; };
-  }, [isRankModalOpen, isTrackerModalOpen]);
+  }, [isRankModalOpen, isTrackerModalOpen, showRankUp]);
 
   const toggleSelection = (id: string) => {
     setSelectedTrackedIds(prev => {
@@ -387,6 +402,29 @@ export default function AnalyticsPage() {
     };
   }, [rawTasks, rawSessions, rawJournals, loading, filterType, selectedTrackedIds]);
 
+  // Handle Rank Up Celebration (Syncing with DB)
+  useEffect(() => {
+    if (!data || loading) return;
+
+    const checkCelebration = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data: profile } = await supabase.from('profiles').select('last_celebrated_level').eq('id', user.id).single();
+      const lastCelebrated = profile?.last_celebrated_level || 0;
+      const currentLevel = data.levelInfo.level;
+
+      if (currentLevel > lastCelebrated) {
+        setNewRankName(data.levelInfo.rank);
+        setShowRankUp(true);
+        // Persist to DB so it never shows for this level again
+        await supabase.from('profiles').update({ last_celebrated_level: currentLevel }).eq('id', user.id);
+      }
+    };
+
+    checkCelebration();
+  }, [data?.levelInfo.level, loading]);
+
   if (loading && rawTasks.length === 0) {
     return (
       <div className="min-h-full flex flex-col items-center justify-center gap-4 animate-pulse pt-32">
@@ -399,6 +437,29 @@ export default function AnalyticsPage() {
   return (
     <div className="w-full h-full flex flex-col overflow-hidden bg-[#f7f5f0] dark:bg-[#121212]">
       
+      {/* Celebration Overlay */}
+      {showRankUp && (
+        <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-white/95 dark:bg-black/95 backdrop-blur-md animate-fade-in px-4">
+           <div className="absolute inset-0 overflow-hidden pointer-events-none flex items-center justify-center">
+              <div className="absolute w-[600px] h-[600px] bg-[#c2956e]/20 dark:bg-[#b0855f]/20 rounded-full blur-[100px] animate-pulse" />
+           </div>
+           <div className="relative z-10 flex flex-col items-center text-center animate-fade-up">
+              <RankBadge rank={newRankName} className="w-48 h-48 md:w-64 md:h-64 mb-8 drop-shadow-2xl" />
+              <h2 className="text-4xl md:text-5xl font-serif text-[#3d3b33] dark:text-[#f0f0f0] mb-3 tracking-tight">Level Up!</h2>
+              <p className="text-xl md:text-2xl font-medium text-[#c2956e] dark:text-[#d1a784] mb-2">{newRankName}</p>
+              <p className="text-sm md:text-base text-[#888] dark:text-[#a0a0a0] max-w-md mx-auto mb-10 italic">
+                 "{RANK_MESSAGES[newRankName] || "You are ascending."}"
+              </p>
+              <button 
+                onClick={() => setShowRankUp(false)}
+                className="px-8 py-3.5 bg-[#c2956e] dark:bg-[#b0855f] text-white rounded-2xl text-xs font-bold uppercase tracking-[0.2em] shadow-xl hover:scale-105 transition-transform"
+              >
+                Continue
+              </button>
+           </div>
+        </div>
+      )}
+
       {/* Fixed Header Layer */}
       <div className="px-4 md:px-8 lg:px-10 pt-4 md:pt-8 lg:pt-10 pb-4 shrink-0">
         <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 shrink-0 w-full mb-0">
@@ -422,7 +483,7 @@ export default function AnalyticsPage() {
               >
                 <Target size={18} /> 
                 {selectedTrackedIds.size > 0 && (
-                  <span className="absolute -top-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 border-2 border-[#f7f5f0] dark:border-[#121212] text-[8px] font-bold text-white">
+                  <span className="absolute -top-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-50 border-2 border-[#f7f5f0] dark:border-[#121212] text-[8px] font-bold text-white">
                     {selectedTrackedIds.size}
                   </span>
                 )}

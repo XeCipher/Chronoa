@@ -59,9 +59,31 @@ export default function FocusDistribution({ rawSessions }: { rawSessions: any[] 
   }, [rawSessions, excludedCategories]);
 
   if (!rawSessions || rawSessions.length === 0) {
+    const skeletonColors = isDark ? ['#333', '#2a2a2a', '#222'] : ['#e0ddd5', '#d4d0c8', '#ebe8e2'];
     return (
-      <div className="bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] rounded-[2.5rem] p-8 shadow-sm h-[350px] flex items-center justify-center text-sm text-[#b0ad9a] italic">
-        No focus sessions recorded yet.
+      <div className="bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] rounded-[2.5rem] p-6 lg:p-8 shadow-sm h-auto lg:h-[350px] flex flex-col lg:flex-row items-center justify-center transition-colors relative overflow-hidden">
+         <div className="absolute inset-0 flex items-center justify-center z-10 backdrop-blur-[2px]">
+            <div className="bg-white/90 dark:bg-black/80 px-6 py-3 rounded-2xl border border-[#e0ddd5] dark:border-[#333] shadow-sm">
+               <p className="text-sm text-[#b0ad9a] dark:text-[#7a7a7a] font-medium tracking-wide">Track focus session to see balance</p>
+            </div>
+         </div>
+         <div className="w-full lg:w-1/2 h-56 lg:h-full opacity-40 grayscale pointer-events-none">
+            <ResponsiveContainer width="100%" height="100%">
+               <PieChart>
+                 <Pie data={[{value:1}, {value:2}, {value:1.5}]} innerRadius="65%" outerRadius="90%" paddingAngle={4} dataKey="value" stroke="none">
+                    <Cell fill={skeletonColors[0]} />
+                    <Cell fill={skeletonColors[1]} />
+                    <Cell fill={skeletonColors[2]} />
+                 </Pie>
+               </PieChart>
+            </ResponsiveContainer>
+         </div>
+         <div className="w-full lg:w-1/2 hidden lg:flex flex-col gap-4 opacity-40 pointer-events-none px-6">
+            <div className="h-4 w-24 bg-[#e0ddd5] dark:bg-[#333] rounded-full" />
+            <div className="h-10 w-full bg-[#e0ddd5] dark:bg-[#333] rounded-xl" />
+            <div className="h-10 w-full bg-[#e0ddd5] dark:bg-[#333] rounded-xl" />
+            <div className="h-10 w-full bg-[#e0ddd5] dark:bg-[#333] rounded-xl" />
+         </div>
       </div>
     );
   }
