@@ -414,9 +414,12 @@ export default function AnalyticsPage() {
       const lastCelebrated = profile?.last_celebrated_level || 0;
       const currentLevel = data.levelInfo.level;
 
+      // Only trigger celebration if leveling up, and NOT for the base level 1 (Novice)
       if (currentLevel > lastCelebrated) {
-        setNewRankName(data.levelInfo.rank);
-        setShowRankUp(true);
+        if (currentLevel > 1) {
+          setNewRankName(data.levelInfo.rank);
+          setShowRankUp(true);
+        }
         // Persist to DB so it never shows for this level again
         await supabase.from('profiles').update({ last_celebrated_level: currentLevel }).eq('id', user.id);
       }

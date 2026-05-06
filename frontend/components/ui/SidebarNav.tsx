@@ -1,3 +1,4 @@
+// frontend/components/ui/SidebarNav.tsx
 "use client";
 
 import { useState, useEffect } from "react";
@@ -160,9 +161,9 @@ export default function SidebarNav() {
             >
               <div className="w-[32px] h-[32px] flex items-center justify-center shrink-0">
                 {userAvatar ? (
-                  <img src={userAvatar} alt="Profile" className="w-[30px] h-[30px] rounded-full object-cover border-[2px] border-[#c2956e]/80 dark:border-[#b0855f]/80 shadow-sm" />
+                  <img src={userAvatar} alt="Profile" className="w-[30px] h-[30px] rounded-full object-cover border-[2px] border-[#d4d0c8] dark:border-[#444] shadow-sm" />
                 ) : (
-                  <User className="w-[22px] h-[22px] text-[#c2956e] dark:text-[#b0855f]" />
+                  <User className="w-[22px] h-[22px] text-[#888] dark:text-[#a0a0a0]" />
                 )}
               </div>
                <span className={`transition-all duration-300 whitespace-nowrap ${isExpanded ? 'opacity-100 w-auto' : 'opacity-0 w-0'}`}>

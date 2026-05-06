@@ -1,3 +1,4 @@
+// frontend/app/(dashboard)/home/page.tsx
 "use client";
 
 import { useState, useEffect } from "react";
@@ -49,12 +50,12 @@ export default function HomePage() {
       <div className="fixed top-[calc(1.5rem+env(safe-area-inset-top))] left-[calc(1.5rem+env(safe-area-inset-left))] md:hidden z-40">
         <button 
           onClick={() => router.push('/settings')} 
-          className="w-10 h-10 flex items-center justify-center rounded-full bg-white/20 dark:bg-black/30 backdrop-blur-md shadow-sm text-[#3d3b33] dark:text-white transition-all active:scale-95 p-0"
+          className="w-10 h-10 flex items-center justify-center rounded-full bg-white/30 dark:bg-black/40 backdrop-blur-md shadow-sm border border-white/40 dark:border-white/10 text-[#3d3b33] dark:text-white transition-all active:scale-95 p-0"
         >
           {userAvatar ? (
-            <img src={userAvatar} alt="Profile" className="w-full h-full object-cover rounded-full border-2 border-[#c2956e]/80 dark:border-[#b0855f]/80" />
+            <img src={userAvatar} alt="Profile" className="w-full h-full object-cover rounded-full border-[1.5px] border-white/80 dark:border-[#444]" />
           ) : (
-            <User size={20} strokeWidth={2} className="text-[#c2956e] dark:text-[#b0855f]" />
+            <User size={18} strokeWidth={2.5} className="text-[#555] dark:text-[#b0ad9a]" />
           )}
         </button>
       </div>
