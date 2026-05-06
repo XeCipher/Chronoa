@@ -50,6 +50,7 @@ interface UiState {
 
   confirmDialog: ConfirmDialogState | null;
   isGlobalTimeWidgetExpanded: boolean;
+  isEditorFullscreen: boolean;
   
   setTaskArchiveDelay: (delay: number) => void;
   setRoutineResetHour: (hour: number) => void;
@@ -81,6 +82,8 @@ interface UiState {
   showConfirmDialog: (options: ConfirmDialogState) => void;
   closeConfirmDialog: () => void;
   setGlobalTimeWidgetExpanded: (val: boolean) => void;
+  toggleEditorFullscreen: () => void;
+  setEditorFullscreen: (val: boolean) => void;
 }
 
 export const useUiStore = create<UiState>()(
@@ -114,6 +117,7 @@ export const useUiStore = create<UiState>()(
       
       confirmDialog: null,
       isGlobalTimeWidgetExpanded: false,
+      isEditorFullscreen: false,
 
       setTaskArchiveDelay: (delay) => set({ taskArchiveDelay: delay }),
       setRoutineResetHour: (hour) => set({ routineResetHour: hour }),
@@ -153,11 +157,13 @@ export const useUiStore = create<UiState>()(
       showConfirmDialog: (options) => set({ confirmDialog: options }),
       closeConfirmDialog: () => set({ confirmDialog: null }),
       setGlobalTimeWidgetExpanded: (val) => set({ isGlobalTimeWidgetExpanded: val }),
+      toggleEditorFullscreen: () => set((state) => ({ isEditorFullscreen: !state.isEditorFullscreen })),
+      setEditorFullscreen: (val) => set({ isEditorFullscreen: val }),
     }),
     { 
       name: 'chronoa-settings',
       partialize: (state) => Object.fromEntries(
-        Object.entries(state).filter(([key]) => !['activeTaskIdWithMenu', 'mobileNoteOpen', 'confirmDialog', 'isGlobalTimeWidgetExpanded'].includes(key))
+        Object.entries(state).filter(([key]) => !['activeTaskIdWithMenu', 'mobileNoteOpen', 'confirmDialog', 'isGlobalTimeWidgetExpanded', 'isEditorFullscreen'].includes(key))
       ),
     }
   )

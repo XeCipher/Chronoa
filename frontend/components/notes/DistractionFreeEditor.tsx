@@ -15,6 +15,8 @@ import {
   ListOrdered,
   Heading1,
   Heading2,
+  Maximize,
+  Minimize
 } from "lucide-react";
 
 interface EditorProps {
@@ -53,7 +55,7 @@ export default function DistractionFreeEditor({
   noteType = "notes",
   entryDate,
 }: EditorProps) {
-  const { journalZoom, setJournalZoom } = useUiStore();
+  const { journalZoom, setJournalZoom, isEditorFullscreen, toggleEditorFullscreen } = useUiStore();
   const [saveStatus, setSaveStatus] = useState("Saved");
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -418,14 +420,30 @@ export default function DistractionFreeEditor({
                 {saveStatus}
               </span>
               <ZoomControl preventFocus />
+              <button
+                onMouseDown={(e) => { e.preventDefault(); toggleEditorFullscreen(); }}
+                className="flex items-center justify-center w-[30px] h-[30px] md:w-8 md:h-8 rounded-xl bg-[#f7f5f0] dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#2a2a2a] text-[#888] hover:text-[#c2956e] dark:hover:text-[#d1a784] shadow-sm transition-colors shrink-0"
+                data-tooltip-id="global-tooltip"
+                data-tooltip-content={isEditorFullscreen ? "Exit Fullscreen" : "Fullscreen"}
+              >
+                {isEditorFullscreen ? <Minimize size={14} /> : <Maximize size={14} />}
+              </button>
             </div>
           </div>
         </>
       )}
 
       {!isEditable && (
-        <div className="hidden md:flex justify-end">
+        <div className="hidden md:flex justify-end items-center gap-2">
           <ZoomControl />
+          <button
+             onMouseDown={(e) => { e.preventDefault(); toggleEditorFullscreen(); }}
+             className="flex items-center justify-center w-[30px] h-[30px] md:w-8 md:h-8 rounded-xl bg-[#f7f5f0] dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#2a2a2a] text-[#888] hover:text-[#c2956e] dark:hover:text-[#d1a784] shadow-sm transition-colors shrink-0"
+             data-tooltip-id="global-tooltip"
+             data-tooltip-content={isEditorFullscreen ? "Exit Fullscreen" : "Fullscreen"}
+          >
+             {isEditorFullscreen ? <Minimize size={14} /> : <Maximize size={14} />}
+          </button>
         </div>
       )}
 

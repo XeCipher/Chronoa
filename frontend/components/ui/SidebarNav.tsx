@@ -10,7 +10,7 @@ import { Home, CheckSquare, BarChart2, Settings, PanelLeftClose, PanelLeft, Sun,
 export default function SidebarNav() {
   const pathname = usePathname();
   
-  const { isSidebarPinned, toggleSidebarPin, isSidebarIconPinned, toggleSidebarIconPin, mobileNoteOpen } = useUiStore();
+  const { isSidebarPinned, toggleSidebarPin, isSidebarIconPinned, toggleSidebarIconPin, mobileNoteOpen, isEditorFullscreen } = useUiStore();
   const [isHovered, setIsHovered] = useState(false);
   const [isAsleep, setIsAsleep] = useState(false);
   const [touchOpen, setTouchOpen] = useState(false);
@@ -74,7 +74,7 @@ export default function SidebarNav() {
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
         className={`hidden md:block relative h-full z-50 transition-all duration-500 ease-in-out shrink-0
-          ${isExpanded ? 'w-60' : isHiddenMode ? 'w-10' : 'w-20'}
+          ${isEditorFullscreen ? 'w-0 opacity-0 overflow-hidden !border-none' : isExpanded ? 'w-60' : isHiddenMode ? 'w-10' : 'w-20'}
         `}
       >
         {/* Tappable Vertical Text Area */}
@@ -83,17 +83,18 @@ export default function SidebarNav() {
             if (isHiddenMode) setTouchOpen(true);
           }}
           className={`absolute top-1/2 left-11 -translate-y-1/2 -translate-x-1/2 transition-all duration-500 delay-100 flex items-center justify-center w-10 z-30 ${
-          isHiddenMode ? 'opacity-100 pointer-events-auto cursor-pointer' : 'opacity-0 pointer-events-none'
+          isHiddenMode && !isEditorFullscreen ? 'opacity-100 pointer-events-auto cursor-pointer' : 'opacity-0 pointer-events-none'
         }`}>
           <span className="-rotate-90 whitespace-nowrap text-[10px] tracking-[0.4em] uppercase font-bold text-[#b0ad9a] dark:text-[#7a7a7a]">
             {currentItem.name}
           </span>
         </div>
 
-        <div className={`absolute inset-y-0 left-0 h-full bg-[#f7f5f0] dark:bg-[#161616] border-r border-[#e0ddd5] dark:border-[#2a2a2a] flex flex-col z-40 transition-all duration-500 ease-in-out overflow-hidden ${
-          isExpanded ? 'w-60 translate-x-0 shadow-xl shadow-[#e0ddd5]/50 dark:shadow-black/50' : 
-          isHiddenMode ? 'w-20 -translate-x-full shadow-none' : 
-          'w-20 translate-x-0 shadow-none'
+        <div className={`absolute inset-y-0 left-0 h-full bg-[#f7f5f0] dark:bg-[#161616] flex flex-col z-40 transition-all duration-500 ease-in-out overflow-hidden ${
+          isEditorFullscreen ? 'w-0 border-none shadow-none -translate-x-full' :
+          isExpanded ? 'w-60 translate-x-0 border-r border-[#e0ddd5] dark:border-[#2a2a2a] shadow-xl shadow-[#e0ddd5]/50 dark:shadow-black/50' : 
+          isHiddenMode ? 'w-20 -translate-x-full border-r border-[#e0ddd5] dark:border-[#2a2a2a] shadow-none' : 
+          'w-20 translate-x-0 border-r border-[#e0ddd5] dark:border-[#2a2a2a] shadow-none'
         }`}>
           
           <div className="flex items-center h-24 relative shrink-0">
@@ -156,7 +157,7 @@ export default function SidebarNav() {
           data-tooltip-id="global-tooltip" data-tooltip-content={isSidebarPinned ? "Unpin Sidebar" : "Pin Sidebar"}
           className={`hidden md:flex items-center justify-center absolute bottom-42 right-0 translate-x-1/2 z-50 p-2 bg-white dark:bg-[#1e1e1e] border border-[#e0ddd5] dark:border-[#333] rounded-full shadow-lg transition-all duration-500 ease-in-out
             ${isSidebarPinned ? 'text-[#c2956e] dark:text-[#d1a784]' : 'text-[#888] dark:text-[#a0a0a0] md:hover:text-[#c2956e] md:dark:hover:text-[#d1a784]'}
-            ${isHiddenMode ? 'opacity-0 scale-0 pointer-events-none' : 'opacity-100 scale-100'}
+            ${(isHiddenMode || isEditorFullscreen) ? 'opacity-0 scale-0 pointer-events-none' : 'opacity-100 scale-100'}
           `}
         >
           <PanelLeftClose size={16} />
@@ -168,7 +169,7 @@ export default function SidebarNav() {
           data-tooltip-id="global-tooltip" data-tooltip-content={isSidebarIconPinned ? "Auto-hide Sidebar completely" : "Keep Icons visible"}
           className={`hidden md:flex items-center justify-center absolute bottom-30 right-0 translate-x-1/2 z-50 p-2 bg-white dark:bg-[#1e1e1e] border border-[#e0ddd5] dark:border-[#333] rounded-full shadow-lg transition-all duration-500 ease-in-out
             ${isSidebarIconPinned ? 'text-[#c2956e] dark:text-[#d1a784]' : 'text-[#888] dark:text-[#a0a0a0] md:hover:text-[#c2956e] md:dark:hover:text-[#d1a784]'}
-            ${isHiddenMode ? 'opacity-0 scale-0 pointer-events-none' : 'opacity-100 scale-100'}
+            ${(isHiddenMode || isEditorFullscreen) ? 'opacity-0 scale-0 pointer-events-none' : 'opacity-100 scale-100'}
           `}
         >
           <PanelLeft size={16} />
@@ -176,7 +177,7 @@ export default function SidebarNav() {
       </aside>
 
       {/* Mobile Bottom Nav */}
-      <nav className={`md:hidden fixed bottom-0 left-0 w-full h-[calc(82px+env(safe-area-inset-bottom))] pb-[calc(1.5rem+env(safe-area-inset-bottom))] pt-0 px-6 bg-white/95 dark:bg-[#121212]/95 backdrop-blur-xl border-t border-[#e0ddd5] dark:border-[#2a2a2a] flex items-center justify-between z-[100] transition-transform duration-300 ease-in-out overflow-x-auto no-scrollbar ${mobileNoteOpen ? 'translate-y-full' : 'translate-y-0'}`}>
+      <nav className={`md:hidden fixed bottom-0 left-0 w-full h-[calc(82px+env(safe-area-inset-bottom))] pb-[calc(1.5rem+env(safe-area-inset-bottom))] pt-0 px-6 bg-white/95 dark:bg-[#121212]/95 backdrop-blur-xl border-t border-[#e0ddd5] dark:border-[#2a2a2a] flex items-center justify-between z-[100] transition-transform duration-300 ease-in-out overflow-x-auto no-scrollbar ${mobileNoteOpen || isEditorFullscreen ? 'translate-y-full' : 'translate-y-0'}`}>
         {navItems.map((item) => {
           const isActive = pathname === item.href;
           return (

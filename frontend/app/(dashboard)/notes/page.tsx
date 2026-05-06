@@ -60,7 +60,7 @@ const syncOfflineData = async () => {
 };
 
 export default function NotesPage() {
-  const { notesTab, setNotesTab, setMobileNoteOpen, showConfirmDialog } = useUiStore();
+  const { notesTab, setNotesTab, setMobileNoteOpen, showConfirmDialog, isEditorFullscreen, setEditorFullscreen } = useUiStore();
   
   const [notes, setNotes] = useState<any[]>([]);
   const [journals, setJournals] = useState<any[]>([]);
@@ -101,6 +101,24 @@ export default function NotesPage() {
     window.addEventListener('chronoa-reset-tab', handleReset);
     return () => window.removeEventListener('chronoa-reset-tab', handleReset);
   }, []);
+
+  // Guarantee we reset fullscreen configuration when leaving the Notes page
+  useEffect(() => {
+    return () => {
+       setEditorFullscreen(false);
+    };
+  }, [setEditorFullscreen]);
+
+  // Support pressing escape to easily get out of Fullscreen
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isEditorFullscreen) {
+        setEditorFullscreen(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isEditorFullscreen, setEditorFullscreen]);
 
   const handleTabChange = (id: Tab) => {
     setNotesTab(id);
@@ -559,137 +577,140 @@ export default function NotesPage() {
       
       {/* SIDEBAR LIBRARY VIEW */}
       <aside className={`
-        w-full lg:w-[350px] flex-shrink-0 flex flex-col border-r border-[#e0ddd5] dark:border-[#2a2a2a] bg-[#f7f5f0] dark:bg-[#121212] z-30 transition-transform duration-300 ease-in-out
+        flex-shrink-0 flex flex-col bg-[#f7f5f0] dark:bg-[#121212] z-30 transition-all duration-300 ease-in-out overflow-hidden
+        ${isEditorFullscreen ? 'w-0 border-none opacity-0' : 'w-full lg:w-[350px] border-r border-[#e0ddd5] dark:border-[#2a2a2a]'}
         ${isListVisible ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
       `}>
-        <div className="p-4 md:p-8 lg:px-10 lg:pt-10 lg:pb-4 pb-4 space-y-4">
-          <div className="flex items-center justify-between">
-            <div 
-              className="flex items-center gap-2.5 text-[#3d3b33] dark:text-[#f0f0f0] cursor-pointer hover:opacity-80 transition-opacity"
-              onClick={() => document.getElementById('notes-library-scroll-container')?.scrollTo({ top: 0, behavior: 'smooth' })}
-            >
-              {isTrashOpen && (
-                <button onClick={(e) => { e.stopPropagation(); setIsTrashOpen(false); setSelectedId(null); setAutoSelectPending(true); setShowCalendar(false); }} className="flex items-center justify-center p-2.5 md:p-3 bg-white dark:bg-[#1a1a1a] text-[#888] rounded-xl border border-[#e0ddd5] dark:border-[#333] hover:text-[#3d3b33] dark:hover:text-[#f0f0f0] transition-all shadow-sm mr-1">
-                  <ArrowLeft size={18} />
-                </button>
-              )}
-              {!isTrashOpen && <Library size={20} className="text-[#c2956e]" />}
-              {isTrashOpen && <Trash2 size={24} className="text-[#c2956e]" />}
-              <h1 className="text-2xl md:text-4xl font-serif font-medium tracking-tight">
-                {isTrashOpen ? 'Trash' : 'Library'}
-              </h1>
-            </div>
-            
-            <div className="flex items-center gap-2 relative">
-              {!isTrashOpen && notesTab === 'notes' && (
-                <>
-                  <button 
-                    onClick={() => { setIsTrashOpen(true); setSelectedId(null); setAutoSelectPending(true); setShowCalendar(false); }} 
-                    data-tooltip-id="global-tooltip" data-tooltip-content="Open Trash"
-                    className="w-10 h-10 flex shrink-0 items-center justify-center rounded-full transition-all text-[#888] md:hover:text-red-400 bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] shadow-sm"
-                  >
-                    <Trash2 size={16} />
+        <div className="w-full lg:w-[350px] flex flex-col h-full shrink-0">
+          <div className="p-4 md:p-8 lg:px-10 lg:pt-10 lg:pb-4 pb-4 space-y-4">
+            <div className="flex items-center justify-between">
+              <div 
+                className="flex items-center gap-2.5 text-[#3d3b33] dark:text-[#f0f0f0] cursor-pointer hover:opacity-80 transition-opacity"
+                onClick={() => document.getElementById('notes-library-scroll-container')?.scrollTo({ top: 0, behavior: 'smooth' })}
+              >
+                {isTrashOpen && (
+                  <button onClick={(e) => { e.stopPropagation(); setIsTrashOpen(false); setSelectedId(null); setAutoSelectPending(true); setShowCalendar(false); }} className="flex items-center justify-center p-2.5 md:p-3 bg-white dark:bg-[#1a1a1a] text-[#888] rounded-xl border border-[#e0ddd5] dark:border-[#333] hover:text-[#3d3b33] dark:hover:text-[#f0f0f0] transition-all shadow-sm mr-1">
+                    <ArrowLeft size={18} />
                   </button>
-                  <button onClick={createNote} data-tooltip-id="global-tooltip" data-tooltip-content="New Note" className="hidden lg:flex w-10 h-10 items-center justify-center bg-[#c2956e] text-white dark:bg-[#b0855f] rounded-full md:hover:scale-105 transition-all shadow-lg">
-                    <Plus size={18} />
-                  </button>
-                </>
-              )}
+                )}
+                {!isTrashOpen && <Library size={20} className="text-[#c2956e]" />}
+                {isTrashOpen && <Trash2 size={24} className="text-[#c2956e]" />}
+                <h1 className="text-2xl md:text-4xl font-serif font-medium tracking-tight">
+                  {isTrashOpen ? 'Trash' : 'Library'}
+                </h1>
+              </div>
               
-              {!isTrashOpen && notesTab === 'journal' && (
-                <>
+              <div className="flex items-center gap-2 relative">
+                {!isTrashOpen && notesTab === 'notes' && (
+                  <>
+                    <button 
+                      onClick={() => { setIsTrashOpen(true); setSelectedId(null); setAutoSelectPending(true); setShowCalendar(false); }} 
+                      data-tooltip-id="global-tooltip" data-tooltip-content="Open Trash"
+                      className="w-10 h-10 flex shrink-0 items-center justify-center rounded-full transition-all text-[#888] md:hover:text-red-400 bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] shadow-sm"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                    <button onClick={createNote} data-tooltip-id="global-tooltip" data-tooltip-content="New Note" className="hidden lg:flex w-10 h-10 items-center justify-center bg-[#c2956e] text-white dark:bg-[#b0855f] rounded-full md:hover:scale-105 transition-all shadow-lg">
+                      <Plus size={18} />
+                    </button>
+                  </>
+                )}
+                
+                {!isTrashOpen && notesTab === 'journal' && (
+                  <>
+                    <button 
+                      onClick={() => { setIsTrashOpen(true); setSelectedId(null); setAutoSelectPending(true); setShowCalendar(false); }} 
+                      data-tooltip-id="global-tooltip" data-tooltip-content="Open Trash"
+                      className="w-10 h-10 flex shrink-0 items-center justify-center rounded-full transition-all text-[#888] md:hover:text-red-400 bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] shadow-sm"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                    <button onClick={() => setShowCalendar(!showCalendar)} data-tooltip-id="global-tooltip" data-tooltip-content="Calendar" className="desktop-cal-toggle hidden lg:flex w-10 h-10 items-center justify-center bg-[#c2956e] text-white dark:bg-[#b0855f] rounded-full md:hover:scale-105 transition-all shadow-lg">
+                      {showCalendar ? <X size={16} /> : <CalendarDays size={16} />}
+                    </button>
+                    {showCalendar && (
+                       <div className="hidden lg:block relative">
+                          {renderCalendar(false)}
+                       </div>
+                    )}
+                  </>
+                )}
+
+                {isTrashOpen && (
                   <button 
-                    onClick={() => { setIsTrashOpen(true); setSelectedId(null); setAutoSelectPending(true); setShowCalendar(false); }} 
-                    data-tooltip-id="global-tooltip" data-tooltip-content="Open Trash"
-                    className="w-10 h-10 flex shrink-0 items-center justify-center rounded-full transition-all text-[#888] md:hover:text-red-400 bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] shadow-sm"
+                    onClick={emptyTrash} 
+                    data-tooltip-id="global-tooltip" data-tooltip-content={`Empty ${notesTab} Trash`}
+                    className="w-10 h-10 flex items-center justify-center rounded-full transition-all bg-red-50 dark:bg-red-900/10 text-red-500 hover:bg-red-500 hover:text-white shadow-sm shrink-0 border border-transparent md:border-red-100 dark:border-red-900/30"
                   >
                     <Trash2 size={16} />
                   </button>
-                  <button onClick={() => setShowCalendar(!showCalendar)} data-tooltip-id="global-tooltip" data-tooltip-content="Calendar" className="desktop-cal-toggle hidden lg:flex w-10 h-10 items-center justify-center bg-[#c2956e] text-white dark:bg-[#b0855f] rounded-full md:hover:scale-105 transition-all shadow-lg">
-                    {showCalendar ? <X size={16} /> : <CalendarDays size={16} />}
-                  </button>
-                  {showCalendar && (
-                     <div className="hidden lg:block relative">
-                        {renderCalendar(false)}
-                     </div>
-                  )}
-                </>
-              )}
-
-              {isTrashOpen && (
-                <button 
-                  onClick={emptyTrash} 
-                  data-tooltip-id="global-tooltip" data-tooltip-content={`Empty ${notesTab} Trash`}
-                  className="w-10 h-10 flex items-center justify-center rounded-full transition-all bg-red-50 dark:bg-red-900/10 text-red-500 hover:bg-red-500 hover:text-white shadow-sm shrink-0 border border-transparent md:border-red-100 dark:border-red-900/30"
-                >
-                  <Trash2 size={16} />
-                </button>
-              )}
-            </div>
-          </div>
-
-          <div className="space-y-4">
-            <div className="relative">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-[#b0ad9a]" size={16} />
-              <input 
-                type="text" placeholder={`Search ${isTrashOpen ? 'trash' : 'library'}...`} value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
-                spellCheck={false}
-                className="w-full bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] rounded-xl pl-11 pr-4 py-3 text-sm outline-none focus:border-[#c2956e] dark:focus:border-[#b0855f] transition-all shadow-sm"
-              />
+                )}
+              </div>
             </div>
 
-            <div className="flex flex-col gap-2">
-              <div className="flex bg-[#ebe8e2]/50 dark:bg-[#1a1a1a] p-1.5 rounded-[1.25rem] border border-[#e0ddd5] dark:border-[#333] shadow-inner">
-                {TABS.map(({ id, label, icon: Icon }) => (
-                  <button key={id} onClick={() => handleTabChange(id)}
-                    className={`flex-1 flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all ${notesTab === id ? 'bg-white dark:bg-[#2a2a2a] text-[#c2956e] dark:text-[#d1a784] shadow-sm' : 'text-[#888] md:hover:text-[#3d3b33] md:dark:hover:text-white'}`}>
-                    <Icon size={14} /> <span>{label}</span>
-                  </button>
-                ))}
+            <div className="space-y-4">
+              <div className="relative">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-[#b0ad9a]" size={16} />
+                <input 
+                  type="text" placeholder={`Search ${isTrashOpen ? 'trash' : 'library'}...`} value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
+                  spellCheck={false}
+                  className="w-full bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] rounded-xl pl-11 pr-4 py-3 text-sm outline-none focus:border-[#c2956e] dark:focus:border-[#b0855f] transition-all shadow-sm"
+                />
+              </div>
+
+              <div className="flex flex-col gap-2">
+                <div className="flex bg-[#ebe8e2]/50 dark:bg-[#1a1a1a] p-1.5 rounded-[1.25rem] border border-[#e0ddd5] dark:border-[#333] shadow-inner">
+                  {TABS.map(({ id, label, icon: Icon }) => (
+                    <button key={id} onClick={() => handleTabChange(id)}
+                      className={`flex-1 flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all ${notesTab === id ? 'bg-white dark:bg-[#2a2a2a] text-[#c2956e] dark:text-[#d1a784] shadow-sm' : 'text-[#888] md:hover:text-[#3d3b33] md:dark:hover:text-white'}`}>
+                      <Icon size={14} /> <span>{label}</span>
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
-        </div>
 
-        <div id="notes-library-scroll-container" className="flex-1 overflow-y-auto no-scrollbar px-4 pb-4 md:px-8 lg:px-10 lg:pl-8 space-y-3 scroll-smooth">
-          {loading && notes.length === 0 && journals.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12 gap-3 opacity-40">
-              <Sparkles className="animate-pulse text-[#c2956e]" />
-              <span className="text-[10px] font-bold uppercase tracking-widest">Opening Library...</span>
-            </div>
-          ) : filteredItems.length > 0 ? (
-            <>
-              {filteredItems.map(item => {
-                const isJournal = isTrashOpen ? item.isJournal : notesTab === 'journal';
-                const id = item.entry_date || item.id;
-                const isSelected = selectedId === id;
-                const title = isJournal ? formatDateLabel(item.entry_date) : (item.title || 'Untitled');
-                const daysLeft = isTrashOpen ? Math.ceil(30 - (Date.now() - new Date(item.deleted_at).getTime()) / (1000 * 60 * 60 * 24)) : 0;
+          <div id="notes-library-scroll-container" className="flex-1 overflow-y-auto no-scrollbar px-4 pb-4 md:px-8 lg:px-10 lg:pl-8 space-y-3 scroll-smooth">
+            {loading && notes.length === 0 && journals.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-12 gap-3 opacity-40">
+                <Sparkles className="animate-pulse text-[#c2956e]" />
+                <span className="text-[10px] font-bold uppercase tracking-widest">Opening Library...</span>
+              </div>
+            ) : filteredItems.length > 0 ? (
+              <>
+                {filteredItems.map(item => {
+                  const isJournal = isTrashOpen ? item.isJournal : notesTab === 'journal';
+                  const id = item.entry_date || item.id;
+                  const isSelected = selectedId === id;
+                  const title = isJournal ? formatDateLabel(item.entry_date) : (item.title || 'Untitled');
+                  const daysLeft = isTrashOpen ? Math.ceil(30 - (Date.now() - new Date(item.deleted_at).getTime()) / (1000 * 60 * 60 * 24)) : 0;
 
-                return (
-                  <button key={id} onClick={() => handleSelectItem(id)} 
-                    className={`w-full text-left p-4 rounded-2xl transition-all duration-200 border relative group overflow-hidden ${
-                      isSelected 
-                      ? 'bg-white dark:bg-[#1e1e1e] border-[#e0ddd5] dark:border-[#222] lg:border-[#c2956e]/40 lg:dark:border-[#b0855f]/50 shadow-sm lg:shadow-md lg:translate-x-1' 
-                      : 'bg-[#fdfbf7] dark:bg-[#161616] border-[#f0ede8] dark:border-[#222] md:hover:border-[#c2956e]/20 md:dark:hover:border-[#b0855f]/20 md:hover:shadow-sm'
-                    }`}>
-                    {isSelected && <div className="hidden lg:block absolute left-0 top-0 bottom-0 w-1 bg-[#c2956e]" />}
-                    <div className="flex justify-between items-baseline mb-1 gap-3">
-                      <span className={`font-semibold text-[14px] truncate ${isSelected ? 'text-[#c2956e] dark:text-[#d1a784]' : 'text-[#3d3b33] dark:text-[#f0f0f0]'}`}>{title}</span>
-                      <span className="text-[9px] font-bold text-[#b0ad9a] dark:text-[#555] uppercase tracking-widest shrink-0">{formatDateLabel(item.updated_at || item.entry_date)}</span>
-                    </div>
-                    <div className="text-[11px] leading-relaxed line-clamp-2 text-[#888] dark:text-[#888]">
-                      {isTrashOpen && <span className="text-red-500 font-bold block mb-1 text-[9px] uppercase tracking-tighter">Deletes in {daysLeft} days</span>}
-                      <Snippet html={item.content} query={searchQuery} />
-                    </div>
-                  </button>
-                );
-              })}
-              <div className="h-28 lg:h-0 w-full shrink-0 pointer-events-none" />
-            </>
-          ) : (
-            <div className="py-20 text-center text-[#b0ad9a] dark:text-[#555] italic text-xs">No records found</div>
-          )}
+                  return (
+                    <button key={id} onClick={() => handleSelectItem(id)} 
+                      className={`w-full text-left p-4 rounded-2xl transition-all duration-200 border relative group overflow-hidden ${
+                        isSelected 
+                        ? 'bg-white dark:bg-[#1e1e1e] border-[#e0ddd5] dark:border-[#222] lg:border-[#c2956e]/40 lg:dark:border-[#b0855f]/50 shadow-sm lg:shadow-md lg:translate-x-1' 
+                        : 'bg-[#fdfbf7] dark:bg-[#161616] border-[#f0ede8] dark:border-[#222] md:hover:border-[#c2956e]/20 md:dark:hover:border-[#b0855f]/20 md:hover:shadow-sm'
+                      }`}>
+                      {isSelected && <div className="hidden lg:block absolute left-0 top-0 bottom-0 w-1 bg-[#c2956e]" />}
+                      <div className="flex justify-between items-baseline mb-1 gap-3">
+                        <span className={`font-semibold text-[14px] truncate ${isSelected ? 'text-[#c2956e] dark:text-[#d1a784]' : 'text-[#3d3b33] dark:text-[#f0f0f0]'}`}>{title}</span>
+                        <span className="text-[9px] font-bold text-[#b0ad9a] dark:text-[#555] uppercase tracking-widest shrink-0">{formatDateLabel(item.updated_at || item.entry_date)}</span>
+                      </div>
+                      <div className="text-[11px] leading-relaxed line-clamp-2 text-[#888] dark:text-[#888]">
+                        {isTrashOpen && <span className="text-red-500 font-bold block mb-1 text-[9px] uppercase tracking-tighter">Deletes in {daysLeft} days</span>}
+                        <Snippet html={item.content} query={searchQuery} />
+                      </div>
+                    </button>
+                  );
+                })}
+                <div className="h-28 lg:h-0 w-full shrink-0 pointer-events-none" />
+              </>
+            ) : (
+              <div className="py-20 text-center text-[#b0ad9a] dark:text-[#555] italic text-xs">No records found</div>
+            )}
+          </div>
         </div>
       </aside>
 
@@ -698,7 +719,7 @@ export default function NotesPage() {
         flex-1 flex flex-col bg-white dark:bg-[#121212] transition-transform duration-500 ease-in-out z-40
         max-lg:fixed max-lg:inset-0
         lg:static lg:translate-x-0
-        ${isListVisible ? 'max-lg:translate-x-full' : 'max-lg:translate-x-0'}
+        ${isListVisible && !isEditorFullscreen ? 'max-lg:translate-x-full' : 'max-lg:translate-x-0'}
       `}>
         {selectedItem ? (
           <div className="flex-1 flex flex-col w-full overflow-hidden relative">

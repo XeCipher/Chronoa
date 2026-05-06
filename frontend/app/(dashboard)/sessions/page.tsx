@@ -7,6 +7,24 @@ import { Clock, Search, Trash2, Edit2, PlayCircle, Timer, ArrowLeft, History } f
 import { useUiStore } from "@/store/uiStore";
 import { useRouter } from "next/navigation";
 
+const escapeRegExp = (string: string) => string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+const HighlightText = ({ text, query }: { text: string, query: string }) => {
+  if (!query) return <>{text}</>;
+  const parts = text.split(new RegExp(`(${escapeRegExp(query)})`, 'gi'));
+  return (
+    <>
+      {parts.map((part, i) => 
+        part.toLowerCase() === query.toLowerCase() ? (
+          <span key={i} className="bg-[#c2956e]/40 dark:bg-[#b0855f]/50 text-[#3d3b33] dark:text-white rounded-[4px] px-[2px] font-semibold">
+            {part}
+          </span>
+        ) : part
+      )}
+    </>
+  );
+};
+
 export default function SessionsPage() {
   const router = useRouter();
   const { sessionsFilter, setSessionsFilter, showConfirmDialog } = useUiStore();
@@ -82,9 +100,20 @@ export default function SessionsPage() {
     return `${m}m ${seconds % 60}s`;
   };
 
+  const formatDateTime = (dateStr: string) => {
+    const d = new Date(dateStr);
+    return `${d.toLocaleDateString()} at ${d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+  };
+
   const filteredSessions = sessions.filter(s => {
-    const matchesSearch = (s.title || '').toLowerCase().includes(search.toLowerCase());
+    const titleLower = (s.title || '').toLowerCase();
+    const dateTimeLower = formatDateTime(s.created_at).toLowerCase();
+    const durationLower = formatDuration(s.duration_seconds).toLowerCase();
+    const searchLower = search.toLowerCase();
+
+    const matchesSearch = titleLower.includes(searchLower) || dateTimeLower.includes(searchLower) || durationLower.includes(searchLower);
     const matchesFilter = filter === 'all' || s.session_type === filter;
+    
     return matchesSearch && matchesFilter;
   });
 
@@ -159,16 +188,20 @@ export default function SessionsPage() {
                         className="border-b border-[#c2956e] dark:border-[#b0855f] bg-transparent outline-none text-[#3d3b33] dark:text-white font-medium pb-0.5"
                       />
                     ) : (
-                      <span className="text-[#3d3b33] dark:text-[#f0f0f0] font-medium">{session.title || 'Untitled Session'}</span>
+                      <span className="text-[#3d3b33] dark:text-[#f0f0f0] font-medium">
+                        <HighlightText text={session.title || 'Untitled Session'} query={search} />
+                      </span>
                     )}
                     <span className="text-[10px] text-[#b0ad9a] dark:text-[#7a7a7a] font-bold uppercase tracking-widest mt-1">
-                      {new Date(session.created_at).toLocaleDateString()} at {new Date(session.created_at).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}
+                      <HighlightText text={formatDateTime(session.created_at)} query={search} />
                     </span>
                   </div>
                 </div>
                 
                 <div className="flex items-center justify-between md:justify-end gap-6 w-full md:w-auto mt-2 md:mt-0">
-                  <span className="text-xl font-serif text-[#3d3b33] dark:text-[#f0f0f0]">{formatDuration(session.duration_seconds)}</span>
+                  <span className="text-xl font-serif text-[#3d3b33] dark:text-[#f0f0f0]">
+                    <HighlightText text={formatDuration(session.duration_seconds)} query={search} />
+                  </span>
                   <div className="opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 bg-[#f7f5f0] dark:bg-[#121212] p-1 rounded-lg border border-[#e0ddd5] dark:border-[#444]">
                     <button onClick={() => {setEditingId(session.id); setEditTitle(session.title || '')}} data-tooltip-id="global-tooltip" data-tooltip-content="Edit Title" className="p-1.5 text-[#b0ad9a] dark:text-[#7a7a7a] hover:text-[#c2956e] dark:hover:text-[#b0855f] rounded-md hover:bg-white dark:hover:bg-[#2a2a2a] transition-colors"><Edit2 size={16} /></button>
                     <button onClick={() => handleDelete(session.id)} data-tooltip-id="global-tooltip" data-tooltip-content="Delete Log" className="p-1.5 text-[#b0ad9a] dark:text-[#7a7a7a] hover:text-red-500 dark:hover:text-red-400 rounded-md hover:bg-white dark:hover:bg-[#2a2a2a] transition-colors"><Trash2 size={16} /></button>
@@ -177,7 +210,7 @@ export default function SessionsPage() {
               </div>
             )) : (
               <div className="text-center py-12 border-2 border-dashed border-[#e0ddd5] dark:border-[#333] rounded-3xl text-gray-400 dark:text-[#7a7a7a] italic text-sm">
-                No sessions found. Start tracking your focus!
+                {search ? "No sessions match your search." : "No sessions found. Start tracking your focus!"}
               </div>
             )}
           </div>
