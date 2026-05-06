@@ -70,22 +70,23 @@ export const useTimerStore = create<TimerState>()(
         set((state) => {
           const listName = tab === 'timer' ? 'timers' : 'stopwatches';
           const list = state[listName];
-          const checkTitle = title || 'Focus Task';
+          let checkTitle = title || 'Focus Task';
 
-          // Prevent duplication of same-named timers/stopwatches per user request
-          const existing = list.find(i => i.title.trim() === checkTitle.trim());
-          if (existing) {
-            returnedId = existing.id;
-            return state;
+          // Auto-increment title if it exists to allow multiple additions easily
+          let counter = 1;
+          let finalTitle = checkTitle;
+          while (list.some(i => i.title.trim() === finalTitle.trim())) {
+            counter++;
+            finalTitle = `${checkTitle} ${counter}`;
           }
 
           const newId = generateId();
           returnedId = newId;
           const newInst = tab === 'timer' ? createDefaultTimer() : createDefaultStopwatch();
           newInst.id = newId;
-          newInst.title = checkTitle;
+          newInst.title = finalTitle;
 
-          // Replace the single default item if untouched AND a title is provided
+          // Replace the single default item if untouched AND a specific title is provided
           if (title && list.length === 1 && list[0].title === 'Focus Task' && list[0].accumulatedSeconds === 0 && !list[0].isRunning) {
             return { [listName]: [newInst] };
           }

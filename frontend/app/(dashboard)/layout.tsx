@@ -11,10 +11,14 @@ import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import GlobalTimeWidget from "@/components/ui/GlobalTimeWidget";
 import { Tooltip } from "react-tooltip";
 
+const generateSyncId = () => (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : Math.random().toString(36).substring(2);
+
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const [isLoading, setIsLoading] = useState(true);
+  const [userId, setUserId] = useState<string | null>(null);
+
   const { 
     theme, 
     lastVisitedPage, 
@@ -28,8 +32,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   
   const toggleFirstActive = useTimerStore((state) => state.toggleFirstActive);
   const initialRestoreDone = useRef(false);
-  const lastSyncedTimerState = useRef<string>("");
-  const previousTimerState = useRef<any>(null);
+
+  // Sync state refs to prevent infinite loop echos
+  const localSyncId = useRef<string>("");
+  const isApplyingRemote = useRef(false);
+  const lastLocalStateStr = useRef<string>("");
+  const previousStateForDiff = useRef<any>(null);
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -38,9 +46,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         router.push("/login");
         return;
       }
+      
+      const currentUserId = session.user.id;
+      setUserId(currentUserId);
       setIsLoading(false);
 
-      const { data: profile } = await supabase.from('profiles').select('*').eq('id', session.user.id).single();
+      const { data: profile } = await supabase.from('profiles').select('*').eq('id', currentUserId).single();
       if (profile) {
         const state = useUiStore.getState();
         if (profile.theme) state.setTheme(profile.theme);
@@ -56,20 +67,25 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         
         // Sync Timer State from DB on load
         if (profile.timer_state) {
-          lastSyncedTimerState.current = JSON.stringify(profile.timer_state);
-          previousTimerState.current = profile.timer_state;
-          useTimerStore.setState({
+          localSyncId.current = profile.timer_state.sync_id || generateSyncId();
+          
+          const newState = {
             timers: profile.timer_state.timers || [],
             stopwatches: profile.timer_state.stopwatches || [],
             activeTab: profile.timer_state.activeTab || 'stopwatch'
-          });
+          };
+          
+          previousStateForDiff.current = newState;
+          lastLocalStateStr.current = JSON.stringify(newState);
+          useTimerStore.setState(newState);
         }
       }
 
-      const channel = supabase.channel(`profile_${session.user.id}`)
-        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'profiles', filter: `id=eq.${session.user.id}` }, (payload) => {
+      const channel = supabase.channel(`profile_${currentUserId}`)
+        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'profiles', filter: `id=eq.${currentUserId}` }, (payload) => {
            const rec = payload.new;
            const state = useUiStore.getState();
+           
            if (rec.theme && rec.theme !== state.theme) state.setTheme(rec.theme);
            if (rec.task_archive_delay !== null && rec.task_archive_delay !== state.taskArchiveDelay) state.setTaskArchiveDelay(rec.task_archive_delay);
            if (rec.routine_reset_hour !== null && rec.routine_reset_hour !== state.routineResetHour) state.setRoutineResetHour(rec.routine_reset_hour);
@@ -81,17 +97,26 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
            if (rec.add_task_at_top !== null && rec.add_task_at_top !== state.addTaskAtTop) state.setAddTaskAtTop(rec.add_task_at_top);
            if (rec.show_home_task_progress !== null && rec.show_home_task_progress !== state.showHomeTaskProgress) state.setShowHomeTaskProgress(rec.show_home_task_progress);
            
-           // Apply Remote Timer State from other devices
+           // Apply Remote Timer State safely
            if (rec.timer_state) {
-              const remoteStr = JSON.stringify(rec.timer_state);
-              if (remoteStr !== lastSyncedTimerState.current) {
-                 lastSyncedTimerState.current = remoteStr;
-                 previousTimerState.current = rec.timer_state; // Deeply reflect remote state to prevent local overrides
-                 useTimerStore.setState({
+              const remoteSyncId = rec.timer_state.sync_id;
+              
+              if (remoteSyncId && remoteSyncId !== localSyncId.current) {
+                 localSyncId.current = remoteSyncId;
+                 isApplyingRemote.current = true;
+                 
+                 const parsedState = {
                     timers: rec.timer_state.timers || [],
                     stopwatches: rec.timer_state.stopwatches || [],
                     activeTab: rec.timer_state.activeTab || 'stopwatch'
-                 });
+                 };
+                 
+                 useTimerStore.setState(parsedState);
+
+                 previousStateForDiff.current = parsedState;
+                 lastLocalStateStr.current = JSON.stringify(parsedState); // Update tracker so we don't instantly bounce it back
+                 
+                 setTimeout(() => { isApplyingRemote.current = false; }, 100);
               }
            }
         }).subscribe();
@@ -103,89 +128,86 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   // Sync Local Timer State to DB whenever user performs an action
   useEffect(() => {
-    if (isLoading) return;
+    if (isLoading || !userId) return;
     let timeoutId: NodeJS.Timeout;
 
-    const unsub = useTimerStore.subscribe((state) => {
-      const currentState = {
-        timers: state.timers,
-        stopwatches: state.stopwatches,
-        activeTab: state.activeTab
-      };
-      const currentStateStr = JSON.stringify(currentState);
-
-      if (currentStateStr !== lastSyncedTimerState.current) {
-        lastSyncedTimerState.current = currentStateStr;
-
-        let isCritical = false;
-        const prev = previousTimerState.current;
-
-        // Detect if the user initiated a critical action that needs INSTANT syncing across devices
-        if (!prev) {
-          isCritical = true;
-        } else {
-          if (
-            prev.activeTab !== currentState.activeTab || 
-            prev.timers.length !== currentState.timers.length || 
-            prev.stopwatches.length !== currentState.stopwatches.length
-          ) {
-            isCritical = true;
-          } else {
-            // Check for play/pause/reset states
-            for (let i = 0; i < currentState.timers.length; i++) {
-              if (currentState.timers[i].isRunning !== prev.timers[i].isRunning || 
-                  currentState.timers[i].accumulatedSeconds !== prev.timers[i].accumulatedSeconds) {
-                isCritical = true;
-                break;
-              }
-            }
-            if (!isCritical) {
-              for (let i = 0; i < currentState.stopwatches.length; i++) {
-                if (currentState.stopwatches[i].isRunning !== prev.stopwatches[i].isRunning || 
-                    currentState.stopwatches[i].accumulatedSeconds !== prev.stopwatches[i].accumulatedSeconds) {
-                  isCritical = true;
-                  break;
-                }
-              }
-            }
-          }
-        }
-
-        previousTimerState.current = JSON.parse(currentStateStr); // Deep copy 
-
-        const saveToDb = () => {
-          supabase.auth.getUser().then(({data}) => {
-            if (data.user) {
-              supabase.from('profiles').update({
-                timer_state: currentState
-              }).eq('id', data.user.id);
-            }
-          });
-        };
-
-        clearTimeout(timeoutId);
-        if (isCritical) {
-          saveToDb(); // Save instantly on Start/Pause/Add/Remove/Tab switch
-        } else {
-          timeoutId = setTimeout(saveToDb, 800); // 800ms debounce prevents keystroke network flooding
-        }
-      }
-    });
-
-    // Ensure we start with a clean baseline
-    if (!previousTimerState.current) {
-      previousTimerState.current = {
+    if (!previousStateForDiff.current) {
+      previousStateForDiff.current = {
         timers: useTimerStore.getState().timers,
         stopwatches: useTimerStore.getState().stopwatches,
         activeTab: useTimerStore.getState().activeTab
       };
     }
 
+    const unsub = useTimerStore.subscribe((state) => {
+      if (isApplyingRemote.current) return;
+
+      const currentState = {
+        timers: state.timers,
+        stopwatches: state.stopwatches,
+        activeTab: state.activeTab
+      };
+      
+      const currentStr = JSON.stringify(currentState);
+
+      if (currentStr !== lastLocalStateStr.current) {
+        lastLocalStateStr.current = currentStr;
+
+        let isCritical = false;
+        const prev = previousStateForDiff.current || currentState;
+
+        // Determine if this change needs an INSTANT sync (Add, Remove, Layout change)
+        if (
+          prev.activeTab !== currentState.activeTab || 
+          prev.timers.length !== currentState.timers.length || 
+          prev.stopwatches.length !== currentState.stopwatches.length
+        ) {
+          isCritical = true;
+        } else {
+          // Detect Start/Pause/Reset changes
+          for (let i = 0; i < currentState.timers.length; i++) {
+            if (currentState.timers[i]?.isRunning !== prev.timers[i]?.isRunning || 
+                currentState.timers[i]?.accumulatedSeconds !== prev.timers[i]?.accumulatedSeconds) {
+              isCritical = true;
+              break;
+            }
+          }
+          if (!isCritical) {
+            for (let i = 0; i < currentState.stopwatches.length; i++) {
+              if (currentState.stopwatches[i]?.isRunning !== prev.stopwatches[i]?.isRunning || 
+                  currentState.stopwatches[i]?.accumulatedSeconds !== prev.stopwatches[i]?.accumulatedSeconds) {
+                isCritical = true;
+                break;
+              }
+            }
+          }
+        }
+
+        previousStateForDiff.current = JSON.parse(currentStr);
+
+        const newSyncId = generateSyncId();
+        localSyncId.current = newSyncId;
+        const payload = { ...currentState, sync_id: newSyncId };
+
+        const executeSave = async () => {
+          const { error } = await supabase.from('profiles').update({ timer_state: payload }).eq('id', userId);
+          if (error) console.error("Sync Error:", error);
+        };
+
+        clearTimeout(timeoutId);
+        if (isCritical) {
+          executeSave(); // Instant save
+        } else {
+          timeoutId = setTimeout(executeSave, 1000); // 1s debounce for typing names/targets
+        }
+      }
+    });
+
     return () => {
       unsub();
       clearTimeout(timeoutId);
     };
-  }, [isLoading]);
+  }, [isLoading, userId]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
