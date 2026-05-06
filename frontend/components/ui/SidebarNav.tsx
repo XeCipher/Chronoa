@@ -82,7 +82,7 @@ export default function SidebarNav() {
           onClick={() => {
             if (isHiddenMode) setTouchOpen(true);
           }}
-          className={`absolute top-1/2 left-11 -translate-y-1/2 -translate-x-1/2 transition-all duration-500 delay-100 flex items-center justify-center w-10 z-50 ${
+          className={`absolute top-1/2 left-11 -translate-y-1/2 -translate-x-1/2 transition-all duration-500 delay-100 flex items-center justify-center w-10 z-30 ${
           isHiddenMode ? 'opacity-100 pointer-events-auto cursor-pointer' : 'opacity-0 pointer-events-none'
         }`}>
           <span className="-rotate-90 whitespace-nowrap text-[10px] tracking-[0.4em] uppercase font-bold text-[#b0ad9a] dark:text-[#7a7a7a]">
