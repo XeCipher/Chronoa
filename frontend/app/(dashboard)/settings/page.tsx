@@ -7,10 +7,12 @@ import { useUiStore } from "@/store/uiStore";
 import { supabase } from "@/lib/supabase";
 import { parseICS, exportICS } from "@/lib/icsParser";
 import { CalendarSource, CalendarEvent } from "@/types/app.types";
+import FeedbackModal from "@/components/settings/FeedbackModal";
 import { 
   MapPin, Search, Clock, Sparkles, 
   X, Monitor, LogOut, Navigation, AlertTriangle, Keyboard, CheckCircle2, Settings as SettingsIcon,
-  Info, Mail, ArrowLeft, Star, CalendarDays, Link as LinkIcon, Download, UploadCloud, Trash2, ChevronDown, ChevronUp, Edit3, FileText, ExternalLink
+  Info, Mail, ArrowLeft, Star, CalendarDays, Link as LinkIcon, Download, UploadCloud, Trash2, ChevronDown, ChevronUp, Edit3, FileText, ExternalLink,
+  MessageSquareHeart
 } from "lucide-react";
 
 const escapeRegExp = (string: string) => string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -72,6 +74,9 @@ export default function SettingsPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [showGithubModal, setShowGithubModal] = useState(false);
   const [githubCountdown, setGithubCountdown] = useState(-1);
+
+  // Feedback State
+  const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
 
   // Calendar Editing & Interaction States
   const [editingSourceId, setEditingSourceId] = useState<string | null>(null);
@@ -789,7 +794,7 @@ export default function SettingsPage() {
     },
     {
       id: 'about',
-      keys: ['developer & source', 'github', 'email', 'open-source', 'chronoa'],
+      keys: ['developer & source', 'github', 'email', 'open-source', 'chronoa', 'feedback'],
       className: '',
       render: () => (
         <section className="space-y-4">
@@ -798,7 +803,10 @@ export default function SettingsPage() {
              <h3 className="text-xl font-medium"><HighlightText text="Developer & Source" query={searchQuery} /></h3>
           </div>
           <p className="text-xs text-[#b0ad9a] dark:text-[#7a7a7a] mt-1 mb-4"><HighlightText text="Chronoa is an open-source workspace built for deep focus. Feel free to reach out, report issues, or contribute." query={searchQuery} /></p>
-          <div className="flex items-center gap-4">
+          <div className="flex flex-wrap items-center gap-4">
+            <button onClick={() => setIsFeedbackModalOpen(true)} className="flex items-center gap-2 px-6 py-3 bg-[#c2956e] text-white rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-[#b0855f] transition-all shadow-md">
+              <MessageSquareHeart size={16} /> Share Feedback
+            </button>
             <a href="mailto:chaitanyapatil.xe@gmail.com" className="flex items-center gap-2 px-5 py-3 bg-[#f7f5f0] dark:bg-[#252525] text-[#888] dark:text-[#a0a0a0] border border-[#e0ddd5] dark:border-[#333] rounded-xl text-[10px] font-bold uppercase tracking-widest hover:text-[#c2956e] transition-all shadow-sm"><Mail size={16} /> Email</a>
             <button onClick={handleGithubClick} className="flex items-center gap-2 px-5 py-3 bg-[#f7f5f0] dark:bg-[#252525] text-[#888] dark:text-[#a0a0a0] border border-[#e0ddd5] dark:border-[#333] rounded-xl text-[10px] font-bold uppercase tracking-widest hover:text-[#c2956e] transition-all shadow-sm"><GitHubIcon size={16} /> GitHub</button>
           </div>
@@ -827,7 +835,7 @@ export default function SettingsPage() {
   const visibleSections = sections.filter(s => isVisible(s.keys));
 
   return (
-    <div className="w-full h-full flex flex-col overflow-hidden max-w-4xl mx-auto">
+    <div className="w-full h-full flex flex-col overflow-hidden max-w-4xl mx-auto relative">
       <div className="px-4 md:px-8 lg:px-10 pt-4 md:pt-8 lg:pt-10 pb-4 shrink-0">
         <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 shrink-0 mb-0">
           <div className="flex items-center gap-4">
@@ -872,6 +880,12 @@ export default function SettingsPage() {
           </div>
         </div>
       )}
+
+      {/* Render Feedback Modal */}
+      <FeedbackModal 
+        isOpen={isFeedbackModalOpen} 
+        onClose={() => setIsFeedbackModalOpen(false)} 
+      />
     </div>
   );
 }
