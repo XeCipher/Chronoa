@@ -307,7 +307,7 @@ export default function AnalyticsPage() {
     const globalFocusMinutes = Math.floor(globalFocusSeconds / 60);
     const totalJournals = rawJournals.length;
 
-    const xp = (globalCompletedTasks * 10) + (globalFocusMinutes * 2) + (totalJournals * 15);
+    const xp = (globalCompletedTasks * 3) + (globalFocusMinutes * 1) + (totalJournals * 10);
     const level = Math.floor(Math.sqrt(xp / 50)) + 1;
     const nextLevelXp = Math.pow(level, 2) * 50;
     const prevLevelXp = Math.pow(level - 1, 2) * 50;
@@ -602,10 +602,25 @@ export default function AnalyticsPage() {
                 <Info className="text-[#c2956e] shrink-0 mt-0.5" size={20} />
                 <div className="text-sm text-[#3d3b33] dark:text-[#e0e0e0] leading-relaxed">
                   <span className="font-bold">How XP Works:</span> You earn XP automatically as you use Chronoa.
-                  <ul className="mt-2 space-y-1 grid grid-cols-1 sm:grid-cols-3">
-                    <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 rounded-full bg-[#7ca982]"/> 10 XP / Task</li>
-                    <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 rounded-full bg-[#c2956e]"/> 2 XP / Focus Min</li>
-                    <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 rounded-full bg-[#6e90c2]"/> 15 XP / Journal</li>
+                  <ul className="mt-4 flex flex-col sm:flex-row sm:items-center gap-y-3 gap-x-10">
+                    <li className="flex items-center gap-2.5">
+                      <div className="w-2 h-2 rounded-full bg-[#7ca982] shrink-0 shadow-[0_0_8px_rgba(124,169,130,0.3)]" />
+                      <span className="text-[11px] font-bold uppercase tracking-widest text-[#3d3b33] dark:text-white whitespace-nowrap">
+                        3 XP <span className="text-[#888] dark:text-[#7a7a7a] font-medium ml-0.5">/ Task</span>
+                      </span>
+                    </li>
+                    <li className="flex items-center gap-2.5">
+                      <div className="w-2 h-2 rounded-full bg-[#c2956e] shrink-0 shadow-[0_0_8px_rgba(194,149,110,0.3)]" />
+                      <span className="text-[11px] font-bold uppercase tracking-widest text-[#3d3b33] dark:text-white whitespace-nowrap">
+                        1 XP <span className="text-[#888] dark:text-[#7a7a7a] font-medium ml-0.5">/ Focus Min</span>
+                      </span>
+                    </li>
+                    <li className="flex items-center gap-2.5">
+                      <div className="w-2 h-2 rounded-full bg-[#6e90c2] shrink-0 shadow-[0_0_8px_rgba(110,144,194,0.3)]" />
+                      <span className="text-[11px] font-bold uppercase tracking-widest text-[#3d3b33] dark:text-white whitespace-nowrap">
+                        10 XP <span className="text-[#888] dark:text-[#7a7a7a] font-medium ml-0.5">/ Journal</span>
+                      </span>
+                    </li>
                   </ul>
                 </div>
               </div>

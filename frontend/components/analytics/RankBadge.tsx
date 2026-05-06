@@ -14,33 +14,43 @@ const NoviceBadge = () => (
   <svg viewBox="0 0 120 120" className="w-full h-full drop-shadow-xl" xmlns="http://www.w3.org/2000/svg">
     <defs>
       <linearGradient id="novice-metal" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" stopColor="#cd7f32" />
-        <stop offset="50%" stopColor="#8b4513" />
-        <stop offset="100%" stopColor="#5c3a21" />
+        {/* Rich Copper Bronze - Balanced warmth without the "neon" orange */}
+        <stop offset="0%" stopColor="#b87333" />
+        <stop offset="50%" stopColor="#8c5a3c" />
+        <stop offset="100%" stopColor="#5d3a24" />
       </linearGradient>
       <linearGradient id="novice-highlight" x1="0%" y1="100%" x2="100%" y2="0%">
-        <stop offset="0%" stopColor="#a0522d" />
-        <stop offset="100%" stopColor="#f4a460" />
+        <stop offset="0%" stopColor="#795548" />
+        <stop offset="100%" stopColor="#a1887f" />
       </linearGradient>
       <radialGradient id="novice-core" cx="50%" cy="50%" r="50%">
-        <stop offset="0%" stopColor="#ffdab9" />
-        <stop offset="100%" stopColor="#cd7f32" />
+        <stop offset="0%" stopColor="#d7ccc8" />
+        <stop offset="100%" stopColor="#8d6e63" />
       </radialGradient>
       <filter id="shadow-novice">
         <feDropShadow dx="0" dy="4" stdDeviation="4" floodOpacity="0.4" />
       </filter>
     </defs>
     <g filter="url(#shadow-novice)">
+      {/* Outer Rim - Solid metallic feel */}
       <circle cx="60" cy="60" r="50" fill="url(#novice-metal)" />
-      <circle cx="60" cy="60" r="42" fill="#3e1f04" />
+      {/* Deep recessed area for contrast */}
+      <circle cx="60" cy="60" r="42" fill="#321a11" />
+      {/* Internal coin face */}
       <circle cx="60" cy="60" r="38" fill="url(#novice-highlight)" />
-      <polygon points="60,18 70,50 102,60 70,70 60,102 50,70 18,60 50,50" fill="url(#novice-metal)" stroke="#3e1f04" strokeWidth="1.5" />
-      <polygon points="60,18 70,50 60,60" fill="#ffffff" opacity="0.3" />
-      <polygon points="102,60 70,70 60,60" fill="#000000" opacity="0.3" />
-      <polygon points="60,102 50,70 60,60" fill="#000000" opacity="0.5" />
+      
+      {/* Center Star - Bronze texture */}
+      <polygon points="60,18 70,50 102,60 70,70 60,102 50,70 18,60 50,50" fill="url(#novice-metal)" stroke="#321a11" strokeWidth="1.2" />
+      
+      {/* Faceting - Using low-opacity overlays to give it shape without looking "glowy" */}
+      <polygon points="60,18 70,50 60,60" fill="#ffffff" opacity="0.2" />
+      <polygon points="102,60 70,70 60,60" fill="#000000" opacity="0.15" />
+      <polygon points="60,102 50,70 60,60" fill="#000000" opacity="0.3" />
       <polygon points="18,60 50,50 60,60" fill="#ffffff" opacity="0.1" />
+      
+      {/* Core Detail */}
       <circle cx="60" cy="60" r="12" fill="url(#novice-core)" />
-      <circle cx="60" cy="60" r="12" fill="none" stroke="#ffe4c4" strokeWidth="2" opacity="0.6" />
+      <circle cx="60" cy="60" r="12" fill="none" stroke="#ffffff" strokeWidth="1.5" opacity="0.2" />
     </g>
   </svg>
 );

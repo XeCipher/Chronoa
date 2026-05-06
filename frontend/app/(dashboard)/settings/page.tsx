@@ -1,4 +1,4 @@
-// frontend/app/(dashboard)/settings/page.tsx
+// FILE: frontend/app/(dashboard)/settings/page.tsx
 "use client";
 
 import { useEffect, useState, useRef } from "react";
@@ -479,20 +479,16 @@ export default function SettingsPage() {
                         </div>
                       ) : (
                         <>
-                          <div className="flex items-center gap-3 min-w-0 flex-1">
-                            <button 
-                              onClick={() => handleToggleSourceActive(source)}
-                              data-tooltip-id="global-tooltip" data-tooltip-content={source.is_active !== false ? "Disable Calendar" : "Enable Calendar"}
-                              className={`shrink-0 w-10 h-5 rounded-full transition-colors relative ${source.is_active !== false ? 'bg-[#7ca982] dark:bg-[#6a9a70]' : 'bg-[#e0ddd5] dark:bg-[#444]'}`}
-                            >
-                              <div className={`w-4 h-4 bg-white rounded-full absolute top-0.5 transition-transform ${source.is_active !== false ? 'translate-x-5' : 'translate-x-0.5 shadow-sm'}`} />
-                            </button>
-                            <div className="w-10 h-10 bg-white dark:bg-[#252525] rounded-xl flex items-center justify-center text-[#c2956e] shadow-sm shrink-0 border border-[#e0ddd5] dark:border-[#333]">
-                              {source.type === 'link' ? <LinkIcon size={16} /> : <FileText size={16} />}
+                          <div 
+                            className="flex items-center gap-4 min-w-0 flex-1 cursor-pointer group/toggle" 
+                            onClick={() => handleToggleSourceActive(source)}
+                          >
+                            <div className={`w-7 h-7 rounded-full border flex items-center justify-center transition-all shrink-0 ${source.is_active !== false ? 'bg-[#7ca982] border-[#7ca982] shadow-sm' : 'bg-transparent border-[#d4d0c8] dark:border-[#444] group-hover/toggle:border-[#7ca982]'}`}>
+                              {source.is_active !== false && <CheckCircle2 size={16} className="text-white" strokeWidth={3} />}
                             </div>
                             <div className="min-w-0 flex-1">
-                              <p className="text-[14px] font-medium text-[#3d3b33] dark:text-[#f0f0f0] truncate leading-tight">{source.name}</p>
-                              {source.url && <p className="text-[10px] text-[#b0ad9a] dark:text-[#7a7a7a] mt-0.5 truncate">{source.url}</p>}
+                              <p className={`text-[15px] font-medium truncate leading-tight select-none transition-colors ${source.is_active !== false ? 'text-[#3d3b33] dark:text-[#f0f0f0]' : 'text-[#888] dark:text-[#7a7a7a]'}`}>{source.name}</p>
+                              {source.url && <p className="text-[11px] text-[#b0ad9a] dark:text-[#7a7a7a] mt-1 truncate select-none">{source.url}</p>}
                             </div>
                           </div>
                           
@@ -649,13 +645,13 @@ export default function SettingsPage() {
                   <div 
                     key={hk.id} 
                     onClick={() => toggleHotkey(hk.id)}
-                    className={`flex items-center justify-between p-4 bg-[#f7f5f0]/50 dark:bg-[#222] border border-[#e0ddd5] dark:border-[#333] rounded-2xl cursor-pointer transition-all hover:border-[#c2956e]/50 dark:hover:border-[#b0855f]/50 ${isDisabled ? 'opacity-50 grayscale' : ''}`}
+                    className={`flex items-center justify-between p-4 bg-[#f7f5f0]/50 dark:bg-[#222] border border-[#e0ddd5] dark:border-[#333] rounded-2xl cursor-pointer transition-all group hover:border-[#c2956e]/50 dark:hover:border-[#b0855f]/50 ${isDisabled ? 'opacity-50 grayscale' : ''}`}
                   >
-                    <div className="flex items-center gap-3">
-                      <div className={`w-4 h-4 rounded-full border flex items-center justify-center transition-colors ${!isDisabled ? 'bg-[#7ca982] border-[#7ca982]' : 'bg-transparent border-[#c4c0b8] dark:border-[#555]'}`}>
-                        {!isDisabled && <CheckCircle2 size={10} className="text-white" strokeWidth={4} />}
+                    <div className="flex items-center gap-4">
+                      <div className={`w-7 h-7 rounded-full border flex items-center justify-center transition-all shrink-0 ${!isDisabled ? 'bg-[#7ca982] border-[#7ca982] shadow-sm' : 'bg-transparent border-[#d4d0c8] dark:border-[#444] group-hover:border-[#7ca982]'}`}>
+                        {!isDisabled && <CheckCircle2 size={16} className="text-white" strokeWidth={3} />}
                       </div>
-                      <span className="text-[12px] text-[#3d3b33] dark:text-[#f0f0f0] font-medium select-none">
+                      <span className="text-[14px] text-[#3d3b33] dark:text-[#f0f0f0] font-medium select-none">
                         <HighlightText text={hk.desc} query={searchQuery} />
                       </span>
                     </div>
