@@ -9,9 +9,9 @@ import { parseICS, exportICS } from "@/lib/icsParser";
 import { CalendarSource, CalendarEvent } from "@/types/app.types";
 import FeedbackModal from "@/components/settings/FeedbackModal";
 import { 
-  MapPin, Search, Clock, Sparkles, 
-  X, Monitor, LogOut, Navigation, AlertTriangle, Keyboard, CheckCircle2, Settings as SettingsIcon,
-  Info, Mail, ArrowLeft, Star, CalendarDays, Link as LinkIcon, Download, UploadCloud, Trash2, ChevronDown, ChevronUp, Edit3, FileText, ExternalLink,
+  MapPin, Search, Clock, Sparkles, User,
+  X, Monitor, LogOut, Navigation, AlertTriangle, Keyboard, CheckCircle2,
+  Info, ArrowLeft, Star, CalendarDays, Download, UploadCloud, Trash2, ChevronDown, ChevronUp, Edit3, ExternalLink,
   MessageSquareHeart
 } from "lucide-react";
 
@@ -57,6 +57,10 @@ export default function SettingsPage() {
     keepParentTaskAlive, setKeepParentTaskAlive, addTaskAtTop, setAddTaskAtTop, showHomeTaskProgress, setShowHomeTaskProgress, showConfirmDialog
   } = useUiStore();
   
+  const [userName, setUserName] = useState("");
+  const [userEmail, setUserEmail] = useState("");
+  const [userAvatar, setUserAvatar] = useState("");
+
   const [cityInput, setCityInput] = useState("");
   const [currentCity, setCurrentCity] = useState("");
   const [isSearching, setIsSearching] = useState(false);
@@ -92,6 +96,10 @@ export default function SettingsPage() {
     const fetchProfileAndCalendars = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
+        setUserName(user.user_metadata?.full_name || "User");
+        setUserEmail(user.email || "");
+        setUserAvatar(user.user_metadata?.avatar_url || "");
+
         const { data: profile } = await supabase.from('profiles').select('routine_reset_hour, weather_city, disabled_hotkeys').eq('id', user.id).single();
         if (profile?.routine_reset_hour !== undefined) setRoutineResetHour(profile.routine_reset_hour);
         if (profile?.disabled_hotkeys) setDisabledHotkeys(profile.disabled_hotkeys);
@@ -587,7 +595,7 @@ export default function SettingsPage() {
                     <h4 className="text-sm font-bold text-[#3d3b33] dark:text-[#f0f0f0]">Export Calendar</h4>
                     <p className="text-[11px] text-[#b0ad9a] dark:text-[#7a7a7a]">Download your created Chronoa events locally.</p>
                  </div>
-                 <button onClick={handleExportCalendar} className="flex items-center gap-2 px-6 py-3 bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#444] text-[#3d3b33] dark:text-[#f0f0f0] rounded-xl text-[10px] font-bold uppercase tracking-widest shadow-sm hover:bg-gray-50 dark:hover:bg-[#222] transition-colors shrink-0">
+                 <button onClick={handleExportCalendar} className="flex items-center gap-2 px-6 py-3 bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] text-[#3d3b33] dark:text-[#f0f0f0] rounded-xl text-[10px] font-bold uppercase tracking-widest shadow-sm hover:bg-gray-50 dark:hover:bg-[#222] transition-colors shrink-0">
                     <Download size={16} /> Export .ics
                  </button>
               </div>
@@ -636,7 +644,7 @@ export default function SettingsPage() {
                 { id: 'notes', keys: [altKeyDisplay, 'N'], desc: 'Go to Notes' },
                 { id: 'calendar', keys: [altKeyDisplay, 'C'], desc: 'Go to Calendar' },
                 { id: 'analytics', keys: [altKeyDisplay, 'A'], desc: 'Go to Analytics' },
-                { id: 'settings', keys: [altKeyDisplay, 'S'], desc: 'Go to Settings' },
+                { id: 'settings', keys: [altKeyDisplay, 'S'], desc: 'Go to Profile' },
                 { id: 'up', keys: [altKeyDisplay, '↑'], desc: 'Move Task Up' },
                 { id: 'down', keys: [altKeyDisplay, '↓'], desc: 'Move Task Down' },
                 { id: 'focus_up', keys: ['Shift', '↑'], desc: 'Focus Task Above' },
@@ -794,7 +802,7 @@ export default function SettingsPage() {
     },
     {
       id: 'about',
-      keys: ['developer & source', 'github', 'email', 'open-source', 'chronoa', 'feedback'],
+      keys: ['developer & source', 'github', 'open-source', 'chronoa', 'feedback'],
       className: '',
       render: () => (
         <section className="space-y-4">
@@ -803,12 +811,11 @@ export default function SettingsPage() {
              <h3 className="text-xl font-medium"><HighlightText text="Developer & Source" query={searchQuery} /></h3>
           </div>
           <p className="text-xs text-[#b0ad9a] dark:text-[#7a7a7a] mt-1 mb-4"><HighlightText text="Chronoa is an open-source workspace built for deep focus. Feel free to reach out, report issues, or contribute." query={searchQuery} /></p>
-          <div className="flex flex-wrap items-center gap-4">
-            <button onClick={() => setIsFeedbackModalOpen(true)} className="flex items-center gap-2 px-6 py-3 bg-[#c2956e] text-white rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-[#b0855f] transition-all shadow-md">
+          <div className="flex flex-row items-center gap-3 w-full">
+            <button onClick={() => setIsFeedbackModalOpen(true)} className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-[#c2956e] text-white rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-[#b0855f] transition-all shadow-md whitespace-nowrap">
               <MessageSquareHeart size={16} /> Share Feedback
             </button>
-            <a href="mailto:chaitanyapatil.xe@gmail.com" className="flex items-center gap-2 px-5 py-3 bg-[#f7f5f0] dark:bg-[#252525] text-[#888] dark:text-[#a0a0a0] border border-[#e0ddd5] dark:border-[#333] rounded-xl text-[10px] font-bold uppercase tracking-widest hover:text-[#c2956e] transition-all shadow-sm"><Mail size={16} /> Email</a>
-            <button onClick={handleGithubClick} className="flex items-center gap-2 px-5 py-3 bg-[#f7f5f0] dark:bg-[#252525] text-[#888] dark:text-[#a0a0a0] border border-[#e0ddd5] dark:border-[#333] rounded-xl text-[10px] font-bold uppercase tracking-widest hover:text-[#c2956e] transition-all shadow-sm"><GitHubIcon size={16} /> GitHub</button>
+            <button onClick={handleGithubClick} className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-[#f7f5f0] dark:bg-[#252525] text-[#888] dark:text-[#a0a0a0] border border-[#e0ddd5] dark:border-[#333] rounded-xl text-[10px] font-bold uppercase tracking-widest hover:text-[#c2956e] transition-all shadow-sm whitespace-nowrap"><GitHubIcon size={16} /> GitHub</button>
           </div>
         </section>
       )
@@ -841,18 +848,33 @@ export default function SettingsPage() {
           <div className="flex items-center gap-4">
             <button onClick={() => router.back()} className="md:hidden flex items-center justify-center p-2.5 md:p-3 bg-white dark:bg-[#1a1a1a] text-[#888] rounded-xl border border-[#e0ddd5] dark:border-[#333] hover:text-[#3d3b33] dark:hover:text-[#f0f0f0] transition-all shadow-sm"><ArrowLeft size={18} /></button>
             <div className="flex items-center gap-2.5 text-[#3d3b33] dark:text-[#f0f0f0] cursor-pointer hover:opacity-80 transition-opacity" onClick={() => document.getElementById('settings-scroll-container')?.scrollTo({ top: 0, behavior: 'smooth' })}>
-              <SettingsIcon size={24} className="text-[#c2956e]" />
-              <h1 className="text-2xl md:text-4xl font-serif font-medium tracking-tight">Settings</h1>
+              <h1 className="text-2xl md:text-4xl font-serif font-medium tracking-tight">Profile</h1>
             </div>
           </div>
           <div className="relative w-full md:w-64 shrink-0">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-[#b0ad9a]" size={16} />
-            <input type="text" placeholder="Search settings..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} spellCheck={false} className="w-full bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] rounded-full md:rounded-xl pl-11 pr-4 py-3 outline-none focus:border-[#c2956e] dark:focus:border-[#b0855f] text-sm text-[#3d3b33] dark:text-[#f0f0f0] shadow-sm transition-all" />
+            <input type="text" placeholder="Search profile..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} spellCheck={false} className="w-full bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] rounded-full md:rounded-xl pl-11 pr-4 py-3 outline-none focus:border-[#c2956e] dark:focus:border-[#b0855f] text-sm text-[#3d3b33] dark:text-[#f0f0f0] shadow-sm transition-all" />
           </div>
         </header>
       </div>
 
-      <div id="settings-scroll-container" className="flex-1 overflow-y-scroll overflow-x-hidden no-scrollbar px-4 md:px-8 lg:px-10 pb-32 md:pb-12">
+      <div id="settings-scroll-container" className="flex-1 overflow-y-scroll overflow-x-hidden no-scrollbar px-4 md:px-8 lg:px-10 pb-6 md:pb-12">
+        
+        {/* Modern Profile Identity Header Card */}
+        <div className="bg-white dark:bg-[#1a1a1a] border border-[#ebe8e2] dark:border-[#2a2a2a] rounded-[2.5rem] p-6 md:p-8 shadow-sm flex flex-col md:flex-row items-center gap-5 transition-all mb-6">
+          {userAvatar ? (
+             <img src={userAvatar} alt="Avatar" className="w-20 h-20 md:w-24 md:h-24 rounded-full object-cover shadow-md border-2 border-[#f0ede8] dark:border-[#333]" />
+          ) : (
+             <div className="w-20 h-20 md:w-24 md:h-24 rounded-full bg-[#f0ede8] dark:bg-[#333] flex items-center justify-center shadow-md border-2 border-[#e0ddd5] dark:border-[#444]">
+                <User size={40} className="text-[#888]" />
+             </div>
+          )}
+          <div className="flex flex-col items-center md:items-start text-center md:text-left">
+            <h2 className="text-2xl md:text-3xl font-serif text-[#3d3b33] dark:text-[#f0f0f0] font-medium">{userName || "Your Profile"}</h2>
+            <p className="text-sm font-medium text-[#888] dark:text-[#7a7a7a] mt-1">{userEmail}</p>
+          </div>
+        </div>
+
         <div className="bg-white dark:bg-[#1a1a1a] border border-[#ebe8e2] dark:border-[#2a2a2a] rounded-[2.5rem] p-6 md:p-10 shadow-sm flex flex-col gap-10 transition-all">
           {visibleSections.map((sec, i) => (
             <div key={sec.id} className={`flex flex-col gap-10 ${sec.className}`}>

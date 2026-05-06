@@ -1,7 +1,7 @@
 // frontend/app/(dashboard)/page.tsx
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import CenterClock from "@/components/home/CenterClock";
 import SceneryBackground from "@/components/home/SceneryBackground";
 import ProductivityWidgets from "@/components/home/ProductivityWidgets";
@@ -9,13 +9,15 @@ import WeatherWidget from "@/components/home/WeatherWidget";
 import HomeTaskProgress from "@/components/home/HomeTaskProgress";
 import TodayCalendarWidget from "@/components/calendar/TodayCalendarWidget";
 import { useTimerStore } from "@/store/timerStore";
-import { Settings } from "lucide-react";
+import { User } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { supabase } from "@/lib/supabase";
 
 export default function HomePage() {
   const router = useRouter();
   const [isHovered, setIsHovered] = useState(false);
   const [isTouched, setIsTouched] = useState(false);
+  const [userAvatar, setUserAvatar] = useState<string | null>(null);
   
   const isPinned = useTimerStore((state: any) => state.isPinned);
   const forceShow = useTimerStore((state: any) => state.forceShowWidgets);
@@ -27,6 +29,12 @@ export default function HomePage() {
   
   const showWidget = isHovered || isPinned || isTouched || forceShow;
 
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (user?.user_metadata?.avatar_url) setUserAvatar(user.user_metadata.avatar_url);
+    });
+  }, []);
+
   return (
     <div className="relative w-full h-full overflow-hidden flex items-center justify-center touch-none overscroll-none">
       <SceneryBackground />
@@ -34,9 +42,13 @@ export default function HomePage() {
       <div className="fixed top-[calc(1.5rem+env(safe-area-inset-top))] left-[calc(1.5rem+env(safe-area-inset-left))] md:hidden z-40">
         <button 
           onClick={() => router.push('/settings')} 
-          className="w-10 h-10 flex items-center justify-center rounded-full bg-white/20 dark:bg-black/30 backdrop-blur-md border border-white/40 dark:border-white/10 shadow-sm text-[#3d3b33] dark:text-white transition-all active:scale-95"
+          className="w-10 h-10 flex items-center justify-center rounded-full bg-white/20 dark:bg-black/30 backdrop-blur-md border border-white/40 dark:border-white/10 shadow-sm text-[#3d3b33] dark:text-white transition-all active:scale-95 overflow-hidden p-0"
         >
-          <Settings size={20} strokeWidth={2} />
+          {userAvatar ? (
+            <img src={userAvatar} alt="Profile" className="w-full h-full object-cover" />
+          ) : (
+            <User size={20} strokeWidth={2} />
+          )}
         </button>
       </div>
 

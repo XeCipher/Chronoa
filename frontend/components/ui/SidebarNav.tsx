@@ -5,7 +5,8 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useUiStore } from "@/store/uiStore";
-import { Home, CheckSquare, BarChart2, Settings, PanelLeftClose, PanelLeft, Sun, FileText, CalendarDays } from "lucide-react";
+import { supabase } from "@/lib/supabase";
+import { Home, CheckSquare, BarChart2, PanelLeftClose, PanelLeft, Sun, FileText, CalendarDays, User } from "lucide-react";
 
 export default function SidebarNav() {
   const pathname = usePathname();
@@ -14,6 +15,13 @@ export default function SidebarNav() {
   const [isHovered, setIsHovered] = useState(false);
   const [isAsleep, setIsAsleep] = useState(false);
   const [touchOpen, setTouchOpen] = useState(false);
+  const [userAvatar, setUserAvatar] = useState<string | null>(null);
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (user?.user_metadata?.avatar_url) setUserAvatar(user.user_metadata.avatar_url);
+    });
+  }, []);
 
   // Auto-close to asleep (hidden) state in 3 seconds
   useEffect(() => {
@@ -52,7 +60,7 @@ export default function SidebarNav() {
   ];
 
   const currentItem = navItems.find(item => item.href === pathname) || { 
-    name: pathname === '/settings' ? 'Settings' : pathname === '/sessions' ? 'Time Log' : 'Chronoa' 
+    name: pathname === '/settings' ? 'Profile' : pathname === '/sessions' ? 'Time Log' : 'Chronoa' 
   };
 
   const handleTabClick = (e: React.MouseEvent, href: string, isActive: boolean) => {
@@ -143,9 +151,15 @@ export default function SidebarNav() {
                 ${pathname === "/settings" ? "bg-white dark:bg-[#252525] text-[#3d3b33] dark:text-[#fff] shadow-sm border border-[#e0ddd5] dark:border-[#333]" : "text-[#888888] dark:text-[#a0a0a0] md:hover:bg-white/50 md:dark:hover:bg-[#2a2a2a] md:hover:text-[#3d3b33] md:dark:hover:text-[#fff]"}
               `}
             >
-              <Settings className="w-[18px] h-[18px] shrink-0" />
+              <div className="w-[24px] h-[24px] flex items-center justify-center shrink-0">
+                {userAvatar ? (
+                  <img src={userAvatar} alt="Profile" className="w-[22px] h-[22px] rounded-full object-cover" />
+                ) : (
+                  <User className="w-[18px] h-[18px]" />
+                )}
+              </div>
                <span className={`transition-all duration-300 whitespace-nowrap ${isExpanded ? 'opacity-100 w-auto' : 'opacity-0 w-0'}`}>
-                Settings
+                Profile
               </span>
             </Link>
           </div>

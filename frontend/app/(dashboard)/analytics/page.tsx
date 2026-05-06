@@ -293,7 +293,7 @@ export default function AnalyticsPage() {
       baseTasks = baseTasks.filter(t => trackedIds.has(t.id));
     }
 
-    const completedTasks = baseTasks.filter(t => t.is_completed && t.completed_at);
+    const copyOfCompletedTasks = baseTasks.filter(t => t.is_completed && t.completed_at);
 
     let mappedSessions: any[] = [];
     if (selectedTrackedIds.size > 0) {
@@ -339,11 +339,11 @@ export default function AnalyticsPage() {
       if (!dailyMap[ymd]) dailyMap[ymd] = { date: ymd, tasks: [], sessions: [], taskCount: 0, focusMinutes: 0 };
     };
 
-    completedTasks.forEach(t => {
+    copyOfCompletedTasks.forEach(t => {
       if (!t.completed_at) return;
       const ymd = getLocalYMD(new Date(t.completed_at));
       ensureDay(ymd);
-      dailyMap[ymd].tasks.push({ title: t.title, completed_at: t.completed_at, task_type: t.task_type });
+      dailyMap[ymd].tasks.push({ title: t.title, completed_at: t.completed_at, text_type: t.task_type } as any);
       dailyMap[ymd].taskCount++;
     });
 
@@ -390,7 +390,7 @@ export default function AnalyticsPage() {
     const filteredFocusMinutes = mappedSessions.reduce((acc, s) => acc + Math.floor(s.duration_seconds / 60), 0);
 
     return {
-      totalFilteredTasks: completedTasks.length,
+      totalFilteredTasks: copyOfCompletedTasks.length,
       totalFocusMinutes: filteredFocusMinutes, 
       currentStreak: activityStreak.current, 
       bestStreak: activityStreak.best,
@@ -506,7 +506,7 @@ export default function AnalyticsPage() {
       </div>
 
       {/* Scrollable Content Layer */}
-      <div id="analytics-scroll-container" className="flex-1 overflow-y-scroll overflow-x-hidden no-scrollbar px-4 md:px-8 lg:px-10 pb-24 md:pb-12 flex flex-col gap-4 md:gap-8">
+      <div id="analytics-scroll-container" className="flex-1 overflow-y-scroll overflow-x-hidden no-scrollbar px-4 md:px-8 lg:px-10 pb-6 md:pb-12 flex flex-col gap-4 md:gap-8">
         <div className="w-full bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] rounded-[2.5rem] p-6 md:p-8 shadow-sm flex flex-col md:flex-row items-center gap-6 md:gap-10">
           
           <div className="flex items-center gap-6 shrink-0">
