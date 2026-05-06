@@ -116,7 +116,7 @@ export default function WeekView({ currentDate, events, onEventClick, onTimeRang
     let endMins = 24 * 60;
     if (isSameDay(end, day)) endMins = end.getHours() * 60 + end.getMinutes();
     
-    const height = Math.max(endMins - startMins, 15);
+    const height = Math.max(endMins - startMins, 30);
     return { top: `${startMins}px`, height: `${height}px` };
   };
 
@@ -133,7 +133,10 @@ export default function WeekView({ currentDate, events, onEventClick, onTimeRang
         const start = new Date(ev.start_time);
         const end = new Date(ev.end_time);
         const evStart = isSameDay(start, day) ? start.getHours() * 60 + start.getMinutes() : 0;
-        const evEnd = isSameDay(end, day) ? end.getHours() * 60 + end.getMinutes() : 24 * 60;
+        const rawEvEnd = isSameDay(end, day) ? end.getHours() * 60 + end.getMinutes() : 24 * 60;
+        
+        const MIN_DURATION = 30; // 30 minutes prevents visually thin elements from entirely layering over each other
+        const evEnd = Math.max(rawEvEnd, evStart + MIN_DURATION);
         
         let added = false;
         for (const cluster of clusters) {
@@ -172,10 +175,11 @@ export default function WeekView({ currentDate, events, onEventClick, onTimeRang
         
         const numCols = cols.length;
         cluster.events.forEach((item: any) => {
+            const MIN_DURATION = 30;
             positioned.push({
                 event: item.ev,
                 top: `${item.start}px`,
-                height: `${Math.max(item.end - item.start, 15)}px`,
+                height: `${Math.max(item.end - item.start, MIN_DURATION)}px`,
                 left: `calc(${(100 / numCols) * item.col}% + 4px)`,
                 width: `calc(${100 / numCols}% - 8px)`
             });

@@ -117,8 +117,8 @@ export default function RecursiveCheckbox({
   const isRoutine = task.task_type === 'routine';
   const isNormal = task.task_type === 'normal';
   
-  // Feature 6: Normal completed tasks shouldn't have the 3-dot action menu to keep it clean.
-  const disableMenu = isNormal && task.is_completed;
+  // Normal mode routine & normal ticked tasks hide the 3-dot menu automatically for cleanliness
+  const disableMenu = task.is_completed && (isNormal || (isRoutine && !isEditMode));
 
   useEffect(() => {
     const el = textRef.current;
@@ -255,6 +255,8 @@ export default function RecursiveCheckbox({
   const isMenuOpen = activeTaskIdWithMenu === task.id;
 
   const showManagementActions = viewMode === 'focus' && (isNormal || (isRoutine && isEditMode));
+  const showFocusOptions = viewMode === 'focus' && !(isRoutine && isEditMode);
+  
   const hasChildren = task.children && task.children.length > 0;
   const showKeepAliveToggle = showManagementActions && hasChildren;
 
@@ -392,12 +394,16 @@ export default function RecursiveCheckbox({
       >
         {viewMode === 'focus' && (
            <>
-             <MenuItem icon={Hourglass} label="Send to Stopwatch" onClick={() => handleSendToFocus('stopwatch')} />
-             <MenuItem icon={Timer} label="Send to Timer" onClick={() => handleSendToFocus('timer')} />
+             {showFocusOptions && (
+               <>
+                 <MenuItem icon={Hourglass} label="Send to Stopwatch" onClick={() => handleSendToFocus('stopwatch')} />
+                 <MenuItem icon={Timer} label="Send to Timer" onClick={() => handleSendToFocus('timer')} />
+               </>
+             )}
 
              {showManagementActions && (
                <>
-                 <MenuDivider />
+                 {showFocusOptions && <MenuDivider />}
                  <MenuItem icon={CornerDownRight} label="Add Subtask" onClick={() => onAdd(task.id)} />
                  
                  <MenuDivider />

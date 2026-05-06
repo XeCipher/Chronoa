@@ -1,4 +1,4 @@
-// frontend/components/calendar/WeekView.tsx
+// frontend/components/calendar/DayView.tsx
 "use client";
 
 import { useMemo, useEffect, useState, useRef } from "react";
@@ -48,7 +48,7 @@ const smoothScrollTo = (element: HTMLElement, targetPosition: number, duration: 
   requestAnimationFrame(animation);
 };
 
-export default function WeekView({ currentDate, events, onEventClick, onTimeRangeSelected, onEventMove, eventColors, targetScrollTime, daysCount = 7, scrollToNowTrigger }: Props) {
+export default function DayView({ currentDate, events, onEventClick, onTimeRangeSelected, onEventMove, eventColors, targetScrollTime, daysCount = 1, scrollToNowTrigger }: Props) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [now, setNow] = useState(new Date());
 
@@ -116,7 +116,7 @@ export default function WeekView({ currentDate, events, onEventClick, onTimeRang
     let endMins = 24 * 60;
     if (isSameDay(end, day)) endMins = end.getHours() * 60 + end.getMinutes();
     
-    const height = Math.max(endMins - startMins, 15);
+    const height = Math.max(endMins - startMins, 30);
     return { top: `${startMins}px`, height: `${height}px` };
   };
 
@@ -135,7 +135,8 @@ export default function WeekView({ currentDate, events, onEventClick, onTimeRang
         const evStart = isSameDay(start, day) ? start.getHours() * 60 + start.getMinutes() : 0;
         const rawEvEnd = isSameDay(end, day) ? end.getHours() * 60 + end.getMinutes() : 24 * 60;
         
-        const evEnd = Math.max(rawEvEnd, evStart + 15);
+        const MIN_DURATION = 30; // 30 minutes prevents visually thin elements from entirely layering over each other
+        const evEnd = Math.max(rawEvEnd, evStart + MIN_DURATION);
         
         let added = false;
         for (const cluster of clusters) {
@@ -174,10 +175,11 @@ export default function WeekView({ currentDate, events, onEventClick, onTimeRang
         
         const numCols = cols.length;
         cluster.events.forEach((item: any) => {
+            const MIN_DURATION = 30;
             positioned.push({
                 event: item.ev,
                 top: `${item.start}px`,
-                height: `${Math.max(item.end - item.start, 15)}px`,
+                height: `${Math.max(item.end - item.start, MIN_DURATION)}px`,
                 left: `calc(${(100 / numCols) * item.col}% + 4px)`,
                 width: `calc(${100 / numCols}% - 8px)`
             });

@@ -83,12 +83,12 @@ export function parseICS(icsText: string, color: string, userId: string, sourceI
       else if (key === 'DESCRIPTION') currentEvent.description = val.replace(/\\n/g, '\n');
       else if (key === 'LOCATION') currentEvent.location = val;
       else if (key === 'DTSTART') {
-        const isAllDay = keyRaw.includes('VALUE=DATE');
+        const isAllDay = keyRaw.includes('VALUE=DATE') || val.indexOf('T') === -1;
         if (isAllDay) currentEvent.is_all_day = true;
         currentEvent.start_time = parseDate(line, isAllDay);
       }
       else if (key === 'DTEND') {
-        const isAllDay = keyRaw.includes('VALUE=DATE');
+        const isAllDay = keyRaw.includes('VALUE=DATE') || val.indexOf('T') === -1;
         currentEvent.end_time = parseDate(line, isAllDay);
         // ICS all-day end dates are exclusive (next day midnight). We adjust back 1 ms so it stays on the correct visual day
         if (isAllDay && currentEvent.end_time) {
@@ -141,18 +141,19 @@ export function exportICS(events: CalendarEvent[]): string {
   return ics;
 }
 
-// In-memory lock and records to ensure sync on reload or rapid SPA navigation
-// (Restricted to a 30s throttle to prevent Google/Apple from throwing an API rate-limit/ban)
+// In-memory locks and caches to prevent repetitive fetching & UI clears
 const syncRecord: Record<string, number> = {};
+const syncErrorsCache: Record<string, string[]> = {};
 let isSyncing = false;
 
 export async function syncExternalCalendars(userId: string, force: boolean = false): Promise<string[]> {
   const failedSources: string[] = [];
-  if (isSyncing) return failedSources;
+  if (isSyncing) return syncErrorsCache[userId] || [];
   
   const now = Date.now();
   if (!force && syncRecord[userId] && now - syncRecord[userId] < 30 * 1000) {
-    return failedSources;
+    // Return cached errors to prevent the frontend exclamations from disappearing during interval polls
+    return syncErrorsCache[userId] || [];
   }
 
   isSyncing = true;
@@ -164,30 +165,108 @@ export async function syncExternalCalendars(userId: string, force: boolean = fal
       .eq('user_id', userId)
       .eq('type', 'link');
 
-    if (!sources || sources.length === 0) return failedSources;
+    if (!sources || sources.length === 0) {
+      syncErrorsCache[userId] = [];
+      return [];
+    }
 
     for (const source of sources) {
       if (!source.url) continue;
       try {
         const res = await fetch(`/api/calendar/fetch-ics?url=${encodeURIComponent(source.url)}`);
         if (!res.ok) {
-          failedSources.push(source.name);
+          failedSources.push(source.name || 'Unnamed Calendar');
           continue;
         }
         
-        // Fully parse before deleting existing events to prevent flickering & logic crashes
+        // Smart Diffing & Inserting
+        // Wait to fetch and process completely so we avoid clearing the UI DB visually
         const icsText = await res.text();
         const events = parseICS(icsText, source.color, userId, source.id);
         
-        await supabase.from('calendar_events').delete().eq('source_id', source.id);
-        
-        const chunkSize = 200;
-        for (let i = 0; i < events.length; i += chunkSize) {
-           await supabase.from('calendar_events').insert(events.slice(i, i + chunkSize));
+        const { data: existingData } = await supabase
+          .from('calendar_events')
+          .select('id, title, start_time, end_time, location, description, is_all_day')
+          .eq('source_id', source.id);
+
+        const existingMap = new Map<string, any>();
+        if (existingData) {
+          existingData.forEach((e: any) => {
+            const baseKey = `${e.start_time}_${e.title}_${e.is_all_day}`;
+            let counter = 0;
+            let finalKey = baseKey;
+            while (existingMap.has(finalKey)) {
+              counter++;
+              finalKey = `${baseKey}_${counter}`;
+            }
+            existingMap.set(finalKey, e);
+          });
         }
+
+        const toInsert: any[] = [];
+        const toUpdate: any[] = [];
+
+        events.forEach(newEvent => {
+          const baseKey = `${newEvent.start_time}_${newEvent.title}_${newEvent.is_all_day}`;
+          let foundKey: string | null = null;
+
+          if (existingMap.has(baseKey)) {
+            foundKey = baseKey;
+          } else {
+            let counter = 1;
+            while (existingMap.has(`${baseKey}_${counter}`)) {
+              foundKey = `${baseKey}_${counter}`;
+              break;
+            }
+          }
+
+          if (foundKey) {
+            const existing = existingMap.get(foundKey);
+            existingMap.delete(foundKey); // Removing indicates it has been matched
+
+            // Determine if anything mutated
+            if (
+              existing.end_time !== newEvent.end_time ||
+              existing.location !== newEvent.location ||
+              existing.description !== newEvent.description
+            ) {
+              toUpdate.push({
+                ...newEvent,
+                id: existing.id,
+              });
+            }
+          } else {
+            toInsert.push(newEvent);
+          }
+        });
+
+        // Delete what remained unmatched
+        const toDeleteIds = Array.from(existingMap.values()).map(e => e.id);
+
+        if (toDeleteIds.length > 0) {
+          const chunkSize = 200;
+          for (let i = 0; i < toDeleteIds.length; i += chunkSize) {
+            await supabase.from('calendar_events').delete().in('id', toDeleteIds.slice(i, i + chunkSize));
+          }
+        }
+
+        if (toUpdate.length > 0) {
+          const chunkSize = 200;
+          for (let i = 0; i < toUpdate.length; i += chunkSize) {
+            await supabase.from('calendar_events').upsert(toUpdate.slice(i, i + chunkSize));
+          }
+        }
+
+        if (toInsert.length > 0) {
+          const chunkSize = 200;
+          for (let i = 0; i < toInsert.length; i += chunkSize) {
+            await supabase.from('calendar_events').insert(toInsert.slice(i, i + chunkSize));
+          }
+        }
+
       } catch (e) {
         console.error(`Failed to background sync source ${source.name}`, e);
-        failedSources.push(source.name);
+        failedSources.push(source.name || 'Unnamed Calendar');
       }
     }
 
@@ -196,6 +275,7 @@ export async function syncExternalCalendars(userId: string, force: boolean = fal
     console.error("Failed background calendar sync", e);
   } finally {
     isSyncing = false;
+    syncErrorsCache[userId] = failedSources;
   }
   
   return failedSources;
