@@ -62,39 +62,61 @@ function EngineCard({ engine, tab }: { engine: EngineInstance, tab: 'timer' | 's
   },[engine.isRunning, engine.startTime, engine.accumulatedSeconds]);
 
   const handleStopAndSave = async (forceSaveSeconds?: number) => {
+    const currentList = useTimerStore.getState()[tab === 'timer' ? 'timers' : 'stopwatches'];
+    const currentEngine = currentList.find(e => e.id === engine.id);
+    if (!currentEngine) return; // Prevent double saving across synced devices
+
     store.pause(tab, engine.id);
-    const finalSeconds = forceSaveSeconds ?? (engine.isRunning && engine.startTime 
-      ? engine.accumulatedSeconds + Math.floor((Date.now() - engine.startTime) / 1000)
-      : engine.accumulatedSeconds);
+    const finalSeconds = forceSaveSeconds ?? (currentEngine.isRunning && currentEngine.startTime 
+      ? currentEngine.accumulatedSeconds + Math.floor((Date.now() - currentEngine.startTime) / 1000)
+      : currentEngine.accumulatedSeconds);
+
+    store.removeInstance(tab, engine.id);
 
     if (finalSeconds > 10) {
       const { data: { user } } = await supabase.auth.getUser();
       await supabase.from('time_sessions').insert({
-        user_id: user?.id, session_type: tab, title: engine.title || 'Focus Session', duration_seconds: finalSeconds
+        user_id: user?.id, session_type: tab, title: currentEngine.title || 'Focus Session', duration_seconds: finalSeconds
       });
     }
-    store.removeInstance(tab, engine.id);
   };
 
   useEffect(() => {
     let timeout: NodeJS.Timeout;
+    let isCancelled = false;
+
     if (tab === 'timer' && engine.targetMinutes && engine.isRunning) {
       const targetSecs = engine.targetMinutes * 60;
       if (liveSeconds >= targetSecs) {
-        store.pause(tab, engine.id);
-        
-        playChime();
-        if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
-          new Notification('Chronoa', {
-            body: `Timer complete: ${engine.title || 'Timer'}`,
-            icon: '/apple-icon.png'
-          });
-        }
-        
-        timeout = setTimeout(() => handleStopAndSave(targetSecs), 2000);
+        const performAutoStop = async () => {
+          // Micro-stagger delay to handle multiple devices executing safely
+          await new Promise(resolve => setTimeout(resolve, Math.random() * 500));
+          if (isCancelled) return;
+          
+          const currentList = useTimerStore.getState()[tab === 'timer' ? 'timers' : 'stopwatches'];
+          const currentEng = currentList.find(e => e.id === engine.id);
+          
+          if (currentEng && currentEng.isRunning) {
+            store.pause(tab, engine.id);
+            playChime();
+            if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+              new Notification('Chronoa', {
+                body: `Timer complete: ${engine.title || 'Timer'}`,
+                icon: '/apple-icon.png'
+              });
+            }
+            timeout = setTimeout(() => {
+               if (!isCancelled) handleStopAndSave(targetSecs);
+            }, 2000);
+          }
+        };
+        performAutoStop();
       }
     }
-    return () => clearTimeout(timeout);
+    return () => {
+      isCancelled = true;
+      clearTimeout(timeout);
+    };
   },[liveSeconds, engine.isRunning, engine.targetMinutes, tab]);
 
   const formatTime = (totalSeconds: number) => {

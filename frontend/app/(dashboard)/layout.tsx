@@ -28,6 +28,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   
   const toggleFirstActive = useTimerStore((state) => state.toggleFirstActive);
   const initialRestoreDone = useRef(false);
+  const lastSyncedTimerState = useRef<string>("");
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -51,6 +52,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         if (profile.keep_parent_task_alive !== null) state.setKeepParentTaskAlive(profile.keep_parent_task_alive);
         if (profile.add_task_at_top !== null) state.setAddTaskAtTop(profile.add_task_at_top);
         if (profile.show_home_task_progress !== null) state.setShowHomeTaskProgress(profile.show_home_task_progress);
+        
+        // Sync Timer State from DB on load
+        if (profile.timer_state) {
+          lastSyncedTimerState.current = JSON.stringify(profile.timer_state);
+          useTimerStore.setState({
+            timers: profile.timer_state.timers || [],
+            stopwatches: profile.timer_state.stopwatches || [],
+            activeTab: profile.timer_state.activeTab || 'stopwatch'
+          });
+        }
       }
 
       const channel = supabase.channel(`profile_${session.user.id}`)
@@ -67,12 +78,49 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
            if (rec.keep_parent_task_alive !== null && rec.keep_parent_task_alive !== state.keepParentTaskAlive) state.setKeepParentTaskAlive(rec.keep_parent_task_alive);
            if (rec.add_task_at_top !== null && rec.add_task_at_top !== state.addTaskAtTop) state.setAddTaskAtTop(rec.add_task_at_top);
            if (rec.show_home_task_progress !== null && rec.show_home_task_progress !== state.showHomeTaskProgress) state.setShowHomeTaskProgress(rec.show_home_task_progress);
+           
+           // Apply Remote Timer State from other devices
+           if (rec.timer_state) {
+              const remoteStr = JSON.stringify(rec.timer_state);
+              if (remoteStr !== lastSyncedTimerState.current) {
+                 lastSyncedTimerState.current = remoteStr;
+                 useTimerStore.setState({
+                    timers: rec.timer_state.timers || [],
+                    stopwatches: rec.timer_state.stopwatches || [],
+                    activeTab: rec.timer_state.activeTab || 'stopwatch'
+                 });
+              }
+           }
         }).subscribe();
         
       return () => { supabase.removeChannel(channel); };
     };
     checkAuth();
   }, [router]);
+
+  // Sync Local Timer State to DB whenever user performs an action
+  useEffect(() => {
+    if (isLoading) return;
+    const unsub = useTimerStore.subscribe((state) => {
+      const currentStateStr = JSON.stringify({
+        timers: state.timers,
+        stopwatches: state.stopwatches,
+        activeTab: state.activeTab
+      });
+
+      if (currentStateStr !== lastSyncedTimerState.current) {
+        lastSyncedTimerState.current = currentStateStr;
+        supabase.auth.getUser().then(({data}) => {
+          if (data.user) {
+            supabase.from('profiles').update({
+              timer_state: JSON.parse(currentStateStr)
+            }).eq('id', data.user.id);
+          }
+        });
+      }
+    });
+    return unsub;
+  }, [isLoading]);
 
   useEffect(() => {
     if (!hotkeysEnabled) return;
