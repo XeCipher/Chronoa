@@ -45,7 +45,7 @@ export default function HomePage() {
         <HomeTaskProgress />
       </div>
 
-      <div className="fixed z-40 flex flex-col items-end gap-4 md:bottom-10 md:right-10 bottom-[calc(90px+env(safe-area-inset-bottom))] right-6 pointer-events-none [&>*]:pointer-events-auto">
+      <div className={`fixed z-20 flex flex-col items-end gap-4 md:bottom-10 md:right-10 bottom-[calc(90px+env(safe-area-inset-bottom))] right-6 pointer-events-none [&>*]:pointer-events-auto transition-all duration-700 ease-out ${showWidget ? 'max-2xl:opacity-0 max-2xl:translate-y-8 max-2xl:pointer-events-none' : 'opacity-100 translate-y-0'}`}>
         <div className="hidden md:block">
           <TodayCalendarWidget variant="home" />
         </div>
