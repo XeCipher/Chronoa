@@ -25,7 +25,7 @@ export default function LandingPage() {
       <LandingNav />
 
       {/* Hero Section */}
-      <section className="relative w-full h-[95vh] flex flex-col items-center justify-center px-6">
+      <section className="relative w-full min-h-[100dvh] flex flex-col items-center justify-center px-4 md:px-6 pt-20">
         {/* Abstract Background Blur Orbs */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none flex items-center justify-center opacity-60">
           <motion.div animate={{ scale:[1, 1.1, 1], rotate: [0, 90, 0] }} transition={{ duration: 20, repeat: Infinity, ease: "linear" }} className="absolute w-[800px] h-[800px] -translate-y-48 translate-x-32" style={{ background: 'radial-gradient(circle, rgba(168,130,194,0.1) 0%, transparent 60%)' }} />
@@ -36,16 +36,16 @@ export default function LandingPage() {
           initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 1, ease: "easeOut" }}
           className="z-10 flex flex-col items-center text-center max-w-3xl"
         >
-          <h1 className="text-6xl md:text-8xl font-serif tracking-tight leading-none mb-6">
-            Master your time. <br/>
-            <span className="text-[#c2956e] dark:text-[#b0855f]">Reclaim your focus.</span>
+          <h1 className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-serif tracking-tight leading-none mb-6 md:mb-8">
+            Everything in one place. <br/>
+            <span className="text-[#c2956e] dark:text-[#b0855f]">Synchronized everywhere.</span>
           </h1>
-          <p className="text-sm md:text-base text-[#888] dark:text-[#a0a0a0] mb-12 max-w-xl mx-auto leading-relaxed">
-            Chronoa is a breathtakingly fast, minimalist workspace designed exclusively for deep work. Timers, calendars, tasks, and notes—unified in one gorgeous interface.
+          <p className="text-xs sm:text-sm md:text-base text-[#888] dark:text-[#a0a0a0] mb-10 md:mb-12 max-w-xl mx-auto leading-relaxed px-2">
+            Your tasks, notes, calendar, and timers—unified in one gorgeous, aesthetic workspace. Track your deep work, analyze your focus patterns, and stay seamlessly in sync across all your devices.
           </p>
           <button
             onClick={handleLogin} disabled={isLoggingIn}
-            className="flex items-center justify-center gap-3 px-8 py-4 bg-white dark:bg-[#1e1e1e] border border-[#e0ddd5] dark:border-[#333] rounded-2xl text-sm font-bold uppercase tracking-widest transition-all duration-300 hover:border-[#c2956e] hover:shadow-[0_8px_30px_rgba(194,149,110,0.2)] hover:-translate-y-1 disabled:opacity-50"
+            className="flex items-center justify-center gap-3 px-8 py-4 bg-white dark:bg-[#1e1e1e] border border-[#e0ddd5] dark:border-[#333] rounded-2xl text-xs sm:text-sm font-bold uppercase tracking-widest transition-all duration-300 hover:border-[#c2956e] hover:shadow-[0_8px_30px_rgba(194,149,110,0.2)] hover:-translate-y-1 disabled:opacity-50"
           >
             {isLoggingIn ? (
               <div className="w-5 h-5 border-2 border-[#c2956e] border-t-transparent rounded-full animate-spin" />
@@ -66,18 +66,18 @@ export default function LandingPage() {
         {/* Scroll Indicator */}
         <motion.div 
           animate={{ y: [0, 10, 0] }} transition={{ duration: 2, repeat: Infinity }}
-          className="absolute bottom-10 left-1/2 -translate-x-1/2 text-[#b0ad9a] dark:text-[#555] flex flex-col items-center gap-2"
+          className="absolute bottom-6 md:bottom-10 left-1/2 -translate-x-1/2 text-[#b0ad9a] dark:text-[#555] flex flex-col items-center gap-2"
         >
-          <span className="text-[10px] font-bold uppercase tracking-widest">Scroll to explore</span>
-          <div className="w-px h-10 bg-gradient-to-b from-current to-transparent" />
+          <span className="text-[9px] md:text-[10px] font-bold uppercase tracking-widest">Scroll to explore</span>
+          <div className="w-px h-8 md:h-10 bg-gradient-to-b from-current to-transparent" />
         </motion.div>
       </section>
 
-      <main className="max-w-7xl mx-auto px-6 md:px-10 pb-32 flex flex-col gap-32">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 md:px-10 pb-32 flex flex-col gap-20 md:gap-32">
         <FadeIn>
-          <div className="text-center mb-10">
-            <h2 className="text-4xl font-serif mb-4">A Living Environment</h2>
-            <p className="text-sm text-[#888] max-w-lg mx-auto">The homepage changes its scenery based on the actual time of day. Try the buttons below to shift the mood.</p>
+          <div className="text-center mb-8 md:mb-10 mt-10">
+            <h2 className="text-3xl md:text-4xl font-serif mb-3 md:mb-4">A Living Environment</h2>
+            <p className="text-xs md:text-sm text-[#888] max-w-lg mx-auto">The homepage changes its scenery based on the actual time of day. Try the buttons below to shift the mood natively.</p>
           </div>
           <MockHomeSandbox />
         </FadeIn>
@@ -108,16 +108,16 @@ export default function LandingPage() {
 
         {/* Final CTA */}
         <FadeIn>
-          <div className="w-full text-center py-20 bg-[#c2956e]/5 dark:bg-[#b0855f]/10 rounded-[3rem] border border-[#c2956e]/20">
-            <h3 className="text-4xl md:text-5xl font-serif mb-6 text-[#3d3b33] dark:text-white">Your journey starts here.</h3>
-            <button onClick={handleLogin} disabled={isLoggingIn} className="px-10 py-4 bg-[#c2956e] text-white rounded-full text-sm font-bold uppercase tracking-widest hover:bg-[#b0855f] hover:scale-105 transition-all shadow-xl disabled:opacity-50">
+          <div className="w-full text-center py-16 md:py-20 bg-[#c2956e]/5 dark:bg-[#b0855f]/10 rounded-[2.5rem] md:rounded-[3rem] border border-[#c2956e]/20 px-4">
+            <h3 className="text-3xl sm:text-4xl md:text-5xl font-serif mb-4 md:mb-6 text-[#3d3b33] dark:text-white">Your journey starts here.</h3>
+            <button onClick={handleLogin} disabled={isLoggingIn} className="px-8 md:px-10 py-3.5 md:py-4 bg-[#c2956e] text-white rounded-full text-xs md:text-sm font-bold uppercase tracking-widest hover:bg-[#b0855f] hover:scale-105 transition-all shadow-xl disabled:opacity-50">
                {isLoggingIn ? 'Entering...' : 'Sign in with Google'}
             </button>
           </div>
         </FadeIn>
       </main>
 
-      <footer className="w-full text-center py-8 text-[10px] font-bold uppercase tracking-widest text-[#b0ad9a] dark:text-[#555] border-t border-[#e0ddd5] dark:border-[#2a2a2a]">
+      <footer className="w-full text-center py-8 text-[10px] font-bold uppercase tracking-widest text-[#b0ad9a] dark:text-[#555] border-t border-[#e0ddd5] dark:border-[#2a2a2a] px-4">
         Open Source • Built with Next.js & Supabase
       </footer>
     </div>
