@@ -792,7 +792,7 @@ export function MockCalendarSandbox() {
 }
 
 export function MockNotesSandbox() {
-  const [content, setContent] = useState(`<h1>A Blank Canvas</h1><p><br/></p><p>Chronoa provides a completely distraction-free markdown environment for your thoughts, meeting notes, and daily journaling.</p><p><br/></p><p>Go ahead, <strong>type something here</strong>. Use standard markdown shortcuts or highlight text to style it.</p>`);
+  const [content, setContent] = useState(`<h1>A Blank Canvas</h1><p>Chronoa provides a completely distraction-free markdown environment for your thoughts, meeting notes, and daily journaling.</p><p><br/></p><p>Go ahead, <strong>type something here</strong>. Use standard markdown shortcuts or highlight text to style it.</p>`);
 
   return (
     <div className="w-full flex flex-col gap-6 my-10 md:my-20 w-full">

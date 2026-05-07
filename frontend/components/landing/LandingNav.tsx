@@ -45,6 +45,35 @@ export function LandingNav() {
     return () => container.removeEventListener("scroll", onScroll);
   }, []);
 
+  useEffect(() => {
+    const updateFavicon = () => {
+      const isDark = theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+      const iconUrl = isDark ? '/icon-dark.svg' : '/icon-light.svg';
+      
+      const links = document.querySelectorAll("link[rel='icon']");
+      if (links.length > 0) {
+        links.forEach(link => {
+          (link as HTMLLinkElement).href = iconUrl;
+          (link as HTMLLinkElement).removeAttribute('media');
+        });
+      } else {
+        const link = document.createElement('link');
+        link.rel = 'icon';
+        link.href = iconUrl;
+        document.head.appendChild(link);
+      }
+    };
+
+    updateFavicon();
+
+    if (theme === 'system') {
+      const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+      const handleChange = () => updateFavicon();
+      mediaQuery.addEventListener('change', handleChange);
+      return () => mediaQuery.removeEventListener('change', handleChange);
+    }
+  }, [theme]);
+
   const toggleTheme = () => {
     const newTheme = theme === 'dark' ? 'light' : 'dark';
     setTheme(newTheme);
@@ -74,7 +103,7 @@ export function LandingNav() {
           <button onClick={toggleTheme} className="w-10 h-10 flex items-center justify-center rounded-full text-[#888] hover:text-[#c2956e] dark:hover:text-[#d1a784] hover:bg-black/5 dark:hover:bg-white/5 transition-all">
             {theme === 'dark' ? <Moon size={18} /> : <Sun size={18} />}
           </button>
-          <a href="https://github.com/XeCipher/Chronoa" target="_blank" rel="noreferrer" className="hidden sm:flex w-10 h-10 items-center justify-center rounded-full text-[#888] hover:text-[#3d3b33] dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/5 transition-all">
+          <a href="https://github.com/XeCipher/Chronoa" target="_blank" rel="noreferrer" className="flex w-10 h-10 items-center justify-center rounded-full text-[#888] hover:text-[#3d3b33] dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/5 transition-all">
             <GithubIcon size={20} />
           </a>
           <button onClick={handleLogin} disabled={isLoggingIn} className="ml-1 sm:ml-0 px-5 md:px-6 py-2.5 bg-[#1a1a1a] dark:bg-white text-white dark:text-[#1a1a1a] rounded-full text-[10px] md:text-[11px] font-bold uppercase tracking-widest hover:scale-105 transition-transform shadow-lg disabled:opacity-50">

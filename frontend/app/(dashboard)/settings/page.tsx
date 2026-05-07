@@ -867,8 +867,8 @@ export default function SettingsPage() {
   const visibleSections = sections.filter(s => isVisible(s.keys));
 
   return (
-    <div className="w-full h-full flex flex-col overflow-hidden max-w-4xl mx-auto relative">
-      <div className="px-4 md:px-8 lg:px-10 pt-4 md:pt-8 lg:pt-10 pb-4 shrink-0">
+    <div className="w-full h-full flex flex-col overflow-hidden relative">
+      <div className="w-full max-w-4xl mx-auto px-4 md:px-8 lg:px-10 pt-4 md:pt-8 lg:pt-10 pb-4 shrink-0">
         <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 shrink-0 mb-0">
           <div className="flex items-center gap-4">
             <button onClick={() => router.back()} className="md:hidden flex items-center justify-center p-2.5 md:p-3 bg-white dark:bg-[#1a1a1a] text-[#888] rounded-xl border border-[#e0ddd5] dark:border-[#333] hover:text-[#3d3b33] dark:hover:text-[#f0f0f0] transition-all shadow-sm"><ArrowLeft size={18} /></button>
@@ -883,33 +883,36 @@ export default function SettingsPage() {
         </header>
       </div>
 
-      <div id="settings-scroll-container" className="flex-1 overflow-y-scroll overflow-x-hidden no-scrollbar px-4 md:px-8 lg:px-10 pb-6 md:pb-12">
-        
-        {/* Modern Profile Identity Header Card */}
-        <div className="bg-white dark:bg-[#1a1a1a] border border-[#ebe8e2] dark:border-[#2a2a2a] rounded-[2.5rem] p-6 md:p-8 shadow-sm flex flex-col md:flex-row items-center gap-5 transition-all mb-6">
-          {userAvatar ? (
-             <img src={userAvatar} alt="Avatar" className="w-20 h-20 md:w-24 md:h-24 rounded-full object-cover shadow-md border-2 border-[#f0ede8] dark:border-[#333]" />
-          ) : (
-             <div className="w-20 h-20 md:w-24 md:h-24 rounded-full bg-[#f0ede8] dark:bg-[#333] flex items-center justify-center shadow-md border-2 border-[#e0ddd5] dark:border-[#444]">
-                <User size={40} className="text-[#888]" />
-             </div>
-          )}
-          <div className="flex flex-col items-center md:items-start text-center md:text-left">
-            <h2 className="text-2xl md:text-3xl font-serif text-[#3d3b33] dark:text-[#f0f0f0] font-medium">{userName || "Your Profile"}</h2>
-            <p className="text-sm font-medium text-[#888] dark:text-[#7a7a7a] mt-1">{userEmail}</p>
-          </div>
-        </div>
-
-        <div className="bg-white dark:bg-[#1a1a1a] border border-[#ebe8e2] dark:border-[#2a2a2a] rounded-[2.5rem] p-6 md:p-10 shadow-sm flex flex-col gap-10 transition-all">
-          {visibleSections.map((sec, i) => (
-            <div key={sec.id} className={`flex flex-col gap-10 ${sec.className}`}>
-               {sec.render()}
-               {i < visibleSections.length - 1 && <hr className="border-[#f0ede8] dark:border-[#2a2a2a]" />}
+      <div id="settings-scroll-container" className="flex-1 overflow-y-scroll overflow-x-hidden no-scrollbar w-full">
+        <div className="w-full max-w-4xl mx-auto px-4 md:px-8 lg:px-10 pb-6 md:pb-12 flex flex-col">
+          
+          {/* Modern Profile Identity Header Card */}
+          <div className="bg-white dark:bg-[#1a1a1a] border border-[#ebe8e2] dark:border-[#2a2a2a] rounded-[2.5rem] p-6 md:p-8 shadow-sm flex flex-col md:flex-row items-center gap-5 transition-all mb-6">
+            {userAvatar ? (
+               <img src={userAvatar} alt="Avatar" className="w-20 h-20 md:w-24 md:h-24 rounded-full object-cover shadow-md border-2 border-[#f0ede8] dark:border-[#333]" />
+            ) : (
+               <div className="w-20 h-20 md:w-24 md:h-24 rounded-full bg-[#f0ede8] dark:bg-[#333] flex items-center justify-center shadow-md border-2 border-[#e0ddd5] dark:border-[#444]">
+                  <User size={40} className="text-[#888]" />
+               </div>
+            )}
+            <div className="flex flex-col items-center md:items-start text-center md:text-left">
+              <h2 className="text-2xl md:text-3xl font-serif text-[#3d3b33] dark:text-[#f0f0f0] font-medium">{userName || "Your Profile"}</h2>
+              <p className="text-sm font-medium text-[#888] dark:text-[#7a7a7a] mt-1">{userEmail}</p>
             </div>
-          ))}
-          {visibleSections.length === 0 && (
-            <div className="text-center py-12 text-[#b0ad9a] dark:text-[#7a7a7a] italic text-sm">No settings match your search.</div>
-          )}
+          </div>
+
+          <div className="bg-white dark:bg-[#1a1a1a] border border-[#ebe8e2] dark:border-[#2a2a2a] rounded-[2.5rem] p-6 md:p-10 shadow-sm flex flex-col gap-10 transition-all">
+            {visibleSections.map((sec, i) => (
+              <div key={sec.id} className={`flex flex-col gap-10 ${sec.className}`}>
+                 {sec.render()}
+                 {i < visibleSections.length - 1 && <hr className="border-[#f0ede8] dark:border-[#2a2a2a]" />}
+              </div>
+            ))}
+            {visibleSections.length === 0 && (
+              <div className="text-center py-12 text-[#b0ad9a] dark:text-[#7a7a7a] italic text-sm">No settings match your search.</div>
+            )}
+          </div>
+
         </div>
       </div>
 
