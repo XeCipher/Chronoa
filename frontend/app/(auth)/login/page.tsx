@@ -65,7 +65,7 @@ export default function AppLoginPage() {
           Chronoa
         </h1>
         <p className="text-[#888888] dark:text-[#7a7a7a] tracking-[0.25em] text-[11px] font-semibold uppercase mb-16">
-          Your personal workspace
+          Your aesthetic workspace. Completely synced.
         </p>
 
         <button
