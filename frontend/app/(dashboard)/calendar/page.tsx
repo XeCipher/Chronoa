@@ -668,7 +668,7 @@ export default function CalendarPage() {
       {isMobile && (
         <button 
           onClick={() => openAddModal()}
-          className="fixed bottom-[calc(90px+env(safe-area-inset-bottom))] right-6 z-50 w-14 h-14 bg-[#c2956e] text-white rounded-full shadow-xl flex items-center justify-center active:scale-95 transition-all"
+          className="fixed bottom-[calc(110px+env(safe-area-inset-bottom))] right-6 z-50 w-14 h-14 bg-[#c2956e] text-white rounded-full shadow-xl flex items-center justify-center active:scale-95 transition-all"
         >
           <Plus size={24} strokeWidth={2.5} />
         </button>

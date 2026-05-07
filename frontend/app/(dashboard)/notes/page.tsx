@@ -778,7 +778,7 @@ export default function NotesPage() {
       </main>
 
       {isListVisible && !isTrashOpen && (
-        <div className="lg:hidden fixed bottom-[calc(90px+env(safe-area-inset-bottom))] right-6 z-[100] flex flex-col items-end">
+        <div className="lg:hidden fixed bottom-[calc(110px+env(safe-area-inset-bottom))] right-6 z-[100] flex flex-col items-end">
           {showCalendar && notesTab === 'journal' && (
             <>
               <div className="fixed inset-0 z-40" onClick={() => setShowCalendar(false)} />
