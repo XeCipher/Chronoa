@@ -405,7 +405,7 @@ export function MockTaskSandbox() {
   const normals = roots.filter(t => t.task_type === 'normal');
 
   return (
-    <div className="flex flex-col gap-6 w-full">
+    <div className="flex flex-col gap-6 w-full pt-16 md:pt-0">
       <div className="text-center max-w-2xl mx-auto mb-4 px-4">
         <h3 className="text-3xl md:text-4xl font-serif text-[#3d3b33] dark:text-[#f0f0f0] mb-3">Frictionless Workflows</h3>
         <p className="text-[#888] dark:text-[#a0a0a0] leading-relaxed text-sm">
@@ -465,7 +465,7 @@ export function MockTaskSandbox() {
   );
 }
 
-// Local isolated implementation for the time sandbox
+// Local isolated implementation for the time sandbox (Using solid aesthetic)
 function MockEngineCard({ engine, tab, onUpdate, onRemove, isOnlyInstance }: any) {
   const [liveSeconds, setLiveSeconds] = useState(engine.accumulatedSeconds);
 
@@ -781,7 +781,7 @@ export function MockCalendarSandbox() {
           A gorgeous drag-and-drop calendar. Sync Google & Apple calendars, or subscribe to public <b>.ics</b> links. Try adding a task directly from the tasks section!
         </p>
       </div>
-      <div className="w-full lg:w-2/3 h-[300px] md:h-[500px] relative pointer-events-auto rounded-[2rem] shadow-2xl w-full">
+      <div className="w-full lg:w-2/3 h-[80vh] min-h-[500px] md:h-[500px] relative pointer-events-auto rounded-[2rem] shadow-2xl w-full">
         <WeekView 
           currentDate={new Date()} events={events} onEventClick={() => {}} onTimeRangeSelected={() => {}} onEventMove={handleEventMove} 
           eventColors={EVENT_COLORS} targetScrollTime={targetScrollTime} daysCount={isMobile ? 2 : 3}
@@ -802,7 +802,7 @@ export function MockNotesSandbox() {
           Beautiful text formatting that stays out of your way. Zoom in and out instantly with intuitive controls.
         </p>
       </div>
-      <div className="mock-editor-container w-full bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] rounded-[2.5rem] px-4 pt-2 pb-6 md:px-10 md:pt-4 md:pb-10 shadow-2xl h-[320px] md:h-auto md:max-h-[500px] overflow-y-auto no-scrollbar relative w-full">
+      <div className="mock-editor-container w-full bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] rounded-[2.5rem] px-4 pt-2 pb-6 md:px-10 md:pt-4 md:pb-10 shadow-2xl h-[80vh] min-h-[500px] md:h-auto md:max-h-[500px] overflow-y-auto no-scrollbar relative w-full">
         <DistractionFreeEditor initialContent={content} onSave={setContent} isSandbox={true} />
       </div>
     </div>

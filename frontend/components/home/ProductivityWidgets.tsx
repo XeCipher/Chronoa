@@ -157,7 +157,7 @@ function EngineCard({ engine, tab }: { engine: EngineInstance, tab: 'timer' | 's
   const statusText = getStatusText();
 
   return (
-    <div className="relative shrink-0 w-[24rem] max-w-[85vw] bg-white/60 dark:bg-[#1e1e1e]/80 backdrop-blur-3xl border border-[#e0ddd5] dark:border-[#333] rounded-[2.5rem] p-6 shadow-xl dark:shadow-[0_10px_40px_rgba(0,0,0,0.5)] flex flex-col gap-5 transition-colors snap-center group">
+    <div className="relative shrink-0 w-[24rem] max-w-[85vw] bg-white/20 dark:bg-black/30 backdrop-blur-3xl border border-white/40 dark:border-white/10 rounded-[2.5rem] p-6 shadow-[0_20px_50px_-10px_rgba(0,0,0,0.15)] flex flex-col gap-5 transition-colors snap-center group">
       
       {!hideDelete && (
         <button 
@@ -286,7 +286,7 @@ export default function ProductivityWidgets({ isVisible, isSandbox = false }: { 
           
           <button 
             onClick={() => store.addInstance(store.activeTab)} 
-            className="shrink-0 w-[6rem] sm:w-[8rem] bg-white/60 dark:bg-[#1e1e1e]/80 md:hover:bg-white/80 md:dark:hover:bg-[#2a2a2a]/80 backdrop-blur-3xl border border-[#e0ddd5] dark:border-[#333] rounded-[2.5rem] flex flex-col items-center justify-center gap-3 transition-colors snap-center cursor-pointer shadow-xl dark:shadow-[0_10px_40px_rgba(0,0,0,0.5)]"
+            className="shrink-0 w-[6rem] sm:w-[8rem] bg-white/10 dark:bg-black/20 md:hover:bg-white/30 md:dark:hover:bg-black/40 backdrop-blur-3xl border border-white/40 dark:border-white/10 rounded-[2.5rem] flex flex-col items-center justify-center gap-3 transition-colors snap-center cursor-pointer shadow-[0_20px_50px_-10px_rgba(0,0,0,0.1)]"
           >
             <Plus size={28} className="text-[#3d3b33] dark:text-[#f0f0f0]" />
             <span className="text-[10px] font-bold uppercase tracking-widest text-[#3d3b33] dark:text-[#f0f0f0]">Add</span>
