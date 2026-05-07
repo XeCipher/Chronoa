@@ -12,12 +12,12 @@ export const generateMockDailyMap = () => {
     d.setDate(d.getDate() - i);
     const ymd = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
     
-    // Form a beautiful diamond/kite shape in the radar chart:
-    // Peak at Afternoon, moderate Morning/Evening, very low Night
+    // Form a beautiful organic shape in the radar chart:
+    // Balanced distribution across the entire day instead of forcing it into one corner.
     const makeTaskDate = () => {
        const newD = new Date(d);
-       const hours = [6, 9, 11, 13, 14, 15, 17, 19, 21, 23];
-       const weights = [1, 3, 5, 10, 12, 10, 5, 3, 1, 0.5]; 
+       const hours = [7, 10, 13, 16, 19, 21, 23];
+       const weights = [3, 5, 6, 5, 4, 2, 1]; // Smooth bell curve peaking slightly in afternoon
        let sum = weights.reduce((a, b) => a + b, 0);
        let r = Math.random() * sum;
        let h = 14;
@@ -45,7 +45,7 @@ export const generateMockDailyMap = () => {
 
 export const generateMockSessions = () => {
   const sessions = [];
-  const categories = ['Deep Work', 'Learning', 'Planning', 'Emails'];
+  const categories = ['Deep Work', 'Learning', 'Workout', 'Projects'];
   for (let i = 0; i < 20; i++) {
      sessions.push({
         title: categories[Math.floor(Math.random() * categories.length)],

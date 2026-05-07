@@ -29,8 +29,15 @@ export default function TimeOfDayRadar({ dailyMap, isSandbox = false }: { dailyM
            else if (h >= 17 && h < 21) tod.Evening++; 
            else tod.Night++;
        });
-       d.sessions.forEach(() => {
-           tod.Afternoon++; 
+       
+       // Using `any` allows the sandbox to read the mock 'created_at' data to form the organic shape,
+       // while safely falling back to '14' (Afternoon) for the actual live app analytics.
+       d.sessions.forEach((s: any) => {
+           const h = s.created_at ? new Date(s.created_at).getHours() : 14;
+           if (h >= 5 && h < 12) tod.Morning++; 
+           else if (h >= 12 && h < 17) tod.Afternoon++; 
+           else if (h >= 17 && h < 21) tod.Evening++; 
+           else tod.Night++;
        });
     });
 
@@ -83,7 +90,7 @@ export default function TimeOfDayRadar({ dailyMap, isSandbox = false }: { dailyM
       const val = payload[0].value;
       const pct = Math.round((val / totalProductivity) * 100);
       return (
-        <div className="bg-[#3d3b33] text-white px-4 py-2 rounded-xl shadow-xl text-center border border-white/10">
+        <div className="bg-[#3d3b33] text-white px-4 py-2 rounded-xl shadow-xl text-center border border-white/10 z-[100] relative">
           <p className="text-[10px] font-bold uppercase tracking-widest mb-1 text-[#c2956e]">{payload[0].payload.subject}</p>
           <p className="text-sm font-medium">{pct}% of Output</p>
           <p className="text-[10px] text-[#888] mt-1">{val} Actions</p>

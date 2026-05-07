@@ -212,7 +212,13 @@ export default function ProductivityChart({ dailyMap, isSandbox = false }: { dai
            {showCalendar && renderCalendar()}
 
            <div className="flex items-center bg-[#f7f5f0] dark:bg-[#222] rounded-xl p-0.5 border border-[#e0ddd5] dark:border-[#333]">
-              <button onClick={handlePrev} className="p-1.5 text-[#888] hover:text-[#3d3b33] dark:hover:text-white transition-colors"><ChevronLeft size={16} /></button>
+              <button 
+                onClick={handlePrev} 
+                disabled={isSandbox && weeksBack >= 3} 
+                className={`p-1.5 transition-colors ${isSandbox && weeksBack >= 3 ? 'opacity-30 cursor-not-allowed text-[#b0ad9a]' : 'text-[#888] hover:text-[#3d3b33] dark:hover:text-white'}`}
+              >
+                <ChevronLeft size={16} />
+              </button>
               <div className="w-px h-4 bg-[#e0ddd5] dark:bg-[#444] mx-1" />
               <button onClick={handleNext} disabled={endDate.getTime() === today.getTime()} className="p-1.5 text-[#888] hover:text-[#3d3b33] dark:hover:text-white transition-colors disabled:opacity-30"><ChevronRight size={16} /></button>
            </div>

@@ -360,10 +360,10 @@ export default function DistractionFreeEditor({
   );
 
   return (
-    <div className="relative w-full flex flex-col gap-4 h-full">
+    <div className="relative w-full flex flex-col gap-2 md:gap-4 h-full">
       
       {/* Mobile Inline Tools (Save Status, Timestamp & Zoom) */}
-      <div className="md:hidden flex w-full justify-between items-center gap-1.5 z-10 mb-2">
+      <div className="md:hidden flex w-full justify-between items-center gap-1.5 z-10 mt-2 mb-0">
         <span className={`text-[9px] font-bold uppercase tracking-widest whitespace-nowrap transition-colors pl-1 ${
            saveStatus === "Saving..." ? "text-[#c2956e] dark:text-[#d1a784]" : "text-[#c4c0b8] dark:text-[#555]"
         }`}>
@@ -396,9 +396,10 @@ export default function DistractionFreeEditor({
           <div
             className={[
               "hidden md:flex",
+              "sticky top-2 lg:top-4 z-[60]",
               "md:p-2 md:border md:border-[#e0ddd5] md:dark:border-[#2a2a2a] md:rounded-2xl",
-              "md:bg-white/95 md:dark:bg-[#121212]/95 md:backdrop-blur-md",
-              "md:shadow-[0_2px_16px_0_rgba(0,0,0,0.07)] md:dark:shadow-[0_2px_16px_0_rgba(0,0,0,0.4)]",
+              "md:bg-white/95 md:dark:bg-[#121212]/95 md:backdrop-blur-xl",
+              "md:shadow-[0_4px_20px_0_rgba(0,0,0,0.05)] md:dark:shadow-[0_4px_20px_0_rgba(0,0,0,0.4)]",
               "items-center gap-2",
             ].join(" ")}
           >
@@ -437,7 +438,7 @@ export default function DistractionFreeEditor({
       )}
 
       {!isEditable && (
-        <div className="hidden md:flex justify-end items-center gap-2">
+        <div className="hidden md:flex justify-end items-center gap-2 sticky top-2 lg:top-4 z-[60] bg-white/90 dark:bg-[#121212]/90 backdrop-blur-md p-2 rounded-2xl shadow-sm border border-[#e0ddd5] dark:border-[#2a2a2a]">
           <ZoomControl />
           {!isSandbox && (
             <button
@@ -464,7 +465,7 @@ export default function DistractionFreeEditor({
             {placeholder}
           </div>
         )}
-        <EditorContent editor={editor} className="mt-2 pb-10" />
+        <EditorContent editor={editor} className="mt-0 pb-10" />
       </div>
     </div>
   );

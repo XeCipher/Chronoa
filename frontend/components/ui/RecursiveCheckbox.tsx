@@ -101,9 +101,10 @@ export default function RecursiveCheckbox({
     }
   }, [task.is_collapsed, optimisticCollapsed]);
 
+  // Disable Draggable bindings entirely inside sandbox to prevent overlapping glitch
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ 
     id: task.id,
-    disabled: viewMode !== 'focus' 
+    disabled: viewMode !== 'focus' || isSandbox 
   });
   
   const sortableStyle = {
@@ -265,7 +266,6 @@ export default function RecursiveCheckbox({
   const isMenuOpen = activeTaskIdWithMenu === task.id;
 
   const showManagementActions = viewMode === 'focus' && (isNormal || (isRoutine && isEditMode));
-  // Removed strict condition that hid Add To Calendar inside Routines
   const showFocusOptions = viewMode === 'focus';
   
   const hasChildren = task.children && task.children.length > 0;
@@ -490,7 +490,7 @@ export default function RecursiveCheckbox({
         className={`group relative flex items-center gap-3 py-[7px] px-3 rounded-xl transition-all duration-150 ${activeColorStyle} ${isMenuOpen ? "z-10" : ""}`}
       >
         
-        {viewMode === 'focus' && (
+        {viewMode === 'focus' && !isSandbox && (
           <div 
             {...attributes} 
             {...listeners} 
@@ -675,7 +675,7 @@ export default function RecursiveCheckbox({
 
       {!isFlatList && !isCollapsed && hasChildren && (
         <div className="ml-[34px] mt-[1px] mb-[2px] pl-4 border-l border-[#ebe8e2] dark:border-[#2a2a2a] space-y-[1px]">
-          {viewMode === 'focus' ? (
+          {viewMode === 'focus' && !isSandbox ? (
             <SortableContext items={task.children!.map(c => c.id)} strategy={verticalListSortingStrategy}>
               {renderChildren()}
             </SortableContext>

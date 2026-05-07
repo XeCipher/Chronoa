@@ -8,7 +8,7 @@ import { motion } from "framer-motion";
 import { LandingNav, useGoogleLogin } from "@/components/landing/LandingNav";
 import { MockHomeSandbox, MockTaskSandbox, MockTimeSandbox, MockCalendarSandbox, MockNotesSandbox, MockAnalyticsSandbox } from "@/components/landing/Sandboxes";
 import { DownloadsSection } from "@/components/landing/Downloads";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Sparkles } from "lucide-react";
 
 const FadeIn = ({ children, delay = 0 }: { children: React.ReactNode, delay?: number }) => (
   <motion.div
@@ -116,13 +116,37 @@ export default function LandingPage() {
           <DownloadsSection />
         </FadeIn>
 
-        {/* Final CTA */}
+        {/* Final CTA Redesign */}
         <FadeIn>
-          <div className="w-full text-center py-16 md:py-20 bg-[#c2956e]/5 dark:bg-[#b0855f]/10 rounded-[2.5rem] md:rounded-[3rem] border border-[#c2956e]/20 px-4">
-            <h3 className="text-3xl sm:text-4xl md:text-5xl font-serif mb-4 md:mb-6 text-[#3d3b33] dark:text-white">Your journey starts here.</h3>
-            <button onClick={handleLogin} disabled={isLoggingIn} className="px-8 md:px-10 py-3.5 md:py-4 bg-[#c2956e] text-white rounded-full text-xs md:text-sm font-bold uppercase tracking-widest hover:bg-[#b0855f] hover:scale-105 transition-all shadow-xl disabled:opacity-50">
-               {isLoggingIn ? 'Launching...' : 'Launch App'}
-            </button>
+          <div className="relative w-full text-center py-20 md:py-28 bg-[#fdfbf7] dark:bg-[#161616] rounded-[2.5rem] md:rounded-[4rem] border border-[#e0ddd5] dark:border-[#333] px-4 shadow-xl overflow-hidden isolate">
+            <div className="absolute inset-0 z-0 opacity-40 mix-blend-multiply dark:mix-blend-screen pointer-events-none">
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-[radial-gradient(circle,rgba(194,149,110,0.15)_0%,transparent_60%)]" />
+              <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-[radial-gradient(circle,rgba(168,130,194,0.1)_0%,transparent_60%)]" />
+            </div>
+            
+            <div className="relative z-10 flex flex-col items-center">
+              <div className="w-16 h-16 bg-[#c2956e]/10 text-[#c2956e] dark:bg-[#b0855f]/20 dark:text-[#d1a784] rounded-full flex items-center justify-center mb-8 shadow-sm">
+                <Sparkles size={32} />
+              </div>
+              <h3 className="text-4xl md:text-6xl font-serif mb-6 text-[#3d3b33] dark:text-white leading-tight">Your journey<br/> starts here.</h3>
+              <p className="text-[#888] dark:text-[#a0a0a0] max-w-md mx-auto mb-10 text-sm md:text-base leading-relaxed">
+                 Eliminate distractions. Bring your focus, planning, and reflection into one beautifully synced ecosystem.
+              </p>
+              <button 
+                onClick={handleLogin} 
+                disabled={isLoggingIn} 
+                className="group relative flex items-center justify-center gap-3 px-10 py-4 bg-[#c2956e] text-white rounded-2xl text-xs md:text-sm font-bold uppercase tracking-widest hover:bg-[#b0855f] hover:shadow-[0_10px_40px_rgba(194,149,110,0.5)] hover:-translate-y-1 transition-all duration-300 disabled:opacity-50 overflow-hidden"
+              >
+                <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out" />
+                {isLoggingIn ? (
+                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin relative z-10" />
+                ) : (
+                  <span className="relative z-10 flex items-center gap-3">
+                     Launch App <ArrowRight size={18} className="group-hover:translate-x-1.5 transition-transform" />
+                  </span>
+                )}
+              </button>
+            </div>
           </div>
         </FadeIn>
       </main>

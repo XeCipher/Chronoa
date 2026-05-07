@@ -49,11 +49,11 @@ export function LandingNav() {
 
   return (
     <nav className={`fixed top-0 left-0 w-full z-[100] transition-all duration-500 ${scrolled ? 'bg-white/30 dark:bg-[#121212]/40 backdrop-blur-xl border-none shadow-none' : 'bg-transparent border-transparent'}`}>
-      <div className="max-w-7xl mx-auto px-6 md:px-10 h-20 flex items-center justify-between">
-        <div className="flex items-center gap-2.5">
-          <img src="/icon-light.svg" className="w-8 h-8 dark:hidden" alt="Chronoa Logo" />
-          <img src="/icon-dark.svg" className="w-8 h-8 hidden dark:block" alt="Chronoa Logo" />
-          <h1 className="text-3xl text-[#3d3b33] dark:text-[#e0e0e0] font-serif font-medium tracking-tight cursor-default hidden sm:block">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-10 h-20 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <img src="/icon-light.svg" className="w-10 h-10 dark:hidden" alt="Chronoa Logo" />
+          <img src="/icon-dark.svg" className="w-10 h-10 hidden dark:block" alt="Chronoa Logo" />
+          <h1 className="text-2xl sm:text-3xl text-[#3d3b33] dark:text-[#e0e0e0] font-serif font-medium tracking-tight cursor-default block">
             Chronoa
           </h1>
         </div>
@@ -64,8 +64,8 @@ export function LandingNav() {
           <a href="https://github.com/XeCipher/Chronoa" target="_blank" rel="noreferrer" className="flex w-10 h-10 items-center justify-center rounded-full text-[#888] hover:text-[#3d3b33] dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/5 transition-all">
             <GithubIcon size={20} />
           </a>
-          <button onClick={handleLogin} disabled={isLoggingIn} className="ml-2 sm:ml-0 px-5 md:px-6 py-2.5 bg-[#1a1a1a] dark:bg-white text-white dark:text-[#1a1a1a] rounded-full text-[10px] md:text-[11px] font-bold uppercase tracking-widest hover:scale-105 transition-transform shadow-lg disabled:opacity-50">
-            {isLoggingIn ? 'Loading...' : 'Launch App'}
+          <button onClick={handleLogin} disabled={isLoggingIn} className="ml-1 sm:ml-0 px-4 sm:px-5 md:px-6 py-2.5 bg-[#1a1a1a] dark:bg-white text-white dark:text-[#1a1a1a] rounded-full text-[10px] md:text-[11px] font-bold uppercase tracking-widest hover:scale-105 transition-transform shadow-lg disabled:opacity-50">
+            {isLoggingIn ? 'Loading...' : <><span className="sm:hidden">Launch</span><span className="hidden sm:inline">Launch App</span></>}
           </button>
         </div>
       </div>
