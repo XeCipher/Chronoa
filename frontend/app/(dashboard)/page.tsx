@@ -36,12 +36,12 @@ export default function LandingPage() {
           initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 1, ease: "easeOut" }}
           className="z-10 flex flex-col items-center text-center max-w-3xl"
         >
-          <h1 className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-serif tracking-tight leading-none mb-6 md:mb-8">
-            Everything in one place. <br/>
-            <span className="text-[#c2956e] dark:text-[#b0855f]">Synchronized everywhere.</span>
+          <h1 className="text-6xl sm:text-7xl md:text-8xl font-serif tracking-tight leading-none mb-6 md:mb-8">
+            Your aesthetic workspace. <br/>
+            <span className="text-[#c2956e] dark:text-[#b0855f]">Completely synced.</span>
           </h1>
           <p className="text-xs sm:text-sm md:text-base text-[#888] dark:text-[#a0a0a0] mb-10 md:mb-12 max-w-xl mx-auto leading-relaxed px-2">
-            Your tasks, notes, calendar, and timers—unified in one gorgeous, aesthetic workspace. Track your deep work, analyze your focus patterns, and stay seamlessly in sync across all your devices.
+            Your tasks, notes, calendar, and timers—unified in one gorgeous workspace. Track your deep work, analyze your focus patterns, and stay seamlessly in sync across all your devices.
           </p>
           <button
             onClick={handleLogin} disabled={isLoggingIn}

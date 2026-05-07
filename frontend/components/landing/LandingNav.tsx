@@ -33,7 +33,7 @@ export function LandingNav() {
   const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 50);
+    const onScroll = () => setScrolled(window.scrollY > 20);
     window.addEventListener("scroll", onScroll);
     return () => window.removeEventListener("scroll", onScroll);
   },[]);
@@ -45,7 +45,7 @@ export function LandingNav() {
   };
 
   return (
-    <nav className={`fixed top-0 left-0 w-full z-[100] transition-all duration-500 ${scrolled ? 'bg-white/80 dark:bg-[#121212]/80 backdrop-blur-2xl shadow-sm border-b border-[#e0ddd5] dark:border-[#333]' : 'bg-transparent border-transparent'}`}>
+    <nav className={`fixed top-0 left-0 w-full z-[100] transition-all duration-300 ${scrolled ? 'bg-white/60 dark:bg-[#121212]/60 backdrop-blur-2xl shadow-sm border-b border-[#e0ddd5] dark:border-[#333]' : 'bg-transparent border-transparent'}`}>
       <div className="max-w-7xl mx-auto px-6 md:px-10 h-20 flex items-center justify-between">
         <h1 className="text-3xl text-[#3d3b33] dark:text-[#e0e0e0] font-serif font-medium tracking-tight cursor-default">
           Chronoa
@@ -67,6 +67,5 @@ export function LandingNav() {
 }
 
 export function LandingScenery({ timeOfDay }: { timeOfDay: 'dawn' | 'day' | 'dusk' | 'night' }) {
-  // Not heavily used directly anymore due to the explicitly isolated sandbox approach below, but keeping it structurally compliant.
   return null;
 }
