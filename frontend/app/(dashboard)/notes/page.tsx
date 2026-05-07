@@ -1,4 +1,4 @@
-// FILE: frontend/app/(dashboard)/notes/page.tsx
+// frontend/app/(dashboard)/notes/page.tsx
 "use client";
 
 import { useEffect, useState, useMemo, useCallback, useRef } from "react";

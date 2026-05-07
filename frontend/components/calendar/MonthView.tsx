@@ -1,4 +1,4 @@
-// FILE: frontend/components/calendar/MonthView.tsx
+// frontend/components/calendar/MonthView.tsx
 "use client";
 
 import { useMemo, useEffect, useState, useRef } from "react";

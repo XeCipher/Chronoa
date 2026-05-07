@@ -1,4 +1,4 @@
-// FILE: frontend/lib/icsParser.ts
+// frontend/lib/icsParser.ts
 import { CalendarEvent } from "@/types/app.types";
 import { supabase } from "@/lib/supabase";
 
