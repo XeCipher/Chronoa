@@ -25,6 +25,7 @@ interface EditorProps {
   onSave: (content: string) => void;
   noteType?: "notes" | "journal";
   entryDate?: string;
+  isSandbox?: boolean;
 }
 
 type ActiveStates = {
@@ -54,6 +55,7 @@ export default function DistractionFreeEditor({
   onSave,
   noteType = "notes",
   entryDate,
+  isSandbox = false,
 }: EditorProps) {
   const { journalZoom, setJournalZoom, isEditorFullscreen, toggleEditorFullscreen } = useUiStore();
   const [saveStatus, setSaveStatus] = useState("Saved");
@@ -101,7 +103,7 @@ export default function DistractionFreeEditor({
     editorProps: {
       attributes: {
         class:
-          "chronoa-editor focus:outline-none w-full min-h-[500px] text-[#3d3b33] dark:text-[#e0e0e0]",
+          "chronoa-editor focus:outline-none w-full min-h-[150px] md:min-h-[300px] text-[#3d3b33] dark:text-[#e0e0e0]",
         spellcheck: "false",
       },
     },
@@ -394,7 +396,6 @@ export default function DistractionFreeEditor({
           <div
             className={[
               "hidden md:flex",
-              "md:sticky md:top-0 md:z-[100]",
               "md:p-2 md:border md:border-[#e0ddd5] md:dark:border-[#2a2a2a] md:rounded-2xl",
               "md:bg-white/95 md:dark:bg-[#121212]/95 md:backdrop-blur-md",
               "md:shadow-[0_2px_16px_0_rgba(0,0,0,0.07)] md:dark:shadow-[0_2px_16px_0_rgba(0,0,0,0.4)]",
@@ -420,14 +421,16 @@ export default function DistractionFreeEditor({
                 {saveStatus}
               </span>
               <ZoomControl preventFocus />
-              <button
-                onMouseDown={(e) => { e.preventDefault(); toggleEditorFullscreen(); }}
-                className="flex items-center justify-center w-[30px] h-[30px] md:w-8 md:h-8 rounded-xl bg-[#f7f5f0] dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#2a2a2a] text-[#888] hover:text-[#c2956e] dark:hover:text-[#d1a784] shadow-sm transition-colors shrink-0"
-                data-tooltip-id="global-tooltip"
-                data-tooltip-content={isEditorFullscreen ? "Exit Fullscreen" : "Fullscreen"}
-              >
-                {isEditorFullscreen ? <Minimize size={14} /> : <Maximize size={14} />}
-              </button>
+              {!isSandbox && (
+                <button
+                  onMouseDown={(e) => { e.preventDefault(); toggleEditorFullscreen(); }}
+                  className="flex items-center justify-center w-[30px] h-[30px] md:w-8 md:h-8 rounded-xl bg-[#f7f5f0] dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#2a2a2a] text-[#888] hover:text-[#c2956e] dark:hover:text-[#d1a784] shadow-sm transition-colors shrink-0"
+                  data-tooltip-id="global-tooltip"
+                  data-tooltip-content={isEditorFullscreen ? "Exit Fullscreen" : "Fullscreen"}
+                >
+                  {isEditorFullscreen ? <Minimize size={14} /> : <Maximize size={14} />}
+                </button>
+              )}
             </div>
           </div>
         </>
@@ -436,14 +439,16 @@ export default function DistractionFreeEditor({
       {!isEditable && (
         <div className="hidden md:flex justify-end items-center gap-2">
           <ZoomControl />
-          <button
-             onMouseDown={(e) => { e.preventDefault(); toggleEditorFullscreen(); }}
-             className="flex items-center justify-center w-[30px] h-[30px] md:w-8 md:h-8 rounded-xl bg-[#f7f5f0] dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#2a2a2a] text-[#888] hover:text-[#c2956e] dark:hover:text-[#d1a784] shadow-sm transition-colors shrink-0"
-             data-tooltip-id="global-tooltip"
-             data-tooltip-content={isEditorFullscreen ? "Exit Fullscreen" : "Fullscreen"}
-          >
-             {isEditorFullscreen ? <Minimize size={14} /> : <Maximize size={14} />}
-          </button>
+          {!isSandbox && (
+            <button
+               onMouseDown={(e) => { e.preventDefault(); toggleEditorFullscreen(); }}
+               className="flex items-center justify-center w-[30px] h-[30px] md:w-8 md:h-8 rounded-xl bg-[#f7f5f0] dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#2a2a2a] text-[#888] hover:text-[#c2956e] dark:hover:text-[#d1a784] shadow-sm transition-colors shrink-0"
+               data-tooltip-id="global-tooltip"
+               data-tooltip-content={isEditorFullscreen ? "Exit Fullscreen" : "Fullscreen"}
+            >
+               {isEditorFullscreen ? <Minimize size={14} /> : <Maximize size={14} />}
+            </button>
+          )}
         </div>
       )}
 

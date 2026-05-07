@@ -1,6 +1,9 @@
-// frontend/app/(dashboard)/page.tsx
+// frontend/app/page.tsx
 "use client";
 
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { supabase } from "@/lib/supabase";
 import { motion } from "framer-motion";
 import { LandingNav, useGoogleLogin } from "@/components/landing/LandingNav";
 import { MockHomeSandbox, MockTaskSandbox, MockTimeSandbox, MockCalendarSandbox, MockNotesSandbox, MockAnalyticsSandbox } from "@/components/landing/Sandboxes";
@@ -20,7 +23,17 @@ const FadeIn = ({ children, delay = 0 }: { children: React.ReactNode, delay?: nu
 );
 
 export default function LandingPage() {
+  const router = useRouter();
   const { handleLogin, isLoggingIn } = useGoogleLogin();
+
+  // Redirect to home if user is already logged in
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) {
+        router.replace('/home');
+      }
+    });
+  }, [router]);
 
   return (
     <div className="min-h-screen bg-[#f7f5f0] dark:bg-[#121212] text-[#3d3b33] dark:text-[#f0f0f0] overflow-x-hidden selection:bg-[#c2956e]/30 dark:selection:bg-[#b0855f]/40 relative">
@@ -36,7 +49,7 @@ export default function LandingPage() {
 
         <motion.div 
           initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 1, ease: "easeOut" }}
-          className="z-10 flex flex-col items-center text-center max-w-3xl translate-y-6"
+          className="z-10 flex flex-col items-center text-center max-w-3xl -translate-y-8"
         >
           <h1 className="text-6xl sm:text-7xl md:text-8xl font-serif tracking-tight leading-none mb-6 md:mb-8">
             Your aesthetic workspace. <br/>

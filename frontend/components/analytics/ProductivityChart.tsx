@@ -15,7 +15,7 @@ const getSaturday = (date: Date) => {
   return d;
 };
 
-export default function ProductivityChart({ dailyMap }: { dailyMap: Record<string, DailyRecord> }) {
+export default function ProductivityChart({ dailyMap, isSandbox = false }: { dailyMap: Record<string, DailyRecord>, isSandbox?: boolean }) {
   const { theme } = useUiStore();
   const isDark = theme === 'dark' || (theme === 'system' && typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches);
 
@@ -29,6 +29,8 @@ export default function ProductivityChart({ dailyMap }: { dailyMap: Record<strin
   const [showCalendar, setShowCalendar] = useState(false);
   const [calMonth, setCalMonth] = useState<Date>(new Date());
   const calRef = useRef<HTMLDivElement>(null);
+  
+  const [weeksBack, setWeeksBack] = useState(0);
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 768);
@@ -46,6 +48,7 @@ export default function ProductivityChart({ dailyMap }: { dailyMap: Record<strin
   }, []);
 
   const handlePrev = () => {
+    if (isSandbox && weeksBack >= 3) return;
     if (endDate.getTime() === today.getTime()) {
       const prevSat = new Date(currentSaturday);
       prevSat.setDate(prevSat.getDate() - 7);
@@ -55,6 +58,7 @@ export default function ProductivityChart({ dailyMap }: { dailyMap: Record<strin
       newEnd.setDate(endDate.getDate() - 7);
       setEndDate(newEnd);
     }
+    setWeeksBack(prev => prev + 1);
   };
 
   const handleNext = () => {
@@ -62,6 +66,7 @@ export default function ProductivityChart({ dailyMap }: { dailyMap: Record<strin
     newEnd.setDate(endDate.getDate() + 7);
     if (newEnd >= today) setEndDate(today);
     else setEndDate(newEnd);
+    setWeeksBack(prev => Math.max(0, prev - 1));
   };
 
   const handleDateSelect = (date: Date) => {
@@ -190,7 +195,7 @@ export default function ProductivityChart({ dailyMap }: { dailyMap: Record<strin
         </div>
         
         <div className="flex items-center gap-2 relative">
-           {endDate.getTime() !== today.getTime() && (
+           {!isSandbox && endDate.getTime() !== today.getTime() && (
              <button 
                onClick={() => setEndDate(today)} 
                className="flex items-center justify-center p-2 rounded-xl bg-[#c2956e]/10 text-[#c2956e] hover:bg-[#c2956e] hover:text-white transition-colors shrink-0"
@@ -199,9 +204,11 @@ export default function ProductivityChart({ dailyMap }: { dailyMap: Record<strin
                <Target size={16} />
              </button>
            )}
-           <button onClick={() => setShowCalendar(!showCalendar)} className={`p-2 rounded-xl border transition-colors ${showCalendar ? 'bg-[#c2956e] text-white border-[#c2956e]' : 'bg-[#f7f5f0] dark:bg-[#222] text-[#888] border-[#e0ddd5] dark:border-[#333] hover:text-[#c2956e]'}`}>
-              {showCalendar ? <X size={16} /> : <CalIcon size={16}/>}
-           </button>
+           {!isSandbox && (
+             <button onClick={() => setShowCalendar(!showCalendar)} className={`p-2 rounded-xl border transition-colors ${showCalendar ? 'bg-[#c2956e] text-white border-[#c2956e]' : 'bg-[#f7f5f0] dark:bg-[#222] text-[#888] border-[#e0ddd5] dark:border-[#333] hover:text-[#c2956e]'}`}>
+                {showCalendar ? <X size={16} /> : <CalIcon size={16}/>}
+             </button>
+           )}
            {showCalendar && renderCalendar()}
 
            <div className="flex items-center bg-[#f7f5f0] dark:bg-[#222] rounded-xl p-0.5 border border-[#e0ddd5] dark:border-[#333]">

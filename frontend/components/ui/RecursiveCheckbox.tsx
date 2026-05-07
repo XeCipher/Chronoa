@@ -265,7 +265,8 @@ export default function RecursiveCheckbox({
   const isMenuOpen = activeTaskIdWithMenu === task.id;
 
   const showManagementActions = viewMode === 'focus' && (isNormal || (isRoutine && isEditMode));
-  const showFocusOptions = viewMode === 'focus' && !(isRoutine && isEditMode);
+  // Removed strict condition that hid Add To Calendar inside Routines
+  const showFocusOptions = viewMode === 'focus';
   
   const hasChildren = task.children && task.children.length > 0;
   const showKeepAliveToggle = showManagementActions && hasChildren;

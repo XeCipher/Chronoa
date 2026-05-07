@@ -5,10 +5,8 @@ import { useState, useEffect, useMemo } from "react";
 import RecursiveCheckbox from "@/components/ui/RecursiveCheckbox";
 import WeekView from "@/components/calendar/WeekView";
 import DistractionFreeEditor from "@/components/notes/DistractionFreeEditor";
-import ProductivityWidgets from "@/components/home/ProductivityWidgets";
 import { initialMockTasks, generateMockEvents, generateMockDailyMap, generateMockSessions } from "./MockData";
-import { CheckCircle2, ListTodo, Cloud, Sun, Moon, CloudSun, CloudMoon, CloudRain, CloudDrizzle, Snowflake, CloudLightning, Wind, MapPin, Plus } from "lucide-react";
-import { useTimerStore } from "@/store/timerStore";
+import { CheckCircle2, ListTodo, Cloud, Sun, Moon, CloudSun, CloudMoon, CloudRain, CloudDrizzle, Snowflake, CloudLightning, Wind, MapPin, Plus, Play, Pause, Square } from "lucide-react";
 import { Task, CalendarEvent } from "@/types/app.types";
 
 import ProductivityChart from "@/components/analytics/ProductivityChart";
@@ -247,32 +245,6 @@ function ExpandedMockTasksProgressWidget({ routinePct, normalLeft }: { routinePc
   );
 }
 
-function MockGlobalTimeWidget() {
-  const [time, setTime] = useState<Date | null>(null);
-  const store = useTimerStore();
-  const hasRunning = store.timers.some(t => t.isRunning) || store.stopwatches.some(s => s.isRunning);
-  
-  useEffect(() => {
-    setTime(new Date());
-    const timer = setInterval(() => setTime(new Date()), 1000);
-    return () => clearInterval(timer);
-  }, []);
-
-  if (!time) return null;
-
-  return (
-    <div className="absolute bottom-6 right-6 md:bottom-8 md:right-8 flex items-center gap-3 bg-white/70 dark:bg-[#1a1a1a]/80 backdrop-blur-xl border border-[#e0ddd5] dark:border-[#333] rounded-2xl px-4 md:px-6 py-2.5 md:py-3.5 shadow-lg pointer-events-none scale-75 md:scale-100 origin-bottom-right z-30 transition-all">
-      <span className="text-[#3d3b33] dark:text-[#f0f0f0] font-serif text-lg md:text-xl leading-none">
-        {time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-      </span>
-      <div className={`relative z-10 rounded-full transition-all duration-500 ${hasRunning ? 'w-2.5 h-2.5 bg-red-500 animate-pulse shadow-[0_0_8px_rgba(239,68,68,0.8)]' : 'w-[3px] h-3.5 bg-[#c2956e] dark:bg-[#b0855f]'}`} />
-      <span className="text-[#b0ad9a] dark:text-[#888] font-bold text-[8px] md:text-[10px] uppercase tracking-[0.2em] leading-none mt-0.5">
-        {time.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' })}
-      </span>
-    </div>
-  );
-}
-
 export function MockHomeSandbox() {
   const [isDark, setIsDark] = useState(false);
   const [timeOfDay, setTimeOfDay] = useState<'dawn'|'day'|'dusk'|'night'>('day');
@@ -447,12 +419,12 @@ export function MockTaskSandbox() {
         </p>
       </div>
 
-      <div className="flex flex-col lg:flex-row gap-6 items-start w-full h-auto lg:h-[600px]">
+      <div className="flex flex-col lg:flex-row gap-6 items-start w-full">
         {/* Left Col: Widget + Routines */}
-        <div className="w-full lg:w-1/2 flex flex-col gap-6 h-[500px] lg:h-full">
+        <div className="w-full lg:w-1/2 flex flex-col gap-6 h-auto">
           <ExpandedMockTasksProgressWidget routinePct={stats.routinePct} normalLeft={stats.normalLeft} />
           
-          <div className="flex-1 flex flex-col bg-white/70 dark:bg-[#1a1a1a]/80 backdrop-blur-sm border border-[#ebe8e2] dark:border-[#333] rounded-[28px] overflow-hidden shadow-sm min-h-0">
+          <div className="flex-1 flex flex-col bg-white/70 dark:bg-[#1a1a1a]/80 backdrop-blur-sm border border-[#ebe8e2] dark:border-[#333] rounded-[28px] overflow-hidden shadow-sm h-auto max-h-[400px] lg:max-h-[500px]">
             <div className="px-5 md:px-8 pt-6 md:pt-8 pb-4 border-b border-[#f0ede8] dark:border-[#2a2a2a] flex flex-col gap-3 shrink-0">
                <div className="flex justify-between items-center">
                    <h2 className="text-[22px] md:text-[26px] text-[#3d3b33] dark:text-[#f0f0f0] font-serif font-medium tracking-tight">Routines</h2>
@@ -461,14 +433,14 @@ export function MockTaskSandbox() {
             </div>
             <div className="flex-1 overflow-y-auto no-scrollbar p-4 md:p-5 space-y-[2px]">
                {routines.map(t => (
-                 <RecursiveCheckbox key={t.id} task={t} isEditMode={true} viewMode="focus" allTasks={tasks} onUpdate={onUpdate} onDelete={(id) => onDelete(id)} onRestore={() => {}} onAdd={(pId) => onAdd('routine', pId)} onIndent={onIndent} onUnindent={onUnindent} onMoveUp={() => {}} onMoveDown={() => {}} newTaskId={null} setNewTaskId={() => {}} isSandbox={true} />
+                 <RecursiveCheckbox key={t.id} task={t} isEditMode={false} viewMode="focus" allTasks={tasks} onUpdate={onUpdate} onDelete={(id) => onDelete(id)} onRestore={() => {}} onAdd={(pId) => onAdd('routine', pId)} onIndent={onIndent} onUnindent={onUnindent} onMoveUp={() => {}} onMoveDown={() => {}} newTaskId={null} setNewTaskId={() => {}} isSandbox={true} />
                ))}
             </div>
           </div>
         </div>
 
         {/* Right Col: Tasks Window */}
-        <div className="w-full lg:w-1/2 flex flex-col h-[500px] lg:h-full bg-white/70 dark:bg-[#1a1a1a]/80 backdrop-blur-sm border border-[#ebe8e2] dark:border-[#333] rounded-[28px] overflow-hidden shadow-sm">
+        <div className="w-full lg:w-1/2 flex flex-col h-auto max-h-[400px] lg:max-h-[500px] bg-white/70 dark:bg-[#1a1a1a]/80 backdrop-blur-sm border border-[#ebe8e2] dark:border-[#333] rounded-[28px] overflow-hidden shadow-sm">
           <div className="px-5 md:px-8 pt-6 md:pt-8 pb-4 border-b border-[#f0ede8] dark:border-[#2a2a2a] flex flex-col gap-3 shrink-0">
              <div className="flex justify-between items-center">
                  <h2 className="text-[22px] md:text-[26px] text-[#3d3b33] dark:text-[#f0f0f0] font-serif font-medium tracking-tight">Tasks & Ideas</h2>
@@ -486,34 +458,118 @@ export function MockTaskSandbox() {
   );
 }
 
-export function MockTimeSandbox() {
-  const [highlight, setHighlight] = useState(false);
+// Local isolated implementation for the time sandbox
+function MockEngineCard({ engine, tab, onUpdate, onRemove }: any) {
+  const [liveSeconds, setLiveSeconds] = useState(engine.accumulatedSeconds);
 
   useEffect(() => {
-    useTimerStore.setState({
-      timers:[{ id: 'mock-1', title: 'Deep Work Block', targetMinutes: 25, accumulatedSeconds: 0, isRunning: false, startTime: null }],
-      stopwatches:[{ id: 'mock-2', title: 'Reading Documentation', accumulatedSeconds: 900, isRunning: true, startTime: Date.now() }], 
-      activeTab: 'stopwatch'
-    });
-  },[]);
+    let interval: NodeJS.Timeout;
+    if (engine.isRunning && engine.startTime) {
+      interval = setInterval(() => {
+        const elapsed = Math.floor((Date.now() - engine.startTime!) / 1000);
+        setLiveSeconds(engine.accumulatedSeconds + elapsed);
+      }, 500);
+    } else {
+      setLiveSeconds(engine.accumulatedSeconds);
+    }
+    return () => clearInterval(interval);
+  }, [engine.isRunning, engine.startTime, engine.accumulatedSeconds]);
+
+  const handleStop = () => {
+    const finalSeconds = engine.accumulatedSeconds + Math.floor((Date.now() - (engine.startTime || Date.now())) / 1000);
+    onUpdate(engine.id, { isRunning: false, accumulatedSeconds: finalSeconds, startTime: null });
+  };
+
+  const handleStart = () => {
+    onUpdate(engine.id, { isRunning: true, startTime: Date.now() });
+  };
+
+  const formatTime = (totalSeconds: number) => {
+    const h = Math.floor(totalSeconds / 3600);
+    const m = Math.floor((totalSeconds % 3600) / 60);
+    const s = totalSeconds % 60;
+    if (h > 0) return `${h}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+    return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+  };
+
+  const currentDisplaySeconds = tab === 'timer' 
+    ? Math.max(0, ((engine.targetMinutes || 0) * 60) - liveSeconds)
+    : liveSeconds;
+
+  return (
+    <div className="relative shrink-0 w-[24rem] max-w-[85vw] bg-white/60 dark:bg-[#1e1e1e]/80 backdrop-blur-3xl border border-[#e0ddd5] dark:border-[#333] rounded-[2.5rem] p-6 shadow-xl dark:shadow-[0_10px_40px_rgba(0,0,0,0.5)] flex flex-col gap-5 transition-colors snap-center group">
+      <div className="flex items-center justify-between px-2 pt-2">
+        <div className="flex flex-col">
+          <div className="text-[3.5rem] sm:text-[4rem] leading-none text-[#3d3b33] dark:text-[#f0f0f0] font-mono tracking-tighter font-light drop-shadow-sm transition-colors">
+            {formatTime(currentDisplaySeconds)}
+          </div>
+        </div>
+        <div className="flex items-center gap-3">
+          {(engine.accumulatedSeconds > 0 || engine.isRunning) && (
+            <button onClick={handleStop} className="w-12 h-12 flex items-center justify-center bg-white/60 dark:bg-black/60 border border-white/80 dark:border-white/10 text-red-500 rounded-full md:hover:scale-105 active:scale-95 transition-all shadow-sm md:hover:bg-white md:dark:hover:bg-black">
+              <Square size={18} fill="currentColor" />
+            </button>
+          )}
+          <button 
+            onClick={engine.isRunning ? handleStop : handleStart}
+            className="w-14 h-14 flex items-center justify-center bg-[#3d3b33] dark:bg-[#f0f0f0] text-white dark:text-[#121212] rounded-full md:hover:scale-105 active:scale-95 transition-all shadow-lg md:hover:bg-black md:dark:hover:bg-white"
+          >
+            {engine.isRunning ? <Pause size={22} fill="currentColor" /> : <Play size={22} fill="currentColor" className="ml-1" />}
+          </button>
+        </div>
+      </div>
+      <div className="flex gap-2">
+        <input 
+          type="text" value={engine.title} onChange={(e) => onUpdate(engine.id, { title: e.target.value })}
+          spellCheck={false}
+          className="flex-1 bg-white/40 dark:bg-black/40 border border-transparent rounded-2xl px-5 py-3 text-sm font-medium text-[#3d3b33] dark:text-white outline-none focus:bg-white/70 dark:focus:bg-black/60 focus:border-white dark:focus:border-white/20 transition-all placeholder:text-[#888] dark:placeholder:text-[#aaa] placeholder:font-normal shadow-inner shadow-black/5"
+          placeholder="What are you focusing on?"
+        />
+        {tab === 'timer' && (
+          <input 
+            type="number" min="1"
+            value={engine.targetMinutes || 1} 
+            onChange={(e) => onUpdate(engine.id, { targetMinutes: Math.max(1, parseInt(e.target.value) || 1) })}
+            disabled={engine.isRunning || engine.accumulatedSeconds > 0} 
+            className={`w-20 bg-white/40 dark:bg-black/40 border border-transparent rounded-2xl px-2 py-3 text-center text-sm font-bold text-[#3d3b33] dark:text-white outline-none focus:bg-white/70 dark:focus:bg-black/60 focus:border-white dark:focus:border-white/20 transition-all shadow-inner shadow-black/5 ${
+              (engine.isRunning || engine.accumulatedSeconds > 0) ? 'opacity-40 cursor-not-allowed select-none' : ''
+            }`}
+            placeholder="Min"
+          />
+        )}
+      </div>
+    </div>
+  );
+}
+
+export function MockTimeSandbox() {
+  const [highlight, setHighlight] = useState(false);
+  const [activeTab, setActiveTab] = useState<'timer' | 'stopwatch'>('stopwatch');
+  
+  const [timers, setTimers] = useState<any[]>([
+    { id: 'mock-1', title: 'Deep Work Block', targetMinutes: 25, accumulatedSeconds: 0, isRunning: false, startTime: null }
+  ]);
+  
+  const [stopwatches, setStopwatches] = useState<any[]>([
+    { id: 'mock-2', title: 'Reading Documentation', accumulatedSeconds: 900, isRunning: true, startTime: Date.now() }
+  ]);
 
   useEffect(() => {
     const listener = (e: any) => {
        const { tab, title } = e.detail;
-       useTimerStore.setState((state: any) => {
-         const newInstance = {
-           id: `mock-${Date.now()}`,
-           title: title,
-           targetMinutes: tab === 'timer' ? 25 : undefined,
-           accumulatedSeconds: 0,
-           isRunning: false,
-           startTime: null
-         };
-         return {
-           [tab === 'timer' ? 'timers' : 'stopwatches']: [...state[tab === 'timer' ? 'timers' : 'stopwatches'], newInstance],
-           activeTab: tab
-         };
-       });
+       const newInstance = {
+         id: `mock-${Date.now()}`,
+         title: title,
+         targetMinutes: tab === 'timer' ? 25 : undefined,
+         accumulatedSeconds: 0,
+         isRunning: false,
+         startTime: null
+       };
+
+       if (tab === 'timer') setTimers(prev => [...prev, newInstance]);
+       else setStopwatches(prev => [...prev, newInstance]);
+       
+       setActiveTab(tab);
 
        const el = document.getElementById('mock-time-sandbox');
        if (el) {
@@ -529,6 +585,26 @@ export function MockTimeSandbox() {
     return () => window.removeEventListener('sandbox-send-focus', listener);
   }, []);
 
+  const handleUpdate = (id: string, updates: any) => {
+    if (activeTab === 'timer') setTimers(prev => prev.map(t => t.id === id ? { ...t, ...updates } : t));
+    else setStopwatches(prev => prev.map(s => s.id === id ? { ...s, ...updates } : s));
+  };
+
+  const handleAdd = () => {
+    const newInstance = {
+      id: `mock-${Date.now()}`,
+      title: 'New Session',
+      targetMinutes: activeTab === 'timer' ? 25 : undefined,
+      accumulatedSeconds: 0,
+      isRunning: false,
+      startTime: null
+    };
+    if (activeTab === 'timer') setTimers(prev => [...prev, newInstance]);
+    else setStopwatches(prev => [...prev, newInstance]);
+  };
+
+  const activeList = activeTab === 'timer' ? timers : stopwatches;
+
   return (
     <div id="mock-time-sandbox" className={`w-full py-16 bg-[#fdfbf7] dark:bg-[#161616] border border-[#e0ddd5] dark:border-[#333] rounded-[2.5rem] md:rounded-[3rem] my-10 flex flex-col items-center relative shadow-sm min-h-[400px] transition-all duration-500 ${highlight ? 'ring-4 ring-[#c2956e]' : ''}`}>
       <div className="text-center max-w-xl mx-auto mb-10 px-4">
@@ -537,10 +613,39 @@ export function MockTimeSandbox() {
           Aesthetically pleasing, millisecond-accurate timers and stopwatches that synchronize in real-time across your phone and laptop.
         </p>
       </div>
-      <div className="w-full relative z-10 mb-6 md:mb-10">
-        <ProductivityWidgets isVisible={true} isSandbox={true} />
+      
+      <div className="w-full flex flex-col items-center relative z-10 mb-6 md:mb-10">
+        <div className="flex justify-center items-center w-[24rem] max-w-[85vw] mb-4">
+          <div className="flex bg-[#ebe8e2] dark:bg-[#1a1a1a] p-1 rounded-full shadow-inner border border-[#d4d0c8] dark:border-[#333]">
+            {(['stopwatch', 'timer'] as const).map(tab => (
+              <button 
+                key={tab} onClick={() => setActiveTab(tab)}
+                className={`px-5 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all flex items-center gap-1.5 ${activeTab === tab ? 'bg-white dark:bg-[#2a2a2a] text-[#c2956e] dark:text-[#d1a784] shadow-sm' : 'text-[#888] dark:text-[#a0a0a0] md:hover:text-[#3d3b33] md:dark:hover:text-[#f0f0f0]'}`}
+              >
+                {tab} 
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="w-full max-w-full overflow-x-auto no-scrollbar snap-x snap-mandatory flex flex-row pb-8 -mb-8">
+          <div className="flex-1 min-w-0 shrink"></div>
+          <div className="flex gap-4 px-4 sm:px-8 w-max shrink-0">
+            {activeList.map(engine => (
+              <MockEngineCard key={engine.id} engine={engine} tab={activeTab} onUpdate={handleUpdate} />
+            ))}
+            
+            <button 
+              onClick={handleAdd} 
+              className="shrink-0 w-[6rem] sm:w-[8rem] bg-white/60 dark:bg-[#1e1e1e]/80 md:hover:bg-white/80 md:dark:hover:bg-[#2a2a2a]/80 backdrop-blur-3xl border border-[#e0ddd5] dark:border-[#333] rounded-[2.5rem] flex flex-col items-center justify-center gap-3 transition-colors snap-center cursor-pointer shadow-xl dark:shadow-[0_10px_40px_rgba(0,0,0,0.5)]"
+            >
+              <Plus size={28} className="text-[#3d3b33] dark:text-[#f0f0f0]" />
+              <span className="text-[10px] font-bold uppercase tracking-widest text-[#3d3b33] dark:text-[#f0f0f0]">Add</span>
+            </button>
+          </div>
+          <div className="flex-1 min-w-0 shrink"></div>
+        </div>
       </div>
-      <MockGlobalTimeWidget />
     </div>
   );
 }
@@ -626,8 +731,8 @@ export function MockNotesSandbox() {
           Beautiful text formatting that stays out of your way. Zoom in and out instantly with intuitive controls.
         </p>
       </div>
-      <div className="mock-editor-container w-full bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] rounded-[2.5rem] p-6 md:p-12 shadow-2xl h-[350px] md:h-[500px] overflow-y-auto no-scrollbar">
-        <DistractionFreeEditor initialContent={content} onSave={setContent} />
+      <div className="mock-editor-container w-full bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] rounded-[2.5rem] p-4 md:p-10 shadow-2xl h-auto max-h-[500px] overflow-y-auto no-scrollbar">
+        <DistractionFreeEditor initialContent={content} onSave={setContent} isSandbox={true} />
       </div>
     </div>
   );
@@ -648,15 +753,15 @@ export function MockAnalyticsSandbox() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
         <div className="lg:col-span-2">
-          <ProductivityChart dailyMap={dailyMap} />
+          <ProductivityChart dailyMap={dailyMap} isSandbox={true} />
         </div>
         <div className="lg:col-span-1">
-          <TimeOfDayRadar dailyMap={dailyMap} />
+          <TimeOfDayRadar dailyMap={dailyMap} isSandbox={true} />
         </div>
       </div>
       
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
-        <ActivityHeatmap dailyMap={dailyMap} />
+        <ActivityHeatmap dailyMap={dailyMap} isSandbox={true} />
         <FocusDistribution rawSessions={rawSessions} />
       </div>
     </div>

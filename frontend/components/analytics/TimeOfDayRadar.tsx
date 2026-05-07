@@ -6,7 +6,7 @@ import { ResponsiveContainer, Radar, RadarChart, PolarGrid, PolarAngleAxis, Tool
 import { useUiStore } from "@/store/uiStore";
 import { DailyRecord } from '@/app/(dashboard)/analytics/page';
 
-export default function TimeOfDayRadar({ dailyMap }: { dailyMap: Record<string, DailyRecord> }) {
+export default function TimeOfDayRadar({ dailyMap, isSandbox = false }: { dailyMap: Record<string, DailyRecord>, isSandbox?: boolean }) {
   const { theme } = useUiStore();
   const isDark = theme === 'dark' || (theme === 'system' && typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches);
   const [isMobile, setIsMobile] = useState(false);

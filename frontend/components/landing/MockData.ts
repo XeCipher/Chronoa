@@ -7,19 +7,20 @@ export const generateMockDailyMap = () => {
     // Fill all squares but keep some empty (15% completely zero)
     if (Math.random() > 0.85) continue;
     
+    // Relative accurately starting exactly from today so there are no empty gaps
     const d = new Date();
     d.setDate(d.getDate() - i);
     const ymd = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
     
-    // Form a good diamond/polygon shape in radar chart:
-    // Emphasize Morning (6-12) and Afternoon (12-17), lower Evening (17-21) and Night (21-5)
+    // Form a beautiful diamond/kite shape in the radar chart:
+    // Peak at Afternoon, moderate Morning/Evening, very low Night
     const makeTaskDate = () => {
        const newD = new Date(d);
-       const hours = [6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 0];
-       const weights = [2, 3, 6, 9, 12, 11, 8, 10, 11, 9, 7, 5, 4, 3, 2, 1, 1, 0.5, 0.5]; 
+       const hours = [6, 9, 11, 13, 14, 15, 17, 19, 21, 23];
+       const weights = [1, 3, 5, 10, 12, 10, 5, 3, 1, 0.5]; 
        let sum = weights.reduce((a, b) => a + b, 0);
        let r = Math.random() * sum;
-       let h = 10;
+       let h = 14;
        for (let j = 0; j < hours.length; j++) {
          if (r < weights[j]) { h = hours[j]; break; }
          r -= weights[j];
@@ -28,8 +29,6 @@ export const generateMockDailyMap = () => {
        return newD.toISOString();
     };
 
-    // Keep counts low so the heatmap isn't completely dark green everywhere
-    // Level is based on maxCount, so having a few high days makes the rest lighter.
     const taskCount = Math.random() > 0.9 ? Math.floor(Math.random() * 5) + 4 : Math.floor(Math.random() * 3) + 1;
     const focusMins = Math.random() > 0.8 ? Math.floor(Math.random() * 90) + 30 : Math.floor(Math.random() * 30);
 
@@ -71,16 +70,13 @@ export const generateMockEvents = (): CalendarEvent[] => {
   };
 
   return [
-    // Today (Overlapping pair)
     { id: 'c1', title: 'Team Sync', start_time: setTime(today, 10), end_time: setTime(today, 11, 30), color: 'blue', is_all_day: false, is_readonly: false, user_id: 'mock', location: 'Google Meet', created_at: new Date().toISOString() },
     { id: 'c2', title: 'Design Review', start_time: setTime(today, 10, 30), end_time: setTime(today, 12), color: 'purple', is_all_day: false, is_readonly: false, user_id: 'mock', location: 'Zoom', created_at: new Date().toISOString() },
     { id: 'c3', title: 'Deep Work', start_time: setTime(today, 14), end_time: setTime(today, 16), color: 'emerald', is_all_day: false, is_readonly: false, user_id: 'mock', location: 'Home Office', created_at: new Date().toISOString() },
     
-    // Tomorrow
     { id: 'c4', title: 'Dentist Appointment', start_time: setTime(tomorrow, 9), end_time: setTime(tomorrow, 10), color: 'amber', is_all_day: false, is_readonly: false, user_id: 'mock', location: 'City Clinic', created_at: new Date().toISOString() },
     { id: 'c5', title: 'Lunch with Sarah', start_time: setTime(tomorrow, 12, 30), end_time: setTime(tomorrow, 14), color: 'rose', is_all_day: false, is_readonly: false, user_id: 'mock', location: 'Downtown Cafe', created_at: new Date().toISOString() },
     
-    // Day After
     { id: 'c6', title: 'F1 Grand Prix', start_time: setTime(dayAfter, 18), end_time: setTime(dayAfter, 20), color: 'rose', is_all_day: false, is_readonly: false, user_id: 'mock', source_id: 'mock-source', location: 'Silverstone Circuit', created_at: new Date().toISOString() },
     { id: 'c7', title: 'Project Planning', start_time: setTime(dayAfter, 11), end_time: setTime(dayAfter, 13), color: 'blue', is_all_day: false, is_readonly: false, user_id: 'mock', location: 'Office Room B', created_at: new Date().toISOString() },
   ] as CalendarEvent[];

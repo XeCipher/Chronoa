@@ -9,7 +9,7 @@ import { DailyRecord } from '@/app/(dashboard)/analytics/page';
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
-export default function ActivityHeatmap({ dailyMap }: { dailyMap: Record<string, DailyRecord> }) {
+export default function ActivityHeatmap({ dailyMap, isSandbox = false }: { dailyMap: Record<string, DailyRecord>, isSandbox?: boolean }) {
   const { theme } = useUiStore();
   const isDark = theme === 'dark' || (theme === 'system' && typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches);
   
@@ -145,7 +145,7 @@ export default function ActivityHeatmap({ dailyMap }: { dailyMap: Record<string,
         </div>
         
         <div className="flex items-center gap-2 relative">
-          {(endMonth.year !== today.getFullYear() || endMonth.month !== today.getMonth()) && (
+          {!isSandbox && (endMonth.year !== today.getFullYear() || endMonth.month !== today.getMonth()) && (
             <button 
               onClick={() => setEndMonth({ year: today.getFullYear(), month: today.getMonth() })} 
               className="flex items-center justify-center p-2 rounded-xl bg-[#c2956e]/10 text-[#c2956e] hover:bg-[#c2956e] hover:text-white transition-colors shrink-0"
@@ -154,9 +154,11 @@ export default function ActivityHeatmap({ dailyMap }: { dailyMap: Record<string,
               <Target size={16} />
             </button>
           )}
-          <button onClick={() => setShowPicker(!showPicker)} className={`flex items-center gap-2 px-4 py-2 rounded-xl border text-[10px] font-bold uppercase tracking-widest transition-colors ${showPicker ? 'bg-[#c2956e] text-white border-[#c2956e]' : 'bg-[#f7f5f0] dark:bg-[#222] text-[#888] border-[#e0ddd5] dark:border-[#333] hover:text-[#c2956e]'}`}>
-             <CalIcon size={14} /> {MONTHS[endMonth.month]} {endMonth.year}
-          </button>
+          {!isSandbox && (
+            <button onClick={() => setShowPicker(!showPicker)} className={`flex items-center gap-2 px-4 py-2 rounded-xl border text-[10px] font-bold uppercase tracking-widest transition-colors ${showPicker ? 'bg-[#c2956e] text-white border-[#c2956e]' : 'bg-[#f7f5f0] dark:bg-[#222] text-[#888] border-[#e0ddd5] dark:border-[#333] hover:text-[#c2956e]'}`}>
+               <CalIcon size={14} /> {MONTHS[endMonth.month]} {endMonth.year}
+            </button>
+          )}
           {showPicker && renderMonthPicker()}
         </div>
       </div>
