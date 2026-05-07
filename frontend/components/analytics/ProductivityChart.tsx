@@ -185,7 +185,7 @@ export default function ProductivityChart({ dailyMap, isSandbox = false }: { dai
   };
 
   return (
-    <div className="bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] rounded-[2.5rem] p-6 md:p-8 shadow-sm h-[400px] flex flex-col transition-colors relative">
+    <div className="bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] rounded-[2.5rem] p-6 md:p-8 shadow-sm h-[320px] md:h-[400px] flex flex-col transition-colors relative">
       <div className="flex justify-between items-start mb-6">
         <div>
           <h3 className="text-2xl font-medium text-[#3d3b33] dark:text-[#f0f0f0] font-serif tracking-tight">Activity Flow</h3>

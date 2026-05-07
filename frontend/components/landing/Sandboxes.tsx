@@ -33,9 +33,9 @@ function MockLandingScenery({ WTime, isDark }: { WTime: string, isDark: boolean 
         .mock-orb-3 { animation: mockFloat3 25s ease-in-out infinite; }
       `}} />
       <div className="absolute inset-0 w-full h-full" style={{ opacity: isDark ? 1 : 0.8 }}>
-        <div className={`mock-orb-1 absolute top-[-10%] right-[-10%] w-[50vw] h-[50vw] rounded-full filter blur-[100px] md:blur-[140px] transition-colors duration-[3000ms] ${isDark ? 'mix-blend-screen' : 'mix-blend-multiply'}`} style={{ backgroundColor: current.orb1 }} />
-        <div className={`mock-orb-2 absolute bottom-[-20%] left-[-10%] w-[60vw] h-[60vw] rounded-full filter blur-[100px] md:blur-[140px] transition-colors duration-[3000ms] ${isDark ? 'mix-blend-screen' : 'mix-blend-multiply'}`} style={{ backgroundColor: current.orb2 }} />
-        <div className={`mock-orb-3 absolute top-[20%] left-[20%] w-[45vw] h-[45vw] rounded-full filter blur-[100px] md:blur-[140px] transition-colors duration-[3000ms] ${isDark ? 'mix-blend-screen' : 'mix-blend-multiply'}`} style={{ backgroundColor: current.orb3 }} />
+        <div className={`mock-orb-1 absolute top-[-10%] right-[-10%] w-[80vw] h-[80vw] md:w-[50vw] md:h-[50vw] rounded-full filter blur-[100px] md:blur-[140px] transition-colors duration-[3000ms] ${isDark ? 'mix-blend-screen' : 'mix-blend-multiply'}`} style={{ backgroundColor: current.orb1 }} />
+        <div className={`mock-orb-2 absolute bottom-[-20%] left-[-10%] w-[90vw] h-[90vw] md:w-[60vw] md:h-[60vw] rounded-full filter blur-[100px] md:blur-[140px] transition-colors duration-[3000ms] ${isDark ? 'mix-blend-screen' : 'mix-blend-multiply'}`} style={{ backgroundColor: current.orb2 }} />
+        <div className={`mock-orb-3 absolute top-[20%] left-[20%] w-[75vw] h-[75vw] md:w-[45vw] md:h-[45vw] rounded-full filter blur-[100px] md:blur-[140px] transition-colors duration-[3000ms] ${isDark ? 'mix-blend-screen' : 'mix-blend-multiply'}`} style={{ backgroundColor: current.orb3 }} />
       </div>
     </div>
   );
@@ -420,8 +420,11 @@ export function MockTaskSandbox() {
           
           <div className="flex-1 flex flex-col min-h-0 bg-white/70 dark:bg-[#1a1a1a]/80 backdrop-blur-sm border border-[#ebe8e2] dark:border-[#333] rounded-[28px] overflow-hidden shadow-sm h-auto max-h-[500px] lg:h-auto lg:max-h-none w-full">
             <div className="px-5 md:px-8 pt-6 md:pt-8 pb-4 border-b border-[#f0ede8] dark:border-[#2a2a2a] flex flex-col gap-3 shrink-0">
-               <div className="flex justify-between items-center">
-                   <h2 className="text-[22px] md:text-[26px] text-[#3d3b33] dark:text-[#f0f0f0] font-serif font-medium tracking-tight">Routines</h2>
+               <div className="flex justify-between items-start md:items-center">
+                   <div className="flex flex-col">
+                       <h2 className="text-[22px] md:text-[26px] text-[#3d3b33] dark:text-[#f0f0f0] font-serif font-medium tracking-tight leading-none">Routines</h2>
+                       <p className="text-[10px] text-[#b0ad9a] dark:text-[#7a7a7a] mt-1.5 font-medium">Habits that reset every day.</p>
+                   </div>
                    <div className="flex items-center gap-2">
                        {isRoutineEditMode && (
                            <button onClick={() => onAdd('routine', null)} className="w-8 h-8 rounded-full bg-[#f7f5f0] dark:bg-[#252525] text-[#c2956e] dark:text-[#d1a784] flex items-center justify-center border border-[#e0ddd5] dark:border-[#333] hover:bg-[#c2956e]/10 transition-colors shadow-sm"><Plus size={16}/></button>
@@ -443,8 +446,11 @@ export function MockTaskSandbox() {
         {/* Right Col: Tasks Window */}
         <div className="w-full lg:w-1/2 flex flex-col bg-white/70 dark:bg-[#1a1a1a]/80 backdrop-blur-sm border border-[#ebe8e2] dark:border-[#333] rounded-[28px] overflow-hidden shadow-sm h-auto max-h-[500px] lg:h-[450px] lg:max-h-none w-full">
           <div className="px-5 md:px-8 pt-6 md:pt-8 pb-4 border-b border-[#f0ede8] dark:border-[#2a2a2a] flex flex-col gap-3 shrink-0">
-             <div className="flex justify-between items-center">
-                 <h2 className="text-[22px] md:text-[26px] text-[#3d3b33] dark:text-[#f0f0f0] font-serif font-medium tracking-tight">Tasks & Ideas</h2>
+             <div className="flex justify-between items-start md:items-center">
+                 <div className="flex flex-col">
+                     <h2 className="text-[22px] md:text-[26px] text-[#3d3b33] dark:text-[#f0f0f0] font-serif font-medium tracking-tight leading-none">Tasks & Ideas</h2>
+                     <p className="text-[10px] text-[#b0ad9a] dark:text-[#7a7a7a] mt-1.5 font-medium">One-off tasks and projects.</p>
+                 </div>
                  <button onClick={() => onAdd('normal', null)} className="w-8 h-8 rounded-full bg-[#f7f5f0] dark:bg-[#252525] text-[#c2956e] dark:text-[#d1a784] flex items-center justify-center border border-[#e0ddd5] dark:border-[#333] hover:bg-[#c2956e]/10 transition-colors shadow-sm"><Plus size={16}/></button>
              </div>
           </div>
@@ -567,7 +573,7 @@ function MockGlobalTimeWidget({ hasRunning }: { hasRunning: boolean }) {
   if (!time) return null;
   
   return (
-    <div className="flex absolute bottom-6 md:bottom-8 left-4 right-4 md:left-auto md:right-8 md:translate-x-0 z-[50] items-center justify-between md:justify-start gap-3 bg-white/70 dark:bg-[#1a1a1a]/80 backdrop-blur-xl border border-[#e0ddd5] dark:border-[#333] rounded-2xl px-6 py-4 md:py-3.5 shadow-[0_4px_20px_rgba(0,0,0,0.05)] dark:shadow-[0_4px_20px_rgba(0,0,0,0.4)] pointer-events-none w-auto max-w-full">
+    <div className="flex absolute bottom-6 md:bottom-8 left-1/2 -translate-x-1/2 md:translate-x-0 md:left-auto md:right-8 z-[50] items-center justify-between md:justify-start gap-3 bg-white/70 dark:bg-[#1a1a1a]/80 backdrop-blur-xl border border-[#e0ddd5] dark:border-[#333] rounded-2xl px-6 py-4 md:py-3.5 shadow-[0_4px_20px_rgba(0,0,0,0.05)] dark:shadow-[0_4px_20px_rgba(0,0,0,0.4)] pointer-events-none w-max max-w-[90vw]">
       <span className="text-[#3d3b33] dark:text-[#f0f0f0] font-serif text-xl leading-none shrink-0">
         {time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
       </span>
@@ -655,6 +661,11 @@ export function MockTimeSandbox() {
   const activeList = activeTab === 'timer' ? timers : stopwatches;
   const hasRunning = timers.some(t => t.isRunning) || stopwatches.some(s => s.isRunning);
 
+  const isAnyRunning = (tab: 'timer' | 'stopwatch') => {
+    const list = tab === 'timer' ? timers : stopwatches;
+    return list.some(i => i.isRunning);
+  };
+
   return (
     <div id="mock-time-sandbox" className={`w-full pt-16 pb-24 md:pb-16 bg-[#fdfbf7] dark:bg-[#161616] border border-[#e0ddd5] dark:border-[#333] rounded-[2.5rem] md:rounded-[3rem] my-10 flex flex-col items-center relative shadow-sm min-h-[400px] transition-all duration-500 overflow-hidden w-full ${highlight ? 'ring-4 ring-[#c2956e]' : ''}`}>
       <div className="text-center max-w-xl mx-auto mb-10 px-4 w-full">
@@ -674,7 +685,7 @@ export function MockTimeSandbox() {
                 key={tab} onClick={() => setActiveTab(tab)}
                 className={`px-5 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all flex items-center gap-1.5 ${activeTab === tab ? 'bg-white dark:bg-[#2a2a2a] text-[#c2956e] dark:text-[#d1a784] shadow-sm' : 'text-[#888] dark:text-[#a0a0a0] md:hover:text-[#3d3b33] md:dark:hover:text-[#f0f0f0]'}`}
               >
-                {tab} 
+                {tab} {isAnyRunning(tab) && <span className="w-1.5 h-1.5 bg-[#c2956e] dark:bg-[#b0855f] rounded-full animate-ping"/>}
               </button>
             ))}
           </div>
@@ -770,7 +781,7 @@ export function MockCalendarSandbox() {
           A gorgeous drag-and-drop calendar. Sync Google & Apple calendars, or subscribe to public <b>.ics</b> links. Try adding a task directly from the tasks section!
         </p>
       </div>
-      <div className="w-full lg:w-2/3 h-[400px] md:h-[500px] relative pointer-events-auto rounded-[28px] shadow-2xl border border-[#e0ddd5] dark:border-[#333] bg-white dark:bg-[#1a1a1a] overflow-hidden w-full">
+      <div className="w-full lg:w-2/3 h-[300px] md:h-[500px] relative pointer-events-auto rounded-[2rem] shadow-2xl w-full">
         <WeekView 
           currentDate={new Date()} events={events} onEventClick={() => {}} onTimeRangeSelected={() => {}} onEventMove={handleEventMove} 
           eventColors={EVENT_COLORS} targetScrollTime={targetScrollTime} daysCount={isMobile ? 2 : 3}
@@ -791,7 +802,7 @@ export function MockNotesSandbox() {
           Beautiful text formatting that stays out of your way. Zoom in and out instantly with intuitive controls.
         </p>
       </div>
-      <div className="mock-editor-container w-full bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] rounded-[2.5rem] px-4 pt-2 pb-6 md:px-10 md:pt-4 md:pb-10 shadow-2xl h-auto max-h-[500px] overflow-y-auto no-scrollbar relative w-full">
+      <div className="mock-editor-container w-full bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] rounded-[2.5rem] px-4 pt-2 pb-6 md:px-10 md:pt-4 md:pb-10 shadow-2xl h-[320px] md:h-auto md:max-h-[500px] overflow-y-auto no-scrollbar relative w-full">
         <DistractionFreeEditor initialContent={content} onSave={setContent} isSandbox={true} />
       </div>
     </div>

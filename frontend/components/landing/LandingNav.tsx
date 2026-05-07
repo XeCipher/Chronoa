@@ -78,7 +78,7 @@ export function LandingNav() {
             <GithubIcon size={20} />
           </a>
           <button onClick={handleLogin} disabled={isLoggingIn} className="ml-1 sm:ml-0 px-5 md:px-6 py-2.5 bg-[#1a1a1a] dark:bg-white text-white dark:text-[#1a1a1a] rounded-full text-[10px] md:text-[11px] font-bold uppercase tracking-widest hover:scale-105 transition-transform shadow-lg disabled:opacity-50">
-            {isLoggingIn ? 'Wait...' : <><span className="sm:hidden">Launch</span><span className="hidden sm:inline">Launch App</span></>}
+            {isLoggingIn ? 'Wait...' : <><span className="sm:hidden">Enter</span><span className="hidden sm:inline">Enter App</span></>}
           </button>
         </div>
       </div>

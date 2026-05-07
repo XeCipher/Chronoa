@@ -1,4 +1,4 @@
-// frontend/app/page.tsx
+// frontend/app/(dashboard)/page.tsx
 "use client";
 
 import { useEffect, useState } from "react";
@@ -69,7 +69,7 @@ export default function LandingPage() {
               <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin relative z-10" />
             ) : (
               <span className="relative z-10 flex items-center gap-2">
-                 Launch Workspace <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
+                 Enter Workspace <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
               </span>
             )}
           </button>
@@ -144,7 +144,7 @@ export default function LandingPage() {
                   <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin relative z-10" />
                 ) : (
                   <span className="relative z-10 flex items-center gap-3">
-                     Launch App <ArrowRight size={18} className="group-hover:translate-x-1.5 transition-transform" />
+                     Enter App <ArrowRight size={18} className="group-hover:translate-x-1.5 transition-transform" />
                   </span>
                 )}
               </button>
@@ -153,7 +153,7 @@ export default function LandingPage() {
         </FadeIn>
       </div>
 
-      <footer className="w-full border-t border-[#e0ddd5] dark:border-[#2a2a2a] bg-[#fdfbf7] dark:bg-[#161616] pt-16 pb-8 px-6 md:px-12 mt-auto shrink-0 z-10 relative">
+      <footer className="w-full border-t border-[#e0ddd5] dark:border-[#2a2a2a] bg-[#fdfbf7] dark:bg-[#161616] pt-16 pb-[calc(2rem+env(safe-area-inset-bottom))] md:pb-8 px-6 md:px-12 mt-auto shrink-0 z-10 relative">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center md:items-start gap-10 md:gap-0">
            <div className="flex flex-col items-center md:items-start gap-4">
               <div className="flex items-center gap-3 text-[#3d3b33] dark:text-[#e0e0e0]">
