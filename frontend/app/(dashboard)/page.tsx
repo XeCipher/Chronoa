@@ -27,15 +27,22 @@ export default function LandingPage() {
   const router = useRouter();
   const { handleLogin, isLoggingIn } = useGoogleLogin();
   const [isDeveloperModalOpen, setIsDeveloperModalOpen] = useState(false);
+  const [isCheckingSession, setIsCheckingSession] = useState(true);
 
   // Redirect to home if user is already logged in
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) {
         router.replace('/home');
+      } else {
+        setIsCheckingSession(false);
       }
     });
   }, [router]);
+
+  if (isCheckingSession) {
+    return <div className="min-h-screen bg-[#f7f5f0] dark:bg-[#121212]" />;
+  }
 
   return (
     <div className="min-h-screen bg-[#f7f5f0] dark:bg-[#121212] text-[#3d3b33] dark:text-[#f0f0f0] overflow-x-hidden selection:bg-[#c2956e]/30 dark:selection:bg-[#b0855f]/40 relative flex flex-col w-full max-w-[100vw]">

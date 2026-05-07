@@ -266,7 +266,8 @@ export default function RecursiveCheckbox({
   const isMenuOpen = activeTaskIdWithMenu === task.id;
 
   const showManagementActions = viewMode === 'focus' && (isNormal || (isRoutine && isEditMode));
-  const showFocusOptions = viewMode === 'focus';
+  // Show focus options unless we are currently editing a routine task
+  const showFocusOptions = viewMode === 'focus' && (!isRoutine || !isEditMode);
   
   const hasChildren = task.children && task.children.length > 0;
   const showKeepAliveToggle = showManagementActions && hasChildren;
