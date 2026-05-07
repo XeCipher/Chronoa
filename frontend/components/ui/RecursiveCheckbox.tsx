@@ -34,6 +34,7 @@ interface Props {
   newTaskId: string | null;
   setNewTaskId: (id: string | null) => void;
   searchQuery?: string;
+  isSandbox?: boolean;
 }
 
 const escapeRegExp = (string: string) => {
@@ -59,7 +60,7 @@ const hasSearchMatchInDescendants = (n: Task, query: string): boolean => {
 
 export default function RecursiveCheckbox({ 
   task, isEditMode, viewMode, allTasks, isFlatList, onUpdate, onDelete, onRestore, onAdd, onIndent, onUnindent, 
-  onMoveUp, onMoveDown, depth = 0, newTaskId, setNewTaskId, searchQuery = ""
+  onMoveUp, onMoveDown, depth = 0, newTaskId, setNewTaskId, searchQuery = "", isSandbox = false
 }: Props) {
   const router = useRouter();
   const textRef = useRef<HTMLSpanElement>(null);
@@ -116,7 +117,9 @@ export default function RecursiveCheckbox({
   const isRoutine = task.task_type === 'routine';
   const isNormal = task.task_type === 'normal';
   
-  const disableMenu = task.is_completed && (isNormal || (isRoutine && !isEditMode));
+  const disableMenu = isSandbox ? task.is_completed : (task.is_completed && (isNormal || (isRoutine && !isEditMode)));
+  const isLastRoot = !task.parent_id && allTasks.filter(t => t.task_type === task.task_type && !t.parent_id).length <= 1;
+  const hideDelete = isSandbox && isLastRoot;
 
   useEffect(() => {
     const el = textRef.current;
@@ -225,6 +228,13 @@ export default function RecursiveCheckbox({
   const handleSendToFocus = (tab: 'timer' | 'stopwatch') => {
     saveCurrentText(); 
     const title = textRef.current?.textContent || task.title;
+    
+    if (isSandbox) {
+       window.dispatchEvent(new CustomEvent('sandbox-send-focus', { detail: { tab, title } }));
+       setActiveTaskIdWithMenu(null);
+       return;
+    }
+
     const id = addInstance(tab, title);
     setTimerTitle(tab, id, title);
     setActiveTab(tab);
@@ -356,6 +366,7 @@ export default function RecursiveCheckbox({
         newTaskId={newTaskId} 
         setNewTaskId={setNewTaskId} 
         searchQuery={searchQuery}
+        isSandbox={isSandbox}
       />
     ))
   );
@@ -397,7 +408,11 @@ export default function RecursiveCheckbox({
              {showFocusOptions && (
                <>
                  <MenuItem icon={CalendarDays} label="Add to Calendar" onClick={() => {
-                   window.dispatchEvent(new CustomEvent('chronoa-add-to-calendar', { detail: { title: task.title } }));
+                   if (isSandbox) {
+                       window.dispatchEvent(new CustomEvent('sandbox-add-calendar', { detail: { title: task.title } }));
+                   } else {
+                       window.dispatchEvent(new CustomEvent('chronoa-add-to-calendar', { detail: { title: task.title } }));
+                   }
                  }} />
                  <MenuItem icon={Hourglass} label="Send to Stopwatch" onClick={() => handleSendToFocus('stopwatch')} />
                  <MenuItem icon={Timer} label="Send to Timer" onClick={() => handleSendToFocus('timer')} />
@@ -437,7 +452,7 @@ export default function RecursiveCheckbox({
                  </div>
                  
                  <MenuDivider />
-                 <MenuItem icon={Trash2} label="Delete" destructive onClick={() => onDelete(task.id, false)} />
+                 {!hideDelete && <MenuItem icon={Trash2} label="Delete" destructive onClick={() => onDelete(task.id, false)} />}
                </>
              )}
            </>

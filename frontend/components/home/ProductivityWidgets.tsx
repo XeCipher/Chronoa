@@ -157,7 +157,7 @@ function EngineCard({ engine, tab }: { engine: EngineInstance, tab: 'timer' | 's
   const statusText = getStatusText();
 
   return (
-    <div className="relative shrink-0 w-[24rem] max-w-[85vw] bg-white/20 dark:bg-black/30 backdrop-blur-3xl border border-white/40 dark:border-white/10 rounded-[2.5rem] p-6 shadow-[0_20px_50px_-10px_rgba(0,0,0,0.15)] flex flex-col gap-5 transition-colors snap-center group">
+    <div className="relative shrink-0 w-[24rem] max-w-[85vw] bg-white/60 dark:bg-[#1e1e1e]/80 backdrop-blur-3xl border border-[#e0ddd5] dark:border-[#333] rounded-[2.5rem] p-6 shadow-xl dark:shadow-[0_10px_40px_rgba(0,0,0,0.5)] flex flex-col gap-5 transition-colors snap-center group">
       
       {!hideDelete && (
         <button 
@@ -237,7 +237,7 @@ function EngineCard({ engine, tab }: { engine: EngineInstance, tab: 'timer' | 's
   );
 }
 
-export default function ProductivityWidgets({ isVisible }: { isVisible: boolean }) {
+export default function ProductivityWidgets({ isVisible, isSandbox = false }: { isVisible: boolean, isSandbox?: boolean }) {
   const store = useTimerStore();
   const router = useRouter();
   const activeList = store.activeTab === 'timer' ? store.timers : store.stopwatches;
@@ -265,14 +265,16 @@ export default function ProductivityWidgets({ isVisible }: { isVisible: boolean 
             </button>
           ))}
         </div>
-        <div className="flex items-center gap-2">
-          <button data-tooltip-id="global-tooltip" data-tooltip-content="Log Book" onClick={() => router.push('/sessions')} className={`w-9 h-9 flex items-center justify-center rounded-full backdrop-blur-md md:hover:bg-white/50 md:dark:hover:bg-black/50 transition-colors text-[#3d3b33] dark:text-[#a0a0a0] bg-white/30 dark:bg-black/30 border border-white/20 dark:border-white/5 shadow-sm`}>
-            <History size={15} />
-          </button>
-          <button data-tooltip-id="global-tooltip" data-tooltip-content={store.isPinned ? "Unpin Timer" : "Pin Timer"} onClick={store.togglePin} className={`w-9 h-9 flex items-center justify-center rounded-full backdrop-blur-md md:hover:bg-white/50 md:dark:hover:bg-black/50 transition-colors ${store.isPinned ? 'text-[#c2956e] dark:text-[#d1a784] bg-white/80 dark:bg-black/60 shadow-sm border border-white/30 dark:border-white/10' : 'text-[#3d3b33] dark:text-[#a0a0a0] bg-white/30 dark:bg-black/30 border border-white/20 dark:border-white/5'}`}>
-            {store.isPinned ? <Pin size={15} /> : <PinOff size={15} />}
-          </button>
-        </div>
+        {!isSandbox && (
+          <div className="flex items-center gap-2">
+            <button data-tooltip-id="global-tooltip" data-tooltip-content="Log Book" onClick={() => router.push('/sessions')} className={`w-9 h-9 flex items-center justify-center rounded-full backdrop-blur-md md:hover:bg-white/50 md:dark:hover:bg-black/50 transition-colors text-[#3d3b33] dark:text-[#a0a0a0] bg-white/30 dark:bg-black/30 border border-white/20 dark:border-white/5 shadow-sm`}>
+              <History size={15} />
+            </button>
+            <button data-tooltip-id="global-tooltip" data-tooltip-content={store.isPinned ? "Unpin Timer" : "Pin Timer"} onClick={store.togglePin} className={`w-9 h-9 flex items-center justify-center rounded-full backdrop-blur-md md:hover:bg-white/50 md:dark:hover:bg-black/50 transition-colors ${store.isPinned ? 'text-[#c2956e] dark:text-[#d1a784] bg-white/80 dark:bg-black/60 shadow-sm border border-white/30 dark:border-white/10' : 'text-[#3d3b33] dark:text-[#a0a0a0] bg-white/30 dark:bg-black/30 border border-white/20 dark:border-white/5'}`}>
+              {store.isPinned ? <Pin size={15} /> : <PinOff size={15} />}
+            </button>
+          </div>
+        )}
       </div>
 
       <div className="w-full max-w-full overflow-x-auto no-scrollbar snap-x snap-mandatory flex flex-row pb-8 -mb-8">
@@ -284,7 +286,7 @@ export default function ProductivityWidgets({ isVisible }: { isVisible: boolean 
           
           <button 
             onClick={() => store.addInstance(store.activeTab)} 
-            className="shrink-0 w-[6rem] sm:w-[8rem] bg-white/10 dark:bg-black/20 md:hover:bg-white/30 md:dark:hover:bg-black/40 backdrop-blur-3xl border border-white/40 dark:border-white/10 rounded-[2.5rem] flex flex-col items-center justify-center gap-3 transition-colors snap-center cursor-pointer shadow-[0_20px_50px_-10px_rgba(0,0,0,0.1)]"
+            className="shrink-0 w-[6rem] sm:w-[8rem] bg-white/60 dark:bg-[#1e1e1e]/80 md:hover:bg-white/80 md:dark:hover:bg-[#2a2a2a]/80 backdrop-blur-3xl border border-[#e0ddd5] dark:border-[#333] rounded-[2.5rem] flex flex-col items-center justify-center gap-3 transition-colors snap-center cursor-pointer shadow-xl dark:shadow-[0_10px_40px_rgba(0,0,0,0.5)]"
           >
             <Plus size={28} className="text-[#3d3b33] dark:text-[#f0f0f0]" />
             <span className="text-[10px] font-bold uppercase tracking-widest text-[#3d3b33] dark:text-[#f0f0f0]">Add</span>

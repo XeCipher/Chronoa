@@ -1,3 +1,4 @@
+// frontend/components/landing/MockData.ts
 import { Task, CalendarEvent } from "@/types/app.types";
 
 export const generateMockDailyMap = () => {
@@ -6,15 +7,36 @@ export const generateMockDailyMap = () => {
     const d = new Date();
     d.setDate(d.getDate() - i);
     const ymd = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    
+    // Spread completion hours somewhat realistically
+    const makeTaskDate = () => {
+       const newD = new Date(d);
+       newD.setHours(Math.floor(Math.random() * 12) + 8); // Between 8 AM and 8 PM
+       return newD.toISOString();
+    };
+
     map[ymd] = {
       date: ymd,
-      tasks: Array.from({ length: Math.floor(Math.random() * 6) + 3 }).map(() => ({ title: 'Task', completed_at: d.toISOString(), task_type: 'normal' })),
-      sessions: Array.from({ length: Math.floor(Math.random() * 3) + 1 }).map(() => ({ title: 'Focus', duration_seconds: Math.floor(Math.random() * 3600) + 1800 })),
+      tasks: Array.from({ length: Math.floor(Math.random() * 6) + 3 }).map(() => ({ title: 'Task', completed_at: makeTaskDate(), task_type: 'normal' })),
+      sessions: Array.from({ length: Math.floor(Math.random() * 3) + 1 }).map(() => ({ title: 'Focus', duration_seconds: Math.floor(Math.random() * 3600) + 1800, created_at: makeTaskDate() })),
       taskCount: Math.floor(Math.random() * 8) + 2,
       focusMinutes: Math.floor(Math.random() * 120) + 30
     };
   }
   return map;
+};
+
+export const generateMockSessions = () => {
+  const sessions = [];
+  const categories = ['Deep Work', 'Learning', 'Planning', 'Emails'];
+  for (let i = 0; i < 20; i++) {
+     sessions.push({
+        title: categories[Math.floor(Math.random() * categories.length)],
+        duration_seconds: Math.floor(Math.random() * 3600) + 1200,
+        created_at: new Date().toISOString()
+     });
+  }
+  return sessions;
 };
 
 export const generateMockEvents = (): CalendarEvent[] => {

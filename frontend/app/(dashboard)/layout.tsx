@@ -33,13 +33,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const toggleFirstActive = useTimerStore((state) => state.toggleFirstActive);
   const initialRestoreDone = useRef(false);
 
-  // Sync state refs to prevent infinite loop echos
   const localSyncId = useRef<string>("");
   const isApplyingRemote = useRef(false);
   const lastLocalStateStr = useRef<string>("");
   const previousStateForDiff = useRef<any>(null);
 
-  // Global auth listener to handle sign-outs correctly
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
       if (event === 'SIGNED_OUT') {
@@ -55,7 +53,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     const checkAuthAndSubscribe = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
-        // Use a hard redirect for unauthenticated users to clear all state
         if (pathname !== "/") {
           window.location.href = "/";
         } else {
@@ -82,7 +79,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         if (profile.add_task_at_top !== null) state.setAddTaskAtTop(profile.add_task_at_top);
         if (profile.show_home_task_progress !== null) state.setShowHomeTaskProgress(profile.show_home_task_progress);
         
-        // Sync Timer State from DB on load
         if (profile.timer_state) {
           localSyncId.current = profile.timer_state.sync_id || generateSyncId();
           
@@ -98,7 +94,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         }
       }
 
-      // **FIXED**: Correctly chain .on() before .subscribe() and manage the channel instance
       channel = supabase.channel(`profile_${currentUserId}`)
         .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'profiles', filter: `id=eq.${currentUserId}` }, (payload) => {
            const rec = payload.new;
@@ -115,7 +110,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
            if (rec.add_task_at_top !== null && rec.add_task_at_top !== state.addTaskAtTop) state.setAddTaskAtTop(rec.add_task_at_top);
            if (rec.show_home_task_progress !== null && rec.show_home_task_progress !== state.showHomeTaskProgress) state.setShowHomeTaskProgress(rec.show_home_task_progress);
            
-           // Apply Remote Timer State safely
            if (rec.timer_state) {
               const remoteSyncId = rec.timer_state.sync_id;
               
@@ -143,7 +137,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
     checkAuthAndSubscribe();
     
-    // **FIXED**: Correctly return the cleanup function from the useEffect hook
     return () => { 
       if (channel) {
         supabase.removeChannel(channel); 
@@ -152,7 +145,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Sync Local Timer State to DB whenever user performs an action
   useEffect(() => {
     if (isLoading || !userId) return;
     let timeoutId: NodeJS.Timeout;
@@ -182,7 +174,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         let isCritical = false;
         const prev = previousStateForDiff.current || currentState;
 
-        // Determine if this change needs an INSTANT sync (Add, Remove, Layout change)
         if (
           prev.activeTab !== currentState.activeTab || 
           prev.timers.length !== currentState.timers.length || 
@@ -190,7 +181,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         ) {
           isCritical = true;
         } else {
-          // Detect Start/Pause/Reset changes
           for (let i = 0; i < currentState.timers.length; i++) {
             if (currentState.timers[i]?.isRunning !== prev.timers[i]?.isRunning || 
                 currentState.timers[i]?.accumulatedSeconds !== prev.timers[i]?.accumulatedSeconds) {
@@ -222,9 +212,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
         clearTimeout(timeoutId);
         if (isCritical) {
-          executeSave(); // Instant save
+          executeSave(); 
         } else {
-          timeoutId = setTimeout(executeSave, 1000); // 1s debounce for typing names/targets
+          timeoutId = setTimeout(executeSave, 1000); 
         }
       }
     });
@@ -278,7 +268,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   if (isLandingPage) {
     return (
       <div className="flex h-screen w-full overflow-hidden bg-[#f7f5f0] dark:bg-[#121212]">
-        <main className="flex-1 h-full overflow-y-auto no-scrollbar relative min-w-0 scroll-smooth">
+        <main id="landing-scroll-container" className="flex-1 h-full overflow-y-auto no-scrollbar relative min-w-0 scroll-smooth">
           {children}
         </main>
       </div>

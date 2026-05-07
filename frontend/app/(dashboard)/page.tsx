@@ -27,7 +27,7 @@ export default function LandingPage() {
       <LandingNav />
 
       {/* Hero Section */}
-      <section className="relative w-full min-h-[100dvh] flex flex-col items-center justify-center px-4 md:px-6 pt-20">
+      <section className="relative w-full min-h-[100dvh] flex flex-col items-center justify-center px-4 md:px-6 pt-0 -mt-10">
         {/* Abstract Background Blur Orbs */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none flex items-center justify-center opacity-60">
           <motion.div animate={{ scale:[1, 1.1, 1], rotate: [0, 90, 0] }} transition={{ duration: 20, repeat: Infinity, ease: "linear" }} className="absolute w-[800px] h-[800px] -translate-y-48 translate-x-32" style={{ background: 'radial-gradient(circle, rgba(168,130,194,0.1) 0%, transparent 60%)' }} />
@@ -42,19 +42,19 @@ export default function LandingPage() {
             Your aesthetic workspace. <br/>
             <span className="text-[#c2956e] dark:text-[#b0855f]">Completely synced.</span>
           </h1>
-          <p className="text-xs sm:text-sm md:text-base text-[#888] dark:text-[#a0a0a0] mb-10 md:mb-12 max-w-xl mx-auto leading-relaxed px-2">
-            Your tasks, notes, calendar, and timers—unified in one gorgeous workspace. Track your deep work, analyze your focus patterns, and stay seamlessly in sync across all your devices.
+          <p className="text-xs sm:text-sm md:text-base text-[#888] dark:text-[#a0a0a0] mb-8 md:mb-10 max-w-xl mx-auto leading-relaxed px-2">
+            Your tasks, notes, calendar, and timers, unified in one gorgeous workspace. Track your deep work, analyze your focus patterns, and stay seamlessly in sync across all your devices.
           </p>
           <button
             onClick={handleLogin} disabled={isLoggingIn}
-            className="group relative flex items-center justify-center gap-3 px-8 py-4 bg-[#c2956e] text-white rounded-2xl text-sm font-bold uppercase tracking-widest transition-all duration-300 hover:bg-[#b0855f] hover:shadow-[0_8px_30px_rgba(194,149,110,0.4)] hover:-translate-y-1 disabled:opacity-50 overflow-hidden"
+            className="group relative flex items-center justify-center gap-2 px-6 py-3 bg-[#c2956e] text-white rounded-xl text-[11px] font-bold uppercase tracking-widest transition-all duration-300 hover:bg-[#b0855f] hover:shadow-[0_8px_30px_rgba(194,149,110,0.4)] hover:-translate-y-1 disabled:opacity-50 overflow-hidden"
           >
             <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out" />
             {isLoggingIn ? (
               <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin relative z-10" />
             ) : (
               <span className="relative z-10 flex items-center gap-2">
-                 Start Exploring <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
+                 Launch Workspace <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
               </span>
             )}
           </button>
