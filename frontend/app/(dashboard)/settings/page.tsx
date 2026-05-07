@@ -798,7 +798,17 @@ export default function SettingsPage() {
               <h3 className="text-lg font-medium text-[#3d3b33] dark:text-[#f0f0f0]"><HighlightText text="Vanishing Delay" query={searchQuery} /></h3>
             </div>
             <p className="text-[11px] text-[#b0ad9a] dark:text-[#7a7a7a] mt-1 mb-3"><HighlightText text="Minutes before completed tasks are archived." query={searchQuery} /></p>
-            <input type="number" value={taskArchiveDelay} onChange={(e) => { const v = parseInt(e.target.value) || 0; setTaskArchiveDelay(v); updateRemoteSetting('task_archive_delay', v); }} className="w-full bg-[#f7f5f0] dark:bg-[#252525] border border-[#e0ddd5] dark:border-[#333] rounded-xl px-4 py-3 text-sm outline-none focus:border-[#c2956e] dark:focus:border-[#b0855f] text-[#3d3b33] dark:text-[#f0f0f0] shadow-sm transition-all font-bold" />
+            <input 
+              type="number" 
+              min="0"
+              value={taskArchiveDelay} 
+              onChange={(e) => { 
+                const v = Math.max(0, parseInt(e.target.value) || 0); 
+                setTaskArchiveDelay(v); 
+                updateRemoteSetting('task_archive_delay', v); 
+              }} 
+              className="w-full bg-[#f7f5f0] dark:bg-[#252525] border border-[#e0ddd5] dark:border-[#333] rounded-xl px-4 py-3 text-sm outline-none focus:border-[#c2956e] dark:focus:border-[#b0855f] text-[#3d3b33] dark:text-[#f0f0f0] shadow-sm transition-all font-bold" 
+            />
           </section>
           <section className="space-y-4">
              <div className="flex items-center gap-3 text-[#c2956e] dark:text-[#d1a784]"><Sparkles size={18} />
@@ -823,12 +833,14 @@ export default function SettingsPage() {
              <Info size={20} className="text-[#c2956e] dark:text-[#d1a784]" />
              <h3 className="text-xl font-medium"><HighlightText text="Developer & Source" query={searchQuery} /></h3>
           </div>
-          <p className="text-xs text-[#b0ad9a] dark:text-[#7a7a7a] mt-1 mb-4"><HighlightText text="Chronoa is an open-source workspace built for deep focus. Feel free to reach out, report issues, or contribute." query={searchQuery} /></p>
-          <div className="flex flex-row items-center gap-3 w-full">
-            <button onClick={() => setIsFeedbackModalOpen(true)} className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-[#c2956e] text-white rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-[#b0855f] transition-all shadow-md whitespace-nowrap">
+          <p className="text-xs text-[#b0ad9a] dark:text-[#7a7a7a] mt-1 mb-4"><HighlightText text="Chronoa is an open-source workspace built for deep focus. If you have any feature suggestions, want to reach out to the developer, or report an issue, we'd love to hear from you. Every feedback is reviewed within 24 hours of submission." query={searchQuery} /></p>
+          <div className="flex flex-row items-center gap-3">
+            <button onClick={() => setIsFeedbackModalOpen(true)} className="flex-1 sm:flex-none w-full sm:w-auto flex items-center justify-center gap-2 px-4 sm:px-6 py-3 bg-[#c2956e] text-white rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-[#b0855f] transition-all shadow-md whitespace-nowrap">
               <MessageSquareHeart size={16} /> Share Feedback
             </button>
-            <button onClick={handleGithubClick} className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-[#f7f5f0] dark:bg-[#252525] text-[#888] dark:text-[#a0a0a0] border border-[#e0ddd5] dark:border-[#333] rounded-xl text-[10px] font-bold uppercase tracking-widest hover:text-[#c2956e] transition-all shadow-sm whitespace-nowrap"><GitHubIcon size={16} /> GitHub</button>
+            <button onClick={handleGithubClick} className="flex-1 sm:flex-none w-full sm:w-auto flex items-center justify-center gap-2 px-4 sm:px-6 py-3 bg-[#f7f5f0] dark:bg-[#252525] text-[#888] dark:text-[#a0a0a0] border border-[#e0ddd5] dark:border-[#333] rounded-xl text-[10px] font-bold uppercase tracking-widest hover:text-[#c2956e] transition-all shadow-sm whitespace-nowrap">
+              <GitHubIcon size={16} /> GitHub
+            </button>
           </div>
         </section>
       )

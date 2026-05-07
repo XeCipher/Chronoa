@@ -8,7 +8,7 @@ import { Task } from "@/types/app.types";
 import { 
   Plus, Trash2, Check, Timer, Hourglass, ChevronRight, ChevronLeft, 
   MoreVertical, ArrowUp, ArrowDown, ChevronDown, Infinity as InfinityIcon, 
-  RotateCcw, Clock, GripVertical, CornerDownRight
+  RotateCcw, Clock, GripVertical, CornerDownRight, CalendarDays
 } from "lucide-react";
 import { useUiStore } from "@/store/uiStore";
 import { useTimerStore } from "@/store/timerStore";
@@ -396,6 +396,9 @@ export default function RecursiveCheckbox({
            <>
              {showFocusOptions && (
                <>
+                 <MenuItem icon={CalendarDays} label="Add to Calendar" onClick={() => {
+                   window.dispatchEvent(new CustomEvent('chronoa-add-to-calendar', { detail: { title: task.title } }));
+                 }} />
                  <MenuItem icon={Hourglass} label="Send to Stopwatch" onClick={() => handleSendToFocus('stopwatch')} />
                  <MenuItem icon={Timer} label="Send to Timer" onClick={() => handleSendToFocus('timer')} />
                </>

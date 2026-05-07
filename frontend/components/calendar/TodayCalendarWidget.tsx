@@ -22,17 +22,19 @@ const EVENT_COLORS: Record<string, string> = {
 interface Props {
   variant: 'home' | 'tasks';
   searchQuery?: string;
+  className?: string;
 }
 
 const formatTimeStr = (d: Date) => d.getMinutes() === 0 ? format(d, 'h a') : format(d, 'h:mm a');
 
 const escapeRegExp = (string: string) => string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
-export default function TodayCalendarWidget({ variant, searchQuery = '' }: Props) {
+export default function TodayCalendarWidget({ variant, searchQuery = '', className = '' }: Props) {
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [defaultModalTitle, setDefaultModalTitle] = useState("");
   
   const { calendarWidgetCollapsed, setCalendarWidgetCollapsed } = useUiStore();
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -126,6 +128,17 @@ export default function TodayCalendarWidget({ variant, searchQuery = '' }: Props
       supabase.removeChannel(channel); 
     };
   }, [fetchTodayEvents]);
+
+  // Listener to open calendar event from Tasks
+  useEffect(() => {
+    const handleAddToCal = (e: any) => {
+      setDefaultModalTitle(e.detail.title);
+      setSelectedEvent(null);
+      setIsModalOpen(true);
+    };
+    window.addEventListener('chronoa-add-to-calendar', handleAddToCal);
+    return () => window.removeEventListener('chronoa-add-to-calendar', handleAddToCal);
+  }, []);
 
   const filteredEvents = events.filter(e => {
     if (!searchQuery) return true;
@@ -255,6 +268,19 @@ export default function TodayCalendarWidget({ variant, searchQuery = '' }: Props
           await generateRecurringEvents(updatedCurrent, updates.series_id);
         }
       }
+    } else {
+      // Adding a new event from "Add to Calendar"
+      const tempId = crypto.randomUUID();
+      const newEvent = { ...baseEvent, id: tempId };
+
+      if (updates.repeat_pattern && updates.repeat_pattern !== 'none') {
+         const seriesId = crypto.randomUUID();
+         newEvent.series_id = seriesId;
+         await supabase.from('calendar_events').insert(newEvent);
+         await generateRecurringEvents(newEvent as CalendarEvent, seriesId);
+      } else {
+         await supabase.from('calendar_events').insert(newEvent);
+      }
     }
     await fetchTodayEvents();
   };
@@ -279,7 +305,7 @@ export default function TodayCalendarWidget({ variant, searchQuery = '' }: Props
 
   return (
     <>
-      <div className={containerClasses}>
+      <div className={`${containerClasses} ${className}`}>
         <div className={headerClasses}>
           <div className="flex items-center gap-2">
             <CalendarIcon size={variant === 'home' ? 16 : 22} className={variant === 'home' ? 'text-[#3d3b33] dark:text-white' : 'text-[#c2956e]'} />
@@ -361,7 +387,8 @@ export default function TodayCalendarWidget({ variant, searchQuery = '' }: Props
         onClose={() => setIsModalOpen(false)} 
         onSave={handleSaveEvent} 
         onDelete={handleDeleteEvent}
-        initialEvent={selectedEvent} 
+        initialEvent={selectedEvent}
+        defaultTitle={defaultModalTitle}
       />
     </>
   );

@@ -16,6 +16,7 @@ interface Props {
   initialEvent?: CalendarEvent | null;
   dragTimeRange?: { start: Date, end: Date } | null;
   defaultBaseDate?: Date | null;
+  defaultTitle?: string;
 }
 
 const COLORS = [
@@ -46,7 +47,7 @@ const DAYS_OF_WEEK = [
   { id: 6, label: 'S' }
 ];
 
-export default function EventModal({ isOpen, onClose, onSave, onDelete, initialEvent, dragTimeRange, defaultBaseDate }: Props) {
+export default function EventModal({ isOpen, onClose, onSave, onDelete, initialEvent, dragTimeRange, defaultBaseDate, defaultTitle }: Props) {
   const { showConfirmDialog } = useUiStore();
 
   const [title, setTitle] = useState("");
@@ -102,7 +103,7 @@ export default function EventModal({ isOpen, onClose, onSave, onDelete, initialE
            setCustomDays([new Date(initialEvent.start_time).getDay()]);
         }
       } else {
-        setTitle("");
+        setTitle(defaultTitle || "");
         setDescription("");
         setLocation("");
         setMeetingUrl("");
@@ -141,7 +142,7 @@ export default function EventModal({ isOpen, onClose, onSave, onDelete, initialE
         }
       }
     }
-  }, [isOpen, initialEvent, dragTimeRange, defaultBaseDate]);
+  }, [isOpen, initialEvent, dragTimeRange, defaultBaseDate, defaultTitle]);
 
   const isEndTimeInvalid = !isAllDay && endTime <= startTime;
 
@@ -157,7 +158,7 @@ export default function EventModal({ isOpen, onClose, onSave, onDelete, initialE
         
         let hasChanges = false;
         if (!initialEvent) {
-          hasChanges = title.trim() !== "" || description.trim() !== "" || location.trim() !== "" || meetingUrl.trim() !== "";
+          hasChanges = title.trim() !== (defaultTitle || "") || description.trim() !== "" || location.trim() !== "" || meetingUrl.trim() !== "";
         } else {
           hasChanges = 
             title !== initialEvent.title ||
@@ -184,7 +185,7 @@ export default function EventModal({ isOpen, onClose, onSave, onDelete, initialE
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, initialEvent, title, description, location, meetingUrl, isAllDay, color, isReadOnly, onClose, showConfirmDialog]);
+  }, [isOpen, initialEvent, title, description, location, meetingUrl, isAllDay, color, isReadOnly, onClose, showConfirmDialog, defaultTitle]);
 
   if (!isOpen) return null;
 

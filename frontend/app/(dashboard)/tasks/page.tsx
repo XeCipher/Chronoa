@@ -174,9 +174,7 @@ export default function TasksPage() {
         <div id="tasks-scroll-container" className="flex-1 overflow-y-scroll overflow-x-hidden no-scrollbar px-4 md:px-8 lg:px-10 pt-2 md:pt-0 pb-8 md:pb-12 w-full min-h-0">
           <div className="flex flex-col lg:flex-row items-start gap-4 lg:gap-12 w-full">
             <div className="w-full lg:w-1/2 min-w-0 flex flex-col gap-4 lg:gap-8">
-              <div className="hidden lg:block">
-                 <TodayCalendarWidget variant="tasks" searchQuery={searchQuery} />
-              </div>
+              <TodayCalendarWidget variant="tasks" searchQuery={searchQuery} className="hidden lg:block" />
               <TaskSection type="routine" title={currentViewMode === 'trash' ? 'Routine Trash' : (currentViewMode === 'archive' ? 'Routine History' : "My Routine")} viewMode={currentViewMode} searchQuery={searchQuery} />
             </div>
             <div className="w-full lg:w-1/2 min-w-0">
