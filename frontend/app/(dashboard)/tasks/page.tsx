@@ -181,6 +181,9 @@ export default function TasksPage() {
               <TaskSection type="normal" title={currentViewMode === 'trash' ? 'Task Trash' : (currentViewMode === 'archive' ? 'Task History' : "Tasks & Ideas")} viewMode={currentViewMode} searchQuery={searchQuery} />
             </div>
           </div>
+          
+          {/* Spacer to prevent Global Time Widget overlap on desktop */}
+          <div className="hidden md:block h-32 w-full shrink-0 pointer-events-none" />
         </div>
 
       </div>
