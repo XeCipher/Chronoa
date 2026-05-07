@@ -774,14 +774,14 @@ export function MockCalendarSandbox() {
   };
 
   return (
-    <div id="mock-calendar-sandbox" className={`flex flex-col lg:flex-row-reverse gap-12 md:gap-20 items-center w-full my-20 p-2 md:p-6 transition-all duration-500 rounded-[3rem] w-full ${highlight ? 'ring-4 ring-[#c2956e] bg-white/30 dark:bg-[#1a1a1a]/30' : ''}`}>
-      <div className="w-full lg:w-1/3 flex flex-col gap-4 px-4 md:px-8 text-center lg:text-left w-full">
+    <div id="mock-calendar-sandbox" className={`flex flex-col lg:flex-row-reverse gap-6 md:gap-20 items-center w-full my-10 md:my-20 p-2 md:p-6 transition-all duration-500 rounded-[3rem] w-full max-lg:h-[85vh] max-lg:max-h-[800px] max-lg:min-h-[500px] ${highlight ? 'ring-4 ring-[#c2956e] bg-white/30 dark:bg-[#1a1a1a]/30' : ''}`}>
+      <div className="w-full lg:w-1/3 flex flex-col gap-2 md:gap-4 px-4 md:px-8 text-center lg:text-left shrink-0">
         <h3 className="text-3xl md:text-4xl font-serif text-[#3d3b33] dark:text-[#f0f0f0]">Your Days, Visualized</h3>
         <p className="text-[#888] dark:text-[#a0a0a0] leading-relaxed text-sm">
           A gorgeous drag-and-drop calendar. Sync Google & Apple calendars, or subscribe to public <b>.ics</b> links. Try adding a task directly from the tasks section!
         </p>
       </div>
-      <div className="w-full lg:w-2/3 h-[80vh] min-h-[500px] md:h-[500px] relative pointer-events-auto rounded-[2rem] shadow-2xl w-full">
+      <div className="w-full lg:w-2/3 flex-1 lg:h-[500px] relative pointer-events-auto rounded-[2rem] shadow-2xl min-h-0">
         <WeekView 
           currentDate={new Date()} events={events} onEventClick={() => {}} onTimeRangeSelected={() => {}} onEventMove={handleEventMove} 
           eventColors={EVENT_COLORS} targetScrollTime={targetScrollTime} daysCount={isMobile ? 2 : 3}
@@ -795,14 +795,14 @@ export function MockNotesSandbox() {
   const [content, setContent] = useState(`<h1>A Blank Canvas</h1><p>Chronoa provides a completely distraction-free markdown environment for your thoughts, meeting notes, and daily journaling.</p><p><br/></p><p>Go ahead, <strong>type something here</strong>. Use standard markdown shortcuts or highlight text to style it.</p>`);
 
   return (
-    <div className="w-full flex flex-col gap-6 my-10 md:my-20 w-full">
-      <div className="text-center max-w-2xl mx-auto mb-4 px-4 w-full">
-        <h3 className="text-3xl md:text-4xl font-serif text-[#3d3b33] dark:text-[#f0f0f0] mb-3">Clarity & Focus</h3>
+    <div className="w-full flex flex-col gap-4 md:gap-6 my-10 md:my-20 max-lg:h-[85vh] max-lg:max-h-[800px] max-lg:min-h-[500px]">
+      <div className="text-center max-w-2xl mx-auto px-4 w-full shrink-0">
+        <h3 className="text-3xl md:text-4xl font-serif text-[#3d3b33] dark:text-[#f0f0f0] mb-2 md:mb-3">Clarity & Focus</h3>
         <p className="text-[#888] dark:text-[#a0a0a0] leading-relaxed text-sm">
           Beautiful text formatting that stays out of your way. Zoom in and out instantly with intuitive controls.
         </p>
       </div>
-      <div className="mock-editor-container w-full bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] rounded-[2.5rem] px-4 pt-2 pb-6 md:px-10 md:pt-4 md:pb-10 shadow-2xl h-[80vh] min-h-[500px] md:h-auto md:max-h-[500px] overflow-y-auto no-scrollbar relative w-full">
+      <div className="mock-editor-container w-full bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] rounded-[2.5rem] px-4 pt-2 pb-6 md:px-10 md:pt-4 md:pb-10 shadow-2xl flex-1 min-h-0 overflow-y-auto no-scrollbar relative md:h-auto md:max-h-[500px]">
         <DistractionFreeEditor initialContent={content} onSave={setContent} isSandbox={true} />
       </div>
     </div>
