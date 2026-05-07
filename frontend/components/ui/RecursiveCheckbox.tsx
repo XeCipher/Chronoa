@@ -107,7 +107,7 @@ export default function RecursiveCheckbox({
     disabled: viewMode !== 'focus' || isSandbox 
   });
   
-  const sortableStyle = {
+  const sortableStyle = isSandbox ? {} : {
     transform: CSS.Translate.toString(transform), 
     transition,
     opacity: isDragging ? 0.4 : undefined,
@@ -262,7 +262,7 @@ export default function RecursiveCheckbox({
     return path.join(" > ");
   };
 
-  const isVanishingNow = viewMode === 'focus' && taskArchiveDelay <= 0 && task.is_completed && !isEditMode;
+  const isVanishingNow = !isSandbox && viewMode === 'focus' && taskArchiveDelay <= 0 && task.is_completed && !isEditMode;
   const isMenuOpen = activeTaskIdWithMenu === task.id;
 
   const showManagementActions = viewMode === 'focus' && (isNormal || (isRoutine && isEditMode));

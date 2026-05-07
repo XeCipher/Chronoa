@@ -418,7 +418,7 @@ export function MockTaskSandbox() {
         <div className="w-full lg:w-1/2 flex flex-col gap-6 h-auto lg:h-[450px]">
           <ExpandedMockTasksProgressWidget routinePct={stats.routinePct} normalLeft={stats.normalLeft} />
           
-          <div className="flex-1 flex flex-col min-h-0 bg-white/70 dark:bg-[#1a1a1a]/80 backdrop-blur-sm border border-[#ebe8e2] dark:border-[#333] rounded-[28px] overflow-hidden shadow-sm h-auto max-h-[500px] lg:h-auto lg:max-h-none">
+          <div className="flex-1 flex flex-col min-h-0 bg-white/70 dark:bg-[#1a1a1a]/80 backdrop-blur-sm border border-[#ebe8e2] dark:border-[#333] rounded-[28px] overflow-hidden shadow-sm h-auto max-h-[500px] lg:h-auto lg:max-h-none w-full">
             <div className="px-5 md:px-8 pt-6 md:pt-8 pb-4 border-b border-[#f0ede8] dark:border-[#2a2a2a] flex flex-col gap-3 shrink-0">
                <div className="flex justify-between items-center">
                    <h2 className="text-[22px] md:text-[26px] text-[#3d3b33] dark:text-[#f0f0f0] font-serif font-medium tracking-tight">Routines</h2>
@@ -441,7 +441,7 @@ export function MockTaskSandbox() {
         </div>
 
         {/* Right Col: Tasks Window */}
-        <div className="w-full lg:w-1/2 flex flex-col bg-white/70 dark:bg-[#1a1a1a]/80 backdrop-blur-sm border border-[#ebe8e2] dark:border-[#333] rounded-[28px] overflow-hidden shadow-sm h-auto max-h-[500px] lg:h-[450px] lg:max-h-none">
+        <div className="w-full lg:w-1/2 flex flex-col bg-white/70 dark:bg-[#1a1a1a]/80 backdrop-blur-sm border border-[#ebe8e2] dark:border-[#333] rounded-[28px] overflow-hidden shadow-sm h-auto max-h-[500px] lg:h-[450px] lg:max-h-none w-full">
           <div className="px-5 md:px-8 pt-6 md:pt-8 pb-4 border-b border-[#f0ede8] dark:border-[#2a2a2a] flex flex-col gap-3 shrink-0">
              <div className="flex justify-between items-center">
                  <h2 className="text-[22px] md:text-[26px] text-[#3d3b33] dark:text-[#f0f0f0] font-serif font-medium tracking-tight">Tasks & Ideas</h2>
@@ -567,12 +567,12 @@ function MockGlobalTimeWidget({ hasRunning }: { hasRunning: boolean }) {
   if (!time) return null;
   
   return (
-    <div className="flex absolute bottom-6 md:bottom-8 right-1/2 translate-x-1/2 md:translate-x-0 md:right-8 z-[100] items-center gap-3 bg-white/70 dark:bg-[#1a1a1a]/80 backdrop-blur-xl border border-[#e0ddd5] dark:border-[#333] rounded-2xl px-6 py-3.5 shadow-[0_4px_20px_rgba(0,0,0,0.05)] dark:shadow-[0_4px_20px_rgba(0,0,0,0.4)] pointer-events-none">
-      <span className="text-[#3d3b33] dark:text-[#f0f0f0] font-serif text-xl leading-none">
+    <div className="flex absolute bottom-6 md:bottom-8 left-4 right-4 md:left-auto md:right-8 md:translate-x-0 z-[50] items-center justify-between md:justify-start gap-3 bg-white/70 dark:bg-[#1a1a1a]/80 backdrop-blur-xl border border-[#e0ddd5] dark:border-[#333] rounded-2xl px-6 py-4 md:py-3.5 shadow-[0_4px_20px_rgba(0,0,0,0.05)] dark:shadow-[0_4px_20px_rgba(0,0,0,0.4)] pointer-events-none w-auto max-w-full">
+      <span className="text-[#3d3b33] dark:text-[#f0f0f0] font-serif text-xl leading-none shrink-0">
         {time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
       </span>
-      <div className={`rounded-full transition-all duration-500 ${hasRunning ? 'w-2.5 h-2.5 bg-red-500 animate-pulse shadow-[0_0_8px_rgba(239,68,68,0.8)]' : 'w-[3px] h-3.5 bg-[#c2956e] dark:bg-[#b0855f]'}`} />
-      <span className="text-[#b0ad9a] dark:text-[#888] font-bold text-[10px] uppercase tracking-[0.2em] leading-none mt-0.5">
+      <div className={`shrink-0 rounded-full transition-all duration-500 ${hasRunning ? 'w-2.5 h-2.5 bg-red-500 animate-pulse shadow-[0_0_8px_rgba(239,68,68,0.8)]' : 'w-[3px] h-3.5 bg-[#c2956e] dark:bg-[#b0855f]'}`} />
+      <span className="text-[#b0ad9a] dark:text-[#888] font-bold text-[10px] uppercase tracking-[0.2em] leading-none mt-0.5 truncate">
         {time.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' })}
       </span>
     </div>
@@ -641,25 +641,32 @@ export function MockTimeSandbox() {
   };
 
   const handleRemove = (id: string) => {
-    if (activeTab === 'timer') setTimers(prev => prev.filter(t => t.id !== id));
-    else setStopwatches(prev => prev.filter(s => s.id !== id));
+    if (activeTab === 'timer') {
+       setTimers(prev => prev.length === 1 
+         ? [{ id: `mock-${Date.now()}`, title: 'New Session', targetMinutes: 25, accumulatedSeconds: 0, isRunning: false, startTime: null }] 
+         : prev.filter(t => t.id !== id));
+    } else {
+       setStopwatches(prev => prev.length === 1 
+         ? [{ id: `mock-${Date.now()}`, title: 'New Session', accumulatedSeconds: 0, isRunning: false, startTime: null }] 
+         : prev.filter(s => s.id !== id));
+    }
   };
 
   const activeList = activeTab === 'timer' ? timers : stopwatches;
   const hasRunning = timers.some(t => t.isRunning) || stopwatches.some(s => s.isRunning);
 
   return (
-    <div id="mock-time-sandbox" className={`w-full pt-16 pb-24 md:pb-16 bg-[#fdfbf7] dark:bg-[#161616] border border-[#e0ddd5] dark:border-[#333] rounded-[2.5rem] md:rounded-[3rem] my-10 flex flex-col items-center relative shadow-sm min-h-[400px] transition-all duration-500 ${highlight ? 'ring-4 ring-[#c2956e]' : ''}`}>
-      <div className="text-center max-w-xl mx-auto mb-10 px-4">
+    <div id="mock-time-sandbox" className={`w-full pt-16 pb-24 md:pb-16 bg-[#fdfbf7] dark:bg-[#161616] border border-[#e0ddd5] dark:border-[#333] rounded-[2.5rem] md:rounded-[3rem] my-10 flex flex-col items-center relative shadow-sm min-h-[400px] transition-all duration-500 overflow-hidden w-full ${highlight ? 'ring-4 ring-[#c2956e]' : ''}`}>
+      <div className="text-center max-w-xl mx-auto mb-10 px-4 w-full">
         <h3 className="text-3xl md:text-4xl font-serif text-[#3d3b33] dark:text-[#f0f0f0] mb-3">Own Your Time</h3>
         <p className="text-[#888] dark:text-[#a0a0a0] leading-relaxed text-sm">
-          Aesthetically pleasing, millisecond-accurate timers and stopwatches that synchronize in real-time across your phone and laptop.
+          Aesthetically pleasing, millisecond-accurate timers and stopwatches that synchronize in real-time across your phone and laptop. Below is the global time widget, which is present on every page of the laptop interface.
         </p>
       </div>
       
       <MockGlobalTimeWidget hasRunning={hasRunning} />
 
-      <div className="w-full flex flex-col items-center relative z-10 mb-6 md:mb-10">
+      <div className="w-full flex flex-col items-center relative z-10 mb-6 md:mb-10 w-full">
         <div className="flex justify-center items-center w-[24rem] max-w-[85vw] mb-4">
           <div className="flex bg-[#ebe8e2] dark:bg-[#1a1a1a] p-1 rounded-full shadow-inner border border-[#d4d0c8] dark:border-[#333]">
             {(['stopwatch', 'timer'] as const).map(tab => (
@@ -699,7 +706,15 @@ export function MockCalendarSandbox() {
   const [events, setEvents] = useState<CalendarEvent[]>(generateMockEvents());
   const [targetScrollTime, setTargetScrollTime] = useState<string | null>(null);
   const [highlight, setHighlight] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
   
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 1024);
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   useEffect(() => {
     const handleAddToCal = (e: any) => {
       const now = new Date();
@@ -748,17 +763,17 @@ export function MockCalendarSandbox() {
   };
 
   return (
-    <div id="mock-calendar-sandbox" className={`flex flex-col lg:flex-row-reverse gap-12 md:gap-20 items-center w-full my-20 p-2 md:p-6 transition-all duration-500 rounded-[3rem] ${highlight ? 'ring-4 ring-[#c2956e] bg-white/30 dark:bg-[#1a1a1a]/30' : ''}`}>
-      <div className="w-full lg:w-1/3 flex flex-col gap-4 px-4 md:px-8">
+    <div id="mock-calendar-sandbox" className={`flex flex-col lg:flex-row-reverse gap-12 md:gap-20 items-center w-full my-20 p-2 md:p-6 transition-all duration-500 rounded-[3rem] w-full ${highlight ? 'ring-4 ring-[#c2956e] bg-white/30 dark:bg-[#1a1a1a]/30' : ''}`}>
+      <div className="w-full lg:w-1/3 flex flex-col gap-4 px-4 md:px-8 text-center lg:text-left w-full">
         <h3 className="text-3xl md:text-4xl font-serif text-[#3d3b33] dark:text-[#f0f0f0]">Your Days, Visualized</h3>
         <p className="text-[#888] dark:text-[#a0a0a0] leading-relaxed text-sm">
-          A gorgeous drag-and-drop calendar built right in. Sync your existing Google & Apple calendars instantly, or subscribe to public <b>.ics</b> links like Formula 1 schedules or national holidays. Try adding a task to the calendar from the tasks section!
+          A gorgeous drag-and-drop calendar. Sync Google & Apple calendars, or subscribe to public <b>.ics</b> links. Try adding a task directly from the tasks section!
         </p>
       </div>
-      <div className="w-full lg:w-2/3 h-[400px] md:h-[500px] relative pointer-events-auto rounded-[28px] shadow-2xl border border-[#e0ddd5] dark:border-[#333] bg-white dark:bg-[#1a1a1a]">
+      <div className="w-full lg:w-2/3 h-[400px] md:h-[500px] relative pointer-events-auto rounded-[28px] shadow-2xl border border-[#e0ddd5] dark:border-[#333] bg-white dark:bg-[#1a1a1a] overflow-hidden w-full">
         <WeekView 
           currentDate={new Date()} events={events} onEventClick={() => {}} onTimeRangeSelected={() => {}} onEventMove={handleEventMove} 
-          eventColors={EVENT_COLORS} targetScrollTime={targetScrollTime} daysCount={3}
+          eventColors={EVENT_COLORS} targetScrollTime={targetScrollTime} daysCount={isMobile ? 2 : 3}
         />
       </div>
     </div>
@@ -769,14 +784,14 @@ export function MockNotesSandbox() {
   const [content, setContent] = useState(`<h1>A Blank Canvas</h1><p><br/></p><p>Chronoa provides a completely distraction-free markdown environment for your thoughts, meeting notes, and daily journaling.</p><p><br/></p><p>Go ahead, <strong>type something here</strong>. Use standard markdown shortcuts or highlight text to style it.</p>`);
 
   return (
-    <div className="w-full flex flex-col gap-6 my-10 md:my-20">
-      <div className="text-center max-w-2xl mx-auto mb-4 px-4">
+    <div className="w-full flex flex-col gap-6 my-10 md:my-20 w-full">
+      <div className="text-center max-w-2xl mx-auto mb-4 px-4 w-full">
         <h3 className="text-3xl md:text-4xl font-serif text-[#3d3b33] dark:text-[#f0f0f0] mb-3">Clarity & Focus</h3>
         <p className="text-[#888] dark:text-[#a0a0a0] leading-relaxed text-sm">
           Beautiful text formatting that stays out of your way. Zoom in and out instantly with intuitive controls.
         </p>
       </div>
-      <div className="mock-editor-container w-full bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] rounded-[2.5rem] px-4 pt-2 pb-6 md:px-10 md:pt-4 md:pb-10 shadow-2xl h-auto max-h-[500px] overflow-y-auto no-scrollbar relative">
+      <div className="mock-editor-container w-full bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] rounded-[2.5rem] px-4 pt-2 pb-6 md:px-10 md:pt-4 md:pb-10 shadow-2xl h-auto max-h-[500px] overflow-y-auto no-scrollbar relative w-full">
         <DistractionFreeEditor initialContent={content} onSave={setContent} isSandbox={true} />
       </div>
     </div>
@@ -788,15 +803,15 @@ export function MockAnalyticsSandbox() {
   const rawSessions = useMemo(() => generateMockSessions(), []);
 
   return (
-    <div className="w-full flex flex-col gap-6 md:gap-8 my-10 md:my-20">
-      <div className="text-center max-w-2xl mx-auto mb-10 px-4">
+    <div className="w-full flex flex-col gap-6 md:gap-8 my-10 md:my-20 w-full">
+      <div className="text-center max-w-2xl mx-auto mb-10 px-4 w-full">
         <h3 className="text-3xl md:text-4xl font-serif text-[#3d3b33] dark:text-[#f0f0f0] mb-3">Insights That Matter</h3>
         <p className="text-[#888] dark:text-[#a0a0a0] leading-relaxed text-sm">
           Chronoa passively analyzes your activity, helping you discover your peak performance hours, flow states, and focus distribution. 
         </p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6 w-full">
         <div className="lg:col-span-2">
           <ProductivityChart dailyMap={dailyMap} isSandbox={true} />
         </div>
@@ -805,7 +820,7 @@ export function MockAnalyticsSandbox() {
         </div>
       </div>
       
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6 w-full">
         <ActivityHeatmap dailyMap={dailyMap} isSandbox={true} />
         <FocusDistribution rawSessions={rawSessions} />
       </div>

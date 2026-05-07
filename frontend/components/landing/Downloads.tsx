@@ -1,3 +1,4 @@
+// frontend/components/landing/Downloads.tsx
 "use client";
 
 import { Download, Smartphone, AppWindow, ShieldAlert } from "lucide-react";
@@ -46,11 +47,20 @@ export function DownloadsSection() {
               Install Chronoa directly from Safari or Chrome to get a native-feeling app icon on your home screen.
             </p>
             <ul className="space-y-4 mb-8">
-              <li className="text-[11px] text-[#3d3b33] dark:text-[#e0e0e0] font-medium flex gap-3 bg-[#f7f5f0] dark:bg-[#252525] p-3 rounded-lg">
+              {/* Desktop View */}
+              <li className="hidden md:flex text-[11px] text-[#3d3b33] dark:text-[#e0e0e0] font-medium gap-3 bg-[#f7f5f0] dark:bg-[#252525] p-3 rounded-lg">
                 <span className="font-bold text-[#6e90c2]">iOS:</span> Open in Safari → Tap Share icon → "Add to Home Screen"
               </li>
-              <li className="text-[11px] text-[#3d3b33] dark:text-[#e0e0e0] font-medium flex gap-3 bg-[#f7f5f0] dark:bg-[#252525] p-3 rounded-lg">
+              <li className="hidden md:flex text-[11px] text-[#3d3b33] dark:text-[#e0e0e0] font-medium gap-3 bg-[#f7f5f0] dark:bg-[#252525] p-3 rounded-lg">
                 <span className="font-bold text-[#6e90c2]">Android:</span> Open in Chrome → Tap Menu (⋮) → "Add to Home Screen"
+              </li>
+
+              {/* Mobile View */}
+              <li className="md:hidden flex text-[11px] text-[#3d3b33] dark:text-[#e0e0e0] font-medium gap-3 bg-[#f7f5f0] dark:bg-[#252525] p-3 rounded-lg">
+                <span className="font-bold text-[#6e90c2]">iOS:</span> Tap Share icon → "Add to Home Screen"
+              </li>
+              <li className="md:hidden flex text-[11px] text-[#3d3b33] dark:text-[#e0e0e0] font-medium gap-3 bg-[#f7f5f0] dark:bg-[#252525] p-3 rounded-lg">
+                <span className="font-bold text-[#6e90c2]">Android:</span> Tap Menu (⋮) → "Add to Home Screen"
               </li>
             </ul>
           </div>

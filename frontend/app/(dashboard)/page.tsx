@@ -1,14 +1,15 @@
 // frontend/app/page.tsx
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { motion } from "framer-motion";
-import { LandingNav, useGoogleLogin } from "@/components/landing/LandingNav";
+import { LandingNav, ChronoaLogo, GithubIcon, useGoogleLogin } from "@/components/landing/LandingNav";
 import { MockHomeSandbox, MockTaskSandbox, MockTimeSandbox, MockCalendarSandbox, MockNotesSandbox, MockAnalyticsSandbox } from "@/components/landing/Sandboxes";
 import { DownloadsSection } from "@/components/landing/Downloads";
-import { ArrowRight } from "lucide-react";
+import DeveloperMessageModal from "@/components/landing/DeveloperMessageModal";
+import { ArrowRight, MessageSquareHeart } from "lucide-react";
 
 const FadeIn = ({ children, delay = 0 }: { children: React.ReactNode, delay?: number }) => (
   <motion.div
@@ -25,6 +26,7 @@ const FadeIn = ({ children, delay = 0 }: { children: React.ReactNode, delay?: nu
 export default function LandingPage() {
   const router = useRouter();
   const { handleLogin, isLoggingIn } = useGoogleLogin();
+  const [isDeveloperModalOpen, setIsDeveloperModalOpen] = useState(false);
 
   // Redirect to home if user is already logged in
   useEffect(() => {
@@ -36,11 +38,11 @@ export default function LandingPage() {
   }, [router]);
 
   return (
-    <div className="min-h-screen bg-[#f7f5f0] dark:bg-[#121212] text-[#3d3b33] dark:text-[#f0f0f0] overflow-x-hidden selection:bg-[#c2956e]/30 dark:selection:bg-[#b0855f]/40 relative">
+    <div className="min-h-screen bg-[#f7f5f0] dark:bg-[#121212] text-[#3d3b33] dark:text-[#f0f0f0] overflow-x-hidden selection:bg-[#c2956e]/30 dark:selection:bg-[#b0855f]/40 relative flex flex-col w-full max-w-[100vw]">
       <LandingNav />
 
       {/* Hero Section */}
-      <section className="relative w-full min-h-[100dvh] flex flex-col items-center justify-center px-4 md:px-6 pt-16">
+      <section className="relative w-full min-h-[100dvh] flex flex-col items-center justify-center px-4 md:px-6 pt-16 shrink-0 overflow-hidden">
         {/* Abstract Background Blur Orbs */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none flex items-center justify-center opacity-60">
           <motion.div animate={{ scale:[1, 1.1, 1], rotate: [0, 90, 0] }} transition={{ duration: 20, repeat: Infinity, ease: "linear" }} className="absolute w-[800px] h-[800px] -translate-y-48 translate-x-32" style={{ background: 'radial-gradient(circle, rgba(168,130,194,0.1) 0%, transparent 60%)' }} />
@@ -51,7 +53,7 @@ export default function LandingPage() {
           initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 1, ease: "easeOut" }}
           className="z-10 flex flex-col items-center text-center max-w-3xl -translate-y-8"
         >
-          <h1 className="text-6xl sm:text-7xl md:text-8xl font-serif tracking-tight leading-none mb-6 md:mb-8">
+          <h1 className="text-5xl sm:text-7xl md:text-8xl font-serif tracking-tight leading-none mb-6 md:mb-8">
             Your aesthetic workspace. <br/>
             <span className="text-[#c2956e] dark:text-[#b0855f]">Completely synced.</span>
           </h1>
@@ -83,9 +85,9 @@ export default function LandingPage() {
         </motion.div>
       </section>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 md:px-10 pb-32 flex flex-col gap-20 md:gap-32">
+      <div className="max-w-7xl w-full mx-auto px-4 sm:px-6 md:px-10 pb-16 flex flex-col gap-16 md:gap-32 flex-1">
         <FadeIn>
-          <div className="text-center mb-8 md:mb-10 mt-10">
+          <div className="text-center mb-8 md:mb-10 mt-10 w-full">
             <h2 className="text-3xl md:text-4xl font-serif mb-3 md:mb-4">A Living Environment</h2>
             <p className="text-xs md:text-sm text-[#888] max-w-lg mx-auto">The homepage changes its scenery based on the actual time of day. Try the buttons below to shift the mood natively.</p>
           </div>
@@ -125,9 +127,8 @@ export default function LandingPage() {
             </div>
             
             <div className="relative z-10 flex flex-col items-center">
-              <div className="w-16 h-16 bg-[#c2956e]/10 dark:bg-[#b0855f]/20 rounded-full flex items-center justify-center mb-8 shadow-sm">
-                <img src="/icon-light.svg" className="w-8 h-8 dark:hidden" alt="Chronoa" />
-                <img src="/icon-dark.svg" className="w-8 h-8 hidden dark:block" alt="Chronoa" />
+              <div className="w-24 h-24 bg-[#c2956e]/10 dark:bg-[#b0855f]/20 rounded-full flex items-center justify-center mb-8 shadow-sm text-[#c2956e] dark:text-[#b0855f]">
+                <ChronoaLogo className="w-12 h-12" />
               </div>
               <h3 className="text-4xl md:text-6xl font-serif mb-6 text-[#3d3b33] dark:text-white leading-tight">Your journey<br/> starts here.</h3>
               <p className="text-[#888] dark:text-[#a0a0a0] max-w-md mx-auto mb-10 text-sm md:text-base leading-relaxed">
@@ -150,11 +151,40 @@ export default function LandingPage() {
             </div>
           </div>
         </FadeIn>
-      </main>
+      </div>
 
-      <footer className="w-full text-center py-8 text-[10px] font-bold uppercase tracking-widest text-[#b0ad9a] dark:text-[#555] border-t border-[#e0ddd5] dark:border-[#2a2a2a] px-4">
-        Open Source • Built with Next.js & Supabase
+      <footer className="w-full border-t border-[#e0ddd5] dark:border-[#2a2a2a] bg-[#fdfbf7] dark:bg-[#161616] pt-16 pb-8 px-6 md:px-12 mt-auto shrink-0 z-10 relative">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center md:items-start gap-10 md:gap-0">
+           <div className="flex flex-col items-center md:items-start gap-4">
+              <div className="flex items-center gap-3 text-[#3d3b33] dark:text-[#e0e0e0]">
+                 <ChronoaLogo className="w-8 h-8 text-[#c2956e] dark:text-[#b0855f]" />
+                 <span className="text-2xl font-serif font-medium tracking-tight">Chronoa</span>
+              </div>
+              <p className="text-sm text-[#888] dark:text-[#a0a0a0] max-w-xs text-center md:text-left">
+                Your aesthetic workspace. Completely synced and designed for deep focus.
+              </p>
+           </div>
+           <div className="flex flex-col items-center md:items-end gap-4">
+              <div className="flex gap-4">
+                 <a href="https://github.com/XeCipher/Chronoa" target="_blank" rel="noreferrer" className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white dark:bg-[#252525] border border-[#e0ddd5] dark:border-[#333] text-[#888] hover:text-[#3d3b33] dark:hover:text-[#f0f0f0] transition-colors shadow-sm text-xs font-bold uppercase tracking-widest">
+                   <GithubIcon size={16} /> GitHub
+                 </a>
+                 <button onClick={() => setIsDeveloperModalOpen(true)} className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#c2956e] text-white hover:bg-[#b0855f] transition-colors shadow-sm text-xs font-bold uppercase tracking-widest">
+                   <MessageSquareHeart size={16} /> Contact Dev
+                 </button>
+              </div>
+           </div>
+        </div>
+        <div className="max-w-7xl mx-auto mt-16 pt-8 border-t border-[#e0ddd5] dark:border-[#2a2a2a] text-center flex flex-col md:flex-row justify-between items-center gap-4 text-[10px] font-bold uppercase tracking-widest text-[#b0ad9a] dark:text-[#555]">
+           <span>© {new Date().getFullYear()} Chronoa. Open Source.</span>
+           <span>Built with Next.js & Supabase</span>
+        </div>
       </footer>
+
+      <DeveloperMessageModal 
+        isOpen={isDeveloperModalOpen} 
+        onClose={() => setIsDeveloperModalOpen(false)} 
+      />
     </div>
   );
 }

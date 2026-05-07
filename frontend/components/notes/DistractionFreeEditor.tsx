@@ -360,7 +360,7 @@ export default function DistractionFreeEditor({
   );
 
   return (
-    <div className="relative w-full flex flex-col gap-2 md:gap-4 h-full">
+    <div className={`relative w-full flex flex-col gap-2 h-full ${isSandbox ? 'md:gap-10' : 'md:gap-4'}`}>
       
       {/* Mobile Inline Tools (Save Status, Timestamp & Zoom) */}
       <div className="md:hidden flex w-full justify-between items-center gap-1.5 z-10 mt-2 mb-0">
