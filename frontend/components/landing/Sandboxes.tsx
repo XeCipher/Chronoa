@@ -1,22 +1,18 @@
+// frontend/components/landing/Sandboxes.tsx
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import RecursiveCheckbox from "@/components/ui/RecursiveCheckbox";
 import WeekView from "@/components/calendar/WeekView";
-import DistractionFreeEditor from "@/components/notes/DistractionFreeEditor";
-import ProductivityChart from "@/components/analytics/ProductivityChart";
-import TimeOfDayRadar from "@/components/analytics/TimeOfDayRadar";
-import FocusDistribution from "@/components/analytics/FocusDistribution";
-import ActivityHeatmap from "@/components/analytics/ActivityHeatmap";
-import { initialMockTasks, generateMockEvents, generateMockDailyMap } from "./MockData";
-import { CheckCircle2, ListTodo, Cloud, Sun, Moon, CloudSun, CloudMoon, CloudRain, CloudDrizzle, Snowflake, CloudLightning, Wind, MapPin, Plus } from "lucide-react";
+import { initialMockTasks, generateMockEvents } from "./MockData";
+import { CheckCircle2, ListTodo, Cloud, Sun, Moon, CloudSun, CloudMoon, CloudRain, CloudDrizzle, Snowflake, CloudLightning, Wind, MapPin, Plus, Bold, Italic, Underline, Heading1, Heading2, List, ListOrdered, Clock, Filter, ChevronLeft, ChevronRight } from "lucide-react";
 import { DndContext, closestCenter } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { useTimerStore } from "@/store/timerStore";
 import ProductivityWidgets from "@/components/home/ProductivityWidgets";
 import { Task, CalendarEvent } from "@/types/app.types";
+import { ResponsiveContainer, ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, PieChart, Pie, Cell, RadarChart, PolarGrid, PolarAngleAxis, Radar } from 'recharts';
 
-// Internal Component: Properly replicates the real SceneryBackground with mix-blend modes
 function MockLandingScenery({ WTime, isDark }: { WTime: string, isDark: boolean }) {
   const WPalettes: Record<string, any> = {
     dawn: { bg: isDark ? "#1a1210" : "#fdfbf7", orb1: isDark ? "#8a4e40" : "#ffcba6", orb2: isDark ? "#8a5a44" : "#ffa68f", orb3: isDark ? "#6c4f7a" : "#d6aef2" },
@@ -44,7 +40,6 @@ function MockLandingScenery({ WTime, isDark }: { WTime: string, isDark: boolean 
   );
 }
 
-// Internal Component: Explicit clock
 function MockCenterClock({ isDark }: { isDark: boolean }) {
   const [time, setTime] = useState<Date | null>(null);
   
@@ -77,7 +72,6 @@ function MockCenterClock({ isDark }: { isDark: boolean }) {
   );
 }
 
-// Internal Component: Replicates true weather widget expandable layout identically.
 function MockWeatherWidget({ isDark }: { isDark: boolean }) {
   const [weather, setWeather] = useState<any>(null);
   const [isHovered, setIsHovered] = useState(false);
@@ -152,15 +146,19 @@ function MockWeatherWidget({ isDark }: { isDark: boolean }) {
   );
 }
 
-// Internal Component: Task Progress Widget
 function MockHomeTaskProgress({ isDark }: { isDark: boolean }) {
   const [isHovered, setIsHovered] = useState(false);
+  const [stats, setStats] = useState({ routinePct: 50, normalLeft: 4 });
+
+  useEffect(() => {
+    const handler = (e: any) => setStats(e.detail);
+    window.addEventListener('mock-tasks-updated', handler);
+    return () => window.removeEventListener('mock-tasks-updated', handler);
+  }, []);
   
   const bgGlass = isDark ? 'rgba(0,0,0,0.3)' : 'rgba(255,255,255,0.2)';
   const borderGlass = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.4)';
   const textColor = isDark ? '#f0f0f0' : '#3d3b33';
-  const routinePct = 75;
-  const normalLeft = 4;
 
   return (
     <div 
@@ -181,9 +179,9 @@ function MockHomeTaskProgress({ isDark }: { isDark: boolean }) {
         <div className="relative flex items-center justify-center w-9 h-9 md:w-10 md:h-10 shrink-0 transition-transform duration-500 rounded-full" style={{ backgroundColor: isDark ? 'rgba(0,0,0,0.4)' : 'rgba(255,255,255,0.2)' }}>
           <svg className="absolute inset-0 w-9 h-9 md:w-10 md:h-10 transform -rotate-90" viewBox="0 0 36 36">
             <circle cx="18" cy="18" r="16" fill="none" className="stroke-[#e0ddd5]/50 dark:stroke-white/10" strokeWidth="3" />
-            <circle cx="18" cy="18" r="16" fill="none" className="stroke-[#7ca982] transition-all duration-1000 ease-out" strokeWidth="3" strokeDasharray="100" strokeDashoffset={100 - routinePct} strokeLinecap="round" />
+            <circle cx="18" cy="18" r="16" fill="none" className="stroke-[#7ca982] transition-all duration-1000 ease-out" strokeWidth="3" strokeDasharray="100" strokeDashoffset={100 - stats.routinePct} strokeLinecap="round" />
           </svg>
-          <span className="text-[8px] md:text-[9px] font-bold tabular-nums" style={{ color: textColor }}>{routinePct}%</span>
+          <span className="text-[8px] md:text-[9px] font-bold tabular-nums" style={{ color: textColor }}>{stats.routinePct}%</span>
         </div>
         <div className={`flex flex-col justify-center transition-all duration-500 ease-in-out overflow-hidden whitespace-nowrap`} style={{ marginLeft: isHovered ? '12px' : '0px', opacity: isHovered ? 1 : 0, maxWidth: isHovered ? '140px' : '0px' }}>
           <span className="text-[10px] font-bold uppercase tracking-widest text-[#7ca982] flex items-center gap-1"><CheckCircle2 size={12}/> Routine</span>
@@ -194,11 +192,11 @@ function MockHomeTaskProgress({ isDark }: { isDark: boolean }) {
       <div className="transition-all duration-500 ease-in-out" style={{ width: '100%', height: '1px', backgroundColor: isDark ? 'rgba(255,255,255,0.15)' : 'rgba(61,59,51,0.15)', display: isHovered ? 'block' : 'none', opacity: isHovered ? 1 : 0 }} />
 
       <div className={`flex items-center ${isHovered ? 'w-full' : 'w-auto'}`}>
-        <div className="w-9 h-9 md:w-10 md:h-10 flex items-center justify-center rounded-full shrink-0 transition-all duration-500 bg-[#c2956e] dark:bg-[#b0855f] text-white shadow-md">
-          <span className="text-[14px] md:text-[15px] font-semibold tabular-nums">{normalLeft}</span>
+        <div className={`w-9 h-9 md:w-10 md:h-10 flex items-center justify-center rounded-full shrink-0 transition-all duration-500 ${stats.normalLeft >= 1 ? 'bg-[#c2956e] dark:bg-[#b0855f] text-white shadow-md' : 'bg-white/20 dark:bg-black/20 border border-black/10 dark:border-white/10 text-[#3d3b33] dark:text-white'}`}>
+          <span className="text-[14px] md:text-[15px] font-semibold tabular-nums">{stats.normalLeft}</span>
         </div>
         <div className={`flex flex-col justify-center transition-all duration-500 ease-in-out overflow-hidden whitespace-nowrap`} style={{ marginLeft: isHovered ? '12px' : '0px', opacity: isHovered ? 1 : 0, maxWidth: isHovered ? '140px' : '0px' }}>
-          <span className="text-[10px] font-bold uppercase tracking-widest text-[#c2956e] dark:text-[#d1a784] flex items-center gap-1"><ListTodo size={12}/> Tasks</span>
+          <span className={`text-[10px] font-bold uppercase tracking-widest flex items-center gap-1 ${stats.normalLeft >= 1 ? 'text-[#c2956e] dark:text-[#d1a784]' : 'text-[#c2956e] dark:text-[#d1a784]'}`}><ListTodo size={12}/> Tasks</span>
           <span className="text-sm font-medium" style={{ color: textColor }}>Remaining</span>
         </div>
       </div>
@@ -206,7 +204,46 @@ function MockHomeTaskProgress({ isDark }: { isDark: boolean }) {
   );
 }
 
-// Internal Component: Mock Global Time Widget
+// Explicit expanded version for the Tasks page sandbox
+function ExpandedMockTasksProgressWidget({ routinePct, normalLeft }: { routinePct: number, normalLeft: number }) {
+  return (
+    <div className="flex flex-col md:flex-row items-start md:items-center p-5 gap-6 w-full bg-white/70 dark:bg-[#1a1a1a]/80 backdrop-blur-sm border border-[#ebe8e2] dark:border-[#333] rounded-[2rem] shadow-sm shrink-0">
+      <div className="flex items-center w-full md:w-auto flex-1">
+        <div className="relative flex items-center justify-center w-12 h-12 shrink-0 bg-[#f7f5f0] dark:bg-[#252525] rounded-full">
+          <svg className="absolute inset-0 w-12 h-12 transform -rotate-90" viewBox="0 0 36 36">
+            <circle cx="18" cy="18" r="16" fill="none" className="stroke-[#e0ddd5] dark:stroke-[#333]" strokeWidth="3" />
+            <circle 
+              cx="18" cy="18" r="16" fill="none" 
+              className="stroke-[#7ca982] transition-all duration-1000 ease-out" 
+              strokeWidth="3" strokeDasharray="100" strokeDashoffset={100 - routinePct} strokeLinecap="round" 
+            />
+          </svg>
+          <span className="text-[10px] font-bold text-[#3d3b33] dark:text-[#f0f0f0] tabular-nums">{routinePct}%</span>
+        </div>
+        <div className="flex flex-col justify-center ml-4">
+          <span className="text-[11px] font-bold uppercase tracking-widest text-[#7ca982] dark:text-[#8cbd92] flex items-center gap-1.5">
+            <CheckCircle2 size={14}/> Routine
+          </span>
+          <span className="text-base font-medium text-[#3d3b33] dark:text-[#f0f0f0]">Daily Progress</span>
+        </div>
+      </div>
+      <div className="hidden md:block w-px h-10 bg-[#e0ddd5] dark:bg-[#333]" />
+      <div className="md:hidden h-px w-full bg-[#e0ddd5] dark:bg-[#333]" />
+      <div className="flex items-center w-full md:w-auto flex-1">
+        <div className={`w-12 h-12 flex items-center justify-center rounded-full shrink-0 transition-all duration-500 ${normalLeft >= 1 ? 'bg-[#c2956e] dark:bg-[#b0855f] text-white shadow-md' : 'bg-[#f7f5f0] dark:bg-[#252525] text-[#888]'}`}>
+          <span className="text-lg font-semibold tabular-nums">{normalLeft}</span>
+        </div>
+        <div className="flex flex-col justify-center ml-4">
+          <span className={`text-[11px] font-bold uppercase tracking-widest flex items-center gap-1.5 ${normalLeft >= 1 ? 'text-[#c2956e] dark:text-[#d1a784]' : 'text-[#888]'}`}>
+            <ListTodo size={14}/> Tasks
+          </span>
+          <span className="text-base font-medium text-[#3d3b33] dark:text-[#f0f0f0]">Remaining</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function MockGlobalTimeWidget() {
   const store = useTimerStore();
   const hasRunning = store.timers.some(i => i.isRunning) || store.stopwatches.some(i => i.isRunning);
@@ -255,26 +292,28 @@ export function MockHomeSandbox() {
   }, []);
 
   return (
-    <div className="relative w-full h-[450px] md:h-[600px] rounded-[2.5rem] overflow-hidden border border-[#e0ddd5] dark:border-[#333] shadow-2xl flex flex-col items-center justify-center isolate">
-      <MockLandingScenery WTime={timeOfDay} isDark={isDark} />
-      
-      <div className="absolute top-6 right-6 md:top-8 md:right-8 flex flex-col gap-3 items-end z-40">
-        <MockWeatherWidget isDark={isDark} />
-        <MockHomeTaskProgress isDark={isDark} />
-      </div>
-      
-      <div className="absolute inset-0 flex items-center justify-center z-10 w-full px-4">
-        <MockCenterClock isDark={isDark} />
+    <div className="flex flex-col gap-5 w-full items-center">
+      <div className="relative w-full h-[450px] md:h-[600px] rounded-[2.5rem] overflow-hidden border border-[#e0ddd5] dark:border-[#333] shadow-2xl flex flex-col items-center justify-center isolate">
+        <MockLandingScenery WTime={timeOfDay} isDark={isDark} />
+        
+        <div className="absolute top-6 right-6 md:top-8 md:right-8 flex flex-col gap-3 items-end z-40">
+          <MockWeatherWidget isDark={isDark} />
+          <MockHomeTaskProgress isDark={isDark} />
+        </div>
+        
+        <div className="absolute inset-0 flex items-center justify-center z-10 w-full px-4">
+          <MockCenterClock isDark={isDark} />
+        </div>
       </div>
 
-      <div className="absolute bottom-6 md:bottom-8 flex flex-col md:flex-row gap-2 md:gap-3 items-center z-20">
-        <div className="flex items-center gap-1 bg-white/40 dark:bg-black/40 backdrop-blur-md p-1.5 rounded-full border border-white/50 dark:border-white/10 shadow-xl">
-          <button onClick={() => setIsDark(false)} className={`p-2 rounded-full transition-all ${!isDark ? 'bg-white text-[#c2956e] shadow-sm' : 'text-[#888] hover:text-[#3d3b33]'}`}><Sun size={14}/></button>
-          <button onClick={() => setIsDark(true)} className={`p-2 rounded-full transition-all ${isDark ? 'bg-[#222] text-[#d1a784] shadow-sm' : 'text-[#888] hover:text-white'}`}><Moon size={14}/></button>
+      <div className="flex flex-col md:flex-row gap-2 md:gap-3 items-center z-20">
+        <div className="flex items-center gap-1 bg-white dark:bg-[#1a1a1a] p-1.5 rounded-full border border-[#e0ddd5] dark:border-[#333] shadow-sm">
+          <button onClick={() => setIsDark(false)} className={`p-2 rounded-full transition-all ${!isDark ? 'bg-[#f7f5f0] dark:bg-[#252525] text-[#c2956e] dark:text-[#d1a784] shadow-sm' : 'text-[#888] hover:text-[#3d3b33] dark:hover:text-[#f0f0f0]'}`}><Sun size={14}/></button>
+          <button onClick={() => setIsDark(true)} className={`p-2 rounded-full transition-all ${isDark ? 'bg-[#f7f5f0] dark:bg-[#252525] text-[#c2956e] dark:text-[#d1a784] shadow-sm' : 'text-[#888] hover:text-[#3d3b33] dark:hover:text-[#f0f0f0]'}`}><Moon size={14}/></button>
         </div>
-        <div className="flex items-center gap-1 bg-white/40 dark:bg-black/40 backdrop-blur-md p-1.5 rounded-full border border-white/50 dark:border-white/10 shadow-xl">
+        <div className="flex items-center gap-1 bg-white dark:bg-[#1a1a1a] p-1.5 rounded-full border border-[#e0ddd5] dark:border-[#333] shadow-sm">
           {(['dawn', 'day', 'dusk', 'night'] as const).map(t => (
-            <button key={t} onClick={() => setTimeOfDay(t)} className={`px-4 md:px-6 py-2 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all ${timeOfDay === t ? (isDark ? 'bg-[#222] text-[#d1a784]' : 'bg-white text-[#c2956e]') + ' shadow-sm' : (isDark ? 'text-[#a0a0a0] hover:text-white' : 'text-[#888] hover:text-[#3d3b33]')}`}>
+            <button key={t} onClick={() => setTimeOfDay(t)} className={`px-4 md:px-6 py-2 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all ${timeOfDay === t ? 'bg-[#f7f5f0] dark:bg-[#252525] text-[#c2956e] dark:text-[#d1a784] shadow-sm' : 'text-[#888] hover:text-[#3d3b33] dark:hover:text-[#f0f0f0]'}`}>
               {t}
             </button>
           ))}
@@ -286,12 +325,22 @@ export function MockHomeSandbox() {
 
 export function MockTaskSandbox() {
   const [tasks, setTasks] = useState<Task[]>(initialMockTasks);
+  const [stats, setStats] = useState({ routinePct: 50, normalLeft: 4 });
+
+  useEffect(() => {
+    const totalRoutines = tasks.filter(t => t.task_type === 'routine').length;
+    const doneRoutines = tasks.filter(t => t.task_type === 'routine' && t.is_completed).length;
+    const routinePct = totalRoutines === 0 ? 0 : Math.round((doneRoutines / totalRoutines) * 100);
+    const normalLeft = tasks.filter(t => t.task_type === 'normal' && !t.is_completed).length;
+    
+    setStats({ routinePct, normalLeft });
+    window.dispatchEvent(new CustomEvent('mock-tasks-updated', { detail: { routinePct, normalLeft } }));
+  }, [tasks]);
 
   const onUpdate = (id: string, updates: any) => {
     setTasks(prev => {
        let next = prev.map(t => t.id === id ? { ...t, ...updates } : t);
        if (updates.is_completed !== undefined) {
-         // Auto complete children when a parent is ticked
          const setChildren = (parentId: string, status: boolean) => {
            next = next.map(t => {
              if (t.parent_id === parentId) {
@@ -303,7 +352,6 @@ export function MockTaskSandbox() {
          }
          setChildren(id, updates.is_completed);
 
-         // Auto complete parent if all its siblings get ticked
          const checkParent = (taskId: string) => {
            const t = next.find(x => x.id === taskId);
            if (t && t.parent_id) {
@@ -320,6 +368,14 @@ export function MockTaskSandbox() {
   };
 
   const onDelete = (id: string) => {
+    const taskToDelete = tasks.find(t => t.id === id);
+    if (taskToDelete && !taskToDelete.parent_id) {
+       const remainingRoots = tasks.filter(t => t.task_type === taskToDelete.task_type && !t.parent_id).length;
+       if (remainingRoots <= 1) {
+          return;
+       }
+    }
+
     const idsToDelete = [id];
     const findChildren = (parentId: string) => {
       tasks.filter(t => t.parent_id === parentId).forEach(child => {
@@ -380,12 +436,6 @@ export function MockTaskSandbox() {
   const routines = roots.filter(t => t.task_type === 'routine');
   const normals = roots.filter(t => t.task_type === 'normal');
 
-  const totalRoutines = tasks.filter(t => t.task_type === 'routine').length;
-  const doneRoutines = tasks.filter(t => t.task_type === 'routine' && t.is_completed).length;
-  const routinePct = totalRoutines === 0 ? 0 : Math.round((doneRoutines / totalRoutines) * 100);
-  
-  const normalLeft = tasks.filter(t => t.task_type === 'normal' && !t.is_completed && t.parent_id).length;
-
   return (
     <div className="flex flex-col gap-6 w-full">
       <div className="text-center max-w-2xl mx-auto mb-4 px-4">
@@ -395,40 +445,33 @@ export function MockTaskSandbox() {
         </p>
       </div>
 
-      <div className="flex flex-col lg:flex-row gap-8 items-start w-full h-auto lg:h-[500px]">
-        {/* Routines Window */}
-        <div className="w-full lg:w-1/2 flex flex-col h-[400px] lg:h-full bg-white/70 dark:bg-[#1a1a1a]/80 backdrop-blur-sm border border-[#ebe8e2] dark:border-[#333] rounded-[28px] overflow-hidden shadow-sm">
-          <div className="px-5 md:px-8 pt-6 md:pt-8 pb-4 border-b border-[#f0ede8] dark:border-[#2a2a2a] flex flex-col gap-3 shrink-0">
-             <div className="flex justify-between items-center">
-                 <h2 className="text-[22px] md:text-[26px] text-[#3d3b33] dark:text-[#f0f0f0] font-serif font-medium tracking-tight">Routines</h2>
-                 <button onClick={() => onAdd('routine', null)} className="w-8 h-8 rounded-full bg-[#f7f5f0] dark:bg-[#252525] text-[#c2956e] flex items-center justify-center border border-[#e0ddd5] dark:border-[#333] hover:bg-[#c2956e]/10 transition-colors"><Plus size={16}/></button>
-             </div>
-             {totalRoutines > 0 && (
-                <div className="flex items-center gap-2 mt-0.5">
-                  <div className="w-24 md:w-28 h-[3px] bg-[#ebe8e2] dark:bg-[#333] rounded-full overflow-hidden">
-                    <div className="h-full bg-[#7ca982] dark:bg-[#6a9a70] rounded-full transition-all duration-500" style={{ width: `${routinePct}%` }} />
-                  </div>
-                  <span className="text-[11px] text-[#b0ad9a] dark:text-[#7a7a7a] tracking-wide">{routinePct}%</span>
-                </div>
-             )}
-          </div>
-          <div className="flex-1 overflow-y-auto no-scrollbar p-4 md:p-5 space-y-[2px]">
-             {routines.map(t => (
-               <RecursiveCheckbox key={t.id} task={t} isEditMode={true} viewMode="focus" allTasks={tasks} onUpdate={onUpdate} onDelete={(id) => onDelete(id)} onRestore={() => {}} onAdd={(pId) => onAdd('routine', pId)} onIndent={onIndent} onUnindent={onUnindent} onMoveUp={() => {}} onMoveDown={() => {}} newTaskId={null} setNewTaskId={() => {}} />
-             ))}
+      <div className="flex flex-col lg:flex-row gap-6 items-start w-full h-auto lg:h-[600px]">
+        {/* Left Col: Widget + Routines */}
+        <div className="w-full lg:w-1/2 flex flex-col gap-6 h-[500px] lg:h-full">
+          <ExpandedMockTasksProgressWidget routinePct={stats.routinePct} normalLeft={stats.normalLeft} />
+          
+          <div className="flex-1 flex flex-col bg-white/70 dark:bg-[#1a1a1a]/80 backdrop-blur-sm border border-[#ebe8e2] dark:border-[#333] rounded-[28px] overflow-hidden shadow-sm min-h-0">
+            <div className="px-5 md:px-8 pt-6 md:pt-8 pb-4 border-b border-[#f0ede8] dark:border-[#2a2a2a] flex flex-col gap-3 shrink-0">
+               <div className="flex justify-between items-center">
+                   <h2 className="text-[22px] md:text-[26px] text-[#3d3b33] dark:text-[#f0f0f0] font-serif font-medium tracking-tight">Routines</h2>
+                   <button onClick={() => onAdd('routine', null)} className="w-8 h-8 rounded-full bg-[#f7f5f0] dark:bg-[#252525] text-[#c2956e] dark:text-[#d1a784] flex items-center justify-center border border-[#e0ddd5] dark:border-[#333] hover:bg-[#c2956e]/10 transition-colors"><Plus size={16}/></button>
+               </div>
+            </div>
+            <div className="flex-1 overflow-y-auto no-scrollbar p-4 md:p-5 space-y-[2px]">
+               {routines.map(t => (
+                 <RecursiveCheckbox key={t.id} task={t} isEditMode={true} viewMode="focus" allTasks={tasks} onUpdate={onUpdate} onDelete={(id) => onDelete(id)} onRestore={() => {}} onAdd={(pId) => onAdd('routine', pId)} onIndent={onIndent} onUnindent={onUnindent} onMoveUp={() => {}} onMoveDown={() => {}} newTaskId={null} setNewTaskId={() => {}} />
+               ))}
+            </div>
           </div>
         </div>
 
-        {/* Tasks Window */}
-        <div className="w-full lg:w-1/2 flex flex-col h-[400px] lg:h-full bg-white/70 dark:bg-[#1a1a1a]/80 backdrop-blur-sm border border-[#ebe8e2] dark:border-[#333] rounded-[28px] overflow-hidden shadow-sm">
+        {/* Right Col: Tasks Window */}
+        <div className="w-full lg:w-1/2 flex flex-col h-[500px] lg:h-full bg-white/70 dark:bg-[#1a1a1a]/80 backdrop-blur-sm border border-[#ebe8e2] dark:border-[#333] rounded-[28px] overflow-hidden shadow-sm">
           <div className="px-5 md:px-8 pt-6 md:pt-8 pb-4 border-b border-[#f0ede8] dark:border-[#2a2a2a] flex flex-col gap-3 shrink-0">
              <div className="flex justify-between items-center">
                  <h2 className="text-[22px] md:text-[26px] text-[#3d3b33] dark:text-[#f0f0f0] font-serif font-medium tracking-tight">Tasks & Ideas</h2>
-                 <button onClick={() => onAdd('normal', null)} className="w-8 h-8 rounded-full bg-[#f7f5f0] dark:bg-[#252525] text-[#c2956e] flex items-center justify-center border border-[#e0ddd5] dark:border-[#333] hover:bg-[#c2956e]/10 transition-colors"><Plus size={16}/></button>
+                 <button onClick={() => onAdd('normal', null)} className="w-8 h-8 rounded-full bg-[#f7f5f0] dark:bg-[#252525] text-[#c2956e] dark:text-[#d1a784] flex items-center justify-center border border-[#e0ddd5] dark:border-[#333] hover:bg-[#c2956e]/10 transition-colors"><Plus size={16}/></button>
              </div>
-             {normalLeft > 0 && (
-                <div className="text-[11px] text-[#b0ad9a] dark:text-[#7a7a7a] tracking-wide mt-0.5">{normalLeft} Remaining</div>
-             )}
           </div>
           <div className="flex-1 overflow-y-auto no-scrollbar p-4 md:p-5 space-y-[2px]">
              {normals.map(t => (
@@ -451,7 +494,7 @@ export function MockTimeSandbox() {
   },[]);
 
   return (
-    <div className="w-full py-16 bg-[#fdfbf7] dark:bg-[#161616] border border-[#e0ddd5] dark:border-[#333] rounded-[2.5rem] md:rounded-[3rem] my-10 flex flex-col items-center relative overflow-hidden shadow-sm min-h-[400px]">
+    <div id="mock-time-sandbox" className="w-full py-16 bg-[#fdfbf7] dark:bg-[#161616] border border-[#e0ddd5] dark:border-[#333] rounded-[2.5rem] md:rounded-[3rem] my-10 flex flex-col items-center relative shadow-sm min-h-[400px]">
       <div className="text-center max-w-xl mx-auto mb-10 px-4">
         <h3 className="text-3xl md:text-4xl font-serif text-[#3d3b33] dark:text-[#f0f0f0] mb-3">Own Your Time</h3>
         <p className="text-[#888] dark:text-[#a0a0a0] leading-relaxed text-sm">
@@ -505,14 +548,14 @@ export function MockCalendarSandbox() {
   };
 
   return (
-    <div className="flex flex-col lg:flex-row-reverse gap-8 items-center w-full my-20">
+    <div id="mock-calendar-sandbox" className="flex flex-col lg:flex-row-reverse gap-8 items-center w-full my-20">
       <div className="w-full lg:w-1/3 flex flex-col gap-4">
         <h3 className="text-3xl md:text-4xl font-serif text-[#3d3b33] dark:text-[#f0f0f0]">Your Days, Visualized</h3>
         <p className="text-[#888] dark:text-[#a0a0a0] leading-relaxed text-sm">
           A gorgeous drag-and-drop calendar built right in. Sync your existing Google & Apple calendars instantly, or subscribe to public <b>.ics</b> links like Formula 1 schedules or national holidays. Notice how seamlessly events overlap and split space. Try adding a task to the calendar from the section above!
         </p>
       </div>
-      <div className="w-full lg:w-2/3 h-[400px] md:h-[500px] relative pointer-events-auto">
+      <div className="w-full lg:w-2/3 h-[400px] md:h-[500px] relative pointer-events-auto rounded-[28px] shadow-2xl border border-[#e0ddd5] dark:border-[#333] bg-white dark:bg-[#1a1a1a]">
         <WeekView 
           currentDate={new Date()} events={events} onEventClick={() => {}} onTimeRangeSelected={() => {}} onEventMove={handleEventMove} 
           eventColors={EVENT_COLORS} targetScrollTime={null} daysCount={3}
@@ -522,9 +565,37 @@ export function MockCalendarSandbox() {
   );
 }
 
-export function MockNotesSandbox() {
-  const initialHtml = `<h1>A Blank Canvas</h1><p>Chronoa provides a completely distraction-free markdown environment for your thoughts, meeting notes, and daily journaling.</p><p>Go ahead, <strong>type something here</strong>. Use standard markdown shortcuts or highlight text to style it.</p>`;
+// Internal Component: A strictly visual mock editor so we can force the toolbar exactly where needed
+function MockNotesEditor() {
+  const [content, setContent] = useState(`<h1>A Blank Canvas</h1><p><br/></p><p>Chronoa provides a completely distraction-free markdown environment for your thoughts, meeting notes, and daily journaling.</p><p><br/></p><p>Go ahead, <strong>type something here</strong>. Use standard markdown shortcuts or highlight text to style it.</p>`);
   
+  return (
+    <div className="flex flex-col gap-4 text-[#3d3b33] dark:text-[#e0e0e0] w-full">
+      <div className="flex items-center gap-2 px-3 py-2 border border-[#e0ddd5] dark:border-[#2a2a2a] bg-white/95 dark:bg-[#121212]/95 backdrop-blur-md shadow-sm rounded-2xl w-max">
+         <button className="p-1.5 text-[#3d3b33] dark:text-[#f0f0f0] bg-[#f0ede8] dark:bg-[#2a2a2a] rounded-lg"><Bold size={15}/></button>
+         <button className="p-1.5 text-[#888] dark:text-[#999] hover:text-[#3d3b33] dark:hover:text-white rounded-lg"><Italic size={15}/></button>
+         <button className="p-1.5 text-[#888] dark:text-[#999] hover:text-[#3d3b33] dark:hover:text-white rounded-lg"><Underline size={15}/></button>
+         <div className="w-px h-4 bg-[#e0ddd5] dark:bg-[#333] mx-1" />
+         <button className="p-1.5 text-[#888] dark:text-[#999] hover:text-[#3d3b33] dark:hover:text-white rounded-lg"><Heading1 size={15}/></button>
+         <button className="p-1.5 text-[#888] dark:text-[#999] hover:text-[#3d3b33] dark:hover:text-white rounded-lg"><Heading2 size={15}/></button>
+         <div className="w-px h-4 bg-[#e0ddd5] dark:bg-[#333] mx-1" />
+         <button className="p-1.5 text-[#888] dark:text-[#999] hover:text-[#3d3b33] dark:hover:text-white rounded-lg"><List size={15}/></button>
+         <button className="p-1.5 text-[#888] dark:text-[#999] hover:text-[#3d3b33] dark:hover:text-white rounded-lg"><ListOrdered size={15}/></button>
+         <div className="w-px h-4 bg-[#e0ddd5] dark:bg-[#333] mx-1" />
+         <button className="p-1.5 text-[#888] dark:text-[#999] hover:text-[#3d3b33] dark:hover:text-white rounded-lg"><Clock size={15}/></button>
+      </div>
+      
+      <div 
+        className="chronoa-editor outline-none w-full min-h-[300px]" 
+        contentEditable 
+        suppressContentEditableWarning 
+        dangerouslySetInnerHTML={{ __html: content }} 
+      />
+    </div>
+  );
+}
+
+export function MockNotesSandbox() {
   return (
     <div className="w-full flex flex-col gap-6 my-10 md:my-20">
       <div className="text-center max-w-2xl mx-auto mb-4 px-4">
@@ -533,43 +604,225 @@ export function MockNotesSandbox() {
           Beautiful text formatting that stays out of your way. Zoom in and out instantly with intuitive controls.
         </p>
       </div>
-      <div className="mock-editor-container w-full bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] rounded-[2.5rem] p-6 md:p-12 shadow-2xl h-[350px] md:h-[500px] overflow-y-auto no-scrollbar [&_button[data-tooltip-id='global-tooltip'][data-tooltip-content*='Fullscreen']]:!hidden">
-        <DistractionFreeEditor initialContent={initialHtml} onSave={() => {}} noteType="notes" />
+      <div className="mock-editor-container w-full bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] rounded-[2.5rem] p-6 md:p-12 shadow-2xl h-[350px] md:h-[500px] overflow-y-auto no-scrollbar">
+        <MockNotesEditor />
+      </div>
+    </div>
+  );
+}
+
+// ----------------------------------------------------------------------------------
+// Internal Mock Analytic Graphs (Perfect visual replicas without the interactive cruft)
+// ----------------------------------------------------------------------------------
+
+function MockActivityHeatmap() {
+  const colors = ['#222222', '#1e4a28', '#2d6d39', '#3b8e49', '#4bae5c'];
+  const lightColors = ['#ebedf0', '#9be9a8', '#40c463', '#30a14e', '#216e39'];
+  
+  const [isDark, setIsDark] = useState(false);
+  useEffect(() => {
+    setIsDark(window.matchMedia('(prefers-color-scheme: dark)').matches || document.documentElement.classList.contains('dark'));
+  }, []);
+
+  const activeColors = isDark ? colors : lightColors;
+
+  const weeks = useMemo(() => {
+    const grid: any[][] = [];
+    for (let w = 0; w < 52; w++) {
+      const week = [];
+      for (let d = 0; d < 7; d++) {
+         const random = Math.random();
+         let level = 1;
+         if (random > 0.8) level = 4;
+         else if (random > 0.5) level = 3;
+         else if (random > 0.2) level = 2;
+         else if (random > 0.05) level = 1;
+         else level = 0;
+         week.push(level);
+      }
+      grid.push(week);
+    }
+    return grid;
+  }, []);
+
+  return (
+    <div className="bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] rounded-[2.5rem] p-6 lg:p-8 shadow-sm flex flex-col h-auto lg:h-[350px] min-h-[300px]">
+      <div className="flex justify-between items-start mb-6 shrink-0">
+        <div>
+          <h3 className="text-2xl font-medium text-[#3d3b33] dark:text-[#f0f0f0] font-serif tracking-tight">Activity Map</h3>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-[#b0ad9a] dark:text-[#7a7a7a] mt-1">Recent focus history</p>
+        </div>
+      </div>
+      <div className="flex flex-1 w-full relative min-h-0 overflow-hidden items-center justify-center">
+        <div className="flex gap-[3px] items-start w-max">
+          {weeks.map((week, wIdx) => (
+            <div key={wIdx} className="flex flex-col gap-[3px]">
+              {week.map((level, dIdx) => (
+                <div 
+                  key={dIdx}
+                  className="w-[10px] sm:w-[12px] h-[10px] sm:h-[12px] rounded-[3px] border border-black/5 dark:border-white/5"
+                  style={{ backgroundColor: activeColors[level] }}
+                />
+              ))}
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function MockProductivityChart() {
+  const [offset, setOffset] = useState(0);
+  const chartData = useMemo(() => {
+    return Array.from({ length: 7 }).map((_, i) => ({
+      display: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][i],
+      tasks: Math.floor(Math.random() * 20) + 5,
+      focus: Math.floor(Math.random() * 120) + 20,
+    }));
+  }, [offset]);
+
+  const CustomXAxisTick = ({ x, y, payload }: any) => {
+    return (
+      <g transform={`translate(${x},${y})`}>
+        <text x={0} y={0} dy={14} textAnchor="middle" fill="#888" fontSize={10} fontWeight={700} style={{ textTransform: 'uppercase', letterSpacing: '0.05em' }}>{payload.value}</text>
+      </g>
+    );
+  };
+
+  return (
+    <div className="bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] rounded-[2.5rem] p-6 md:p-8 shadow-sm h-[400px] flex flex-col transition-colors relative">
+      <div className="flex justify-between items-start mb-6">
+        <div>
+          <h3 className="text-2xl font-medium text-[#3d3b33] dark:text-[#f0f0f0] font-serif tracking-tight">Activity Flow</h3>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-[#b0ad9a] dark:text-[#7a7a7a] mt-1">
+            Weekly Analytics
+          </p>
+        </div>
+        <div className="flex items-center bg-[#f7f5f0] dark:bg-[#222] rounded-xl p-0.5 border border-[#e0ddd5] dark:border-[#333]">
+            <button onClick={() => setOffset(Math.min(offset + 1, 3))} disabled={offset >= 3} className="p-1.5 text-[#888] hover:text-[#3d3b33] dark:hover:text-white transition-colors disabled:opacity-30"><ChevronLeft size={16} /></button>
+            <div className="w-px h-4 bg-[#e0ddd5] dark:bg-[#444] mx-1" />
+            <button onClick={() => setOffset(Math.max(offset - 1, 0))} disabled={offset === 0} className="p-1.5 text-[#888] hover:text-[#3d3b33] dark:hover:text-white transition-colors disabled:opacity-30"><ChevronRight size={16} /></button>
+        </div>
+      </div>
+      <div className="flex-1 w-full min-h-0">
+        <ResponsiveContainer width="100%" height="100%">
+          <ComposedChart data={chartData} margin={{ top: 10, right: 0, left: -20, bottom: 0 }}>
+            <defs>
+              <linearGradient id="colorTasksMock" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="#7ca982" stopOpacity={0.8}/>
+                <stop offset="95%" stopColor="#7ca982" stopOpacity={0.2}/>
+              </linearGradient>
+            </defs>
+            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e0ddd5" opacity={0.3} />
+            <XAxis dataKey="display" axisLine={false} tickLine={false} tick={<CustomXAxisTick />} dy={10} interval={0} />
+            <YAxis yAxisId="left" axisLine={false} tickLine={false} tick={{ fill: '#888', fontSize: 11 }} />
+            <YAxis yAxisId="right" orientation="right" hide={true} />
+            <Bar yAxisId="left" dataKey="tasks" fill="url(#colorTasksMock)" radius={[6, 6, 0, 0]} maxBarSize={40} />
+            <Line yAxisId="right" type="monotone" dataKey="focus" stroke="#c2956e" strokeWidth={4} dot={{ r: 4, strokeWidth: 2, fill: '#fff' }} />
+          </ComposedChart>
+        </ResponsiveContainer>
+      </div>
+    </div>
+  );
+}
+
+function MockTimeOfDayRadar() {
+  const data = [
+    { subject: 'MORNING', A: 80, fullMark: 100 },
+    { subject: 'AFTERNOON', A: 40, fullMark: 100 },
+    { subject: 'EVENING', A: 90, fullMark: 100 },
+    { subject: 'NIGHT', A: 30, fullMark: 100 },
+  ];
+
+  return (
+    <div className="bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] rounded-[2.5rem] p-6 md:p-8 shadow-sm h-[400px] flex flex-col transition-colors">
+      <div className="mb-2 text-center">
+        <h3 className="text-2xl font-medium text-[#3d3b33] dark:text-[#f0f0f0] font-serif tracking-tight">Chronotype</h3>
+        <p className="text-[10px] font-bold uppercase tracking-widest text-[#b0ad9a] dark:text-[#7a7a7a] mt-1">Peak Performance Zones</p>
+      </div>
+      <div className="flex-1 w-full min-h-0 relative">
+        <ResponsiveContainer width="100%" height="100%">
+          <RadarChart cx="50%" cy="50%" outerRadius="60%" data={data}>
+            <PolarGrid stroke="#e0ddd5" opacity={0.3} />
+            <PolarAngleAxis dataKey="subject" tick={{ fill: '#888', fontSize: 10, fontWeight: 'bold' }} />
+            <Radar name="Productivity" dataKey="A" stroke="#6e90c2" strokeWidth={2} fill="#6e90c2" fillOpacity={0.4} />
+          </RadarChart>
+        </ResponsiveContainer>
+      </div>
+    </div>
+  );
+}
+
+function MockFocusDistribution() {
+  const data = [
+    { name: "Deep Work", value: 45 },
+    { name: "Learning", value: 25 },
+    { name: "Planning", value: 15 },
+    { name: "Emails", value: 15 }
+  ];
+  const COLORS = ['#7ca982', '#c2956e', '#6e90c2', '#a882c2'];
+
+  return (
+    <div className="bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] rounded-[2.5rem] p-6 lg:p-8 shadow-sm h-auto lg:h-[350px] flex flex-col lg:flex-row items-center transition-colors">
+      <div className="w-full lg:w-1/2 h-56 lg:h-full relative shrink-0">
+        <ResponsiveContainer width="100%" height="100%">
+          <PieChart>
+            <Pie data={data} innerRadius="65%" outerRadius="90%" paddingAngle={4} dataKey="value" stroke="none">
+              {data.map((_, index) => <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />)}
+            </Pie>
+          </PieChart>
+        </ResponsiveContainer>
+        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none p-4">
+          <span className="text-[9px] font-bold uppercase tracking-widest text-[#b0ad9a] mb-1">Top Focus</span>
+          <span className="text-sm md:text-base font-serif text-[#3d3b33] dark:text-[#f0f0f0] text-center leading-tight">Deep Work</span>
+        </div>
+      </div>
+      <div className="w-full lg:w-1/2 flex flex-col mt-6 lg:mt-0 lg:pl-6 h-auto lg:h-full justify-center">
+        <div className="flex items-center gap-2 mb-4 text-[#b0ad9a] dark:text-[#7a7a7a] shrink-0">
+            <Filter size={14} />
+            <span className="text-[9px] font-bold uppercase tracking-widest">Active Filters</span>
+        </div>
+        <div className="flex-1 space-y-2">
+          {data.map((cat, i) => (
+            <div key={i} className="w-full flex items-center justify-between p-3 rounded-xl bg-[#f7f5f0] dark:bg-[#2a2a2a]">
+              <div className="flex items-center gap-3">
+                <div className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: COLORS[i] }} />
+                <span className="text-xs font-medium text-[#3d3b33] dark:text-[#e0e0e0]">{cat.name}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-[9px] font-bold text-[#c2956e] dark:text-[#b0855f]">{cat.value}%</span>
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
 }
 
 export function MockAnalyticsSandbox() {
-  const dailyMap = generateMockDailyMap();
-  const rawSessions = [
-    { title: 'Deep Work', duration_seconds: 18000 },
-    { title: 'Reading', duration_seconds: 7200 },
-    { title: 'Emails', duration_seconds: 3600 },
-    { title: 'Planning', duration_seconds: 2400 }
-  ];
-
   return (
     <div className="w-full flex flex-col gap-6 md:gap-8 my-10 md:my-20">
-      <div className="text-center max-w-2xl mx-auto mb-4 px-4">
+      <div className="text-center max-w-2xl mx-auto mb-10 px-4">
         <h3 className="text-3xl md:text-4xl font-serif text-[#3d3b33] dark:text-[#f0f0f0] mb-3">Insights That Matter</h3>
         <p className="text-[#888] dark:text-[#a0a0a0] leading-relaxed text-sm">
           Chronoa passively analyzes your activity, helping you discover your peak performance hours, flow states, and focus distribution. 
         </p>
       </div>
-      <div className="w-full">
-        <ActivityHeatmap dailyMap={dailyMap} />
-      </div>
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
         <div className="lg:col-span-2">
-          <ProductivityChart dailyMap={dailyMap} />
+          <MockProductivityChart />
         </div>
         <div className="lg:col-span-1">
-          <TimeOfDayRadar dailyMap={dailyMap} />
+          <MockTimeOfDayRadar />
         </div>
       </div>
-      <div className="w-full mt-2">
-        <FocusDistribution rawSessions={rawSessions} />
+      
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
+        <MockActivityHeatmap />
+        <MockFocusDistribution />
       </div>
     </div>
   );
