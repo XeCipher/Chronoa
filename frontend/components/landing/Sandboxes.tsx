@@ -123,8 +123,8 @@ function MockWeatherWidget({ isDark }: { isDark: boolean }) {
       onMouseEnter={() => { if (window.matchMedia('(hover: hover)').matches) setIsToggled(true); }}
       onMouseLeave={() => { if (window.matchMedia('(hover: hover)').matches) setIsToggled(false); }}
       onClick={() => setIsToggled(!isToggled)}
-      className="flex items-center shadow-[0_8px_30px_rgb(0,0,0,0.08)] rounded-[2rem] p-1.5 md:p-2 cursor-pointer transition-all duration-500 ease-in-out h-[48px] md:h-[56px] overflow-hidden backdrop-blur-xl"
-      style={{ backgroundColor: bgGlass, borderColor: borderGlass, maxWidth: isToggled ? '250px' : '90px', paddingRight: isToggled ? '20px' : '8px' }}
+      className={`flex items-center shadow-[0_8px_30px_rgb(0,0,0,0.08)] rounded-[2rem] p-1.5 md:p-2 cursor-pointer transition-all duration-500 ease-in-out h-[48px] md:h-[56px] overflow-hidden backdrop-blur-xl ${isToggled ? 'max-w-[250px] pr-4 md:pr-5' : 'max-w-[90px] md:max-w-[104px]'}`}
+      style={{ backgroundColor: bgGlass, borderColor: borderGlass }}
     >
       <div className="flex items-center w-[78px] md:w-[88px] shrink-0 justify-between">
         <div className="flex items-center justify-center w-9 h-9 md:w-10 md:h-10 rounded-full shrink-0" style={{ backgroundColor: bgGlass, color: details.color }}>
@@ -134,7 +134,7 @@ function MockWeatherWidget({ isDark }: { isDark: boolean }) {
           {Math.round(weather.temperature_2m)}°
         </span>
       </div>
-      <div className="flex overflow-hidden transition-all duration-500 ease-in-out" style={{ maxWidth: isToggled ? '150px' : '0px', opacity: isToggled ? 1 : 0, marginLeft: isToggled ? '8px' : '0px' }}>
+      <div className={`flex overflow-hidden transition-all duration-500 ease-in-out ${isToggled ? 'max-w-[150px] opacity-100 ml-1.5 md:ml-2' : 'max-w-0 opacity-0 ml-0'}`}>
         <div className="whitespace-nowrap flex flex-col justify-center border-l pl-2.5 md:pl-3" style={{ borderColor: isDark ? 'rgba(255,255,255,0.15)' : 'rgba(61,59,51,0.15)' }}>
           <span className="text-[10px] md:text-[11px] font-semibold leading-tight tracking-wide" style={{ color: textColor }}>
             {details.text}
@@ -167,16 +167,8 @@ function MockHomeTaskProgress({ isDark }: { isDark: boolean }) {
       onMouseEnter={() => { if (window.matchMedia('(hover: hover)').matches) setIsToggled(true); }}
       onMouseLeave={() => { if (window.matchMedia('(hover: hover)').matches) setIsToggled(false); }}
       onClick={() => setIsToggled(!isToggled)}
-      className="flex transition-all duration-500 ease-in-out shadow-[0_8px_30px_rgb(0,0,0,0.08)] cursor-pointer overflow-hidden rounded-[2rem] z-40 backdrop-blur-xl"
-      style={{
-        backgroundColor: bgGlass, borderColor: borderGlass,
-        flexDirection: isToggled ? 'column' : 'row',
-        alignItems: isToggled ? 'flex-start' : 'center',
-        padding: isToggled ? '16px 20px' : '6px',
-        gap: isToggled ? '12px' : '6px',
-        width: isToggled ? '200px' : '90px',
-        height: isToggled ? 'auto' : '48px'
-      }}
+      className={`flex transition-all duration-500 ease-in-out shadow-[0_8px_30px_rgb(0,0,0,0.08)] cursor-pointer overflow-hidden rounded-[2rem] z-40 backdrop-blur-xl ${isToggled ? 'flex-col items-start p-4 md:p-5 gap-3 w-[180px] md:w-[200px]' : 'flex-row items-center p-1.5 md:p-2 h-[48px] md:h-[56px] w-[90px] md:w-[104px] gap-1.5 md:gap-2'}`}
+      style={{ backgroundColor: bgGlass, borderColor: borderGlass }}
     >
       <div className={`flex items-center ${isToggled ? 'w-full' : 'w-auto'}`}>
         <div className="relative flex items-center justify-center w-9 h-9 md:w-10 md:h-10 shrink-0 transition-transform duration-500 rounded-full" style={{ backgroundColor: isDark ? 'rgba(0,0,0,0.4)' : 'rgba(255,255,255,0.2)' }}>
@@ -186,19 +178,19 @@ function MockHomeTaskProgress({ isDark }: { isDark: boolean }) {
           </svg>
           <span className="text-[8px] md:text-[9px] font-bold tabular-nums" style={{ color: textColor }}>{stats.routinePct}%</span>
         </div>
-        <div className={`flex flex-col justify-center transition-all duration-500 ease-in-out overflow-hidden whitespace-nowrap`} style={{ marginLeft: isToggled ? '12px' : '0px', opacity: isToggled ? 1 : 0, maxWidth: isToggled ? '140px' : '0px' }}>
+        <div className={`flex flex-col justify-center transition-all duration-500 ease-in-out overflow-hidden whitespace-nowrap ${isToggled ? 'ml-3 opacity-100 max-w-[140px]' : 'ml-0 opacity-0 max-w-0'}`}>
           <span className="text-[10px] font-bold uppercase tracking-widest text-[#7ca982] flex items-center gap-1"><CheckCircle2 size={12}/> Routine</span>
           <span className="text-sm font-medium" style={{ color: textColor }}>Daily Progress</span>
         </div>
       </div>
 
-      <div className="transition-all duration-500 ease-in-out" style={{ width: '100%', height: '1px', backgroundColor: isDark ? 'rgba(255,255,255,0.15)' : 'rgba(61,59,51,0.15)', display: isToggled ? 'block' : 'none', opacity: isToggled ? 1 : 0 }} />
+      <div className={`transition-all duration-500 ease-in-out ${isToggled ? 'w-full h-px opacity-100' : 'hidden opacity-0'}`} style={{ backgroundColor: isDark ? 'rgba(255,255,255,0.15)' : 'rgba(61,59,51,0.15)' }} />
 
       <div className={`flex items-center ${isToggled ? 'w-full' : 'w-auto'}`}>
         <div className={`w-9 h-9 md:w-10 md:h-10 flex items-center justify-center rounded-full shrink-0 transition-all duration-500 ${stats.normalLeft >= 1 ? 'bg-[#c2956e] dark:bg-[#b0855f] text-white shadow-md' : 'bg-white/20 dark:bg-black/20 border border-black/10 dark:border-white/10 text-[#3d3b33] dark:text-white'}`}>
           <span className="text-[14px] md:text-[15px] font-semibold tabular-nums">{stats.normalLeft}</span>
         </div>
-        <div className={`flex flex-col justify-center transition-all duration-500 ease-in-out overflow-hidden whitespace-nowrap`} style={{ marginLeft: isToggled ? '12px' : '0px', opacity: isToggled ? 1 : 0, maxWidth: isToggled ? '140px' : '0px' }}>
+        <div className={`flex flex-col justify-center transition-all duration-500 ease-in-out overflow-hidden whitespace-nowrap ${isToggled ? 'ml-3 opacity-100 max-w-[140px]' : 'ml-0 opacity-0 max-w-0'}`}>
           <span className={`text-[10px] font-bold uppercase tracking-widest flex items-center gap-1 ${stats.normalLeft >= 1 ? 'text-[#c2956e] dark:text-[#d1a784]' : 'text-[#c2956e] dark:text-[#d1a784]'}`}><ListTodo size={12}/> Tasks</span>
           <span className="text-sm font-medium" style={{ color: textColor }}>Remaining</span>
         </div>
@@ -207,7 +199,6 @@ function MockHomeTaskProgress({ isDark }: { isDark: boolean }) {
   );
 }
 
-// Explicit expanded version for the Tasks page sandbox
 function ExpandedMockTasksProgressWidget({ routinePct, normalLeft }: { routinePct: number, normalLeft: number }) {
   return (
     <div className="flex flex-col md:flex-row items-start md:items-center p-5 gap-6 w-full bg-white/70 dark:bg-[#1a1a1a]/80 backdrop-blur-sm border border-[#ebe8e2] dark:border-[#333] rounded-[2rem] shadow-sm shrink-0">
@@ -302,6 +293,7 @@ export function MockHomeSandbox() {
 export function MockTaskSandbox() {
   const [tasks, setTasks] = useState<Task[]>(initialMockTasks);
   const [stats, setStats] = useState({ routinePct: 50, normalLeft: 4 });
+  const [isRoutineEditMode, setIsRoutineEditMode] = useState(false);
 
   useEffect(() => {
     const totalRoutines = tasks.filter(t => t.task_type === 'routine').length;
@@ -426,30 +418,37 @@ export function MockTaskSandbox() {
         <div className="w-full lg:w-1/2 flex flex-col gap-6 h-auto lg:h-[450px]">
           <ExpandedMockTasksProgressWidget routinePct={stats.routinePct} normalLeft={stats.normalLeft} />
           
-          <div className="flex-1 flex flex-col min-h-0 bg-white/70 dark:bg-[#1a1a1a]/80 backdrop-blur-sm border border-[#ebe8e2] dark:border-[#333] rounded-[28px] overflow-hidden shadow-sm">
+          <div className="flex-1 flex flex-col min-h-0 bg-white/70 dark:bg-[#1a1a1a]/80 backdrop-blur-sm border border-[#ebe8e2] dark:border-[#333] rounded-[28px] overflow-hidden shadow-sm h-auto max-h-[500px] lg:h-auto lg:max-h-none">
             <div className="px-5 md:px-8 pt-6 md:pt-8 pb-4 border-b border-[#f0ede8] dark:border-[#2a2a2a] flex flex-col gap-3 shrink-0">
                <div className="flex justify-between items-center">
                    <h2 className="text-[22px] md:text-[26px] text-[#3d3b33] dark:text-[#f0f0f0] font-serif font-medium tracking-tight">Routines</h2>
-                   <button onClick={() => onAdd('routine', null)} className="w-8 h-8 rounded-full bg-[#f7f5f0] dark:bg-[#252525] text-[#c2956e] dark:text-[#d1a784] flex items-center justify-center border border-[#e0ddd5] dark:border-[#333] hover:bg-[#c2956e]/10 transition-colors"><Plus size={16}/></button>
+                   <div className="flex items-center gap-2">
+                       {isRoutineEditMode && (
+                           <button onClick={() => onAdd('routine', null)} className="w-8 h-8 rounded-full bg-[#f7f5f0] dark:bg-[#252525] text-[#c2956e] dark:text-[#d1a784] flex items-center justify-center border border-[#e0ddd5] dark:border-[#333] hover:bg-[#c2956e]/10 transition-colors shadow-sm"><Plus size={16}/></button>
+                       )}
+                       <button onClick={() => setIsRoutineEditMode(!isRoutineEditMode)} className={`flex items-center justify-center gap-1.5 px-3 h-8 rounded-full text-[10px] font-[600] tracking-[0.08em] uppercase transition-all shadow-sm border ${isRoutineEditMode ? 'bg-[#c2956e] text-white border-[#c2956e]' : 'bg-[#f7f5f0] dark:bg-[#252525] text-[#c2956e] dark:text-[#d1a784] border-[#e0ddd5] dark:border-[#333]'}`}>
+                           {isRoutineEditMode ? 'Done' : 'Edit'}
+                       </button>
+                   </div>
                </div>
             </div>
-            <div className="flex-1 overflow-y-auto no-scrollbar p-4 md:p-5 space-y-[2px]">
+            <div className="flex-1 overflow-y-auto no-scrollbar p-4 md:p-5 flex flex-col gap-[2px]">
                {routines.map(t => (
-                 <RecursiveCheckbox key={t.id} task={t} isEditMode={false} viewMode="focus" allTasks={tasks} onUpdate={onUpdate} onDelete={(id) => onDelete(id)} onRestore={() => {}} onAdd={(pId) => onAdd('routine', pId)} onIndent={onIndent} onUnindent={onUnindent} onMoveUp={() => {}} onMoveDown={() => {}} newTaskId={null} setNewTaskId={() => {}} isSandbox={true} />
+                 <RecursiveCheckbox key={t.id} task={t} isEditMode={isRoutineEditMode} viewMode="focus" allTasks={tasks} onUpdate={onUpdate} onDelete={(id) => onDelete(id)} onRestore={() => {}} onAdd={(pId) => onAdd('routine', pId)} onIndent={onIndent} onUnindent={onUnindent} onMoveUp={() => {}} onMoveDown={() => {}} newTaskId={null} setNewTaskId={() => {}} isSandbox={true} />
                ))}
             </div>
           </div>
         </div>
 
         {/* Right Col: Tasks Window */}
-        <div className="w-full lg:w-1/2 flex flex-col h-[400px] lg:h-[450px] bg-white/70 dark:bg-[#1a1a1a]/80 backdrop-blur-sm border border-[#ebe8e2] dark:border-[#333] rounded-[28px] overflow-hidden shadow-sm">
+        <div className="w-full lg:w-1/2 flex flex-col bg-white/70 dark:bg-[#1a1a1a]/80 backdrop-blur-sm border border-[#ebe8e2] dark:border-[#333] rounded-[28px] overflow-hidden shadow-sm h-auto max-h-[500px] lg:h-[450px] lg:max-h-none">
           <div className="px-5 md:px-8 pt-6 md:pt-8 pb-4 border-b border-[#f0ede8] dark:border-[#2a2a2a] flex flex-col gap-3 shrink-0">
              <div className="flex justify-between items-center">
                  <h2 className="text-[22px] md:text-[26px] text-[#3d3b33] dark:text-[#f0f0f0] font-serif font-medium tracking-tight">Tasks & Ideas</h2>
-                 <button onClick={() => onAdd('normal', null)} className="w-8 h-8 rounded-full bg-[#f7f5f0] dark:bg-[#252525] text-[#c2956e] dark:text-[#d1a784] flex items-center justify-center border border-[#e0ddd5] dark:border-[#333] hover:bg-[#c2956e]/10 transition-colors"><Plus size={16}/></button>
+                 <button onClick={() => onAdd('normal', null)} className="w-8 h-8 rounded-full bg-[#f7f5f0] dark:bg-[#252525] text-[#c2956e] dark:text-[#d1a784] flex items-center justify-center border border-[#e0ddd5] dark:border-[#333] hover:bg-[#c2956e]/10 transition-colors shadow-sm"><Plus size={16}/></button>
              </div>
           </div>
-          <div className="flex-1 overflow-y-auto no-scrollbar p-4 md:p-5 space-y-[2px]">
+          <div className="flex-1 overflow-y-auto no-scrollbar p-4 md:p-5 flex flex-col gap-[2px]">
              {normals.map(t => (
                <RecursiveCheckbox key={t.id} task={t} isEditMode={true} viewMode="focus" allTasks={tasks} onUpdate={onUpdate} onDelete={(id) => onDelete(id)} onRestore={() => {}} onAdd={(pId) => onAdd('normal', pId)} onIndent={onIndent} onUnindent={onUnindent} onMoveUp={() => {}} onMoveDown={() => {}} newTaskId={null} setNewTaskId={() => {}} isSandbox={true} />
              ))}
@@ -568,7 +567,7 @@ function MockGlobalTimeWidget({ hasRunning }: { hasRunning: boolean }) {
   if (!time) return null;
   
   return (
-    <div className="flex absolute bottom-4 left-1/2 -translate-x-1/2 md:bottom-8 md:left-auto md:right-8 md:translate-x-0 z-[100] items-center gap-3 bg-white/70 dark:bg-[#1a1a1a]/80 backdrop-blur-xl border border-[#e0ddd5] dark:border-[#333] rounded-2xl px-6 py-3.5 shadow-[0_4px_20px_rgba(0,0,0,0.05)] dark:shadow-[0_4px_20px_rgba(0,0,0,0.4)] pointer-events-none">
+    <div className="flex absolute bottom-6 md:bottom-8 right-1/2 translate-x-1/2 md:translate-x-0 md:right-8 z-[100] items-center gap-3 bg-white/70 dark:bg-[#1a1a1a]/80 backdrop-blur-xl border border-[#e0ddd5] dark:border-[#333] rounded-2xl px-6 py-3.5 shadow-[0_4px_20px_rgba(0,0,0,0.05)] dark:shadow-[0_4px_20px_rgba(0,0,0,0.4)] pointer-events-none">
       <span className="text-[#3d3b33] dark:text-[#f0f0f0] font-serif text-xl leading-none">
         {time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
       </span>
@@ -650,7 +649,7 @@ export function MockTimeSandbox() {
   const hasRunning = timers.some(t => t.isRunning) || stopwatches.some(s => s.isRunning);
 
   return (
-    <div id="mock-time-sandbox" className={`w-full py-16 bg-[#fdfbf7] dark:bg-[#161616] border border-[#e0ddd5] dark:border-[#333] rounded-[2.5rem] md:rounded-[3rem] my-10 flex flex-col items-center relative shadow-sm min-h-[400px] transition-all duration-500 ${highlight ? 'ring-4 ring-[#c2956e]' : ''}`}>
+    <div id="mock-time-sandbox" className={`w-full pt-16 pb-24 md:pb-16 bg-[#fdfbf7] dark:bg-[#161616] border border-[#e0ddd5] dark:border-[#333] rounded-[2.5rem] md:rounded-[3rem] my-10 flex flex-col items-center relative shadow-sm min-h-[400px] transition-all duration-500 ${highlight ? 'ring-4 ring-[#c2956e]' : ''}`}>
       <div className="text-center max-w-xl mx-auto mb-10 px-4">
         <h3 className="text-3xl md:text-4xl font-serif text-[#3d3b33] dark:text-[#f0f0f0] mb-3">Own Your Time</h3>
         <p className="text-[#888] dark:text-[#a0a0a0] leading-relaxed text-sm">
@@ -749,8 +748,8 @@ export function MockCalendarSandbox() {
   };
 
   return (
-    <div id="mock-calendar-sandbox" className={`flex flex-col lg:flex-row-reverse gap-8 items-center w-full my-20 p-2 md:p-6 transition-all duration-500 rounded-[3rem] ${highlight ? 'ring-4 ring-[#c2956e] bg-white/30 dark:bg-[#1a1a1a]/30' : ''}`}>
-      <div className="w-full lg:w-1/3 flex flex-col gap-4">
+    <div id="mock-calendar-sandbox" className={`flex flex-col lg:flex-row-reverse gap-12 md:gap-20 items-center w-full my-20 p-2 md:p-6 transition-all duration-500 rounded-[3rem] ${highlight ? 'ring-4 ring-[#c2956e] bg-white/30 dark:bg-[#1a1a1a]/30' : ''}`}>
+      <div className="w-full lg:w-1/3 flex flex-col gap-4 px-4 md:px-8">
         <h3 className="text-3xl md:text-4xl font-serif text-[#3d3b33] dark:text-[#f0f0f0]">Your Days, Visualized</h3>
         <p className="text-[#888] dark:text-[#a0a0a0] leading-relaxed text-sm">
           A gorgeous drag-and-drop calendar built right in. Sync your existing Google & Apple calendars instantly, or subscribe to public <b>.ics</b> links like Formula 1 schedules or national holidays. Try adding a task to the calendar from the tasks section!
@@ -777,7 +776,7 @@ export function MockNotesSandbox() {
           Beautiful text formatting that stays out of your way. Zoom in and out instantly with intuitive controls.
         </p>
       </div>
-      <div className="mock-editor-container w-full bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] rounded-[2.5rem] px-4 pt-4 pb-6 md:p-10 shadow-2xl h-auto max-h-[500px] overflow-y-auto no-scrollbar relative">
+      <div className="mock-editor-container w-full bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] rounded-[2.5rem] px-4 pt-2 pb-6 md:px-10 md:pt-4 md:pb-10 shadow-2xl h-auto max-h-[500px] overflow-y-auto no-scrollbar relative">
         <DistractionFreeEditor initialContent={content} onSave={setContent} isSandbox={true} />
       </div>
     </div>

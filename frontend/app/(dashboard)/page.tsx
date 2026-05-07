@@ -8,7 +8,7 @@ import { motion } from "framer-motion";
 import { LandingNav, useGoogleLogin } from "@/components/landing/LandingNav";
 import { MockHomeSandbox, MockTaskSandbox, MockTimeSandbox, MockCalendarSandbox, MockNotesSandbox, MockAnalyticsSandbox } from "@/components/landing/Sandboxes";
 import { DownloadsSection } from "@/components/landing/Downloads";
-import { ArrowRight, Sparkles } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 
 const FadeIn = ({ children, delay = 0 }: { children: React.ReactNode, delay?: number }) => (
   <motion.div
@@ -125,8 +125,9 @@ export default function LandingPage() {
             </div>
             
             <div className="relative z-10 flex flex-col items-center">
-              <div className="w-16 h-16 bg-[#c2956e]/10 text-[#c2956e] dark:bg-[#b0855f]/20 dark:text-[#d1a784] rounded-full flex items-center justify-center mb-8 shadow-sm">
-                <Sparkles size={32} />
+              <div className="w-16 h-16 bg-[#c2956e]/10 dark:bg-[#b0855f]/20 rounded-full flex items-center justify-center mb-8 shadow-sm">
+                <img src="/icon-light.svg" className="w-8 h-8 dark:hidden" alt="Chronoa" />
+                <img src="/icon-dark.svg" className="w-8 h-8 hidden dark:block" alt="Chronoa" />
               </div>
               <h3 className="text-4xl md:text-6xl font-serif mb-6 text-[#3d3b33] dark:text-white leading-tight">Your journey<br/> starts here.</h3>
               <p className="text-[#888] dark:text-[#a0a0a0] max-w-md mx-auto mb-10 text-sm md:text-base leading-relaxed">
