@@ -3,24 +3,42 @@ import { Task, CalendarEvent } from "@/types/app.types";
 
 export const generateMockDailyMap = () => {
   const map: Record<string, any> = {};
-  for (let i = 21; i >= 0; i--) {
+  for (let i = 365; i >= 0; i--) {
+    // Fill all squares but keep some empty (15% completely zero)
+    if (Math.random() > 0.85) continue;
+    
     const d = new Date();
     d.setDate(d.getDate() - i);
     const ymd = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
     
-    // Spread completion hours somewhat realistically
+    // Form a good diamond/polygon shape in radar chart:
+    // Emphasize Morning (6-12) and Afternoon (12-17), lower Evening (17-21) and Night (21-5)
     const makeTaskDate = () => {
        const newD = new Date(d);
-       newD.setHours(Math.floor(Math.random() * 12) + 8); // Between 8 AM and 8 PM
+       const hours = [6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 0];
+       const weights = [2, 3, 6, 9, 12, 11, 8, 10, 11, 9, 7, 5, 4, 3, 2, 1, 1, 0.5, 0.5]; 
+       let sum = weights.reduce((a, b) => a + b, 0);
+       let r = Math.random() * sum;
+       let h = 10;
+       for (let j = 0; j < hours.length; j++) {
+         if (r < weights[j]) { h = hours[j]; break; }
+         r -= weights[j];
+       }
+       newD.setHours(h);
        return newD.toISOString();
     };
 
+    // Keep counts low so the heatmap isn't completely dark green everywhere
+    // Level is based on maxCount, so having a few high days makes the rest lighter.
+    const taskCount = Math.random() > 0.9 ? Math.floor(Math.random() * 5) + 4 : Math.floor(Math.random() * 3) + 1;
+    const focusMins = Math.random() > 0.8 ? Math.floor(Math.random() * 90) + 30 : Math.floor(Math.random() * 30);
+
     map[ymd] = {
       date: ymd,
-      tasks: Array.from({ length: Math.floor(Math.random() * 6) + 3 }).map(() => ({ title: 'Task', completed_at: makeTaskDate(), task_type: 'normal' })),
-      sessions: Array.from({ length: Math.floor(Math.random() * 3) + 1 }).map(() => ({ title: 'Focus', duration_seconds: Math.floor(Math.random() * 3600) + 1800, created_at: makeTaskDate() })),
-      taskCount: Math.floor(Math.random() * 8) + 2,
-      focusMinutes: Math.floor(Math.random() * 120) + 30
+      tasks: Array.from({ length: taskCount }).map(() => ({ title: 'Task', completed_at: makeTaskDate(), task_type: 'normal' })),
+      sessions: Array.from({ length: focusMins > 0 ? 1 : 0 }).map(() => ({ title: 'Focus', duration_seconds: focusMins * 60, created_at: makeTaskDate() })),
+      taskCount: taskCount,
+      focusMinutes: focusMins
     };
   }
   return map;
@@ -63,7 +81,7 @@ export const generateMockEvents = (): CalendarEvent[] => {
     { id: 'c5', title: 'Lunch with Sarah', start_time: setTime(tomorrow, 12, 30), end_time: setTime(tomorrow, 14), color: 'rose', is_all_day: false, is_readonly: false, user_id: 'mock', location: 'Downtown Cafe', created_at: new Date().toISOString() },
     
     // Day After
-    { id: 'c6', title: 'F1 Grand Prix', start_time: setTime(dayAfter, 18), end_time: setTime(dayAfter, 20), color: 'rose', is_all_day: false, is_readonly: true, user_id: 'mock', source_id: 'mock-source', location: 'Silverstone Circuit', created_at: new Date().toISOString() },
+    { id: 'c6', title: 'F1 Grand Prix', start_time: setTime(dayAfter, 18), end_time: setTime(dayAfter, 20), color: 'rose', is_all_day: false, is_readonly: false, user_id: 'mock', source_id: 'mock-source', location: 'Silverstone Circuit', created_at: new Date().toISOString() },
     { id: 'c7', title: 'Project Planning', start_time: setTime(dayAfter, 11), end_time: setTime(dayAfter, 13), color: 'blue', is_all_day: false, is_readonly: false, user_id: 'mock', location: 'Office Room B', created_at: new Date().toISOString() },
   ] as CalendarEvent[];
 };

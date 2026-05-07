@@ -27,7 +27,7 @@ export default function LandingPage() {
       <LandingNav />
 
       {/* Hero Section */}
-      <section className="relative w-full min-h-[100dvh] flex flex-col items-center justify-center px-4 md:px-6 pt-0 -mt-10">
+      <section className="relative w-full min-h-[100dvh] flex flex-col items-center justify-center px-4 md:px-6 pt-16">
         {/* Abstract Background Blur Orbs */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none flex items-center justify-center opacity-60">
           <motion.div animate={{ scale:[1, 1.1, 1], rotate: [0, 90, 0] }} transition={{ duration: 20, repeat: Infinity, ease: "linear" }} className="absolute w-[800px] h-[800px] -translate-y-48 translate-x-32" style={{ background: 'radial-gradient(circle, rgba(168,130,194,0.1) 0%, transparent 60%)' }} />
@@ -36,7 +36,7 @@ export default function LandingPage() {
 
         <motion.div 
           initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 1, ease: "easeOut" }}
-          className="z-10 flex flex-col items-center text-center max-w-3xl"
+          className="z-10 flex flex-col items-center text-center max-w-3xl translate-y-6"
         >
           <h1 className="text-6xl sm:text-7xl md:text-8xl font-serif tracking-tight leading-none mb-6 md:mb-8">
             Your aesthetic workspace. <br/>

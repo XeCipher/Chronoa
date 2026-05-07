@@ -451,8 +451,12 @@ export default function RecursiveCheckbox({
                    ))}
                  </div>
                  
-                 <MenuDivider />
-                 {!hideDelete && <MenuItem icon={Trash2} label="Delete" destructive onClick={() => onDelete(task.id, false)} />}
+                 {!hideDelete && (
+                   <>
+                     <MenuDivider />
+                     <MenuItem icon={Trash2} label="Delete" destructive onClick={() => onDelete(task.id, false)} />
+                   </>
+                 )}
                </>
              )}
            </>

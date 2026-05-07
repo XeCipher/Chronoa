@@ -48,7 +48,7 @@ export function LandingNav() {
   };
 
   return (
-    <nav className={`fixed top-0 left-0 w-full z-[100] transition-all duration-300 ${scrolled ? 'bg-white/90 dark:bg-[#121212]/90 backdrop-blur-2xl shadow-sm border-b border-[#e0ddd5] dark:border-[#333]' : 'bg-transparent border-transparent'}`}>
+    <nav className={`fixed top-0 left-0 w-full z-[100] transition-all duration-500 ${scrolled ? 'bg-white/30 dark:bg-[#121212]/40 backdrop-blur-xl border-none shadow-none' : 'bg-transparent border-transparent'}`}>
       <div className="max-w-7xl mx-auto px-6 md:px-10 h-20 flex items-center justify-between">
         <h1 className="text-3xl text-[#3d3b33] dark:text-[#e0e0e0] font-serif font-medium tracking-tight cursor-default">
           Chronoa

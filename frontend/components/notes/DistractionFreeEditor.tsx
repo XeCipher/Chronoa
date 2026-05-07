@@ -358,7 +358,7 @@ export default function DistractionFreeEditor({
   );
 
   return (
-    <div className="relative w-full flex flex-col gap-4">
+    <div className="relative w-full flex flex-col gap-4 h-full">
       
       {/* Mobile Inline Tools (Save Status, Timestamp & Zoom) */}
       <div className="md:hidden flex w-full justify-between items-center gap-1.5 z-10 mb-2">
@@ -394,7 +394,7 @@ export default function DistractionFreeEditor({
           <div
             className={[
               "hidden md:flex",
-              "md:sticky md:top-6 lg:top-8 md:z-[100]",
+              "md:sticky md:top-0 md:z-[100]",
               "md:p-2 md:border md:border-[#e0ddd5] md:dark:border-[#2a2a2a] md:rounded-2xl",
               "md:bg-white/95 md:dark:bg-[#121212]/95 md:backdrop-blur-md",
               "md:shadow-[0_2px_16px_0_rgba(0,0,0,0.07)] md:dark:shadow-[0_2px_16px_0_rgba(0,0,0,0.4)]",
@@ -448,18 +448,18 @@ export default function DistractionFreeEditor({
       )}
 
       <div
-        className="relative w-full"
+        className="relative w-full flex-1"
         style={{
           fontSize: `${(journalZoom / 100) * 1.05}rem`,
           fontFamily: "inherit",
         }}
       >
         {editor.isEmpty && (
-          <div className="absolute top-0 left-0 pointer-events-none text-[#c4c0b8] dark:text-[#666] opacity-70 italic w-full">
+          <div className="absolute top-0 left-0 pointer-events-none text-[#c4c0b8] dark:text-[#666] opacity-70 italic w-full mt-2">
             {placeholder}
           </div>
         )}
-        <EditorContent editor={editor} />
+        <EditorContent editor={editor} className="mt-2 pb-10" />
       </div>
     </div>
   );

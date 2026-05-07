@@ -249,6 +249,8 @@ function ExpandedMockTasksProgressWidget({ routinePct, normalLeft }: { routinePc
 
 function MockGlobalTimeWidget() {
   const [time, setTime] = useState<Date | null>(null);
+  const store = useTimerStore();
+  const hasRunning = store.timers.some(t => t.isRunning) || store.stopwatches.some(s => s.isRunning);
   
   useEffect(() => {
     setTime(new Date());
@@ -263,7 +265,7 @@ function MockGlobalTimeWidget() {
       <span className="text-[#3d3b33] dark:text-[#f0f0f0] font-serif text-lg md:text-xl leading-none">
         {time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
       </span>
-      <div className={`relative z-10 rounded-full transition-all duration-500 w-[3px] h-3.5 bg-[#c2956e] dark:bg-[#b0855f]`} />
+      <div className={`relative z-10 rounded-full transition-all duration-500 ${hasRunning ? 'w-2.5 h-2.5 bg-red-500 animate-pulse shadow-[0_0_8px_rgba(239,68,68,0.8)]' : 'w-[3px] h-3.5 bg-[#c2956e] dark:bg-[#b0855f]'}`} />
       <span className="text-[#b0ad9a] dark:text-[#888] font-bold text-[8px] md:text-[10px] uppercase tracking-[0.2em] leading-none mt-0.5">
         {time.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' })}
       </span>
@@ -497,6 +499,22 @@ export function MockTimeSandbox() {
 
   useEffect(() => {
     const listener = (e: any) => {
+       const { tab, title } = e.detail;
+       useTimerStore.setState((state: any) => {
+         const newInstance = {
+           id: `mock-${Date.now()}`,
+           title: title,
+           targetMinutes: tab === 'timer' ? 25 : undefined,
+           accumulatedSeconds: 0,
+           isRunning: false,
+           startTime: null
+         };
+         return {
+           [tab === 'timer' ? 'timers' : 'stopwatches']: [...state[tab === 'timer' ? 'timers' : 'stopwatches'], newInstance],
+           activeTab: tab
+         };
+       });
+
        const el = document.getElementById('mock-time-sandbox');
        if (el) {
           const container = document.getElementById('landing-scroll-container');
@@ -529,6 +547,7 @@ export function MockTimeSandbox() {
 
 export function MockCalendarSandbox() {
   const [events, setEvents] = useState<CalendarEvent[]>(generateMockEvents());
+  const [targetScrollTime, setTargetScrollTime] = useState<string | null>(null);
   const [highlight, setHighlight] = useState(false);
   
   useEffect(() => {
@@ -549,6 +568,7 @@ export function MockCalendarSandbox() {
       } as CalendarEvent;
       
       setEvents(prev => [...prev, newEvent]);
+      setTargetScrollTime(newEvent.start_time);
 
       const el = document.getElementById('mock-calendar-sandbox');
       if (el) {
@@ -588,7 +608,7 @@ export function MockCalendarSandbox() {
       <div className="w-full lg:w-2/3 h-[400px] md:h-[500px] relative pointer-events-auto rounded-[28px] shadow-2xl border border-[#e0ddd5] dark:border-[#333] bg-white dark:bg-[#1a1a1a]">
         <WeekView 
           currentDate={new Date()} events={events} onEventClick={() => {}} onTimeRangeSelected={() => {}} onEventMove={handleEventMove} 
-          eventColors={EVENT_COLORS} targetScrollTime={null} daysCount={3}
+          eventColors={EVENT_COLORS} targetScrollTime={targetScrollTime} daysCount={3}
         />
       </div>
     </div>
