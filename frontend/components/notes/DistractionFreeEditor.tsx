@@ -66,9 +66,9 @@ export default function DistractionFreeEditor({
   const[saveStatus, setSaveStatus] = useState("Saved");
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  const[placeholder, setPlaceholder] = useState("");
+  const [placeholder, setPlaceholder] = useState("");
 
-  const[bubbleStyle, setBubbleStyle] = useState<React.CSSProperties>({
+  const [bubbleStyle, setBubbleStyle] = useState<React.CSSProperties>({
     opacity: 0,
     pointerEvents: "none",
     position: "fixed",
@@ -80,7 +80,7 @@ export default function DistractionFreeEditor({
   const onSaveRef = useRef(onSave);
   useEffect(() => {
     onSaveRef.current = onSave;
-  },[onSave]);
+  }, [onSave]);
 
   const[activeStates, setActiveStates] = useState<ActiveStates>({
     bold: false,
@@ -98,6 +98,26 @@ export default function DistractionFreeEditor({
       setPlaceholder(PROMPTS[Math.floor(Math.random() * PROMPTS.length)]);
     }
   }, [noteType]);
+
+  // Ensures the cursor stays within the visual viewport (above the virtual keyboard on mobile)
+  const ensureCursorVisible = (ed: any) => {
+    if (window.innerWidth >= 768 || !window.visualViewport) return;
+    try {
+      const { view } = ed;
+      const { selection } = ed.state;
+      const coords = view.coordsAtPos(selection.to);
+      const vv = window.visualViewport;
+      
+      // If the bottom of the cursor goes below the visible area (keyboard height taken into account), scroll up
+      if (coords.bottom > vv.offsetTop + vv.height - 60) {
+        const scrollContainer = document.getElementById('notes-scroll-container');
+        if (scrollContainer) {
+          const scrollAmount = coords.bottom - (vv.offsetTop + vv.height - 60);
+          scrollContainer.scrollBy({ top: scrollAmount, behavior: 'smooth' });
+        }
+      }
+    } catch (e) {}
+  };
 
   const editor = useEditor({
     editable: isEditable,
@@ -134,6 +154,10 @@ export default function DistractionFreeEditor({
         link: ed.isActive("link"),
       });
     },
+    onSelectionUpdate: ({ editor: ed }) => {
+      // Handle the case where the user moves the cursor manually via touch or arrows
+      setTimeout(() => ensureCursorVisible(ed), 50);
+    },
     onUpdate: ({ editor: ed }) => {
       if (!isEditable) return;
       setSaveStatus("Saving...");
@@ -143,6 +167,9 @@ export default function DistractionFreeEditor({
         setSaveStatus("Saved");
         saveTimeoutRef.current = null;
       }, 1000);
+
+      // Handle the case where user is typing down into the keyboard boundary
+      setTimeout(() => ensureCursorVisible(ed), 50);
     },
     immediatelyRender: false,
   });
@@ -164,7 +191,19 @@ export default function DistractionFreeEditor({
         }
       }, 150);
     }
-  },[shouldFocusOnMount, editor]);
+  }, [shouldFocusOnMount, editor]);
+
+  // Handle external keyboard appearances that change the visual viewport
+  useEffect(() => {
+    if (!editor || !window.visualViewport) return;
+    const handleResize = () => {
+      if (editor.isFocused) {
+        setTimeout(() => ensureCursorVisible(editor), 100);
+      }
+    };
+    window.visualViewport.addEventListener("resize", handleResize);
+    return () => window.visualViewport?.removeEventListener("resize", handleResize);
+  }, [editor]);
 
   useEffect(() => {
     const handleGlobalWheel = (e: WheelEvent) => {
@@ -308,26 +347,23 @@ export default function DistractionFreeEditor({
   const setLink = () => {
     if (!editor) return;
 
-    // Unset the link if one is already active on the selection
     if (editor.isActive("link")) {
       editor.chain().focus().extendMarkRange("link").unsetLink().run();
       return;
     }
 
     const { from, to } = editor.state.selection;
-    if (from === to) return; // Do nothing if there's no text selected
+    if (from === to) return;
 
     const selectedText = editor.state.doc.textBetween(from, to, " ");
     if (!selectedText) return;
 
     let url = selectedText.trim();
 
-    // Auto-prefix with "https://" if a protocol isn't already specified
     if (!/^https?:\/\//i.test(url) && !/^mailto:/i.test(url) && !/^tel:/i.test(url)) {
       url = `https://${url}`;
     }
 
-    // Apply the link
     editor.chain().focus().extendMarkRange("link").setLink({ href: url }).run();
   };
 
@@ -518,7 +554,7 @@ export default function DistractionFreeEditor({
             {placeholder}
           </div>
         )}
-        <EditorContent editor={editor} className="mt-0 pb-[50vh] md:pb-[30vh]" />
+        <EditorContent editor={editor} className="mt-0 pb-12" />
       </div>
     </div>
   );

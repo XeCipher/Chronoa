@@ -44,12 +44,12 @@ function generateUUID() {
 export default function TaskSection({ type, title, viewMode = 'focus', searchQuery = '' }: Props) {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [isEditMode, setIsEditMode] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+  const[isLoading, setIsLoading] = useState(true);
   const [newTaskId, setNewTaskId] = useState<string | null>(null);
   
   const { 
     taskArchiveDelay, moveCompletedToBottom, keepParentTaskAlive, addTaskAtTop, archiveLayout, archiveSort,
-    mobileRoutineCollapsed, mobileTasksCollapsed, setMobileRoutineCollapsed, setMobileTasksCollapsed
+    mobileRoutineCollapsed, setMobileRoutineCollapsed
   } = useUiStore();
   
   const [now, setNow] = useState(Date.now());
@@ -66,7 +66,8 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
     })
   );
 
-  const isCollapsedMobile = type === 'routine' ? mobileRoutineCollapsed : mobileTasksCollapsed;
+  // Normal tasks will never be collapsed on mobile; only routines can be toggled
+  const isCollapsedMobile = type === 'routine' ? mobileRoutineCollapsed : false;
 
   const fetchTasks = async () => {
     let { data } = await supabase
@@ -314,7 +315,6 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
     if (!user) return;
 
     if (type === 'routine' && mobileRoutineCollapsed) setMobileRoutineCollapsed(false);
-    if (type === 'normal' && mobileTasksCollapsed) setMobileTasksCollapsed(false);
 
     if (parentId) {
       setTasks((prev) => prev.map((t) => t.id === parentId ? { ...t, is_collapsed: false } : t));
@@ -364,7 +364,7 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
           const shift = shiftUpdates.find(s => s.id === t.id);
           return shift ? { ...t, ...shift.updates } : t;
         });
-        return[...updatedList, tempTask];
+        return [...updatedList, tempTask];
       });
       setNewTaskId(newId);
     });
@@ -545,7 +545,7 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
 
       const rawTaskIndex = rawSiblings.findIndex(t => t.id === task.id);
       
-      const newRawSiblings = [...rawSiblings];
+      const newRawSiblings =[...rawSiblings];
       const[removedTask] = newRawSiblings.splice(rawTaskIndex, 1);
       
       const adjustedTargetIndex = newRawSiblings.findIndex(t => t.id === swapTarget.id);
@@ -599,7 +599,7 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
       const rawTaskIndex = rawSiblings.findIndex(t => t.id === task.id);
       
       const newRawSiblings = [...rawSiblings];
-      const [removedTask] = newRawSiblings.splice(rawTaskIndex, 1);
+      const[removedTask] = newRawSiblings.splice(rawTaskIndex, 1);
       
       const adjustedTargetIndex = newRawSiblings.findIndex(t => t.id === swapTarget.id);
       
@@ -666,7 +666,6 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
 
   const toggleMobileCollapse = () => {
     if (type === 'routine') setMobileRoutineCollapsed(!mobileRoutineCollapsed);
-    else setMobileTasksCollapsed(!mobileTasksCollapsed);
   };
 
   const getEmptyMessage = () => {
@@ -773,13 +772,15 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
               >
                 {title}
               </h2>
-              <button 
-                onClick={toggleMobileCollapse}
-                className="md:hidden p-1.5 -ml-1 text-[#b0ad9a] dark:text-[#7a7a7a] active:bg-gray-100 dark:active:bg-[#333] rounded-lg transition-colors"
-                data-tooltip-id="task-tooltip" data-tooltip-content={isCollapsedMobile ? "Expand" : "Collapse"}
-              >
-                {isCollapsedMobile ? <ChevronDown size={20} /> : <ChevronUp size={20} />}
-              </button>
+              {type === 'routine' && (
+                <button 
+                  onClick={toggleMobileCollapse}
+                  className="md:hidden p-1.5 -ml-1 text-[#b0ad9a] dark:text-[#7a7a7a] active:bg-gray-100 dark:active:bg-[#333] rounded-lg transition-colors"
+                  data-tooltip-id="task-tooltip" data-tooltip-content={isCollapsedMobile ? "Expand" : "Collapse"}
+                >
+                  {isCollapsedMobile ? <ChevronDown size={20} /> : <ChevronUp size={20} />}
+                </button>
+              )}
             </div>
 
             {viewMode === "focus" && (
