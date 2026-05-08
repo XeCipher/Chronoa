@@ -6,6 +6,7 @@ import { useUiStore } from "@/store/uiStore";
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Underline from "@tiptap/extension-underline";
+import Link from "@tiptap/extension-link";
 import {
   Clock,
   Bold,
@@ -16,7 +17,8 @@ import {
   Heading1,
   Heading2,
   Maximize,
-  Minimize
+  Minimize,
+  Link as LinkIcon
 } from "lucide-react";
 
 interface EditorProps {
@@ -26,6 +28,7 @@ interface EditorProps {
   noteType?: "notes" | "journal";
   entryDate?: string;
   isSandbox?: boolean;
+  shouldFocusOnMount?: boolean;
 }
 
 type ActiveStates = {
@@ -36,9 +39,10 @@ type ActiveStates = {
   heading2: boolean;
   bulletList: boolean;
   orderedList: boolean;
+  link: boolean;
 };
 
-const PROMPTS = [
+const PROMPTS =[
   "What are you grateful for today?",
   "What's on your mind right now?",
   "Describe a small win from today.",
@@ -56,14 +60,15 @@ export default function DistractionFreeEditor({
   noteType = "notes",
   entryDate,
   isSandbox = false,
+  shouldFocusOnMount = false,
 }: EditorProps) {
   const { journalZoom, setJournalZoom, isEditorFullscreen, toggleEditorFullscreen } = useUiStore();
-  const [saveStatus, setSaveStatus] = useState("Saved");
+  const[saveStatus, setSaveStatus] = useState("Saved");
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const [placeholder, setPlaceholder] = useState("");
 
-  const [bubbleStyle, setBubbleStyle] = useState<React.CSSProperties>({
+  const[bubbleStyle, setBubbleStyle] = useState<React.CSSProperties>({
     opacity: 0,
     pointerEvents: "none",
     position: "fixed",
@@ -75,7 +80,7 @@ export default function DistractionFreeEditor({
   const onSaveRef = useRef(onSave);
   useEffect(() => {
     onSaveRef.current = onSave;
-  }, [onSave]);
+  },[onSave]);
 
   const [activeStates, setActiveStates] = useState<ActiveStates>({
     bold: false,
@@ -85,6 +90,7 @@ export default function DistractionFreeEditor({
     heading2: false,
     bulletList: false,
     orderedList: false,
+    link: false,
   });
 
   useEffect(() => {
@@ -95,9 +101,18 @@ export default function DistractionFreeEditor({
 
   const editor = useEditor({
     editable: isEditable,
-    extensions: [
+    extensions:[
       StarterKit.configure({ heading: { levels: [1, 2] } }),
       Underline,
+      Link.configure({
+        openOnClick: true,
+        autolink: true,
+        linkOnPaste: true,
+        HTMLAttributes: {
+          target: "_blank",
+          rel: "noopener noreferrer",
+        },
+      }),
     ],
     content: initialContent,
     editorProps: {
@@ -116,6 +131,7 @@ export default function DistractionFreeEditor({
         heading2: ed.isActive("heading", { level: 2 }),
         bulletList: ed.isActive("bulletList"),
         orderedList: ed.isActive("orderedList"),
+        link: ed.isActive("link"),
       });
     },
     onUpdate: ({ editor: ed }) => {
@@ -139,6 +155,16 @@ export default function DistractionFreeEditor({
       }
     };
   }, [editor]);
+
+  useEffect(() => {
+    if (shouldFocusOnMount && editor && window.innerWidth >= 1024) {
+      setTimeout(() => {
+        if (!editor.isFocused) {
+          editor.commands.focus("end");
+        }
+      }, 150);
+    }
+  },[shouldFocusOnMount, editor]);
 
   useEffect(() => {
     const handleGlobalWheel = (e: WheelEvent) => {
@@ -180,7 +206,7 @@ export default function DistractionFreeEditor({
           editorEl.removeEventListener('keydown', handleGlobalKeyDown as any);
        }
     };
-  }, [isEditable]);
+  },[isEditable]);
 
   useEffect(() => {
     if (!editor) return;
@@ -247,7 +273,7 @@ export default function DistractionFreeEditor({
       window.removeEventListener("resize", updateBubbleThrottled);
       window.removeEventListener("scroll", updateBubbleThrottled, true);
     };
-  }, [editor]);
+  },[editor]);
 
   const insertTimestamp = () => {
     if (!editor) return;
@@ -277,6 +303,23 @@ export default function DistractionFreeEditor({
       ? `<p><strong>${displayString}</strong></p><p></p>`
       : `<p></p><p><strong>${displayString}</strong></p><p></p>`;
     editor.chain().focus().insertContent(content).run();
+  };
+
+  const setLink = () => {
+    if (!editor) return;
+    const previousUrl = editor.getAttributes("link").href;
+    const url = window.prompt("URL", previousUrl);
+
+    if (url === null) {
+      return;
+    }
+
+    if (url === "") {
+      editor.chain().focus().extendMarkRange("link").unsetLink().run();
+      return;
+    }
+
+    editor.chain().focus().extendMarkRange("link").setLink({ href: url }).run();
   };
 
   if (!editor) return null;
@@ -350,6 +393,7 @@ export default function DistractionFreeEditor({
       <ToolbarButton title="Bold" onClick={() => editor.chain().focus().toggleBold().run()} isActive={activeStates.bold}><Bold size={15} /></ToolbarButton>
       <ToolbarButton title="Italic" onClick={() => editor.chain().focus().toggleItalic().run()} isActive={activeStates.italic}><Italic size={15} /></ToolbarButton>
       <ToolbarButton title="Underline" onClick={() => editor.chain().focus().toggleUnderline().run()} isActive={activeStates.underline}><UnderlineIcon size={15} /></ToolbarButton>
+      <ToolbarButton title="Link" onClick={setLink} isActive={activeStates.link}><LinkIcon size={15} /></ToolbarButton>
       <Divider />
       <ToolbarButton title="Heading 1" onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()} isActive={activeStates.heading1}><Heading1 size={15} /></ToolbarButton>
       <ToolbarButton title="Heading 2" onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()} isActive={activeStates.heading2}><Heading2 size={15} /></ToolbarButton>
@@ -461,7 +505,7 @@ export default function DistractionFreeEditor({
         }}
       >
         {editor.isEmpty && (
-          <div className="absolute top-0 left-0 pointer-events-none text-[#c4c0b8] dark:text-[#666] opacity-70 italic w-full mt-2">
+          <div className="absolute top-0 left-0 pointer-events-none text-[#c4c0b8] dark:text-[#666] opacity-70 italic w-full leading-[1.45]">
             {placeholder}
           </div>
         )}

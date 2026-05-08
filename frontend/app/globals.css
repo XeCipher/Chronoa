@@ -124,6 +124,30 @@ h1, h2, h3, h4 { font-family: var(--font-display); font-weight: 500; }
 .chronoa-editor li { margin-bottom: 0.25rem !important; }
 .chronoa-editor li p { margin: 0 !important; display: inline !important; }
 
+.chronoa-editor a {
+  color: #c2956e !important;
+  text-decoration: underline;
+  text-decoration-color: rgba(194, 149, 110, 0.4);
+  text-underline-offset: 3px;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.chronoa-editor a:hover {
+  color: #b0855f !important;
+  text-decoration-color: #b0855f;
+}
+
+.dark .chronoa-editor a {
+  color: #d1a784 !important;
+  text-decoration-color: rgba(209, 167, 132, 0.4);
+}
+
+.dark .chronoa-editor a:hover {
+  color: #e0b589 !important;
+  text-decoration-color: #e0b589;
+}
+
 /* ─── Utilities ──────────────────────────────────────────────────────────── */
 .no-scrollbar::-webkit-scrollbar { display: none; }
 @keyframes fadeUp { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }

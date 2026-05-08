@@ -70,8 +70,8 @@ export default function RecursiveCheckbox({
   const { taskArchiveDelay, activeTaskIdWithMenu, setActiveTaskIdWithMenu, disabledHotkeys } = useUiStore();
   const { addInstance, setTitle: setTimerTitle, setActiveTab, setForceShowWidgets } = useTimerStore();
 
-  const [initialTitle] = useState(task.title);
-  const [isExpanded, setIsExpanded] = useState(false);
+  const [localTitle, setLocalTitle] = useState(task.title);
+  const[isExpanded, setIsExpanded] = useState(false);
   const [isOverflowing, setIsOverflowing] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [menuRect, setMenuRect] = useState<DOMRect | null>(null);
@@ -100,6 +100,13 @@ export default function RecursiveCheckbox({
        setOptimisticCollapsed(null);
     }
   }, [task.is_collapsed, optimisticCollapsed]);
+
+  // Sync external title updates gracefully without resetting active typing cursor
+  useEffect(() => {
+    if (document.activeElement !== textRef.current) {
+      setLocalTitle(task.title);
+    }
+  }, [task.title]);
 
   // Disable Draggable bindings entirely inside sandbox to prevent overlapping glitch
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ 
@@ -142,7 +149,7 @@ export default function RecursiveCheckbox({
     const observer = new ResizeObserver(checkOverflow);
     observer.observe(el);
     return () => observer.disconnect();
-  }, [isExpanded, task.title]);
+  },[isExpanded, task.title]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -158,7 +165,7 @@ export default function RecursiveCheckbox({
     
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [activeTaskIdWithMenu, task.id, setActiveTaskIdWithMenu]);
+  },[activeTaskIdWithMenu, task.id, setActiveTaskIdWithMenu]);
 
   useEffect(() => {
     if (activeTaskIdWithMenu !== task.id) return;
@@ -168,7 +175,7 @@ export default function RecursiveCheckbox({
     };
     window.addEventListener('scroll', handleScroll, true);
     return () => window.removeEventListener('scroll', handleScroll, true);
-  }, [activeTaskIdWithMenu, task.id, setActiveTaskIdWithMenu]);
+  },[activeTaskIdWithMenu, task.id, setActiveTaskIdWithMenu]);
 
   useEffect(() => {
     if (newTaskId === task.id) {
@@ -189,15 +196,7 @@ export default function RecursiveCheckbox({
         setNewTaskId(null);
       }, 100); 
     }
-  }, [newTaskId, task.id, setNewTaskId]);
-
-  useEffect(() => {
-    if (textRef.current && document.activeElement !== textRef.current) {
-      if (textRef.current.textContent !== task.title) {
-        textRef.current.textContent = task.title;
-      }
-    }
-  }, [task.title]);
+  },[newTaskId, task.id, setNewTaskId]);
 
   const saveCurrentText = () => {
     if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
@@ -206,7 +205,6 @@ export default function RecursiveCheckbox({
     let newTitle = textRef.current.textContent || '';
     if (!newTitle.trim()) {
       newTitle = "New Item";
-      textRef.current.textContent = newTitle;
     } else {
       newTitle = newTitle.trim();
     }
@@ -253,7 +251,7 @@ export default function RecursiveCheckbox({
   };
 
   const getPath = (t: Task) => {
-    let path: string[] = [];
+    let path: string[] =[];
     let cur = t;
     while (cur.parent_id) {
        const p = allTasks.find(x => x.id === cur.parent_id);
@@ -298,7 +296,7 @@ export default function RecursiveCheckbox({
     }
   };
 
-  const availableColors = [
+  const availableColors =[
     { id: 'none', bg: 'bg-[#e0ddd5] dark:bg-[#555]' },
     { id: 'rose', bg: 'bg-rose-400 dark:bg-rose-500' },
     { id: 'amber', bg: 'bg-amber-400 dark:bg-amber-500' },
@@ -333,18 +331,46 @@ export default function RecursiveCheckbox({
     if (node.children) node.children.forEach(traverse);
     return Array.from(colors);
   };
-  const descendantColors = isCollapsed ? getDescendantColors(task) : [];
+  const descendantColors = isCollapsed ? getDescendantColors(task) :[];
+
+  const URL_REGEX = /(https?:\/\/[^\s]+)/gi;
 
   const renderTitle = () => {
-    if (!isExpanded && searchQuery) {
-      const parts = initialTitle.split(new RegExp(`(${escapeRegExp(searchQuery)})`, 'gi'));
-      return parts.map((part, i) =>
-        part.toLowerCase() === searchQuery.toLowerCase() ? (
-          <span key={i} className="bg-[#c2956e]/40 dark:bg-[#b0855f]/50 text-[#3d3b33] dark:text-white rounded-[4px] px-[2px] font-semibold">{part}</span>
-        ) : part
-      );
-    }
-    return initialTitle;
+    if (!localTitle) return null;
+
+    const parts = localTitle.split(URL_REGEX);
+    
+    return parts.map((part, i) => {
+      if (part.match(URL_REGEX)) {
+        return (
+          <a
+            key={i}
+            href={part}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={(e) => {
+              window.open(part, '_blank', 'noopener,noreferrer');
+              e.preventDefault();
+              e.stopPropagation();
+            }}
+            className="text-[#c2956e] dark:text-[#d1a784] hover:text-[#b0855f] dark:hover:text-[#e0b589] underline decoration-[#c2956e]/40 dark:decoration-[#d1a784]/40 hover:decoration-[#b0855f] dark:hover:decoration-[#e0b589] underline-offset-[3px] transition-colors cursor-pointer"
+          >
+            {part}
+          </a>
+        );
+      }
+
+      if (!isExpanded && searchQuery) {
+        const subParts = part.split(new RegExp(`(${escapeRegExp(searchQuery)})`, 'gi'));
+        return subParts.map((sub, j) =>
+          sub.toLowerCase() === searchQuery.toLowerCase() ? (
+            <span key={`${i}-${j}`} className="bg-[#c2956e]/40 dark:bg-[#b0855f]/50 text-[#3d3b33] dark:text-white rounded-[4px] px-[2px] font-semibold">{sub}</span>
+          ) : sub
+        );
+      }
+
+      return part;
+    });
   };
 
   const renderChildren = () => (
@@ -550,6 +576,7 @@ export default function RecursiveCheckbox({
               onBlur={() => {
                 saveCurrentText();
                 setIsExpanded(false); 
+                setLocalTitle(textRef.current?.textContent || '');
               }}
               onKeyDown={(e) => {
                 if (e.shiftKey && e.key === "ArrowUp" && !disabledHotkeys?.includes('focus_up')) {
