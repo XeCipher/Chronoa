@@ -64,20 +64,20 @@ export default function NotesPage() {
   
   const [notes, setNotes] = useState<any[]>([]);
   const [journals, setJournals] = useState<any[]>([]);
-  const[trash, setTrash] = useState<any[]>([]);
+  const [trash, setTrash] = useState<any[]>([]);
   
-  const [searchQuery, setSearchQuery] = useState("");
+  const[searchQuery, setSearchQuery] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const[editTitle, setEditTitle] = useState("");
-  const [noteToFocus, setNoteToFocus] = useState<string | null>(null);
+  const [editTitle, setEditTitle] = useState("");
+  const[noteToFocus, setNoteToFocus] = useState<string | null>(null);
   
   const [loading, setLoading] = useState(true);
-  const[isListVisible, setIsListVisible] = useState(true);
-  const [isTrashOpen, setIsTrashOpen] = useState(false);
+  const [isListVisible, setIsListVisible] = useState(true);
+  const[isTrashOpen, setIsTrashOpen] = useState(false);
   const [autoSelectPending, setAutoSelectPending] = useState(true);
-  const[isScrolled, setIsScrolled] = useState(false);
+  const [isScrolled, setIsScrolled] = useState(false);
 
-  const [showCalendar, setShowCalendar] = useState(false);
+  const[showCalendar, setShowCalendar] = useState(false);
   const [calMonth, setCalMonth] = useState(new Date());
 
   const desktopCalRef = useRef<HTMLDivElement>(null);
@@ -111,16 +111,44 @@ export default function NotesPage() {
     };
   }, [setEditorFullscreen]);
 
-  // Support pressing escape to easily get out of Fullscreen
+  // Global Escape Key Listener for Exiting Fullscreen & Navigating Back
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isEditorFullscreen) {
-        setEditorFullscreen(false);
+      if (e.key === 'Escape') {
+        
+        // Always exit fullscreen first if active
+        if (isEditorFullscreen) {
+          setEditorFullscreen(false);
+          return;
+        }
+
+        // Do not interpret as 'back' if currently interacting with an input or editor
+        const target = e.target as HTMLElement;
+        if (['INPUT', 'TEXTAREA'].includes(target.tagName) || target.isContentEditable) {
+          return;
+        }
+
+        if (isTrashOpen) {
+          setIsTrashOpen(false);
+          setSelectedId(null);
+          setNoteToFocus(null);
+          setAutoSelectPending(true);
+          setShowCalendar(false);
+          return;
+        }
+
+        // Handle mobile interface back behavior
+        if (!isListVisible) {
+          setSelectedId(null);
+          setIsListVisible(true);
+          setNoteToFocus(null);
+          return;
+        }
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isEditorFullscreen, setEditorFullscreen]);
+  }, [isEditorFullscreen, setEditorFullscreen, isTrashOpen, isListVisible]);
 
   const handleTabChange = (id: Tab) => {
     setNotesTab(id);
@@ -178,7 +206,7 @@ export default function NotesPage() {
     const validTrashNotes = (tData ||[]).filter(note => new Date(note.deleted_at) > thirtyDaysAgo).map(n => ({ ...n, isJournal: false }));
     const validTrashJournals = (jTrashData ||[]).filter(j => new Date(j.deleted_at) > thirtyDaysAgo).map(j => ({ ...j, isJournal: true }));
     
-    const combinedTrash =[...validTrashNotes, ...validTrashJournals].sort((a, b) => new Date(b.deleted_at).getTime() - new Date(a.deleted_at).getTime());
+    const combinedTrash = [...validTrashNotes, ...validTrashJournals].sort((a, b) => new Date(b.deleted_at).getTime() - new Date(a.deleted_at).getTime());
     
     setTrash(combinedTrash);
     setLoading(false);
@@ -193,7 +221,7 @@ export default function NotesPage() {
       window.removeEventListener('online', syncOfflineData);
       clearInterval(interval);
     };
-  }, [fetchData]);
+  },[fetchData]);
 
   useEffect(() => {
     if (!loading) {
@@ -223,11 +251,11 @@ export default function NotesPage() {
     }
     // Reset scroll state when changing notes
     setIsScrolled(false);
-  }, [selectedId, notesTab, notes, journals, trash, isTrashOpen]);
+  },[selectedId, notesTab, notes, journals, trash, isTrashOpen]);
 
   useEffect(() => {
     setMobileNoteOpen(!isListVisible);
-  },[isListVisible, setMobileNoteOpen]);
+  }, [isListVisible, setMobileNoteOpen]);
 
   const handleSelectItem = (id: string, autoFocus: boolean = false) => {
     setSelectedId(id);
@@ -259,7 +287,7 @@ export default function NotesPage() {
     }
     const { data: { user } } = await supabase.auth.getUser();
     const newJournal = { entry_date: dateStr, content: "<p></p>" };
-    setJournals(prev =>[...prev, newJournal].sort((a, b) => new Date(b.entry_date).getTime() - new Date(a.entry_date).getTime()));
+    setJournals(prev => [...prev, newJournal].sort((a, b) => new Date(b.entry_date).getTime() - new Date(a.entry_date).getTime()));
     handleSelectItem(dateStr, true);
     setShowCalendar(false);
     

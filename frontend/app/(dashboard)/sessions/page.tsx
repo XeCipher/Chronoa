@@ -29,11 +29,11 @@ const HighlightText = ({ text, query }: { text: string, query: string }) => {
 export default function SessionsPage() {
   const router = useRouter();
   const { sessionsFilter, setSessionsFilter, showConfirmDialog } = useUiStore();
-  const[sessions, setSessions] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [sessions, setSessions] = useState<any[]>([]);
+  const[loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
-  const [filter, setFilter] = useState<'all' | 'timer' | 'stopwatch'>(sessionsFilter || 'all');
-  const[editingId, setEditingId] = useState<string | null>(null);
+  const[filter, setFilter] = useState<'all' | 'timer' | 'stopwatch'>(sessionsFilter || 'all');
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState("");
 
   const handleFilterChange = (f: 'all' | 'timer' | 'stopwatch') => {
@@ -61,7 +61,20 @@ export default function SessionsPage() {
     if (!loading) {
       localStorage.setItem('chronoa_cache_sessions', JSON.stringify(sessions));
     }
-  },[sessions, loading]);
+  }, [sessions, loading]);
+
+  // Global Escape Key Listener for Back Navigation
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        const target = e.target as HTMLElement;
+        if (['INPUT', 'TEXTAREA'].includes(target.tagName) || target.isContentEditable) return;
+        router.back();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [router]);
 
   const handleDelete = (id: string) => {
     showConfirmDialog({
@@ -218,7 +231,10 @@ export default function SessionsPage() {
                                autoFocus type="text" value={editTitle} 
                                onChange={(e) => setEditTitle(e.target.value)}
                                onBlur={() => handleSaveEdit(session.id)}
-                               onKeyDown={(e) => e.key === 'Enter' && handleSaveEdit(session.id)}
+                               onKeyDown={(e) => {
+                                 if (e.key === 'Enter') handleSaveEdit(session.id);
+                                 if (e.key === 'Escape') setEditingId(null);
+                               }}
                                spellCheck={false}
                                className="w-full bg-transparent border-b border-[#c2956e] dark:border-[#b0855f] outline-none text-[#3d3b33] dark:text-white font-semibold text-[14px] pb-[1px]"
                             />

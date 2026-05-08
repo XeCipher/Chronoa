@@ -90,9 +90,41 @@ export default function SettingsPage() {
   // Calendar Editing & Interaction States
   const[editingSourceId, setEditingSourceId] = useState<string | null>(null);
   const [editSourceName, setEditSourceName] = useState("");
-  const[editSourceUrl, setEditSourceUrl] = useState("");
+  const [editSourceUrl, setEditSourceUrl] = useState("");
   const [isUpdatingSource, setIsUpdatingSource] = useState(false);
   const [openColorDropdown, setOpenColorDropdown] = useState<string | null>(null);
+
+  // Global Escape Key Listener for Back Navigation & Modal Dismissals
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        const target = e.target as HTMLElement;
+        if (['INPUT', 'TEXTAREA'].includes(target.tagName) || target.isContentEditable) return;
+        
+        // Priority ordered dismissals
+        if (isFeedbackModalOpen) {
+          setIsFeedbackModalOpen(false);
+          return;
+        }
+        if (showGithubModal) {
+          setShowGithubModal(false);
+          return;
+        }
+        if (editingSourceId) {
+          setEditingSourceId(null);
+          return;
+        }
+        if (openColorDropdown) {
+          setOpenColorDropdown(null);
+          return;
+        }
+
+        router.back();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  },[router, isFeedbackModalOpen, showGithubModal, editingSourceId, openColorDropdown]);
 
   // Magic Scroll-to-Hash handler
   useEffect(() => {
@@ -156,7 +188,7 @@ export default function SettingsPage() {
       setGithubCountdown(-1);
     }
     return () => clearTimeout(timer);
-  }, [showGithubModal, githubCountdown]);
+  },[showGithubModal, githubCountdown]);
 
   // Click outside listener for color dropdown
   useEffect(() => {
@@ -679,9 +711,9 @@ export default function SettingsPage() {
                 { id: 'home', keys:[altKeyDisplay, 'H'], desc: 'Go to Home' },
                 { id: 'tasks', keys:[altKeyDisplay, 'T'], desc: 'Go to Tasks' },
                 { id: 'notes', keys:[altKeyDisplay, 'N'], desc: 'Go to Notes' },
-                { id: 'calendar', keys:[altKeyDisplay, 'C'], desc: 'Go to Calendar' },
-                { id: 'analytics', keys:[altKeyDisplay, 'A'], desc: 'Go to Analytics' },
-                { id: 'settings', keys:[altKeyDisplay, 'P'], desc: 'Go to Profile' },
+                { id: 'calendar', keys: [altKeyDisplay, 'C'], desc: 'Go to Calendar' },
+                { id: 'analytics', keys: [altKeyDisplay, 'A'], desc: 'Go to Analytics' },
+                { id: 'settings', keys: [altKeyDisplay, 'P'], desc: 'Go to Profile' },
                 { id: 'up', keys: [altKeyDisplay, '↑'], desc: 'Move Task Up' },
                 { id: 'down', keys: [altKeyDisplay, '↓'], desc: 'Move Task Down' },
                 { id: 'focus_up', keys: ['Shift', '↑'], desc: 'Focus Task Above' },
@@ -776,7 +808,7 @@ export default function SettingsPage() {
     },
     {
       id: 'weather',
-      keys:['weather location', 'city', 'detect', 'map pin'],
+      keys: ['weather location', 'city', 'detect', 'map pin'],
       className: 'hidden md:flex flex-col',
       render: () => (
         <section className="space-y-4">
