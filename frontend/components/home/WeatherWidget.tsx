@@ -4,11 +4,15 @@
 import { useEffect, useState, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import { Cloud, Sun, Moon, CloudSun, CloudMoon, CloudRain, CloudDrizzle, Snowflake, CloudLightning, Wind, MapPin } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 export default function WeatherWidget() {
+  const router = useRouter();
   const [weather, setWeather] = useState<any>(null);
   const [city, setCity] = useState("");
   const [isToggled, setIsToggled] = useState(false);
+  const[promptCount, setPromptCount] = useState(0);
+  const [isLoaded, setIsLoaded] = useState(false);
   const widgetRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -23,61 +27,75 @@ export default function WeatherWidget() {
        document.removeEventListener("mousedown", handleClickOutside);
        document.removeEventListener("touchstart", handleClickOutside);
     };
-  }, []);
-
-  const fetchWeather = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('weather_lat, weather_lon, weather_city')
-      .eq('id', user.id)
-      .single();
-
-    if (profile?.weather_lat && profile?.weather_lon && profile?.weather_city) {
-      try {
-        const params = new URLSearchParams({
-          latitude: profile.weather_lat.toString(),
-          longitude: profile.weather_lon.toString(),
-          current: 'temperature_2m,weather_code,is_day,precipitation,cloud_cover',
-          timezone: 'auto',
-          forecast_days: '1'
-        });
-
-        const res = await fetch(`https://api.open-meteo.com/v1/forecast?${params.toString()}`, { cache: 'no-store' });
-        const data = await res.json();
-
-        if (data?.current) {
-          setWeather(data.current);
-          setCity(profile.weather_city);
-          localStorage.setItem('chronoa_cache_weather', JSON.stringify(data.current));
-          localStorage.setItem('chronoa_cache_weather_city', profile.weather_city);
-        }
-      } catch (err) {
-        console.error("Weather Error:", err);
-      }
-    } else {
-      setWeather(null);
-      setCity("");
-      localStorage.removeItem('chronoa_cache_weather');
-      localStorage.removeItem('chronoa_cache_weather_city');
-    }
-  };
+  },[]);
 
   useEffect(() => {
     const cached = localStorage.getItem('chronoa_cache_weather');
     const cachedCity = localStorage.getItem('chronoa_cache_weather_city');
+    let initialCheck = true;
+    
     if (cached && cachedCity) {
       try {
         setWeather(JSON.parse(cached));
         setCity(cachedCity);
+        setIsLoaded(true);
       } catch(e) {}
     }
-    fetchWeather();
-    const interval = setInterval(fetchWeather, 20 * 60 * 1000); 
+
+    const loadData = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('weather_lat, weather_lon, weather_city')
+        .eq('id', user.id)
+        .single();
+
+      if (profile?.weather_lat && profile?.weather_lon && profile?.weather_city) {
+        try {
+          const params = new URLSearchParams({
+            latitude: profile.weather_lat.toString(),
+            longitude: profile.weather_lon.toString(),
+            current: 'temperature_2m,weather_code,is_day,precipitation,cloud_cover',
+            timezone: 'auto',
+            forecast_days: '1'
+          });
+
+          const res = await fetch(`https://api.open-meteo.com/v1/forecast?${params.toString()}`, { cache: 'no-store' });
+          const data = await res.json();
+
+          if (data?.current) {
+            setWeather(data.current);
+            setCity(profile.weather_city);
+            localStorage.setItem('chronoa_cache_weather', JSON.stringify(data.current));
+            localStorage.setItem('chronoa_cache_weather_city', profile.weather_city);
+          }
+        } catch (err) {
+          console.error("Weather Error:", err);
+        }
+      } else {
+        setWeather(null);
+        setCity("");
+        localStorage.removeItem('chronoa_cache_weather');
+        localStorage.removeItem('chronoa_cache_weather_city');
+        
+        if (initialCheck) {
+          const count = parseInt(localStorage.getItem('chronoa_weather_prompt_count') || '0', 10);
+          if (count < 3) {
+            setPromptCount(count + 1);
+            localStorage.setItem('chronoa_weather_prompt_count', (count + 1).toString());
+          }
+        }
+      }
+      setIsLoaded(true);
+      initialCheck = false;
+    };
+
+    loadData();
+    const interval = setInterval(loadData, 20 * 60 * 1000); 
     return () => clearInterval(interval);
-  }, []);
+  },[]);
 
   const getWeatherDetails = (code: number, isDay: number, precipitation: number, cloudCover: number) => {
     const day = isDay === 1;
@@ -100,7 +118,21 @@ export default function WeatherWidget() {
     return { text: day ? "Sunny" : "Clear", icon: day ? Sun : Moon, color: day ? "text-amber-500" : "text-indigo-300" };
   };
 
-  if (!weather || !city) return null;
+  if (!isLoaded) return null;
+
+  if (!weather || !city) {
+    if (promptCount > 0 && promptCount <= 3) {
+      return (
+        <div onClick={() => router.push('/settings#weather')} className="cursor-pointer group flex items-center bg-white/20 dark:bg-black/30 hover:bg-white/30 dark:hover:bg-black/40 backdrop-blur-xl border border-white/40 dark:border-white/10 shadow-[0_8px_30px_rgb(0,0,0,0.08)] rounded-[1.25rem] md:rounded-[1.5rem] p-2 md:p-2.5 animate-fade-up z-40 transition-all duration-300">
+           <div className="flex items-center justify-center w-7 h-7 md:w-8 md:h-8 rounded-full bg-white/20 dark:bg-black/40 mr-2 md:mr-2.5 shrink-0">
+             <MapPin size={12} className="text-[#3d3b33] dark:text-white" />
+           </div>
+           <span className="text-[9px] md:text-[10px] font-semibold text-[#3d3b33] dark:text-white tracking-wide pr-1 md:pr-2">Add location for weather</span>
+        </div>
+      );
+    }
+    return null;
+  }
 
   const details = getWeatherDetails(weather.weather_code, weather.is_day, weather.precipitation, weather.cloud_cover);
   const Icon = details.icon;
@@ -114,10 +146,6 @@ export default function WeatherWidget() {
         ${isToggled ? 'max-w-[250px] pr-4 md:pr-5' : 'max-w-[90px] md:max-w-[104px] hover:max-w-[250px] hover:pr-4 md:hover:pr-5'}
       `}
     >
-      {/* 
-        This fixed-width container matches the HomeTaskProgress inner usable area 
-        (78px on mobile, 88px on desktop) ensuring an identical resting size stack.
-      */}
       <div className="flex items-center w-[78px] md:w-[88px] shrink-0 justify-between">
         <div className={`flex items-center justify-center w-9 h-9 md:w-10 md:h-10 rounded-full bg-white/20 dark:bg-black/40 transition-colors ${details.color} shrink-0`}>
           <Icon size={18} strokeWidth={2.5} className="md:w-[20px] md:h-[20px]" />

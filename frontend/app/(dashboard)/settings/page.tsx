@@ -40,7 +40,7 @@ const GitHubIcon = ({ size = 16, className = "" }: { size?: number, className?: 
   </svg>
 );
 
-const CALENDAR_COLORS = [
+const CALENDAR_COLORS =[
   { id: 'amber', bg: 'bg-[#c2956e]' },
   { id: 'blue', bg: 'bg-blue-500' },
   { id: 'purple', bg: 'bg-purple-500' },
@@ -79,20 +79,44 @@ export default function SettingsPage() {
   const [calSources, setCalSources] = useState<CalendarSource[]>([]);
   const [newLinkUrl, setNewLinkUrl] = useState("");
   const [newLinkName, setNewLinkName] = useState("");
-  const [isAddingLink, setIsAddingLink] = useState(false);
+  const[isAddingLink, setIsAddingLink] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [showGithubModal, setShowGithubModal] = useState(false);
-  const [githubCountdown, setGithubCountdown] = useState(-1);
+  const[githubCountdown, setGithubCountdown] = useState(-1);
 
   // Feedback State
-  const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
+  const[isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
 
   // Calendar Editing & Interaction States
-  const [editingSourceId, setEditingSourceId] = useState<string | null>(null);
+  const[editingSourceId, setEditingSourceId] = useState<string | null>(null);
   const [editSourceName, setEditSourceName] = useState("");
-  const [editSourceUrl, setEditSourceUrl] = useState("");
+  const[editSourceUrl, setEditSourceUrl] = useState("");
   const [isUpdatingSource, setIsUpdatingSource] = useState(false);
   const [openColorDropdown, setOpenColorDropdown] = useState<string | null>(null);
+
+  // Magic Scroll-to-Hash handler
+  useEffect(() => {
+    const hash = window.location.hash.replace('#', '');
+    if (hash) {
+      setTimeout(() => {
+        const el = document.getElementById(hash);
+        const container = document.getElementById('settings-scroll-container');
+        if (el && container) {
+          const containerRect = container.getBoundingClientRect();
+          const elRect = el.getBoundingClientRect();
+          const scrollTop = container.scrollTop + elRect.top - containerRect.top - 32;
+          
+          container.scrollTo({ top: Math.max(0, scrollTop), behavior: 'smooth' });
+          
+          // Flash highlight effect to guide user eyes
+          el.classList.add('bg-[#c2956e]/10', 'dark:bg-[#b0855f]/15', 'rounded-3xl', 'p-4', '-mx-4');
+          setTimeout(() => {
+            el.classList.remove('bg-[#c2956e]/10', 'dark:bg-[#b0855f]/15', 'rounded-3xl', 'p-4', '-mx-4');
+          }, 2500);
+        }
+      }, 400); // 400ms handles the layout stabilization before scrolling smoothly
+    }
+  },[]);
 
   useEffect(() => {
     const platform = window.navigator.platform.toLowerCase();
@@ -142,7 +166,7 @@ export default function SettingsPage() {
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+  },[]);
 
   const updateRemoteSetting = async (key: string, value: any) => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -438,10 +462,10 @@ export default function SettingsPage() {
     return keys.some(k => k.toLowerCase().includes(searchQuery.toLowerCase()));
   };
 
-  const sections = [
+  const sections =[
     {
       id: 'appearance',
-      keys: ['appearance', 'theme', 'dark', 'light', 'system', 'visual', 'color'],
+      keys:['appearance', 'theme', 'dark', 'light', 'system', 'visual', 'color'],
       className: '',
       render: () => (
         <section className="space-y-4">
@@ -465,7 +489,7 @@ export default function SettingsPage() {
     },
     {
       id: 'calendars',
-      keys: ['calendar', 'integration', 'import', 'export', 'google', 'apple', 'link', 'sync', 'ics', 'f1', 'schedule', 'sports'],
+      keys:['calendar', 'integration', 'import', 'export', 'google', 'apple', 'link', 'sync', 'ics', 'f1', 'schedule', 'sports'],
       className: 'flex flex-col',
       render: () => (
         <section className="space-y-6">
@@ -620,7 +644,7 @@ export default function SettingsPage() {
     },
     {
       id: 'hotkeys',
-      keys: ['global hotkeys', 'keyboard', 'shortcuts', 'navigation', 'focus'],
+      keys:['global hotkeys', 'keyboard', 'shortcuts', 'navigation', 'focus'],
       className: 'hidden md:flex flex-col',
       render: () => (
         <section className="space-y-6">
@@ -652,12 +676,12 @@ export default function SettingsPage() {
           {isHotkeysExpanded && (
             <div className={`grid grid-cols-1 lg:grid-cols-2 gap-4 transition-opacity duration-300 animate-fade-in border-t border-[#e0ddd5] dark:border-[#2a2a2a] pt-6 ${hotkeysEnabled ? 'opacity-100' : 'opacity-40 pointer-events-none'}`}>
               {[
-                { id: 'home', keys: [altKeyDisplay, 'H'], desc: 'Go to Home' },
-                { id: 'tasks', keys: [altKeyDisplay, 'T'], desc: 'Go to Tasks' },
-                { id: 'notes', keys: [altKeyDisplay, 'N'], desc: 'Go to Notes' },
-                { id: 'calendar', keys: [altKeyDisplay, 'C'], desc: 'Go to Calendar' },
-                { id: 'analytics', keys: [altKeyDisplay, 'A'], desc: 'Go to Analytics' },
-                { id: 'settings', keys: [altKeyDisplay, 'P'], desc: 'Go to Profile' },
+                { id: 'home', keys:[altKeyDisplay, 'H'], desc: 'Go to Home' },
+                { id: 'tasks', keys:[altKeyDisplay, 'T'], desc: 'Go to Tasks' },
+                { id: 'notes', keys:[altKeyDisplay, 'N'], desc: 'Go to Notes' },
+                { id: 'calendar', keys:[altKeyDisplay, 'C'], desc: 'Go to Calendar' },
+                { id: 'analytics', keys:[altKeyDisplay, 'A'], desc: 'Go to Analytics' },
+                { id: 'settings', keys:[altKeyDisplay, 'P'], desc: 'Go to Profile' },
                 { id: 'up', keys: [altKeyDisplay, '↑'], desc: 'Move Task Up' },
                 { id: 'down', keys: [altKeyDisplay, '↓'], desc: 'Move Task Down' },
                 { id: 'focus_up', keys: ['Shift', '↑'], desc: 'Focus Task Above' },
@@ -700,7 +724,7 @@ export default function SettingsPage() {
     },
     {
       id: 'tasks',
-      keys: ['task layout behavior', 'completed tasks', 'bottom', 'keep parent', 'add task top', 'home page progress'],
+      keys:['task layout behavior', 'completed tasks', 'bottom', 'keep parent', 'add task top', 'home page progress'],
       className: '',
       render: () => (
         <section className="space-y-4">
@@ -752,7 +776,7 @@ export default function SettingsPage() {
     },
     {
       id: 'weather',
-      keys: ['weather location', 'city', 'detect', 'map pin'],
+      keys:['weather location', 'city', 'detect', 'map pin'],
       className: 'hidden md:flex flex-col',
       render: () => (
         <section className="space-y-4">
@@ -789,7 +813,7 @@ export default function SettingsPage() {
     },
     {
       id: 'timing',
-      keys: ['vanishing delay', 'minutes', 'routine reset', 'hour', 'time'],
+      keys:['vanishing delay', 'minutes', 'routine reset', 'hour', 'time'],
       className: '',
       render: () => (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
@@ -847,7 +871,7 @@ export default function SettingsPage() {
     },
     {
       id: 'danger',
-      keys: ['danger zone', 'delete account', 'sign out', 'logout', 'remove'],
+      keys:['danger zone', 'delete account', 'sign out', 'logout', 'remove'],
       className: '',
       render: () => (
         <section className="space-y-6 pt-2">
@@ -901,9 +925,9 @@ export default function SettingsPage() {
             </div>
           </div>
 
-          <div className="bg-white dark:bg-[#1a1a1a] border border-[#ebe8e2] dark:border-[#2a2a2a] rounded-[2.5rem] p-6 md:p-10 shadow-sm flex flex-col gap-10 transition-all">
+          <div className="bg-white dark:bg-[#1a1a1a] border border-[#ebe8e2] dark:border-[#2a2a2a] rounded-[2.5rem] p-6 md:p-10 shadow-sm flex flex-col gap-10 transition-all relative">
             {visibleSections.map((sec, i) => (
-              <div key={sec.id} className={`flex flex-col gap-10 ${sec.className}`}>
+              <div key={sec.id} id={sec.id} className={`flex flex-col gap-10 ${sec.className} transition-all duration-700`}>
                  {sec.render()}
                  {i < visibleSections.length - 1 && <hr className="border-[#f0ede8] dark:border-[#2a2a2a]" />}
               </div>

@@ -19,10 +19,12 @@ export default function HomePage() {
   const [isTouched, setIsTouched] = useState(false);
   
   // Cache user avatar for instant load without layout shifting
-  const [userAvatar, setUserAvatar] = useState<string | null>(() => {
+  const[userAvatar, setUserAvatar] = useState<string | null>(() => {
     if (typeof window !== 'undefined') return localStorage.getItem('chronoa_avatar');
     return null;
   });
+
+  const[timeSessionsCount, setTimeSessionsCount] = useState<number | null>(null);
   
   const isPinned = useTimerStore((state: any) => state.isPinned);
   const forceShow = useTimerStore((state: any) => state.forceShowWidgets);
@@ -40,8 +42,16 @@ export default function HomePage() {
         setUserAvatar(user.user_metadata.avatar_url);
         localStorage.setItem('chronoa_avatar', user.user_metadata.avatar_url);
       }
+      if (user) {
+        supabase.from('time_sessions')
+          .select('id', { count: 'exact', head: true })
+          .eq('user_id', user.id)
+          .then(({ count }) => {
+            setTimeSessionsCount(count);
+          });
+      }
     });
-  }, []);
+  },[]);
 
   return (
     <div className="relative w-full h-full overflow-hidden flex items-center justify-center touch-none overscroll-none">
@@ -81,6 +91,9 @@ export default function HomePage() {
         className="hidden md:flex absolute bottom-8 left-1/2 -translate-x-1/2 flex-col items-center gap-2 pointer-events-none transition-all duration-700 z-20" 
         style={{ opacity: showWidget ? 0 : 0.5, transform: showWidget ? 'translateY(10px)' : 'translateY(0)' }}
       >
+        {timeSessionsCount !== null && timeSessionsCount < 1 && (
+          <span className="text-[10px] font-bold uppercase tracking-widest text-[#888] dark:text-[#a0a0a0] mb-1 animate-pulse">Hover here for timers</span>
+        )}
         <div className={`transition-colors duration-500 rounded-full animate-pulse ${isAnyRunning ? 'w-16 h-1.5 bg-red-500 shadow-[0_0_12px_rgba(239,68,68,0.8)]' : 'w-8 h-[2px] bg-[#888]/80 dark:bg-[#a0a0a0]/80'}`} />
       </div>
 
@@ -108,6 +121,9 @@ export default function HomePage() {
           className="md:hidden absolute bottom-4 left-1/2 -translate-x-1/2 flex flex-col items-center justify-center p-4 z-40 transition-opacity pointer-events-auto"
           style={{ opacity: showWidget ? 0 : 1 }}
         >
+          {timeSessionsCount !== null && timeSessionsCount < 1 && (
+            <span className="text-[10px] font-bold uppercase tracking-widest text-[#888] dark:text-[#a0a0a0] mb-3 animate-pulse text-center">Tap here for timers</span>
+          )}
           <div className={`transition-colors duration-500 rounded-full ${isAnyRunning ? 'w-16 h-1.5 bg-red-500 shadow-[0_0_12px_rgba(239,68,68,0.8)] animate-pulse' : 'w-12 h-1.5 bg-[#3d3b33]/20 dark:bg-[#e0e0e0]/20'}`} />
         </div>
 

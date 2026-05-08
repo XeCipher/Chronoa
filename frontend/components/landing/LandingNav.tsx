@@ -7,7 +7,7 @@ import { Moon, Sun } from "lucide-react";
 import { useUiStore } from "@/store/uiStore";
 
 export const useGoogleLogin = () => {
-  const [isLoggingIn, setIsLoggingIn] = useState(false);
+  const[isLoggingIn, setIsLoggingIn] = useState(false);
   const supabase = createBrowserClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
 
   const handleLogin = async () => {
@@ -36,20 +36,22 @@ export function LandingNav() {
   const { theme, setTheme } = useUiStore();
   const { handleLogin, isLoggingIn } = useGoogleLogin();
   const [scrolled, setScrolled] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    setMounted(true);
     const container = document.getElementById("landing-scroll-container");
     if (!container) return;
     const onScroll = () => setScrolled(container.scrollTop > 20);
     container.addEventListener("scroll", onScroll);
     return () => container.removeEventListener("scroll", onScroll);
-  }, []);
+  },[]);
+
+  const isCurrentlyDark = theme === 'dark' || (theme === 'system' && typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches);
 
   useEffect(() => {
     const updateFavicon = () => {
-      const isDark = theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
-      const iconUrl = isDark ? '/icon-dark.svg' : '/icon-light.svg';
-      
+      const iconUrl = isCurrentlyDark ? '/icon-dark.svg' : '/icon-light.svg';
       const links = document.querySelectorAll("link[rel='icon']");
       if (links.length > 0) {
         links.forEach(link => {
@@ -72,10 +74,10 @@ export function LandingNav() {
       mediaQuery.addEventListener('change', handleChange);
       return () => mediaQuery.removeEventListener('change', handleChange);
     }
-  }, [theme]);
+  }, [theme, isCurrentlyDark]);
 
   const toggleTheme = () => {
-    const newTheme = theme === 'dark' ? 'light' : 'dark';
+    const newTheme = isCurrentlyDark ? 'light' : 'dark';
     setTheme(newTheme);
     document.documentElement.classList.toggle('dark', newTheme === 'dark');
   };
@@ -101,7 +103,7 @@ export function LandingNav() {
         </div>
         <div className="flex items-center gap-2 md:gap-4">
           <button onClick={toggleTheme} className="w-10 h-10 flex items-center justify-center rounded-full text-[#888] hover:text-[#c2956e] dark:hover:text-[#d1a784] hover:bg-black/5 dark:hover:bg-white/5 transition-all">
-            {theme === 'dark' ? <Moon size={18} /> : <Sun size={18} />}
+            {mounted ? (isCurrentlyDark ? <Sun size={18} /> : <Moon size={18} />) : <Moon size={18} />}
           </button>
           <a href="https://github.com/XeCipher/Chronoa" target="_blank" rel="noreferrer" className="flex w-10 h-10 items-center justify-center rounded-full text-[#888] hover:text-[#3d3b33] dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/5 transition-all">
             <GithubIcon size={20} />

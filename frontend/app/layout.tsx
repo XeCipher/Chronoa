@@ -1,12 +1,12 @@
 // frontend/app/layout.tsx
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Cormorant_Garamond, DM_Sans } from "next/font/google";
 import "./globals.css";
 import GoogleAnalytics from "@/components/GoogleAnalytics";
 
 const cormorant = Cormorant_Garamond({
   subsets: ["latin"],
-  weight: ["300", "400", "500", "600"],
+  weight:["300", "400", "500", "600"],
   variable: "--font-cormorant",
 });
 
@@ -22,7 +22,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Chronoa",
     description: "Your aesthetic workspace. Completely synced.",
-    images: [{ url: '/opengraph-image.png', width: 1200, height: 630 }],
+    images:[{ url: '/opengraph-image.png', width: 1200, height: 630 }],
     type: 'website',
   },
   appleWebApp: {
@@ -31,12 +31,20 @@ export const metadata: Metadata = {
     statusBarStyle: "black-translucent",
   },
   icons: {
-    icon: [
+    icon:[
       { url: '/icon-light.svg', media: '(prefers-color-scheme: light)' },
       { url: '/icon-dark.svg', media: '(prefers-color-scheme: dark)' }
     ],
     apple: [{ url: '/apple-icon.png' }]
   }, 
+};
+
+// This successfully prevents the annoying Safari iOS zoom on inputs
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
 };
 
 export default function RootLayout({
