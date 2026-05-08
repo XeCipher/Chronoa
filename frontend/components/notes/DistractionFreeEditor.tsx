@@ -67,6 +67,7 @@ export default function DistractionFreeEditor({
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const [placeholder, setPlaceholder] = useState("");
+  const [isFocused, setIsFocused] = useState(false);
 
   const [bubbleStyle, setBubbleStyle] = useState<React.CSSProperties>({
     opacity: 0,
@@ -97,23 +98,26 @@ export default function DistractionFreeEditor({
     if (noteType === 'journal') {
       setPlaceholder(PROMPTS[Math.floor(Math.random() * PROMPTS.length)]);
     }
-  }, [noteType]);
+  },[noteType]);
 
-  // Ensures the cursor stays within the visual viewport (above the virtual keyboard on mobile)
+  // Ensures the cursor stays within the visual viewport
   const ensureCursorVisible = (ed: any) => {
-    if (window.innerWidth >= 768 || !window.visualViewport) return;
+    if (window.innerWidth >= 1024 || !window.visualViewport) return;
     try {
       const { view } = ed;
       const { selection } = ed.state;
       const coords = view.coordsAtPos(selection.to);
       const vv = window.visualViewport;
       
-      // If the bottom of the cursor goes below the visible area (keyboard height taken into account), scroll up
-      if (coords.bottom > vv.offsetTop + vv.height - 60) {
+      const visibleBottom = vv.offsetTop + vv.height;
+      
+      // Kicks in roughly 4-5 lines before the keyboard (100px buffer)
+      if (coords.bottom > visibleBottom - 100) {
         const scrollContainer = document.getElementById('notes-scroll-container');
         if (scrollContainer) {
-          const scrollAmount = coords.bottom - (vv.offsetTop + vv.height - 60);
-          scrollContainer.scrollBy({ top: scrollAmount, behavior: 'smooth' });
+          // Pushes text up by the overflow amount + 60px so it jumps up visibly rather than scrolling line-by-line
+          const overflow = coords.bottom - (visibleBottom - 100);
+          scrollContainer.scrollBy({ top: overflow + 60, behavior: 'smooth' });
         }
       }
     } catch (e) {}
@@ -155,8 +159,15 @@ export default function DistractionFreeEditor({
       });
     },
     onSelectionUpdate: ({ editor: ed }) => {
-      // Handle the case where the user moves the cursor manually via touch or arrows
       setTimeout(() => ensureCursorVisible(ed), 50);
+    },
+    onFocus: ({ editor: ed }) => {
+      setIsFocused(true);
+      // Wait for dynamic spacer to animate in
+      setTimeout(() => ensureCursorVisible(ed), 200); 
+    },
+    onBlur: () => {
+      setIsFocused(false);
     },
     onUpdate: ({ editor: ed }) => {
       if (!isEditable) return;
@@ -168,7 +179,6 @@ export default function DistractionFreeEditor({
         saveTimeoutRef.current = null;
       }, 1000);
 
-      // Handle the case where user is typing down into the keyboard boundary
       setTimeout(() => ensureCursorVisible(ed), 50);
     },
     immediatelyRender: false,
@@ -193,7 +203,6 @@ export default function DistractionFreeEditor({
     }
   }, [shouldFocusOnMount, editor]);
 
-  // Handle external keyboard appearances that change the visual viewport
   useEffect(() => {
     if (!editor || !window.visualViewport) return;
     const handleResize = () => {
@@ -554,7 +563,10 @@ export default function DistractionFreeEditor({
             {placeholder}
           </div>
         )}
-        <EditorContent editor={editor} className="mt-0 pb-12" />
+        <EditorContent editor={editor} className="mt-0 pb-6" />
+        
+        {/* Dynamic spacer for mobile keyboard scrolling */}
+        <div className={`md:hidden w-full shrink-0 transition-all duration-300 ${isFocused ? 'h-[50vh]' : 'h-0'}`} />
       </div>
     </div>
   );

@@ -10,6 +10,7 @@ import { MockHomeSandbox, MockTaskSandbox, MockTimeSandbox, MockCalendarSandbox,
 import { DownloadsSection } from "@/components/landing/Downloads";
 import DeveloperMessageModal from "@/components/landing/DeveloperMessageModal";
 import { ArrowRight, MessageSquareHeart } from "lucide-react";
+import { useUiStore } from "@/store/uiStore";
 
 const FadeIn = ({ children, delay = 0 }: { children: React.ReactNode, delay?: number }) => (
   <motion.div
@@ -28,17 +29,19 @@ export default function LandingPage() {
   const { handleLogin, isLoggingIn } = useGoogleLogin();
   const [isDeveloperModalOpen, setIsDeveloperModalOpen] = useState(false);
   const [isCheckingSession, setIsCheckingSession] = useState(true);
+  const lastVisitedPage = useUiStore((state) => state.lastVisitedPage);
 
-  // Redirect to home if user is already logged in
+  // Redirect to last visited page or home if user is already logged in
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) {
-        router.replace('/home');
+        const target = lastVisitedPage && lastVisitedPage !== '/' && lastVisitedPage !== '/home' ? lastVisitedPage : '/home';
+        router.replace(target);
       } else {
         setIsCheckingSession(false);
       }
     });
-  }, [router]);
+  }, [router, lastVisitedPage]);
 
   if (isCheckingSession) {
     return <div className="min-h-screen bg-[#f7f5f0] dark:bg-[#121212]" />;

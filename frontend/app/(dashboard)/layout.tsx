@@ -31,7 +31,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   } = useUiStore();
   
   const toggleFirstActive = useTimerStore((state) => state.toggleFirstActive);
+  
   const initialRestoreDone = useRef(false);
+  const isRedirecting = useRef(false);
 
   const localSyncId = useRef<string>("");
   const isApplyingRemote = useRef(false);
@@ -247,11 +249,25 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }, [pathname, router, setNotesTab, isSidebarPinned, toggleSidebarPin, toggleFirstActive, hotkeysEnabled, disabledHotkeys]);
 
   useEffect(() => {
-    if (!isLoading && !initialRestoreDone.current) {
-      if (pathname === '/home' && lastVisitedPage && lastVisitedPage !== '/home') { router.replace(lastVisitedPage); }
-      initialRestoreDone.current = true;
+    if (!isLoading) {
+      if (!initialRestoreDone.current) {
+        initialRestoreDone.current = true;
+        const isEntryPage = pathname === '/' || pathname === '/home';
+        if (isEntryPage && lastVisitedPage && lastVisitedPage !== '/' && lastVisitedPage !== '/home') {
+           isRedirecting.current = true;
+           router.replace(lastVisitedPage);
+           return;
+        }
+      }
+      
+      if (isRedirecting.current && (pathname === '/' || pathname === '/home')) {
+         // Wait for the redirect to settle
+         return; 
+      } else {
+         isRedirecting.current = false;
+         setLastVisitedPage(pathname);
+      }
     }
-    if (!isLoading) setLastVisitedPage(pathname);
   }, [pathname, isLoading, lastVisitedPage, router, setLastVisitedPage]);
 
   useEffect(() => {
