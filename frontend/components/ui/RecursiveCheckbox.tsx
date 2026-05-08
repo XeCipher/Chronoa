@@ -78,7 +78,7 @@ export default function RecursiveCheckbox({
 
   const [optimisticCollapsed, setOptimisticCollapsed] = useState<boolean | null>(null);
   
-  const [localCollapsed, setLocalCollapsed] = useState<boolean>(() => {
+  const[localCollapsed, setLocalCollapsed] = useState<boolean>(() => {
     return getDescendantCount(task) > 5;
   });
 
@@ -99,7 +99,7 @@ export default function RecursiveCheckbox({
     if (optimisticCollapsed === task.is_collapsed) {
        setOptimisticCollapsed(null);
     }
-  }, [task.is_collapsed, optimisticCollapsed]);
+  },[task.is_collapsed, optimisticCollapsed]);
 
   // Sync external title updates gracefully without resetting active typing cursor
   useEffect(() => {
@@ -125,7 +125,7 @@ export default function RecursiveCheckbox({
   const isRoutine = task.task_type === 'routine';
   const isNormal = task.task_type === 'normal';
   
-  const disableMenu = isSandbox ? task.is_completed : (task.is_completed && (isNormal || (isRoutine && !isEditMode)));
+  const disableMenu = isSandbox ? task.is_completed : (viewMode === 'focus' && task.is_completed && (isNormal || (isRoutine && !isEditMode)));
   const isLastRoot = !task.parent_id && allTasks.filter(t => t.task_type === task.task_type && !t.parent_id).length <= 1;
   const hideDelete = isSandbox && isLastRoot;
 
@@ -521,7 +521,7 @@ export default function RecursiveCheckbox({
           <div 
             {...attributes} 
             {...listeners} 
-            className={`cursor-grab active:cursor-grabbing text-[#c4c0b8] dark:text-[#555] md:hover:text-[#c2956e] md:dark:hover:text-[#b0855f] p-1 -ml-2 -mr-1 md:mr-1 transition-opacity touch-none ${isDragging ? 'opacity-100' : 'opacity-30 md:opacity-0 md:group-hover:opacity-100'}`}
+            className={`cursor-grab active:cursor-grabbing text-[#c4c0b8] dark:text-[#555] lg:hover:text-[#c2956e] lg:dark:hover:text-[#b0855f] p-1 -ml-2 -mr-1 md:mr-1 transition-opacity touch-none ${isDragging ? 'opacity-100' : 'opacity-30 lg:opacity-0 lg:group-hover:opacity-100'}`}
           >
             <GripVertical size={14} />
           </div>
@@ -556,7 +556,7 @@ export default function RecursiveCheckbox({
              }} 
              className="shrink-0 -ml-1 text-[#b0ad9a] md:hover:text-[#c2956e] md:dark:hover:text-[#d1a784] transition-colors p-1"
            >
-              {isCollapsed ? <ChevronRight size={14} /> : <ChevronDown size={14} className="opacity-40 md:group-hover:opacity-100" />}
+              {isCollapsed ? <ChevronRight size={14} /> : <ChevronDown size={14} className="opacity-100 lg:opacity-40 lg:group-hover:opacity-100" />}
            </button>
         )}
 
@@ -680,7 +680,7 @@ export default function RecursiveCheckbox({
           )}
         </div>
 
-        <div className={`flex items-center shrink-0 ml-auto gap-1 transition-opacity duration-200 ${isMenuOpen ? 'opacity-100' : 'opacity-100 md:opacity-0 md:group-hover:opacity-100'}`}>
+        <div className={`flex items-center shrink-0 ml-auto gap-1 transition-opacity duration-200 ${isMenuOpen ? 'opacity-100' : 'opacity-100 lg:opacity-40 lg:group-hover:opacity-100'}`}>
             {viewMode === 'focus' && showManagementActions && !disableMenu && (
                <button 
                   onClick={(e) => { e.stopPropagation(); onAdd(task.parent_id, task); }} 

@@ -42,13 +42,13 @@ function MockLandingScenery({ WTime, isDark }: { WTime: string, isDark: boolean 
 }
 
 function MockCenterClock({ isDark }: { isDark: boolean }) {
-  const [time, setTime] = useState<Date | null>(null);
+  const[time, setTime] = useState<Date | null>(null);
   
   useEffect(() => {
     setTime(new Date());
     const timer = setInterval(() => setTime(new Date()), 1000);
     return () => clearInterval(timer);
-  }, []);
+  },[]);
   
   if (!time) return <div className="h-[160px] md:h-[200px]" />;
   
@@ -86,7 +86,7 @@ function MockWeatherWidget({ isDark }: { isDark: boolean }) {
       } catch(e) {}
     };
     fetchWeather();
-  }, []);
+  },[]);
 
   const getWeatherDetails = (code: number, isDay: number, precipitation: number, cloudCover: number) => {
     const day = isDay === 1;
@@ -156,7 +156,7 @@ function MockHomeTaskProgress({ isDark }: { isDark: boolean }) {
     const handler = (e: any) => setStats(e.detail);
     window.addEventListener('mock-tasks-updated', handler);
     return () => window.removeEventListener('mock-tasks-updated', handler);
-  }, []);
+  },[]);
   
   const bgGlass = isDark ? 'rgba(0,0,0,0.3)' : 'rgba(255,255,255,0.2)';
   const borderGlass = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.4)';
@@ -256,7 +256,7 @@ export function MockHomeSandbox() {
     else if (hour >= 8 && hour < 17) setTimeOfDay('day');
     else if (hour >= 17 && hour < 20) setTimeOfDay('dusk');
     else setTimeOfDay('night');
-  }, []);
+  },[]);
 
   return (
     <div className="flex flex-col gap-5 w-full items-center">
@@ -292,7 +292,7 @@ export function MockHomeSandbox() {
 
 export function MockTaskSandbox() {
   const [tasks, setTasks] = useState<Task[]>(initialMockTasks);
-  const [stats, setStats] = useState({ routinePct: 50, normalLeft: 4 });
+  const[stats, setStats] = useState({ routinePct: 50, normalLeft: 4 });
   const [isRoutineEditMode, setIsRoutineEditMode] = useState(false);
 
   useEffect(() => {
@@ -395,7 +395,7 @@ export function MockTaskSandbox() {
 
   const map: Record<string, Task> = {};
   tasks.forEach(t => map[t.id] = { ...t, children: [] });
-  const roots: Task[] = [];
+  const roots: Task[] =[];
   tasks.forEach(t => {
     if (t.parent_id && map[t.parent_id]) map[t.parent_id].children!.push(map[t.id]);
     else roots.push(map[t.id]);
@@ -480,7 +480,7 @@ function MockEngineCard({ engine, tab, onUpdate, onRemove, isOnlyInstance }: any
       setLiveSeconds(engine.accumulatedSeconds);
     }
     return () => clearInterval(interval);
-  }, [engine.isRunning, engine.startTime, engine.accumulatedSeconds]);
+  },[engine.isRunning, engine.startTime, engine.accumulatedSeconds]);
 
   const handleStop = () => {
     const finalSeconds = engine.accumulatedSeconds + Math.floor((Date.now() - (engine.startTime || Date.now())) / 1000);
@@ -511,7 +511,7 @@ function MockEngineCard({ engine, tab, onUpdate, onRemove, isOnlyInstance }: any
       {!hideDelete && (
         <button 
           onClick={() => onRemove(engine.id)}
-          className="absolute top-5 right-6 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity text-gray-400 md:hover:text-red-500 dark:text-gray-500 md:dark:hover:text-red-400"
+          className="absolute top-5 right-6 opacity-100 lg:opacity-40 lg:group-hover:opacity-100 transition-opacity text-gray-400 lg:hover:text-red-500 dark:text-gray-500 lg:dark:hover:text-red-400"
         >
           <Trash2 size={18} />
         </button>
@@ -568,7 +568,7 @@ function MockGlobalTimeWidget({ hasRunning }: { hasRunning: boolean }) {
     setTime(new Date());
     const t = setInterval(() => setTime(new Date()), 1000);
     return () => clearInterval(t);
-  }, []);
+  },[]);
   
   if (!time) return null;
   
@@ -587,7 +587,7 @@ function MockGlobalTimeWidget({ hasRunning }: { hasRunning: boolean }) {
 
 export function MockTimeSandbox() {
   const [highlight, setHighlight] = useState(false);
-  const [activeTab, setActiveTab] = useState<'timer' | 'stopwatch'>('stopwatch');
+  const[activeTab, setActiveTab] = useState<'timer' | 'stopwatch'>('stopwatch');
   
   const [timers, setTimers] = useState<any[]>([
     { id: 'mock-1', title: 'Deep Work Block', targetMinutes: 25, accumulatedSeconds: 0, isRunning: false, startTime: null }
@@ -626,7 +626,7 @@ export function MockTimeSandbox() {
     };
     window.addEventListener('sandbox-send-focus', listener);
     return () => window.removeEventListener('sandbox-send-focus', listener);
-  }, []);
+  },[]);
 
   const handleUpdate = (id: string, updates: any) => {
     if (activeTab === 'timer') setTimers(prev => prev.map(t => t.id === id ? { ...t, ...updates } : t));
@@ -649,11 +649,11 @@ export function MockTimeSandbox() {
   const handleRemove = (id: string) => {
     if (activeTab === 'timer') {
        setTimers(prev => prev.length === 1 
-         ? [{ id: `mock-${Date.now()}`, title: 'New Session', targetMinutes: 25, accumulatedSeconds: 0, isRunning: false, startTime: null }] 
+         ?[{ id: `mock-${Date.now()}`, title: 'New Session', targetMinutes: 25, accumulatedSeconds: 0, isRunning: false, startTime: null }] 
          : prev.filter(t => t.id !== id));
     } else {
        setStopwatches(prev => prev.length === 1 
-         ? [{ id: `mock-${Date.now()}`, title: 'New Session', accumulatedSeconds: 0, isRunning: false, startTime: null }] 
+         ?[{ id: `mock-${Date.now()}`, title: 'New Session', accumulatedSeconds: 0, isRunning: false, startTime: null }] 
          : prev.filter(s => s.id !== id));
     }
   };
@@ -717,14 +717,14 @@ export function MockCalendarSandbox() {
   const [events, setEvents] = useState<CalendarEvent[]>(generateMockEvents());
   const [targetScrollTime, setTargetScrollTime] = useState<string | null>(null);
   const [highlight, setHighlight] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
+  const[isMobile, setIsMobile] = useState(false);
   
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 1024);
     handleResize();
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
-  }, []);
+  },[]);
 
   useEffect(() => {
     const handleAddToCal = (e: any) => {
@@ -759,7 +759,7 @@ export function MockCalendarSandbox() {
 
     window.addEventListener('sandbox-add-calendar', handleAddToCal);
     return () => window.removeEventListener('sandbox-add-calendar', handleAddToCal);
-  }, []);
+  },[]);
 
   const EVENT_COLORS: Record<string, string> = {
     amber: 'bg-[#c2956e]/20 dark:bg-[#c2956e]/20 text-[#9e7653] dark:text-[#d1a784] border-[#c2956e]/30',
@@ -810,8 +810,8 @@ export function MockNotesSandbox() {
 }
 
 export function MockAnalyticsSandbox() {
-  const dailyMap = useMemo(() => generateMockDailyMap(), []);
-  const rawSessions = useMemo(() => generateMockSessions(), []);
+  const dailyMap = useMemo(() => generateMockDailyMap(),[]);
+  const rawSessions = useMemo(() => generateMockSessions(),[]);
 
   return (
     <div className="w-full flex flex-col gap-6 md:gap-8 my-10 md:my-20 w-full">

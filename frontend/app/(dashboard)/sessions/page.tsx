@@ -54,7 +54,7 @@ export default function SessionsPage() {
       try { setSessions(JSON.parse(cached)); setLoading(false); } catch(e) {}
     }
     fetchSessions(); 
-  }, []);
+  },[]);
 
   useEffect(() => {
     if (!loading) {
@@ -202,7 +202,7 @@ export default function SessionsPage() {
                   <span className="text-xl font-serif text-[#3d3b33] dark:text-[#f0f0f0]">
                     <HighlightText text={formatDuration(session.duration_seconds)} query={search} />
                   </span>
-                  <div className="opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 bg-[#f7f5f0] dark:bg-[#121212] p-1 rounded-lg border border-[#e0ddd5] dark:border-[#444]">
+                  <div className="opacity-100 lg:opacity-40 lg:group-hover:opacity-100 transition-opacity flex items-center gap-1 bg-[#f7f5f0] dark:bg-[#121212] p-1 rounded-lg border border-[#e0ddd5] dark:border-[#444]">
                     <button onClick={() => {setEditingId(session.id); setEditTitle(session.title || '')}} data-tooltip-id="global-tooltip" data-tooltip-content="Edit Title" className="p-1.5 text-[#b0ad9a] dark:text-[#7a7a7a] hover:text-[#c2956e] dark:hover:text-[#b0855f] rounded-md hover:bg-white dark:hover:bg-[#2a2a2a] transition-colors"><Edit2 size={16} /></button>
                     <button onClick={() => handleDelete(session.id)} data-tooltip-id="global-tooltip" data-tooltip-content="Delete Log" className="p-1.5 text-[#b0ad9a] dark:text-[#7a7a7a] hover:text-red-500 dark:hover:text-red-400 rounded-md hover:bg-white dark:hover:bg-[#2a2a2a] transition-colors"><Trash2 size={16} /></button>
                   </div>

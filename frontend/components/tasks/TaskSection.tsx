@@ -136,7 +136,7 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [isEditMode, type]);
+  },[isEditMode, type]);
 
   const onAddRef = useRef<(parentId: string | null, relativeToTask?: Task) => Promise<void>>(() => Promise.resolve());
 
@@ -152,7 +152,7 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
   const displayTasks = useMemo(() => {
     const map: Record<string, Task> = {};
     tasks.forEach((t) => (map[t.id] = { ...t, children: [] }));
-    const roots: Task[] = [];
+    const roots: Task[] =[];
     
     tasks.forEach((t) => {
       if (t.parent_id && map[t.parent_id]) {
@@ -210,9 +210,9 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
     };
     
     return sort(tree);
-  }, [tasks, viewMode, archiveLayout, archiveSort, searchQuery, isEditMode, now, delayMs, taskArchiveDelay, moveCompletedToBottom]);
+  },[tasks, viewMode, archiveLayout, archiveSort, searchQuery, isEditMode, now, delayMs, taskArchiveDelay, moveCompletedToBottom]);
 
-  const flattenedVisibleTasks: Task[] = [];
+  const flattenedVisibleTasks: Task[] =[];
   const gatherVisible = (nodes: Task[]) => {
     nodes.forEach(n => { flattenedVisibleTasks.push(n); if (n.children) gatherVisible(n.children); });
   };
@@ -227,7 +227,7 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
     const isToggling = updates.hasOwnProperty("is_completed");
     const isDone = updates.is_completed;
     const completionTime = isDone ? new Date().toISOString() : null;
-    let tasksToUpdate: { id: string; updates: Partial<Task> }[] = [];
+    let tasksToUpdate: { id: string; updates: Partial<Task> }[] =[];
 
     if (isToggling) {
       const addChildrenToUpdate = (parentId: string) => {
@@ -322,7 +322,7 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
     }
 
     let newPosition = 0;
-    let shiftUpdates: { id: string, updates: Partial<Task> }[] = [];
+    let shiftUpdates: { id: string, updates: Partial<Task> }[] =[];
 
     if (relativeToTask) {
       newPosition = relativeToTask.position + 1;
@@ -355,7 +355,7 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
       color: null,
       keep_alive: false,
       is_collapsed: false,
-      children: []
+      children:[]
     };
 
     flushSync(() => {
@@ -364,7 +364,7 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
           const shift = shiftUpdates.find(s => s.id === t.id);
           return shift ? { ...t, ...shift.updates } : t;
         });
-        return [...updatedList, tempTask];
+        return[...updatedList, tempTask];
       });
       setNewTaskId(newId);
     });
@@ -391,7 +391,7 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
   useEffect(() => { onAddRef.current = onAdd; }, [onAdd]);
 
   const onDelete = async (id: string, isPermanent: boolean = false) => {
-    const idsToDelete = [id];
+    const idsToDelete =[id];
     const findChildren = (parentId: string) => {
       tasks
         .filter((t) => t.parent_id === parentId)
@@ -418,8 +418,20 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
 
   const onRestore = async (id: string, mode: 'from_trash' | 'from_archive') => {
     const idsToUpdate = [id];
+
+    // Recursively find and restore all children
+    const findChildren = (parentId: string) => {
+      tasks.filter(t => t.parent_id === parentId).forEach(child => {
+        if (!idsToUpdate.includes(child.id)) {
+           idsToUpdate.push(child.id);
+        }
+        findChildren(child.id);
+      });
+    };
+    findChildren(id);
+
+    // Recursively find and restore all ancestors to maintain tree structure
     let current = tasks.find(t => t.id === id);
-    
     while (current && current.parent_id) {
        const parent = tasks.find(t => t.id === current!.parent_id);
        if (parent) {
@@ -480,7 +492,7 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
     const newSiblings = tasks.filter((t) => t.parent_id === newParentId);
     const newPosition = parent.position + 1;
 
-    const tasksToUpdate: { id: string; updates: Partial<Task> }[] = [
+    const tasksToUpdate: { id: string; updates: Partial<Task> }[] =[
       { id: task.id, updates: { parent_id: newParentId, position: newPosition } },
     ];
 
@@ -534,7 +546,7 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
       const rawTaskIndex = rawSiblings.findIndex(t => t.id === task.id);
       
       const newRawSiblings = [...rawSiblings];
-      const [removedTask] = newRawSiblings.splice(rawTaskIndex, 1);
+      const[removedTask] = newRawSiblings.splice(rawTaskIndex, 1);
       
       const adjustedTargetIndex = newRawSiblings.findIndex(t => t.id === swapTarget.id);
       
@@ -669,7 +681,7 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
 
   const renderContent = () => {
     return (
-      <div className={`px-3 md:px-5 pt-4 md:pt-5 pb-3 md:pb-4 min-h-[60px] ${isCollapsedMobile ? 'hidden md:block' : 'block'}`}>
+      <div className={`px-3 md:px-5 pt-4 md:pt-5 pb-3 md:pb-4 min-h-[60px] flex-1 flex flex-col ${isCollapsedMobile ? 'hidden md:flex' : 'flex'}`}>
         {isLoading && tasks.length === 0 ? (
           <div className="space-y-3 py-2 px-3">
             {[...Array(3)].map((_, i) => (
@@ -680,7 +692,7 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
             ))}
           </div>
         ) : displayTasks.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-10 gap-2 px-4 text-center">
+          <div className="flex flex-col flex-1 items-center justify-center py-10 gap-2 px-4 text-center">
             <span className="text-2xl opacity-20 dark:opacity-10 select-none text-[#3d3b33] dark:text-white">
               ✦
             </span>
@@ -748,9 +760,9 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
   return (
     <div
       ref={sectionRef}
-      className="relative flex flex-col bg-white/70 dark:bg-[#1a1a1a]/80 backdrop-blur-sm border border-[#ebe8e2] dark:border-[#333] rounded-[28px] overflow-hidden shadow-[0_2px_16px_rgba(44,43,39,0.05)] transition-all duration-300"
+      className="relative flex flex-col h-full bg-white/70 dark:bg-[#1a1a1a]/80 backdrop-blur-sm border border-[#ebe8e2] dark:border-[#333] rounded-[28px] overflow-hidden shadow-[0_2px_16px_rgba(44,43,39,0.05)] transition-all duration-300"
     >
-      <div className="px-5 md:px-8 pt-6 md:pt-8 pb-4 md:pb-5 border-b border-[#f0ede8] dark:border-[#2a2a2a]">
+      <div className="px-5 md:px-8 pt-6 md:pt-8 pb-4 md:pb-5 border-b border-[#f0ede8] dark:border-[#2a2a2a] shrink-0">
         <div className="flex flex-col gap-2">
           
           <div className="flex items-center justify-between gap-4 w-full">
@@ -841,13 +853,15 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
         </div>
       </div>
 
-      {viewMode === "focus" ? (
-        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-          {renderContent()}
-        </DndContext>
-      ) : (
-        renderContent()
-      )}
+      <div className="flex-1 overflow-y-auto no-scrollbar flex flex-col">
+        {viewMode === "focus" ? (
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+            {renderContent()}
+          </DndContext>
+        ) : (
+          renderContent()
+        )}
+      </div>
 
     </div>
   );

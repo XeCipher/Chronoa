@@ -32,8 +32,8 @@ const escapeRegExp = (string: string) => string.replace(/[.*+?^${}()|[\]\\]/g, '
 export default function TodayCalendarWidget({ variant, searchQuery = '', className = '' }: Props) {
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const[selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
+  const[isModalOpen, setIsModalOpen] = useState(false);
   const [defaultModalTitle, setDefaultModalTitle] = useState("");
   
   const { calendarWidgetCollapsed, setCalendarWidgetCollapsed } = useUiStore();
@@ -46,7 +46,7 @@ export default function TodayCalendarWidget({ variant, searchQuery = '', classNa
     return () => {
       if (scrollTimeout.current) clearTimeout(scrollTimeout.current);
     };
-  }, []);
+  },[]);
 
   const handleUserScroll = () => {
     setIsUserScrolling(true);
@@ -62,7 +62,7 @@ export default function TodayCalendarWidget({ variant, searchQuery = '', classNa
 
     // Fetch inactive sources to filter them out of display locally
     const { data: sourcesData } = await supabase.from('calendar_sources').select('id, is_active').eq('user_id', user.id);
-    const inactiveSourceIds = sourcesData?.filter(s => s.is_active === false).map(s => s.id) || [];
+    const inactiveSourceIds = sourcesData?.filter(s => s.is_active === false).map(s => s.id) ||[];
 
     // Background sync on mount for external widgets
     syncExternalCalendars(user.id).then(() => {
@@ -101,7 +101,7 @@ export default function TodayCalendarWidget({ variant, searchQuery = '', classNa
       localStorage.setItem('chronoa_cache_calendar_today', JSON.stringify(todayEvents));
     }
     setLoading(false);
-  }, []);
+  },[]);
 
   useEffect(() => {
     const cached = localStorage.getItem('chronoa_cache_calendar_today');
@@ -138,7 +138,7 @@ export default function TodayCalendarWidget({ variant, searchQuery = '', classNa
     };
     window.addEventListener('chronoa-add-to-calendar', handleAddToCal);
     return () => window.removeEventListener('chronoa-add-to-calendar', handleAddToCal);
-  }, []);
+  },[]);
 
   const filteredEvents = events.filter(e => {
     if (!searchQuery) return true;
@@ -192,7 +192,7 @@ export default function TodayCalendarWidget({ variant, searchQuery = '', classNa
   };
 
   const generateRecurringEvents = async (base: CalendarEvent, seriesId: string) => {
-    const instances: any[] = [];
+    const instances: any[] =[];
     let currentStart = new Date(base.start_time);
     let currentEnd = new Date(base.end_time);
     const limitDate = addYears(new Date(base.start_time), 1);
@@ -297,11 +297,11 @@ export default function TodayCalendarWidget({ variant, searchQuery = '', classNa
 
   const containerClasses = variant === 'home' 
     ? 'w-[280px] bg-white/20 dark:bg-black/30 backdrop-blur-xl border border-white/40 dark:border-white/10 rounded-[2rem] shadow-[0_8px_30px_rgb(0,0,0,0.08)] overflow-hidden transition-all duration-500'
-    : 'w-full bg-white/70 dark:bg-[#1a1a1a]/80 backdrop-blur-sm border border-[#ebe8e2] dark:border-[#333] rounded-[28px] overflow-hidden shadow-[0_2px_16px_rgba(44,43,39,0.05)] transition-all duration-300';
+    : 'w-full flex flex-col bg-white/70 dark:bg-[#1a1a1a]/80 backdrop-blur-sm border border-[#ebe8e2] dark:border-[#333] rounded-[28px] overflow-hidden shadow-[0_2px_16px_rgba(44,43,39,0.05)] transition-all duration-300';
 
   const headerClasses = variant === 'home'
-    ? 'px-5 py-4 flex items-center justify-between text-[#3d3b33] dark:text-white'
-    : `px-5 md:px-8 py-5 flex items-center justify-between transition-colors duration-300 border-b ${!isCollapsed ? 'border-[#f0ede8] dark:border-[#2a2a2a]' : 'border-transparent'}`;
+    ? 'px-5 py-4 flex items-center justify-between text-[#3d3b33] dark:text-white shrink-0'
+    : `px-5 md:px-8 py-5 flex items-center justify-between transition-colors duration-300 border-b shrink-0 ${!isCollapsed ? 'border-[#f0ede8] dark:border-[#2a2a2a]' : 'border-transparent'}`;
 
   return (
     <>
@@ -316,20 +316,20 @@ export default function TodayCalendarWidget({ variant, searchQuery = '', classNa
           {variant === 'tasks' && (
             <button 
               onClick={() => setCalendarWidgetCollapsed(!calendarWidgetCollapsed)}
-              className="p-1.5 -mr-1.5 text-[#b0ad9a] dark:text-[#7a7a7a] active:bg-gray-100 dark:active:bg-[#333] rounded-lg transition-colors"
+              className="p-1.5 -mr-1.5 text-[#b0ad9a] dark:text-[#7a7a7a] hover:bg-[#f0ede8] dark:hover:bg-[#2a2a2a] hover:text-[#3d3b33] dark:hover:text-white active:bg-gray-100 dark:active:bg-[#333] rounded-lg transition-colors"
             >
               {isCollapsed ? <ChevronDown size={20} /> : <ChevronUp size={20} />}
             </button>
           )}
         </div>
 
-        <div className={`grid w-full transition-all duration-300 ease-in-out ${!isCollapsed ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}>
-          <div className="overflow-hidden w-full">
+        <div className={`flex flex-col w-full transition-all duration-300 ease-in-out ${!isCollapsed ? 'flex-1 opacity-100' : 'h-0 opacity-0'}`}>
+          <div className="flex-1 overflow-hidden w-full flex flex-col">
             <div 
               ref={scrollRef}
               onWheel={handleUserScroll}
               onTouchMove={handleUserScroll}
-              className={`relative flex flex-col overflow-y-auto no-scrollbar scroll-smooth w-full ${variant === 'home' ? 'gap-2 px-4 pt-2 pb-4 max-h-[140px]' : 'gap-3 px-5 md:px-8 pt-4 pb-5 max-h-[180px]'}`}
+              className={`relative flex flex-col flex-1 overflow-y-auto no-scrollbar scroll-smooth w-full ${variant === 'home' ? 'gap-2 px-4 pt-2 pb-4 max-h-[140px]' : 'gap-3 px-5 md:px-8 pt-4 pb-5 max-h-[180px] min-h-[140px]'}`}
             >
               {loading ? (
                 <div className="animate-pulse flex flex-col gap-2">
@@ -373,7 +373,7 @@ export default function TodayCalendarWidget({ variant, searchQuery = '', classNa
                   )
                 })
               ) : (
-                <div className={`pb-2 text-center text-xs font-medium italic ${variant === 'home' ? 'text-[#3d3b33]/60 dark:text-white/50' : 'text-[#b0ad9a] dark:text-[#7a7a7a]'}`}>
+                <div className={`flex-1 flex flex-col items-center justify-center min-h-[80px] pb-2 text-center text-xs font-medium italic ${variant === 'home' ? 'text-[#3d3b33]/60 dark:text-white/50' : 'text-[#b0ad9a] dark:text-[#7a7a7a]'}`}>
                   {searchQuery ? "No matching events found." : "No events scheduled today."}
                 </div>
               )}

@@ -1,3 +1,4 @@
+// frontend/components/ui/GlobalTimeWidget.tsx
 "use client";
 
 import { useState, useEffect, useRef } from "react";
@@ -59,7 +60,7 @@ function MiniEngineCard({ engine, tab }: { engine: EngineInstance, tab: 'timer' 
       setLiveSeconds(engine.accumulatedSeconds);
     }
     return () => clearInterval(interval);
-  }, [engine.isRunning, engine.startTime, engine.accumulatedSeconds]);
+  },[engine.isRunning, engine.startTime, engine.accumulatedSeconds]);
 
   const handleStopAndSave = async (forceSaveSeconds?: number) => {
     const currentList = useTimerStore.getState()[tab === 'timer' ? 'timers' : 'stopwatches'];
@@ -117,7 +118,7 @@ function MiniEngineCard({ engine, tab }: { engine: EngineInstance, tab: 'timer' 
       isCancelled = true;
       clearTimeout(timeout);
     };
-  }, [liveSeconds, engine.isRunning, engine.targetMinutes, tab]);
+  },[liveSeconds, engine.isRunning, engine.targetMinutes, tab]);
 
   const formatTime = (totalSeconds: number) => {
     const h = Math.floor(totalSeconds / 3600);
@@ -162,7 +163,7 @@ function MiniEngineCard({ engine, tab }: { engine: EngineInstance, tab: 'timer' 
       {!hideDelete && (
         <button 
           onClick={() => store.removeInstance(tab, engine.id)}
-          className="absolute top-4 right-4 text-[#b0ad9a] hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+          className="absolute top-4 right-4 text-[#b0ad9a] lg:hover:text-red-500 opacity-100 lg:opacity-40 lg:group-hover:opacity-100 transition-opacity"
         >
           <Trash2 size={16} />
         </button>
@@ -245,7 +246,7 @@ export default function GlobalTimeWidget() {
       clearInterval(timer);
       if (inactivityTimerRef.current) clearTimeout(inactivityTimerRef.current);
     };
-  }, []);
+  },[]);
 
   const resetInactivityTimer = () => {
     if (inactivityTimerRef.current) clearTimeout(inactivityTimerRef.current);
@@ -260,7 +261,7 @@ export default function GlobalTimeWidget() {
     resetInactivityTimer();
     return () => { if (inactivityTimerRef.current) clearTimeout(inactivityTimerRef.current); };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isGlobalTimeWidgetExpanded]);
+  },[isGlobalTimeWidgetExpanded]);
 
   if (!time || pathname === '/' || pathname === '/home') return null;
 

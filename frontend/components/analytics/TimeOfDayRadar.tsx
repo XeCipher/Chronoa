@@ -12,11 +12,11 @@ export default function TimeOfDayRadar({ dailyMap, isSandbox = false }: { dailyM
   const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
-    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    const handleResize = () => setIsMobile(window.innerWidth < 1024);
     handleResize();
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
-  }, []);
+  },[]);
 
   const { data, totalProductivity } = useMemo(() => {
     const tod = { Morning: 0, Afternoon: 0, Evening: 0, Night: 0 };
@@ -30,8 +30,6 @@ export default function TimeOfDayRadar({ dailyMap, isSandbox = false }: { dailyM
            else tod.Night++;
        });
        
-       // Using `any` allows the sandbox to read the mock 'created_at' data to form the organic shape,
-       // while safely falling back to '14' (Afternoon) for the actual live app analytics.
        d.sessions.forEach((s: any) => {
            const h = s.created_at ? new Date(s.created_at).getHours() : 14;
            if (h >= 5 && h < 12) tod.Morning++; 
@@ -45,7 +43,7 @@ export default function TimeOfDayRadar({ dailyMap, isSandbox = false }: { dailyM
     const max = Math.max(...Object.values(tod), 1);
     
     return {
-      data: [
+      data:[
         { subject: 'MORNING', A: tod.Morning, fullMark: max },
         { subject: 'AFTERNOON', A: tod.Afternoon, fullMark: max },
         { subject: 'EVENING', A: tod.Evening, fullMark: max },
@@ -69,7 +67,7 @@ export default function TimeOfDayRadar({ dailyMap, isSandbox = false }: { dailyM
         </div>
         <div className="flex-1 w-full min-h-0 relative opacity-40 pointer-events-none grayscale">
           <ResponsiveContainer width="100%" height="100%">
-            <RadarChart cx="50%" cy="50%" outerRadius={isMobile ? "50%" : "65%"} data={[
+            <RadarChart margin={{ top: 10, right: 35, bottom: 10, left: 35 }} cx="50%" cy="50%" outerRadius={isMobile ? "50%" : "60%"} data={[
                 { subject: 'MORNING', A: 60, fullMark: 100 },
                 { subject: 'AFTERNOON', A: 90, fullMark: 100 },
                 { subject: 'EVENING', A: 50, fullMark: 100 },
@@ -109,7 +107,7 @@ export default function TimeOfDayRadar({ dailyMap, isSandbox = false }: { dailyM
       
       <div className="flex-1 w-full min-h-0 relative">
         <ResponsiveContainer width="100%" height="100%">
-          <RadarChart cx="50%" cy="50%" outerRadius={isMobile ? "50%" : "65%"} data={data}>
+          <RadarChart margin={{ top: 10, right: 35, bottom: 10, left: 35 }} cx="50%" cy="50%" outerRadius={isMobile ? "50%" : "60%"} data={data}>
             <PolarGrid stroke={isDark ? '#333' : '#ebe8e2'} />
             <PolarAngleAxis 
               dataKey="subject" 

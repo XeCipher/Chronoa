@@ -14,11 +14,11 @@ export default function FeedbackModal({ isOpen, onClose }: Props) {
   const [step, setStep] = useState<1 | 2 | 3>(1); // 1: Details, 2: Rating, 3: Success
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [files, setFiles] = useState<File[]>([]);
+  const[files, setFiles] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
   const [rating, setRating] = useState(0);
-  const [hoveredStar, setHoveredStar] = useState(0);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const[hoveredStar, setHoveredStar] = useState(0);
+  const[isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -62,7 +62,7 @@ export default function FeedbackModal({ isOpen, onClose }: Props) {
         setTimeout(() => setError(null), 3000);
       }
 
-      setFiles(prev => [...prev, ...validFiles]);
+      setFiles(prev =>[...prev, ...validFiles]);
       
       const newPreviews = validFiles.map(file => URL.createObjectURL(file));
       setPreviews(prev => [...prev, ...newPreviews]);
@@ -120,7 +120,7 @@ export default function FeedbackModal({ isOpen, onClose }: Props) {
       }
 
       // 2. Upload Images to Supabase Storage
-      const uploadedUrls: string[] = [];
+      const uploadedUrls: string[] =[];
       if (files.length > 0 && user) {
         for (const file of files) {
           const fileExt = file.name.split('.').pop();
@@ -245,9 +245,9 @@ export default function FeedbackModal({ isOpen, onClose }: Props) {
                     <img src={url} alt={`Upload ${i+1}`} className="w-full h-full object-cover" />
                     <button 
                       onClick={() => removeFile(i)}
-                      className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-white"
+                      className="absolute top-1.5 right-1.5 bg-black/50 hover:bg-red-500 p-1.5 rounded-lg flex items-center justify-center opacity-100 lg:opacity-60 lg:group-hover:opacity-100 transition-all text-white shadow-sm"
                     >
-                      <Trash2 size={16} />
+                      <Trash2 size={14} />
                     </button>
                   </div>
                 ))}
