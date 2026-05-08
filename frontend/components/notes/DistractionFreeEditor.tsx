@@ -63,12 +63,12 @@ export default function DistractionFreeEditor({
   shouldFocusOnMount = false,
 }: EditorProps) {
   const { journalZoom, setJournalZoom, isEditorFullscreen, toggleEditorFullscreen } = useUiStore();
-  const[saveStatus, setSaveStatus] = useState("Saved");
+  const [saveStatus, setSaveStatus] = useState("Saved");
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  const [placeholder, setPlaceholder] = useState("");
+  const[placeholder, setPlaceholder] = useState("");
 
-  const[bubbleStyle, setBubbleStyle] = useState<React.CSSProperties>({
+  const [bubbleStyle, setBubbleStyle] = useState<React.CSSProperties>({
     opacity: 0,
     pointerEvents: "none",
     position: "fixed",
@@ -80,9 +80,9 @@ export default function DistractionFreeEditor({
   const onSaveRef = useRef(onSave);
   useEffect(() => {
     onSaveRef.current = onSave;
-  },[onSave]);
+  }, [onSave]);
 
-  const [activeStates, setActiveStates] = useState<ActiveStates>({
+  const[activeStates, setActiveStates] = useState<ActiveStates>({
     bold: false,
     italic: false,
     underline: false,
@@ -206,7 +206,7 @@ export default function DistractionFreeEditor({
           editorEl.removeEventListener('keydown', handleGlobalKeyDown as any);
        }
     };
-  },[isEditable]);
+  }, [isEditable]);
 
   useEffect(() => {
     if (!editor) return;
@@ -273,7 +273,7 @@ export default function DistractionFreeEditor({
       window.removeEventListener("resize", updateBubbleThrottled);
       window.removeEventListener("scroll", updateBubbleThrottled, true);
     };
-  },[editor]);
+  }, [editor]);
 
   const insertTimestamp = () => {
     if (!editor) return;
@@ -307,18 +307,27 @@ export default function DistractionFreeEditor({
 
   const setLink = () => {
     if (!editor) return;
-    const previousUrl = editor.getAttributes("link").href;
-    const url = window.prompt("URL", previousUrl);
 
-    if (url === null) {
-      return;
-    }
-
-    if (url === "") {
+    // Unset the link if one is already active on the selection
+    if (editor.isActive("link")) {
       editor.chain().focus().extendMarkRange("link").unsetLink().run();
       return;
     }
 
+    const { from, to } = editor.state.selection;
+    if (from === to) return; // Do nothing if there's no text selected
+
+    const selectedText = editor.state.doc.textBetween(from, to, " ");
+    if (!selectedText) return;
+
+    let url = selectedText.trim();
+
+    // Auto-prefix with "https://" if a protocol isn't already specified
+    if (!/^https?:\/\//i.test(url) && !/^mailto:/i.test(url) && !/^tel:/i.test(url)) {
+      url = `https://${url}`;
+    }
+
+    // Apply the link
     editor.chain().focus().extendMarkRange("link").setLink({ href: url }).run();
   };
 
