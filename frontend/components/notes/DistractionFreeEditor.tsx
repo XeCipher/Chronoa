@@ -63,12 +63,12 @@ export default function DistractionFreeEditor({
   shouldFocusOnMount = false,
 }: EditorProps) {
   const { journalZoom, setJournalZoom, isEditorFullscreen, toggleEditorFullscreen } = useUiStore();
-  const [saveStatus, setSaveStatus] = useState("Saved");
+  const[saveStatus, setSaveStatus] = useState("Saved");
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const[placeholder, setPlaceholder] = useState("");
 
-  const [bubbleStyle, setBubbleStyle] = useState<React.CSSProperties>({
+  const[bubbleStyle, setBubbleStyle] = useState<React.CSSProperties>({
     opacity: 0,
     pointerEvents: "none",
     position: "fixed",
@@ -80,7 +80,7 @@ export default function DistractionFreeEditor({
   const onSaveRef = useRef(onSave);
   useEffect(() => {
     onSaveRef.current = onSave;
-  }, [onSave]);
+  },[onSave]);
 
   const[activeStates, setActiveStates] = useState<ActiveStates>({
     bold: false,
@@ -518,7 +518,7 @@ export default function DistractionFreeEditor({
             {placeholder}
           </div>
         )}
-        <EditorContent editor={editor} className="mt-0 pb-10" />
+        <EditorContent editor={editor} className="mt-0 pb-[50vh] md:pb-[30vh]" />
       </div>
     </div>
   );
