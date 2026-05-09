@@ -6,6 +6,7 @@ import { supabase } from "@/lib/supabase";
 import DistractionFreeEditor from "@/components/notes/DistractionFreeEditor";
 import { Search, Plus, Trash2, BookOpen, FileText, ChevronLeft, RotateCcw, Library, Sparkles, CalendarDays, X, ChevronRight, ArrowLeft } from "lucide-react";
 import { useUiStore } from "@/store/uiStore";
+import { usePathname } from "next/navigation";
 
 type Tab = 'notes' | 'journal';
 
@@ -60,9 +61,10 @@ const syncOfflineData = async () => {
 };
 
 export default function NotesPage() {
+  const pathname = usePathname();
   const { notesTab, setNotesTab, setMobileNoteOpen, showConfirmDialog, isEditorFullscreen, setEditorFullscreen } = useUiStore();
   
-  const [notes, setNotes] = useState<any[]>([]);
+  const[notes, setNotes] = useState<any[]>([]);
   const [journals, setJournals] = useState<any[]>([]);
   const [trash, setTrash] = useState<any[]>([]);
   
@@ -71,10 +73,10 @@ export default function NotesPage() {
   const [editTitle, setEditTitle] = useState("");
   const[noteToFocus, setNoteToFocus] = useState<string | null>(null);
   
-  const [loading, setLoading] = useState(true);
+  const[loading, setLoading] = useState(true);
   const [isListVisible, setIsListVisible] = useState(true);
   const[isTrashOpen, setIsTrashOpen] = useState(false);
-  const [autoSelectPending, setAutoSelectPending] = useState(true);
+  const[autoSelectPending, setAutoSelectPending] = useState(true);
   const [isScrolled, setIsScrolled] = useState(false);
 
   const[showCalendar, setShowCalendar] = useState(false);
@@ -148,7 +150,7 @@ export default function NotesPage() {
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isEditorFullscreen, setEditorFullscreen, isTrashOpen, isListVisible]);
+  },[isEditorFullscreen, setEditorFullscreen, isTrashOpen, isListVisible]);
 
   const handleTabChange = (id: Tab) => {
     setNotesTab(id);
@@ -206,20 +208,44 @@ export default function NotesPage() {
     const validTrashNotes = (tData ||[]).filter(note => new Date(note.deleted_at) > thirtyDaysAgo).map(n => ({ ...n, isJournal: false }));
     const validTrashJournals = (jTrashData ||[]).filter(j => new Date(j.deleted_at) > thirtyDaysAgo).map(j => ({ ...j, isJournal: true }));
     
-    const combinedTrash = [...validTrashNotes, ...validTrashJournals].sort((a, b) => new Date(b.deleted_at).getTime() - new Date(a.deleted_at).getTime());
+    const combinedTrash =[...validTrashNotes, ...validTrashJournals].sort((a, b) => new Date(b.deleted_at).getTime() - new Date(a.deleted_at).getTime());
     
     setTrash(combinedTrash);
     setLoading(false);
     syncOfflineData();
   },[]);
 
+  // Triggers an automatic re-fetch whenever the user physically navigates back to the Notes tab
+  useEffect(() => {
+    if (pathname === '/notes') {
+      fetchData();
+    }
+  }, [pathname, fetchData]);
+
   useEffect(() => { 
     fetchData(); 
     window.addEventListener('online', syncOfflineData);
     const interval = setInterval(syncOfflineData, 15000); 
+
+    // Listen to real-time events across other devices while app is open
+    const channel = supabase.channel('notes_realtime_changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'notes' }, () => {
+        fetchData();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'journal_entries' }, () => {
+        fetchData();
+      })
+      .subscribe();
+
+    // Trigger fetch intelligently on window refocus 
+    const handleFocus = () => fetchData();
+    window.addEventListener('focus', handleFocus);
+
     return () => {
       window.removeEventListener('online', syncOfflineData);
       clearInterval(interval);
+      supabase.removeChannel(channel);
+      window.removeEventListener('focus', handleFocus);
     };
   },[fetchData]);
 
@@ -229,7 +255,7 @@ export default function NotesPage() {
       localStorage.setItem('chronoa_cache_journals', JSON.stringify(journals));
       localStorage.setItem('chronoa_cache_trash', JSON.stringify(trash));
     }
-  }, [notes, journals, trash, loading]);
+  },[notes, journals, trash, loading]);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {

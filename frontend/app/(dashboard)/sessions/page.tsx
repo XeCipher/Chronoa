@@ -29,11 +29,11 @@ const HighlightText = ({ text, query }: { text: string, query: string }) => {
 export default function SessionsPage() {
   const router = useRouter();
   const { sessionsFilter, setSessionsFilter, showConfirmDialog } = useUiStore();
-  const [sessions, setSessions] = useState<any[]>([]);
+  const[sessions, setSessions] = useState<any[]>([]);
   const[loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const[filter, setFilter] = useState<'all' | 'timer' | 'stopwatch'>(sessionsFilter || 'all');
-  const [editingId, setEditingId] = useState<string | null>(null);
+  const[editingId, setEditingId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState("");
 
   const handleFilterChange = (f: 'all' | 'timer' | 'stopwatch') => {
@@ -271,7 +271,7 @@ export default function SessionsPage() {
                 ))}
                 
                 {/* Spacer to prevent Global Time Widget overlap on desktop */}
-                <div className="hidden md:block h-32 w-full shrink-0 pointer-events-none" />
+                <div className="hidden md:block h-12 w-full shrink-0 pointer-events-none" />
               </>
             ) : (
               <div className="py-20 text-center text-[#b0ad9a] dark:text-[#555] italic text-xs">

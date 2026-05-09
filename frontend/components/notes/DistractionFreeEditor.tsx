@@ -212,6 +212,18 @@ export default function DistractionFreeEditor({
     immediatelyRender: false,
   });
 
+  // Allows identical seamless updates from external/remote sources without disrupting the cursor when the user is actively typing
+  useEffect(() => {
+    if (editor && initialContent !== undefined) {
+      if (!editor.isFocused) {
+        const currentHTML = editor.getHTML();
+        if (currentHTML !== initialContent) {
+          editor.commands.setContent(initialContent);
+        }
+      }
+    }
+  },[initialContent, editor]);
+
   // ── VisualViewport Resize Listener ─────────────────────────────────────────
   useEffect(() => {
     const vv = window.visualViewport;

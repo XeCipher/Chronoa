@@ -41,7 +41,7 @@ export default function TasksPage() {
   useEffect(() => {
     setTasksView('focus');
     setIsTrashOpen(false);
-  }, [setTasksView]);
+  },[setTasksView]);
 
   // Reset View Event Listener
   useEffect(() => {
@@ -208,7 +208,7 @@ export default function TasksPage() {
           </div>
           
           {/* Spacer to prevent Global Time Widget overlap on desktop */}
-          <div className="hidden md:block h-32 w-full shrink-0 pointer-events-none" />
+          <div className="hidden md:block h-12 w-full shrink-0 pointer-events-none" />
         </div>
 
       </div>
