@@ -1,4 +1,3 @@
-// frontend/components/notes/DistractionFreeEditor.tsx
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
@@ -42,7 +41,7 @@ type ActiveStates = {
   link: boolean;
 };
 
-const PROMPTS = [
+const PROMPTS =[
   "What are you grateful for today?",
   "What's on your mind right now?",
   "Describe a small win from today.",
@@ -52,9 +51,6 @@ const PROMPTS = [
   "Write about a moment that brought you peace.",
   "What are your main intentions for today?"
 ];
-
-// ─── Cursor visibility buffer (px above visual viewport bottom) ────────────
-const CURSOR_BUFFER = 88; // ~3 lines of text, keeps cursor comfortably above keyboard
 
 export default function DistractionFreeEditor({
   initialContent,
@@ -69,13 +65,8 @@ export default function DistractionFreeEditor({
   const [saveStatus, setSaveStatus] = useState("Saved");
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  const [placeholder, setPlaceholder] = useState("");
+  const[placeholder, setPlaceholder] = useState("");
   const [isFocused, setIsFocused] = useState(false);
-
-  // ── Keyboard height tracking (iOS PWA) ────────────────────────────────────
-  const [keyboardHeight, setKeyboardHeight] = useState(0);
-  const keyboardHeightRef = useRef(0);
-  const isMobileRef = useRef(false);
 
   const [bubbleStyle, setBubbleStyle] = useState<React.CSSProperties>({
     opacity: 0,
@@ -103,18 +94,17 @@ export default function DistractionFreeEditor({
   });
 
   useEffect(() => {
-    isMobileRef.current = window.innerWidth < 1024;
     if (noteType === "journal") {
       setPlaceholder(PROMPTS[Math.floor(Math.random() * PROMPTS.length)]);
     }
   }, [noteType]);
 
-  // ── Core scroll function: keeps cursor above the keyboard ─────────────────
-  // Uses a ref so it's always fresh inside editor callbacks without stale closures
+  // ── Core Scroll Engine: Flawless Margin Management ─────────────────────────
   const ensureCursorVisible = useCallback((ed: ReturnType<typeof useEditor>) => {
-    if (!ed || !isMobileRef.current) return;
+    if (!ed) return;
 
-    const run = () => {
+    // Use requestAnimationFrame to ensure the DOM has painted the new line/character
+    requestAnimationFrame(() => {
       try {
         const vv = window.visualViewport;
         if (!vv) return;
@@ -125,78 +115,45 @@ export default function DistractionFreeEditor({
         const pos = state.selection.to;
         const coords = view.coordsAtPos(pos);
 
-        // The bottom of the usable visible area, minus our comfortable buffer
-        const safeBottom = vv.offsetTop + vv.height - CURSOR_BUFFER;
+        // Responsive Buffers:
+        // Desktop: ~3-4 lines (120px) reserved space
+        // Mobile (iPhone/PWA/Android): ~8-10 lines (260px) to clear the keyboard completely
+        const isMobile = window.innerWidth < 1024;
+        const bottomBuffer = isMobile ? 260 : 120;
+        const topBuffer = 100; // Keeps cursor below the sticky toolbar
 
-        if (coords.bottom <= safeBottom) return; // Already visible ✓
+        const safeBottom = vv.offsetTop + vv.height - bottomBuffer;
+        const safeTop = vv.offsetTop + topBuffer;
 
-        const scrollBy = coords.bottom - safeBottom;
-
-        // 1. Try the dedicated scroll container (parent sets this id)
-        const scrollContainer = document.getElementById("notes-scroll-container");
-        if (scrollContainer) {
-          scrollContainer.scrollTop += scrollBy;
-          return;
+        let scrollDelta = 0;
+        if (coords.bottom > safeBottom) {
+          scrollDelta = coords.bottom - safeBottom;
+        } else if (coords.top < safeTop) {
+          scrollDelta = coords.top - safeTop;
         }
 
-        // 2. Walk up the DOM to find the nearest scrollable ancestor
-        let el: HTMLElement | null = view.dom as HTMLElement;
-        while (el && el !== document.documentElement) {
-          const st = window.getComputedStyle(el);
-          if (
-            (st.overflowY === "auto" || st.overflowY === "scroll") &&
-            el.scrollHeight > el.clientHeight
-          ) {
-            el.scrollTop += scrollBy;
-            return;
+        if (scrollDelta !== 0) {
+          const scrollContainer = document.getElementById("notes-scroll-container");
+          if (scrollContainer) {
+            scrollContainer.scrollTop += scrollDelta;
+          } else {
+            window.scrollBy({ top: scrollDelta });
           }
-          el = el.parentElement;
         }
+      } catch (_) {}
+    });
+  },[]);
 
-        // 3. Last resort – scroll the window
-        window.scrollBy({ top: scrollBy });
-      } catch (_) {
-        // swallow – never crash the editor
-      }
-    };
-
-    // Two RAF passes: first lets the DOM paint the new line, second measures it
-    requestAnimationFrame(() => requestAnimationFrame(run));
-  }, []);
-
-  // Keep a stable ref so effects that don't re-run can still call the latest version
   const ensureCursorVisibleRef = useRef(ensureCursorVisible);
   useEffect(() => {
     ensureCursorVisibleRef.current = ensureCursorVisible;
   }, [ensureCursorVisible]);
 
-  // ── visualViewport resize → keyboard height + re-scroll ───────────────────
-  useEffect(() => {
-    const vv = window.visualViewport;
-    if (!vv) return;
-
-    const handleVVChange = () => {
-      isMobileRef.current = window.innerWidth < 1024;
-      if (!isMobileRef.current) return;
-
-      // keyboard height = portion of screen the keyboard is covering
-      const kbH = Math.max(0, window.innerHeight - vv.offsetTop - vv.height);
-      keyboardHeightRef.current = kbH;
-      setKeyboardHeight(kbH);
-    };
-
-    vv.addEventListener("resize", handleVVChange);
-    vv.addEventListener("scroll", handleVVChange);
-    return () => {
-      vv.removeEventListener("resize", handleVVChange);
-      vv.removeEventListener("scroll", handleVVChange);
-    };
-  }, []);
-
+  // ── Editor Configuration ───────────────────────────────────────────────────
   const editor = useEditor({
     editable: isEditable,
     extensions: [
-      StarterKit.configure({ heading: { levels: [1, 2] } }),
+      StarterKit.configure({ heading: { levels:[1, 2] } }),
       Underline,
       Link.configure({
         openOnClick: true,
@@ -230,8 +187,11 @@ export default function DistractionFreeEditor({
     },
     onFocus: ({ editor: ed }) => {
       setIsFocused(true);
-      // After the keyboard finishes animating up (≈300 ms on iOS), scroll cursor into view
-      setTimeout(() => ensureCursorVisibleRef.current(ed), 350);
+      // Staggered checks to smoothly track the iOS/Android keyboard sliding animation
+      ensureCursorVisibleRef.current(ed);
+      setTimeout(() => ensureCursorVisibleRef.current(ed), 100);
+      setTimeout(() => ensureCursorVisibleRef.current(ed), 300);
+      setTimeout(() => ensureCursorVisibleRef.current(ed), 500);
     },
     onBlur: () => {
       setIsFocused(false);
@@ -250,14 +210,27 @@ export default function DistractionFreeEditor({
         saveTimeoutRef.current = null;
       }, 1000);
 
-      // Scroll immediately + a safety net 250 ms later (handles slow iOS reflows)
       ensureCursorVisibleRef.current(ed);
-      setTimeout(() => ensureCursorVisibleRef.current(ed), 250);
     },
     immediatelyRender: false,
   });
 
-  // ── Cleanup: flush any pending save on unmount ─────────────────────────────
+  // ── VisualViewport Resize Listener ─────────────────────────────────────────
+  useEffect(() => {
+    const vv = window.visualViewport;
+    if (!vv) return;
+
+    const handleVVChange = () => {
+      if (editor && editor.isFocused) {
+        ensureCursorVisibleRef.current(editor);
+      }
+    };
+
+    vv.addEventListener("resize", handleVVChange);
+    return () => vv.removeEventListener("resize", handleVVChange);
+  },[editor]);
+
+  // ── Cleanup: Flush Pending Saves ───────────────────────────────────────────
   useEffect(() => {
     return () => {
       if (saveTimeoutRef.current && editor) {
@@ -267,24 +240,16 @@ export default function DistractionFreeEditor({
     };
   }, [editor]);
 
-  // ── Auto-focus on desktop mount ────────────────────────────────────────────
+  // ── Auto-Focus on Mount (Desktop) ──────────────────────────────────────────
   useEffect(() => {
     if (shouldFocusOnMount && editor && window.innerWidth >= 1024) {
       setTimeout(() => {
         if (!editor.isFocused) editor.commands.focus("end");
       }, 150);
     }
-  }, [shouldFocusOnMount, editor]);
+  },[shouldFocusOnMount, editor]);
 
-  // ── Re-scroll when keyboard height changes (keyboard slides up/resizes) ────
-  useEffect(() => {
-    if (!editor || keyboardHeight === 0) return;
-    // Small delay for iOS keyboard animation to finish
-    const t = setTimeout(() => ensureCursorVisibleRef.current(editor), 100);
-    return () => clearTimeout(t);
-  }, [editor, keyboardHeight]);
-
-  // ── Ctrl/Cmd + scroll/key zoom ─────────────────────────────────────────────
+  // ── Ctrl/Cmd + Zoom Interaction ────────────────────────────────────────────
   useEffect(() => {
     const handleWheel = (e: WheelEvent) => {
       if (!isEditable) return;
@@ -324,7 +289,7 @@ export default function DistractionFreeEditor({
     };
   }, [isEditable]);
 
-  // ── Mobile floating bubble toolbar ────────────────────────────────────────
+  // ── Mobile Bubble Menu Logic ───────────────────────────────────────────────
   useEffect(() => {
     if (!editor) return;
 
@@ -389,29 +354,22 @@ export default function DistractionFreeEditor({
     };
   }, [editor]);
 
-  // ── Timestamp insertion ────────────────────────────────────────────────────
+  // ── Timestamp & Link Handlers ──────────────────────────────────────────────
   const insertTimestamp = () => {
     if (!editor) return;
     const now = new Date();
     const timeString = now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-    const dateString = now.toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-    });
+    const dateString = now.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
     let display = `${dateString}, ${timeString}`;
     if (noteType === "journal" && entryDate) {
       const localToday = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
       if (entryDate === localToday) display = timeString;
     }
     const isAtStart = editor.state.selection.anchor <= 1;
-    const content = isAtStart
-      ? `<p><strong>${display}</strong></p><p></p>`
-      : `<p></p><p><strong>${display}</strong></p><p></p>`;
+    const content = isAtStart ? `<p><strong>${display}</strong></p><p></p>` : `<p></p><p><strong>${display}</strong></p><p></p>`;
     editor.chain().focus().insertContent(content).run();
   };
 
-  // ── Link toggle ────────────────────────────────────────────────────────────
   const setLink = () => {
     if (!editor) return;
     if (editor.isActive("link")) {
@@ -423,30 +381,16 @@ export default function DistractionFreeEditor({
     const selectedText = editor.state.doc.textBetween(from, to, " ");
     if (!selectedText) return;
     let url = selectedText.trim();
-    if (!/^https?:\/\//i.test(url) && !/^mailto:/i.test(url) && !/^tel:/i.test(url))
-      url = `https://${url}`;
+    if (!/^https?:\/\//i.test(url) && !/^mailto:/i.test(url) && !/^tel:/i.test(url)) url = `https://${url}`;
     editor.chain().focus().extendMarkRange("link").setLink({ href: url }).run();
   };
 
   if (!editor) return null;
 
-  // ── Sub-components ─────────────────────────────────────────────────────────
-  const ToolbarButton = ({
-    onClick,
-    isActive,
-    title,
-    children,
-  }: {
-    onClick: () => void;
-    isActive?: boolean;
-    title?: string;
-    children: React.ReactNode;
-  }) => (
+  // ── UI Components ──────────────────────────────────────────────────────────
+  const ToolbarButton = ({ onClick, isActive, title, children }: any) => (
     <button
-      onMouseDown={(e) => {
-        e.preventDefault();
-        onClick();
-      }}
+      onMouseDown={(e) => { e.preventDefault(); onClick(); }}
       data-tooltip-id="global-tooltip"
       data-tooltip-content={title}
       className={`flex items-center justify-center w-8 h-8 rounded-xl transition-all duration-150 shrink-0 ${
@@ -459,9 +403,7 @@ export default function DistractionFreeEditor({
     </button>
   );
 
-  const Divider = () => (
-    <div className="w-px h-4 bg-[#e0ddd5] dark:bg-[#333] mx-0.5 shrink-0 self-center" />
-  );
+  const Divider = () => <div className="w-px h-4 bg-[#e0ddd5] dark:bg-[#333] mx-0.5 shrink-0 self-center" />;
 
   const ZoomControl = ({ preventFocus = false }: { preventFocus?: boolean }) => {
     const bind = (fn: () => void) =>
@@ -504,21 +446,14 @@ export default function DistractionFreeEditor({
     </>
   );
 
-  // ── Keyboard spacer height ─────────────────────────────────────────────────
-  // Matches the actual iOS keyboard height so the content area is never hidden behind it.
-  // Adding 24px extra gives that comfortable 1–2 line gap the user asked for.
-  const spacerHeight = isFocused && keyboardHeight > 0 ? keyboardHeight + 24 : 0;
-
   return (
     <div className={`relative w-full flex flex-col gap-2 h-full ${isSandbox ? "md:gap-10" : "md:gap-4"}`}>
 
-      {/* ── Mobile: save status + timestamp + zoom ── */}
+      {/* Mobile Top Bar */}
       <div className="md:hidden flex w-full justify-between items-center gap-1.5 z-10 mt-2 mb-0">
         <span
           className={`text-[9px] font-bold uppercase tracking-widest whitespace-nowrap transition-colors pl-1 ${
-            saveStatus === "Saving..."
-              ? "text-[#c2956e] dark:text-[#d1a784]"
-              : "text-[#c4c0b8] dark:text-[#555]"
+            saveStatus === "Saving..." ? "text-[#c2956e] dark:text-[#d1a784]" : "text-[#c4c0b8] dark:text-[#555]"
           }`}
         >
           {saveStatus}
@@ -536,9 +471,9 @@ export default function DistractionFreeEditor({
         </div>
       </div>
 
-      {/* ── Mobile: floating selection toolbar ── */}
       {isEditable && (
         <>
+          {/* Mobile Floating Bubble Menu */}
           <div
             className="md:hidden flex items-center gap-2 px-3 py-2 border border-[#e0ddd5] dark:border-[#2a2a2a] bg-white/95 dark:bg-[#121212]/95 backdrop-blur-md shadow-xl rounded-2xl w-max max-w-[92vw] overflow-x-auto no-scrollbar transition-opacity duration-200"
             style={bubbleStyle}
@@ -548,11 +483,10 @@ export default function DistractionFreeEditor({
             </div>
           </div>
 
-          {/* ── Desktop: sticky toolbar ── */}
+          {/* Desktop Sticky Toolbar */}
           <div
             className={[
-              "hidden md:flex",
-              "sticky top-2 lg:top-4 z-[60]",
+              "hidden md:flex sticky top-2 lg:top-4 z-[60]",
               "md:p-2 md:border md:border-[#e0ddd5] md:dark:border-[#2a2a2a] md:rounded-2xl",
               "md:bg-white/95 md:dark:bg-[#121212]/95 md:backdrop-blur-xl",
               "md:shadow-[0_4px_20px_0_rgba(0,0,0,0.05)] md:dark:shadow-[0_4px_20px_0_rgba(0,0,0,0.4)]",
@@ -569,9 +503,7 @@ export default function DistractionFreeEditor({
             <div className="flex items-center gap-2 shrink-0">
               <span
                 className={`text-[9px] font-bold uppercase tracking-widest whitespace-nowrap transition-colors ${
-                  saveStatus === "Saving..."
-                    ? "text-[#c2956e] dark:text-[#d1a784]"
-                    : "text-[#c4c0b8] dark:text-[#555]"
+                  saveStatus === "Saving..." ? "text-[#c2956e] dark:text-[#d1a784]" : "text-[#c4c0b8] dark:text-[#555]"
                 }`}
               >
                 {saveStatus}
@@ -592,7 +524,7 @@ export default function DistractionFreeEditor({
         </>
       )}
 
-      {/* ── Read-only desktop toolbar ── */}
+      {/* Desktop Read-only Toolbar */}
       {!isEditable && (
         <div className="hidden md:flex justify-end items-center gap-2 sticky top-2 lg:top-4 z-[60] bg-white/90 dark:bg-[#121212]/90 backdrop-blur-md p-2 rounded-2xl shadow-sm border border-[#e0ddd5] dark:border-[#2a2a2a]">
           <ZoomControl />
@@ -609,7 +541,7 @@ export default function DistractionFreeEditor({
         </div>
       )}
 
-      {/* ── Editor content ── */}
+      {/* Editor Content */}
       <div
         className="relative w-full flex-1"
         style={{ fontSize: `${(journalZoom / 100) * 1.05}rem`, fontFamily: "inherit" }}
@@ -621,21 +553,15 @@ export default function DistractionFreeEditor({
         )}
         <EditorContent editor={editor} className="mt-0 pb-6" />
 
-        {/*
-         * ── iOS keyboard spacer ──────────────────────────────────────────────
-         * Height = actual keyboard height (from visualViewport) + 24px buffer.
-         * This guarantees the content area is never hidden behind the keyboard,
-         * so the scroll container can always reach the cursor.
-         * The `will-change: height` hint prevents a reflow jank on older iPhones.
-         */}
+        {/* 
+          * Mobile Typewriter & Keyboard Padding
+          * Kicks in ONLY on mobile and ONLY when actively editing (focused).
+          * Desktop inherently manages its own scroll bounds and doesn't need fake space.
+        */}
         <div
           aria-hidden="true"
-          className="md:hidden w-full shrink-0 pointer-events-none"
-          style={{
-            height: spacerHeight,
-            transition: "height 0.28s ease",
-            willChange: "height",
-          }}
+          className="md:hidden w-full shrink-0 pointer-events-none transition-[height] duration-300 ease-in-out will-change-[height]"
+          style={{ height: (isEditable && isFocused) ? '50vh' : '0px' }}
         />
       </div>
     </div>
