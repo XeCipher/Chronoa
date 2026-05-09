@@ -19,12 +19,12 @@ export default function HomePage() {
   const [isTouched, setIsTouched] = useState(false);
   
   // Cache user avatar for instant load without layout shifting
-  const[userAvatar, setUserAvatar] = useState<string | null>(() => {
+  const [userAvatar, setUserAvatar] = useState<string | null>(() => {
     if (typeof window !== 'undefined') return localStorage.getItem('chronoa_avatar');
     return null;
   });
 
-  const[timeSessionsCount, setTimeSessionsCount] = useState<number | null>(null);
+  const [timeSessionsCount, setTimeSessionsCount] = useState<number | null>(null);
   
   const isPinned = useTimerStore((state: any) => state.isPinned);
   const forceShow = useTimerStore((state: any) => state.forceShowWidgets);
@@ -75,7 +75,7 @@ export default function HomePage() {
         <HomeTaskProgress />
       </div>
 
-      <div className={`fixed z-20 flex flex-col items-end gap-4 md:bottom-10 md:right-10 bottom-[calc(90px+env(safe-area-inset-bottom))] right-6 pointer-events-none [&>*]:pointer-events-auto transition-all duration-700 ease-out ${showWidget ? 'max-2xl:opacity-0 max-2xl:translate-y-8 max-2xl:pointer-events-none' : 'opacity-100 translate-y-0'}`}>
+      <div className={`fixed z-20 flex flex-col items-end gap-4 md:bottom-10 md:right-10 bottom-[calc(90px+env(safe-area-inset-bottom))] right-6 pointer-events-none [&>*]:pointer-events-auto transition-all duration-[800ms] ease-[cubic-bezier(0.16,1,0.3,1)] ${showWidget ? 'max-2xl:opacity-0 max-2xl:translate-x-24 max-2xl:pointer-events-none' : 'opacity-100 translate-x-0'}`}>
         <div className="hidden md:block">
           <TodayCalendarWidget variant="home" />
         </div>
@@ -97,8 +97,9 @@ export default function HomePage() {
         <div className={`transition-colors duration-500 rounded-full animate-pulse ${isAnyRunning ? 'w-16 h-1.5 bg-red-500 shadow-[0_0_12px_rgba(239,68,68,0.8)]' : 'w-8 h-[2px] bg-[#888]/80 dark:bg-[#a0a0a0]/80'}`} />
       </div>
 
+      {/* Controlled Hover & Interaction Region */}
       <div 
-        className="absolute bottom-0 left-0 w-full h-[15vh] md:h-[25vh] z-30 flex items-end justify-center pb-6 md:pb-10 group pointer-events-auto cursor-pointer md:cursor-default"
+        className="absolute bottom-0 left-0 w-full h-[15vh] md:h-[25vh] z-30 pointer-events-none"
         onMouseEnter={() => {
           if (window.matchMedia('(hover: hover)').matches) {
             setIsHovered(true);
@@ -110,34 +111,43 @@ export default function HomePage() {
             setIsHovered(false);
           }
         }}
-        onClick={() => {
-          if (window.matchMedia('(hover: none)').matches || ('ontouchstart' in window)) {
-            setIsTouched(true);
-            if (forceShow) setForceShow(false);
-          }
-        }}
       >
+        
+        {/* Hit Trigger: Only center on desktop, full width on mobile */}
         <div
-          className="md:hidden absolute bottom-4 left-1/2 -translate-x-1/2 flex flex-col items-center justify-center p-4 z-40 transition-opacity pointer-events-auto"
-          style={{ opacity: showWidget ? 0 : 1 }}
+          className="absolute bottom-0 left-1/2 -translate-x-1/2 w-full md:w-[600px] h-full pointer-events-auto cursor-pointer md:cursor-default"
+          onClick={() => {
+            if (window.matchMedia('(hover: none)').matches || ('ontouchstart' in window)) {
+              setIsTouched(true);
+              if (forceShow) setForceShow(false);
+            }
+          }}
         >
-          {timeSessionsCount !== null && timeSessionsCount < 1 && (
-            <span className="text-[10px] font-bold uppercase tracking-widest text-[#888] dark:text-[#a0a0a0] mb-3 animate-pulse text-center">Tap here for timers</span>
-          )}
-          <div className={`transition-colors duration-500 rounded-full ${isAnyRunning ? 'w-16 h-1.5 bg-red-500 shadow-[0_0_12px_rgba(239,68,68,0.8)] animate-pulse' : 'w-12 h-1.5 bg-[#3d3b33]/20 dark:bg-[#e0e0e0]/20'}`} />
+          <div
+            className="md:hidden absolute bottom-4 left-1/2 -translate-x-1/2 flex flex-col items-center justify-center p-4 z-40 transition-opacity pointer-events-none"
+            style={{ opacity: showWidget ? 0 : 1 }}
+          >
+            {timeSessionsCount !== null && timeSessionsCount < 1 && (
+              <span className="text-[10px] font-bold uppercase tracking-widest text-[#888] dark:text-[#a0a0a0] mb-3 animate-pulse text-center">Tap here for timers</span>
+            )}
+            <div className={`transition-colors duration-500 rounded-full ${isAnyRunning ? 'w-16 h-1.5 bg-red-500 shadow-[0_0_12px_rgba(239,68,68,0.8)] animate-pulse' : 'w-12 h-1.5 bg-[#3d3b33]/20 dark:bg-[#e0e0e0]/20'}`} />
+          </div>
         </div>
 
+        {/* Background dismiss for touch devices */}
         {isTouched && !isPinned && (
           <button
-            className="fixed inset-0 w-full h-full z-0 cursor-default outline-none pointer-events-auto"
+            className="fixed inset-0 z-0 cursor-default outline-none pointer-events-auto"
             onClick={(e) => { e.stopPropagation(); setIsTouched(false); }}
             tabIndex={-1}
           />
         )}
 
-        <div className="relative z-10 w-full pointer-events-auto">
+        {/* The Widgets: Inherits pointer-events-auto only when visible, ensuring outside hovers don't unintentionally re-trigger it */}
+        <div className={`absolute bottom-6 md:bottom-10 left-0 w-full flex justify-center z-10 ${showWidget ? 'pointer-events-auto' : 'pointer-events-none'}`}>
           <ProductivityWidgets isVisible={showWidget} />
         </div>
+
       </div>
     </div>
   );
