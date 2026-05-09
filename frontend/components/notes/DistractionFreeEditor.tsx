@@ -115,8 +115,9 @@ export default function DistractionFreeEditor({
         const coords = view.coordsAtPos(pos);
 
         // Standardized buffer to prevent aggressive jumps
-        // Leaves enough visual clearance so the cursor is comfortably above the keyboard
-        const bottomBuffer = 120;
+        // Add ~100px (approx 4 lines) to the mobile buffer to account for taller keyboards
+        const isMobile = window.innerWidth < 1024;
+        const bottomBuffer = isMobile ? 240 : 120; 
         const topBuffer = 100; // Keeps cursor below the sticky toolbar
 
         const safeBottom = vv.offsetTop + vv.height - bottomBuffer;
@@ -552,7 +553,7 @@ export default function DistractionFreeEditor({
           </div>
         )}
         {/* pb-24 adds exactly 96px padding, allowing the last line to hover 3-4 lines safely above the mobile keyboard limit without huge dead space */}
-        <EditorContent editor={editor} className="mt-0 pb-24 md:pb-12" />
+        <EditorContent editor={editor} className="mt-0 pb-32 md:pb-12" />
       </div>
     </div>
   );
