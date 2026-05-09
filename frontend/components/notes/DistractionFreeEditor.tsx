@@ -66,7 +66,6 @@ export default function DistractionFreeEditor({
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const [placeholder, setPlaceholder] = useState("");
-  const [isFocused, setIsFocused] = useState(false);
 
   const[bubbleStyle, setBubbleStyle] = useState<React.CSSProperties>({
     opacity: 0,
@@ -80,7 +79,7 @@ export default function DistractionFreeEditor({
   const onSaveRef = useRef(onSave);
   useEffect(() => {
     onSaveRef.current = onSave;
-  }, [onSave]);
+  },[onSave]);
 
   const [activeStates, setActiveStates] = useState<ActiveStates>({
     bold: false,
@@ -103,9 +102,7 @@ export default function DistractionFreeEditor({
   const ensureCursorVisible = useCallback((ed: ReturnType<typeof useEditor>) => {
     if (!ed) return;
 
-    // Prevent layout shifting during text selection dragging
-    if (!ed.state.selection.empty) return;
-
+    // Use requestAnimationFrame to ensure the DOM has painted the new line/character
     requestAnimationFrame(() => {
       try {
         const vv = window.visualViewport;
@@ -117,9 +114,12 @@ export default function DistractionFreeEditor({
         const pos = state.selection.to;
         const coords = view.coordsAtPos(pos);
 
+        // Responsive Buffers:
+        // Desktop: ~3-4 lines (120px) reserved space
+        // Mobile (iPhone/PWA/Android): ~8-10 lines (260px) to clear the keyboard completely
         const isMobile = window.innerWidth < 1024;
-        const bottomBuffer = isMobile ? 80 : 120;
-        const topBuffer = 100;
+        const bottomBuffer = isMobile ? 260 : 120;
+        const topBuffer = 100; // Keeps cursor below the sticky toolbar
 
         const safeBottom = vv.offsetTop + vv.height - bottomBuffer;
         const safeTop = vv.offsetTop + topBuffer;
@@ -146,7 +146,7 @@ export default function DistractionFreeEditor({
   const ensureCursorVisibleRef = useRef(ensureCursorVisible);
   useEffect(() => {
     ensureCursorVisibleRef.current = ensureCursorVisible;
-  },[ensureCursorVisible]);
+  }, [ensureCursorVisible]);
 
   // ── Editor Configuration ───────────────────────────────────────────────────
   const editor = useEditor({
@@ -185,15 +185,11 @@ export default function DistractionFreeEditor({
       });
     },
     onFocus: ({ editor: ed }) => {
-      setIsFocused(true);
       // Staggered checks to smoothly track the iOS/Android keyboard sliding animation
       ensureCursorVisibleRef.current(ed);
       setTimeout(() => ensureCursorVisibleRef.current(ed), 100);
       setTimeout(() => ensureCursorVisibleRef.current(ed), 300);
       setTimeout(() => ensureCursorVisibleRef.current(ed), 500);
-    },
-    onBlur: () => {
-      setIsFocused(false);
     },
     onSelectionUpdate: ({ editor: ed }) => {
       ensureCursorVisibleRef.current(ed);
@@ -237,7 +233,7 @@ export default function DistractionFreeEditor({
         onSaveRef.current(editor.getHTML());
       }
     };
-  },[editor]);
+  }, [editor]);
 
   // ── Auto-Focus on Mount (Desktop) ──────────────────────────────────────────
   useEffect(() => {
@@ -307,21 +303,18 @@ export default function DistractionFreeEditor({
       const { view } = editor as any;
       const endCoords = view.coordsAtPos(selection.to);
       const startCoords = view.coordsAtPos(selection.from);
-      
       const centerLeft = (startCoords.left + endCoords.left) / 2;
       const halfMenuWidth = 140;
       let safeLeft = centerLeft;
-      
       if (safeLeft < halfMenuWidth + 16) safeLeft = halfMenuWidth + 16;
       if (safeLeft > window.innerWidth - halfMenuWidth - 16)
         safeLeft = window.innerWidth - halfMenuWidth - 16;
 
-      // Position BELOW the selected text so it doesn't overlap the native iOS Copy/Paste toolbar
       setBubbleStyle({
         opacity: 1,
         pointerEvents: "auto",
         position: "fixed",
-        top: `${endCoords.bottom + 16}px`, 
+        top: `${endCoords.bottom + 12}px`,
         left: `${safeLeft}px`,
         transform: "translateX(-50%)",
         zIndex: 100,
@@ -554,17 +547,6 @@ export default function DistractionFreeEditor({
           </div>
         )}
         <EditorContent editor={editor} className="mt-0 pb-6" />
-
-        {/* 
-          * Mobile Typewriter & Keyboard Padding
-          * Restored the 50vh height purely for active mobile typing, 
-          * providing physical scroll room for the last line. 
-        */}
-        <div
-          aria-hidden="true"
-          className="md:hidden w-full shrink-0 pointer-events-none transition-[height] duration-300 ease-in-out will-change-[height]"
-          style={{ height: (isEditable && isFocused) ? '50vh' : '0px' }}
-        />
       </div>
     </div>
   );
