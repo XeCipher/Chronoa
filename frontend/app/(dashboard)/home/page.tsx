@@ -19,12 +19,12 @@ export default function HomePage() {
   const [isTouched, setIsTouched] = useState(false);
   
   // Cache user avatar for instant load without layout shifting
-  const [userAvatar, setUserAvatar] = useState<string | null>(() => {
+  const[userAvatar, setUserAvatar] = useState<string | null>(() => {
     if (typeof window !== 'undefined') return localStorage.getItem('chronoa_avatar');
     return null;
   });
 
-  const [timeSessionsCount, setTimeSessionsCount] = useState<number | null>(null);
+  const[timeSessionsCount, setTimeSessionsCount] = useState<number | null>(null);
   
   const isPinned = useTimerStore((state: any) => state.isPinned);
   const forceShow = useTimerStore((state: any) => state.forceShowWidgets);
@@ -75,7 +75,7 @@ export default function HomePage() {
         <HomeTaskProgress />
       </div>
 
-      <div className={`fixed z-20 flex flex-col items-end gap-4 md:bottom-10 md:right-10 bottom-[calc(90px+env(safe-area-inset-bottom))] right-6 pointer-events-none [&>*]:pointer-events-auto transition-all duration-[800ms] ease-[cubic-bezier(0.16,1,0.3,1)] ${showWidget ? 'max-2xl:opacity-0 max-2xl:translate-x-24 max-2xl:pointer-events-none' : 'opacity-100 translate-x-0'}`}>
+      <div className={`fixed z-20 flex flex-col items-end gap-4 md:bottom-10 md:right-10 bottom-[calc(90px+env(safe-area-inset-bottom))] right-6 pointer-events-none [&>*]:pointer-events-auto transition-all duration-[800ms] ease-[cubic-bezier(0.16,1,0.3,1)] ${showWidget ? 'opacity-0 translate-x-24 pointer-events-none' : 'opacity-100 translate-x-0'}`}>
         <div className="hidden md:block">
           <TodayCalendarWidget variant="home" />
         </div>
