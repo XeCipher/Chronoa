@@ -65,7 +65,7 @@ export default function DistractionFreeEditor({
   const[saveStatus, setSaveStatus] = useState("Saved");
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  const [placeholder, setPlaceholder] = useState("");
+  const[placeholder, setPlaceholder] = useState("");
 
   const[bubbleStyle, setBubbleStyle] = useState<React.CSSProperties>({
     opacity: 0,
@@ -81,7 +81,7 @@ export default function DistractionFreeEditor({
     onSaveRef.current = onSave;
   },[onSave]);
 
-  const [activeStates, setActiveStates] = useState<ActiveStates>({
+  const[activeStates, setActiveStates] = useState<ActiveStates>({
     bold: false,
     italic: false,
     underline: false,
@@ -114,11 +114,9 @@ export default function DistractionFreeEditor({
         const pos = state.selection.to;
         const coords = view.coordsAtPos(pos);
 
-        // Responsive Buffers:
-        // Desktop: ~3-4 lines (120px) reserved space
-        // Mobile (iPhone/PWA/Android): ~8-10 lines (260px) to clear the keyboard completely
-        const isMobile = window.innerWidth < 1024;
-        const bottomBuffer = isMobile ? 260 : 120;
+        // Standardized buffer to prevent aggressive jumps
+        // Leaves enough visual clearance so the cursor is comfortably above the keyboard
+        const bottomBuffer = 120;
         const topBuffer = 100; // Keeps cursor below the sticky toolbar
 
         const safeBottom = vv.offsetTop + vv.height - bottomBuffer;
@@ -151,8 +149,8 @@ export default function DistractionFreeEditor({
   // ── Editor Configuration ───────────────────────────────────────────────────
   const editor = useEditor({
     editable: isEditable,
-    extensions: [
-      StarterKit.configure({ heading: { levels:[1, 2] } }),
+    extensions:[
+      StarterKit.configure({ heading: { levels: [1, 2] } }),
       Underline,
       Link.configure({
         openOnClick: true,
@@ -170,6 +168,9 @@ export default function DistractionFreeEditor({
         class:
           "chronoa-editor focus:outline-none w-full min-h-[150px] md:min-h-[300px] text-[#3d3b33] dark:text-[#e0e0e0]",
         spellcheck: "false",
+        autocorrect: "off",
+        autocomplete: "off",
+        "data-form-type": "other"
       },
     },
     onTransaction: ({ editor: ed }) => {
@@ -233,7 +234,7 @@ export default function DistractionFreeEditor({
         onSaveRef.current(editor.getHTML());
       }
     };
-  }, [editor]);
+  },[editor]);
 
   // ── Auto-Focus on Mount (Desktop) ──────────────────────────────────────────
   useEffect(() => {
@@ -282,7 +283,7 @@ export default function DistractionFreeEditor({
         editorEl.removeEventListener("keydown", handleKeyDown as any);
       }
     };
-  }, [isEditable]);
+  },[isEditable]);
 
   // ── Mobile Bubble Menu Logic ───────────────────────────────────────────────
   useEffect(() => {
@@ -540,13 +541,18 @@ export default function DistractionFreeEditor({
       <div
         className="relative w-full flex-1"
         style={{ fontSize: `${(journalZoom / 100) * 1.05}rem`, fontFamily: "inherit" }}
+        onContextMenu={(e) => {
+          // Prevent native context menu from overlapping our custom selection tools on mobile
+          if (window.innerWidth < 1024) e.preventDefault();
+        }}
       >
         {editor.isEmpty && (
           <div className="absolute top-0 left-0 pointer-events-none text-[#c4c0b8] dark:text-[#666] opacity-70 italic w-full leading-[1.45]">
             {placeholder}
           </div>
         )}
-        <EditorContent editor={editor} className="mt-0 pb-6" />
+        {/* pb-24 adds exactly 96px padding, allowing the last line to hover 3-4 lines safely above the mobile keyboard limit without huge dead space */}
+        <EditorContent editor={editor} className="mt-0 pb-24 md:pb-12" />
       </div>
     </div>
   );

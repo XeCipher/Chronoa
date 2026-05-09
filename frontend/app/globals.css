@@ -76,6 +76,8 @@ h1, h2, h3, h4 { font-family: var(--font-display); font-weight: 500; }
   word-break: break-word;
   max-width: 100%;
   overflow-x: hidden;
+  -webkit-touch-callout: none;
+  -webkit-user-callout: none;
 }
 
 .chronoa-editor h1 {
