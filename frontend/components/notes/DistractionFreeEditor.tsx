@@ -62,12 +62,14 @@ export default function DistractionFreeEditor({
   shouldFocusOnMount = false,
 }: EditorProps) {
   const { journalZoom, setJournalZoom, isEditorFullscreen, toggleEditorFullscreen } = useUiStore();
-  const[saveStatus, setSaveStatus] = useState("Saved");
+  const [saveStatus, setSaveStatus] = useState("Saved");
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const [placeholder, setPlaceholder] = useState("");
+  const[isFocused, setIsFocused] = useState(false);
+  const [dynamicBottomPadding, setDynamicBottomPadding] = useState(0);
 
-  const[bubbleStyle, setBubbleStyle] = useState<React.CSSProperties>({
+  const [bubbleStyle, setBubbleStyle] = useState<React.CSSProperties>({
     opacity: 0,
     pointerEvents: "none",
     position: "fixed",
@@ -79,7 +81,7 @@ export default function DistractionFreeEditor({
   const onSaveRef = useRef(onSave);
   useEffect(() => {
     onSaveRef.current = onSave;
-  },[onSave]);
+  }, [onSave]);
 
   const [activeStates, setActiveStates] = useState<ActiveStates>({
     bold: false,
@@ -98,11 +100,14 @@ export default function DistractionFreeEditor({
     }
   }, [noteType]);
 
-  // ── Core Scroll Engine: Flawless Margin Management ─────────────────────────
+  // ── Core Scroll Engine ─────────────────────────────────────────────────────
   const ensureCursorVisible = useCallback((ed: ReturnType<typeof useEditor>) => {
     if (!ed) return;
+    
+    // FIX: Do not auto-scroll if the user is actively selecting text.
+    // This prevents the sudden layout shifts while dragging highlights.
+    if (!ed.state.selection.empty) return;
 
-    // Use requestAnimationFrame to ensure the DOM has painted the new line/character
     requestAnimationFrame(() => {
       try {
         const vv = window.visualViewport;
@@ -114,12 +119,9 @@ export default function DistractionFreeEditor({
         const pos = state.selection.to;
         const coords = view.coordsAtPos(pos);
 
-        // Responsive Buffers:
-        // Desktop: ~3-4 lines (120px) reserved space
-        // Mobile (iPhone/PWA/Android): ~8-10 lines (260px) to clear the keyboard completely
         const isMobile = window.innerWidth < 1024;
-        const bottomBuffer = isMobile ? 260 : 120;
-        const topBuffer = 100; // Keeps cursor below the sticky toolbar
+        const bottomBuffer = isMobile ? 80 : 120; // Maintain comfort margin
+        const topBuffer = 100; 
 
         const safeBottom = vv.offsetTop + vv.height - bottomBuffer;
         const safeTop = vv.offsetTop + topBuffer;
@@ -151,8 +153,8 @@ export default function DistractionFreeEditor({
   // ── Editor Configuration ───────────────────────────────────────────────────
   const editor = useEditor({
     editable: isEditable,
-    extensions: [
-      StarterKit.configure({ heading: { levels:[1, 2] } }),
+    extensions:[
+      StarterKit.configure({ heading: { levels: [1, 2] } }),
       Underline,
       Link.configure({
         openOnClick: true,
@@ -185,11 +187,18 @@ export default function DistractionFreeEditor({
       });
     },
     onFocus: ({ editor: ed }) => {
-      // Staggered checks to smoothly track the iOS/Android keyboard sliding animation
+      setIsFocused(true);
+      // Trigger dynamic padding calculation immediately upon focus
+      if (window.visualViewport && window.innerWidth < 1024) {
+         const kbHeight = window.innerHeight - window.visualViewport.height;
+         setDynamicBottomPadding(kbHeight > 50 ? kbHeight : 0);
+      }
       ensureCursorVisibleRef.current(ed);
-      setTimeout(() => ensureCursorVisibleRef.current(ed), 100);
       setTimeout(() => ensureCursorVisibleRef.current(ed), 300);
-      setTimeout(() => ensureCursorVisibleRef.current(ed), 500);
+    },
+    onBlur: () => {
+      setIsFocused(false);
+      setDynamicBottomPadding(0); // Instantly remove padding on blur
     },
     onSelectionUpdate: ({ editor: ed }) => {
       ensureCursorVisibleRef.current(ed);
@@ -210,19 +219,30 @@ export default function DistractionFreeEditor({
     immediatelyRender: false,
   });
 
-  // ── VisualViewport Resize Listener ─────────────────────────────────────────
+  // ── Keyboard / VisualViewport Resize Listener ──────────────────────────────
   useEffect(() => {
     const vv = window.visualViewport;
     if (!vv) return;
 
     const handleVVChange = () => {
-      if (editor && editor.isFocused) {
+      const isMobile = window.innerWidth < 1024;
+      
+      // FIX: Calculate dynamic padding to provide scrollable room for the last line
+      if (isMobile && editor?.isFocused) {
+        const kbHeight = window.innerHeight - vv.height;
+        setDynamicBottomPadding(kbHeight > 50 ? kbHeight : 0);
         ensureCursorVisibleRef.current(editor);
+      } else {
+        setDynamicBottomPadding(0);
       }
     };
 
     vv.addEventListener("resize", handleVVChange);
-    return () => vv.removeEventListener("resize", handleVVChange);
+    vv.addEventListener("scroll", handleVVChange); // Catch scroll shifts
+    return () => {
+      vv.removeEventListener("resize", handleVVChange);
+      vv.removeEventListener("scroll", handleVVChange);
+    };
   }, [editor]);
 
   // ── Cleanup: Flush Pending Saves ───────────────────────────────────────────
@@ -301,11 +321,14 @@ export default function DistractionFreeEditor({
       }
 
       const { view } = editor as any;
-      const endCoords = view.coordsAtPos(selection.to);
       const startCoords = view.coordsAtPos(selection.from);
-      const centerLeft = (startCoords.left + endCoords.left) / 2;
+
+      // FIX: Position menu *above* the selection block accurately
+      const menuHeight = 48; 
+      const top = startCoords.top - menuHeight;
+
       const halfMenuWidth = 140;
-      let safeLeft = centerLeft;
+      let safeLeft = startCoords.left;
       if (safeLeft < halfMenuWidth + 16) safeLeft = halfMenuWidth + 16;
       if (safeLeft > window.innerWidth - halfMenuWidth - 16)
         safeLeft = window.innerWidth - halfMenuWidth - 16;
@@ -314,7 +337,7 @@ export default function DistractionFreeEditor({
         opacity: 1,
         pointerEvents: "auto",
         position: "fixed",
-        top: `${endCoords.bottom + 12}px`,
+        top: `${top}px`,
         left: `${safeLeft}px`,
         transform: "translateX(-50%)",
         zIndex: 100,
@@ -546,7 +569,17 @@ export default function DistractionFreeEditor({
             {placeholder}
           </div>
         )}
-        <EditorContent editor={editor} className="mt-0 pb-6" />
+        <EditorContent 
+          editor={editor} 
+          className="mt-0 pb-6" 
+          style={{ 
+             WebkitTouchCallout: 'none', 
+             paddingBottom: dynamicBottomPadding > 0 ? `${dynamicBottomPadding + 20}px` : '0px'
+          }}
+          onContextMenu={(e) => {
+            if (window.innerWidth < 1024 && isEditable) e.preventDefault();
+          }}
+        />
       </div>
     </div>
   );
