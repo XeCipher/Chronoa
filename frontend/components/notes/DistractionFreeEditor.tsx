@@ -62,13 +62,12 @@ export default function DistractionFreeEditor({
   shouldFocusOnMount = false,
 }: EditorProps) {
   const { journalZoom, setJournalZoom, isEditorFullscreen, toggleEditorFullscreen } = useUiStore();
-  const [saveStatus, setSaveStatus] = useState("Saved");
+  const[saveStatus, setSaveStatus] = useState("Saved");
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  const[placeholder, setPlaceholder] = useState("");
-  const [isFocused, setIsFocused] = useState(false);
+  const [placeholder, setPlaceholder] = useState("");
 
-  const [bubbleStyle, setBubbleStyle] = useState<React.CSSProperties>({
+  const[bubbleStyle, setBubbleStyle] = useState<React.CSSProperties>({
     opacity: 0,
     pointerEvents: "none",
     position: "fixed",
@@ -80,7 +79,7 @@ export default function DistractionFreeEditor({
   const onSaveRef = useRef(onSave);
   useEffect(() => {
     onSaveRef.current = onSave;
-  }, [onSave]);
+  },[onSave]);
 
   const [activeStates, setActiveStates] = useState<ActiveStates>({
     bold: false,
@@ -186,15 +185,11 @@ export default function DistractionFreeEditor({
       });
     },
     onFocus: ({ editor: ed }) => {
-      setIsFocused(true);
       // Staggered checks to smoothly track the iOS/Android keyboard sliding animation
       ensureCursorVisibleRef.current(ed);
       setTimeout(() => ensureCursorVisibleRef.current(ed), 100);
       setTimeout(() => ensureCursorVisibleRef.current(ed), 300);
       setTimeout(() => ensureCursorVisibleRef.current(ed), 500);
-    },
-    onBlur: () => {
-      setIsFocused(false);
     },
     onSelectionUpdate: ({ editor: ed }) => {
       ensureCursorVisibleRef.current(ed);
@@ -228,7 +223,7 @@ export default function DistractionFreeEditor({
 
     vv.addEventListener("resize", handleVVChange);
     return () => vv.removeEventListener("resize", handleVVChange);
-  },[editor]);
+  }, [editor]);
 
   // ── Cleanup: Flush Pending Saves ───────────────────────────────────────────
   useEffect(() => {
@@ -552,17 +547,6 @@ export default function DistractionFreeEditor({
           </div>
         )}
         <EditorContent editor={editor} className="mt-0 pb-6" />
-
-        {/* 
-          * Mobile Typewriter & Keyboard Padding
-          * Kicks in ONLY on mobile and ONLY when actively editing (focused).
-          * Desktop inherently manages its own scroll bounds and doesn't need fake space.
-        */}
-        <div
-          aria-hidden="true"
-          className="md:hidden w-full shrink-0 pointer-events-none transition-[height] duration-300 ease-in-out will-change-[height]"
-          style={{ height: (isEditable && isFocused) ? '50vh' : '0px' }}
-        />
       </div>
     </div>
   );
