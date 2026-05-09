@@ -32,7 +32,7 @@ const escapeRegExp = (string: string) => string.replace(/[.*+?^${}()|[\]\\]/g, '
 export default function TodayCalendarWidget({ variant, searchQuery = '', className = '' }: Props) {
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [loading, setLoading] = useState(true);
-  const[selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
+  const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const[isModalOpen, setIsModalOpen] = useState(false);
   const [defaultModalTitle, setDefaultModalTitle] = useState("");
   
@@ -172,7 +172,7 @@ export default function TodayCalendarWidget({ variant, searchQuery = '', classNa
     }, 100);
 
     return () => clearTimeout(timer);
-  }, [loading, filteredEvents, isCollapsed, isUserScrolling]);
+  },[loading, filteredEvents, isCollapsed, isUserScrolling]);
 
   const renderHighlightedText = (text: string) => {
     if (!searchQuery) return text;
@@ -329,12 +329,11 @@ export default function TodayCalendarWidget({ variant, searchQuery = '', classNa
               ref={scrollRef}
               onWheel={handleUserScroll}
               onTouchMove={handleUserScroll}
-              className={`relative flex flex-col flex-1 overflow-y-auto no-scrollbar scroll-smooth w-full ${variant === 'home' ? 'gap-2 px-4 pt-2 pb-4 max-h-[140px]' : 'gap-3 px-5 md:px-8 pt-4 pb-5 max-h-[180px] min-h-[140px]'}`}
+              className={`relative flex flex-col flex-1 overflow-y-auto no-scrollbar scroll-smooth w-full ${variant === 'home' ? 'gap-2 px-4 pt-2 pb-4 max-h-[140px]' : 'gap-3 px-5 md:px-8 pt-4 pb-5 max-h-[180px]'}`}
             >
               {loading ? (
-                <div className="animate-pulse flex flex-col gap-2">
-                  <div className="h-10 bg-black/10 dark:bg-white/10 rounded-xl w-full" />
-                  <div className="h-10 bg-black/10 dark:bg-white/10 rounded-xl w-full" />
+                <div className="animate-pulse flex flex-col gap-3">
+                  <div className="h-[60px] md:h-[64px] bg-black/10 dark:bg-white/10 rounded-xl w-full" />
                 </div>
               ) : filteredEvents.length > 0 ? (
                 filteredEvents.map(e => {
@@ -373,7 +372,7 @@ export default function TodayCalendarWidget({ variant, searchQuery = '', classNa
                   )
                 })
               ) : (
-                <div className={`flex-1 flex flex-col items-center justify-center min-h-[80px] pb-2 text-center text-xs font-medium italic ${variant === 'home' ? 'text-[#3d3b33]/60 dark:text-white/50' : 'text-[#b0ad9a] dark:text-[#7a7a7a]'}`}>
+                <div className={`flex-1 flex flex-col items-center justify-center min-h-[60px] md:min-h-[64px] text-center text-xs font-medium italic ${variant === 'home' ? 'text-[#3d3b33]/60 dark:text-white/50' : 'text-[#b0ad9a] dark:text-[#7a7a7a]'}`}>
                   {searchQuery ? "No matching events found." : "No events scheduled today."}
                 </div>
               )}
