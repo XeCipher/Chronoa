@@ -1,8 +1,8 @@
 // frontend/components/calendar/EventModal.tsx
 "use client";
 
-import { useState, useEffect } from "react";
-import { X, Calendar as CalendarIcon, AlignLeft, Palette, Trash2, CheckCircle2, Repeat, MapPin, Video, Lock } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { X, Calendar as CalendarIcon, AlignLeft, Palette, Trash2, CheckCircle2, Repeat, MapPin, Video } from "lucide-react";
 import { CalendarEvent } from "@/types/app.types";
 import { useUiStore } from "@/store/uiStore";
 import { supabase } from "@/lib/supabase";
@@ -19,7 +19,7 @@ interface Props {
   defaultTitle?: string;
 }
 
-const COLORS = [
+const COLORS =[
   { id: 'amber', label: 'Amber', colorClass: 'bg-[#c2956e]' },
   { id: 'blue', label: 'Blue', colorClass: 'bg-blue-500' },
   { id: 'purple', label: 'Purple', colorClass: 'bg-purple-500' },
@@ -28,7 +28,7 @@ const COLORS = [
   { id: 'sage', label: 'Sage', colorClass: 'bg-[#7ca982]' },
 ];
 
-const REPEAT_OPTIONS = [
+const REPEAT_OPTIONS =[
   { id: 'none', label: 'Does not repeat' },
   { id: 'daily', label: 'Every Day' },
   { id: 'weekly', label: 'Every Week' },
@@ -37,7 +37,7 @@ const REPEAT_OPTIONS = [
   { id: 'custom', label: 'Custom Days...' }
 ];
 
-const DAYS_OF_WEEK = [
+const DAYS_OF_WEEK =[
   { id: 0, label: 'S' },
   { id: 1, label: 'M' },
   { id: 2, label: 'T' },
@@ -51,27 +51,81 @@ export default function EventModal({ isOpen, onClose, onSave, onDelete, initialE
   const { showConfirmDialog } = useUiStore();
 
   const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
+  const[description, setDescription] = useState("");
   const [location, setLocation] = useState("");
-  const [meetingUrl, setMeetingUrl] = useState("");
+  const[meetingUrl, setMeetingUrl] = useState("");
   const [isAllDay, setIsAllDay] = useState(false);
   const [startTime, setStartTime] = useState(new Date());
-  const [endTime, setEndTime] = useState(new Date());
+  const[endTime, setEndTime] = useState(new Date());
   const [color, setColor] = useState("amber");
-  const [isReadOnly, setIsReadOnly] = useState(false);
-  const [sourceName, setSourceName] = useState<string | null>(null);
+  const[isReadOnly, setIsReadOnly] = useState(false);
+  const[sourceName, setSourceName] = useState<string | null>(null);
   
   const [repeatSelect, setRepeatSelect] = useState("none");
-  const [customDays, setCustomDays] = useState<number[]>([]);
+  const[customDays, setCustomDays] = useState<number[]>([]);
+
+  // Autocomplete Recommendations State
+  const [recommendations, setRecommendations] = useState<any[]>([]);
+  const[showRecommendations, setShowRecommendations] = useState(false);
+  const titleContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = 'hidden';
     } else {
       document.body.style.overflow = '';
+      setShowRecommendations(false);
     }
     return () => { document.body.style.overflow = ''; };
   }, [isOpen]);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (titleContainerRef.current && !titleContainerRef.current.contains(e.target as Node)) {
+        setShowRecommendations(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  },[]);
+
+  // Fetch intelligent recommendations based on past calendar events and completed tasks
+  useEffect(() => {
+    if (initialEvent || isReadOnly || !title.trim() || !isOpen) {
+      setRecommendations([]);
+      return;
+    }
+    const fetchRecs = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      
+      const [evRes, tkRes] = await Promise.all([
+        supabase.from('calendar_events').select('*').eq('user_id', user.id).ilike('title', `%${title}%`).limit(10),
+        supabase.from('tasks').select('*').eq('user_id', user.id).eq('is_completed', true).ilike('title', `%${title}%`).limit(10)
+      ]);
+
+      const unique: any[] =[];
+      const seen = new Set<string>();
+
+      const process = (items: any[], type: string) => {
+        items?.forEach(i => {
+          const lower = i.title.toLowerCase();
+          if (!seen.has(lower)) {
+            seen.add(lower);
+            unique.push({ ...i, _type: type });
+          }
+        });
+      };
+
+      process(evRes.data ||[], 'event');
+      process(tkRes.data ||[], 'task');
+
+      setRecommendations(unique);
+    };
+
+    const timer = setTimeout(fetchRecs, 300);
+    return () => clearTimeout(timer);
+  }, [title, initialEvent, isReadOnly, isOpen]);
 
   useEffect(() => {
     if (isOpen) {
@@ -142,9 +196,9 @@ export default function EventModal({ isOpen, onClose, onSave, onDelete, initialE
         }
       }
     }
-  }, [isOpen, initialEvent, dragTimeRange, defaultBaseDate, defaultTitle]);
+  },[isOpen, initialEvent, dragTimeRange, defaultBaseDate, defaultTitle]);
 
-  const isEndTimeInvalid = !isAllDay && endTime <= startTime;
+  const isEndTimeInvalid = isAllDay ? (endTime < startTime) : (endTime <= startTime);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -185,7 +239,7 @@ export default function EventModal({ isOpen, onClose, onSave, onDelete, initialE
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, initialEvent, title, description, location, meetingUrl, isAllDay, color, isReadOnly, onClose, showConfirmDialog, defaultTitle]);
+  },[isOpen, initialEvent, title, description, location, meetingUrl, isAllDay, color, isReadOnly, onClose, showConfirmDialog, defaultTitle]);
 
   if (!isOpen) return null;
 
@@ -200,6 +254,94 @@ export default function EventModal({ isOpen, onClose, onSave, onDelete, initialE
       return `custom:${customDays.join(',')}`;
     }
     return repeatSelect;
+  };
+
+  const handleToggleAllDay = () => {
+    if (isReadOnly) return;
+    const nextAllDay = !isAllDay;
+    setIsAllDay(nextAllDay);
+
+    if (nextAllDay) {
+      const s = new Date(startTime);
+      s.setHours(0, 0, 0, 0);
+      const e = new Date(startTime);
+      e.setHours(23, 59, 59, 999);
+      setStartTime(s);
+      setEndTime(e);
+    } else {
+      const s = new Date(startTime);
+      s.setHours(new Date().getHours() + 1, 0, 0, 0);
+      const e = new Date(s);
+      e.setHours(s.getHours() + 1, 0, 0, 0);
+      setStartTime(s);
+      setEndTime(e);
+    }
+  };
+
+  const handleStartTimeChange = (newStart: Date) => {
+    if (isReadOnly) return;
+    if (isAllDay) {
+      const s = new Date(newStart);
+      s.setHours(0, 0, 0, 0);
+      const e = new Date(newStart);
+      e.setHours(23, 59, 59, 999);
+      setStartTime(s);
+      setEndTime(e);
+    } else {
+      const diff = endTime.getTime() - startTime.getTime();
+      setStartTime(newStart);
+      if (diff > 0) {
+        setEndTime(new Date(newStart.getTime() + diff));
+      } else {
+        setEndTime(new Date(newStart.getTime() + 60 * 60000));
+      }
+    }
+  };
+
+  const handleEndTimeChange = (newEnd: Date) => {
+    if (isReadOnly) return;
+    if (isAllDay) {
+      const e = new Date(newEnd);
+      e.setHours(23, 59, 59, 999);
+      setEndTime(e);
+    } else {
+      setEndTime(newEnd);
+    }
+  };
+
+  const applyRecommendation = (rec: any) => {
+    setTitle(rec.title);
+    if (rec._type === 'event') {
+      setDescription(rec.description || "");
+      setLocation(rec.location || "");
+      setMeetingUrl(rec.meeting_url || "");
+      setColor(rec.color || "amber");
+
+      setIsAllDay(rec.is_all_day);
+
+      const recStart = new Date(rec.start_time);
+      const recEnd = new Date(rec.end_time);
+
+      const newStart = new Date(startTime);
+
+      if (rec.is_all_day) {
+        newStart.setHours(0, 0, 0, 0);
+        const newEnd = new Date(newStart);
+        newEnd.setHours(23, 59, 59, 999);
+        setStartTime(newStart);
+        setEndTime(newEnd);
+      } else {
+        // Carry over the time of day from the original event onto the selected day in calendar
+        newStart.setHours(recStart.getHours(), recStart.getMinutes(), recStart.getSeconds(), 0);
+        const diff = recEnd.getTime() - recStart.getTime();
+        const newEnd = new Date(newStart.getTime() + diff);
+        setStartTime(newStart);
+        setEndTime(newEnd);
+      }
+    } else {
+      setColor(rec.color && rec.color !== 'none' ? rec.color : 'amber');
+    }
+    setShowRecommendations(false);
   };
 
   const performSave = (updateMode: 'this' | 'future') => {
@@ -229,7 +371,6 @@ export default function EventModal({ isOpen, onClose, onSave, onDelete, initialE
 
   const handleColorChange = async (newColor: string) => {
     setColor(newColor);
-    // If it's a read-only calendar integration, immediately update the entire calendar's colors
     if (isReadOnly && initialEvent?.source_id) {
       await supabase.from('calendar_sources').update({ color: newColor }).eq('id', initialEvent.source_id);
       await supabase.from('calendar_events').update({ color: newColor }).eq('source_id', initialEvent.source_id);
@@ -307,16 +448,32 @@ export default function EventModal({ isOpen, onClose, onSave, onDelete, initialE
 
         <div className="p-6 md:p-8 overflow-y-auto no-scrollbar space-y-5 flex-1 min-h-0 w-full relative">
           
-          <div className="flex items-center justify-between gap-3 w-full">
+          <div className="flex items-center justify-between gap-3 w-full relative" ref={titleContainerRef}>
             <input 
               autoFocus={!isReadOnly}
               type="text" 
               placeholder="Event Title" 
               value={title} 
               onChange={e => setTitle(e.target.value)}
+              onFocus={() => setShowRecommendations(true)}
               disabled={isReadOnly}
               className={`flex-1 min-w-0 w-full text-2xl sm:text-3xl font-serif outline-none placeholder:text-[#c4c0b8] dark:placeholder:text-[#555] transition-colors ${isReadOnly ? 'bg-transparent text-[#3d3b33] dark:text-white cursor-default' : 'bg-transparent text-[#3d3b33] dark:text-white'}`}
             />
+            
+            {showRecommendations && recommendations.length > 0 && (
+              <div className="absolute top-full left-0 w-full mt-2 bg-white dark:bg-[#252525] border border-[#e0ddd5] dark:border-[#333] rounded-2xl shadow-xl z-[100] max-h-52 overflow-y-auto no-scrollbar animate-fade-in">
+                {recommendations.map(rec => (
+                  <button 
+                    key={rec.id}
+                    onClick={() => applyRecommendation(rec)}
+                    className="w-full flex items-center justify-start px-4 py-3 border-b border-[#e0ddd5] dark:border-[#333] last:border-b-0 hover:bg-[#f7f5f0] dark:hover:bg-[#1a1a1a] transition-colors"
+                  >
+                    <span className="text-sm font-semibold text-[#3d3b33] dark:text-[#f0f0f0] truncate">{rec.title}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+
             {meetingUrl && (
               <button 
                 onClick={() => window.open(meetingUrl, '_blank')}
@@ -329,7 +486,7 @@ export default function EventModal({ isOpen, onClose, onSave, onDelete, initialE
 
           <div className="space-y-4">
             
-            <div className={`flex items-center justify-between p-4 bg-white dark:bg-[#252525] border border-[#e0ddd5] dark:border-[#333] rounded-2xl shadow-sm ${!isReadOnly ? 'cursor-pointer' : 'opacity-80'}`} onClick={() => !isReadOnly && setIsAllDay(!isAllDay)}>
+            <div className={`flex items-center justify-between p-4 bg-white dark:bg-[#252525] border border-[#e0ddd5] dark:border-[#333] rounded-2xl shadow-sm ${!isReadOnly ? 'cursor-pointer' : 'opacity-80'}`} onClick={handleToggleAllDay}>
               <div className="flex items-center gap-3 text-[#3d3b33] dark:text-[#f0f0f0]">
                 <CalendarIcon size={18} className="text-[#888]" />
                 <span className="text-sm font-medium">All-day</span>
@@ -340,9 +497,9 @@ export default function EventModal({ isOpen, onClose, onSave, onDelete, initialE
             </div>
 
             <div className={`flex flex-col sm:flex-row gap-4 w-full relative ${isReadOnly ? 'pointer-events-none opacity-80' : ''}`}>
-               <CustomDateTimePicker value={startTime} onChange={d => !isReadOnly && setStartTime(d)} isAllDay={isAllDay} label="Starts" minDate={undefined} />
+               <CustomDateTimePicker value={startTime} onChange={handleStartTimeChange} isAllDay={isAllDay} label="Starts" minDate={undefined} />
                <div className="flex-1 flex flex-col relative">
-                  <CustomDateTimePicker value={endTime} onChange={d => !isReadOnly && setEndTime(d)} isAllDay={isAllDay} label="Ends" minDate={startTime} />
+                  <CustomDateTimePicker value={endTime} onChange={handleEndTimeChange} isAllDay={isAllDay} label="Ends" minDate={isAllDay ? undefined : startTime} />
                   {isEndTimeInvalid && !isReadOnly && (
                      <span className="absolute -bottom-4 left-1 text-[9px] text-red-500 font-bold uppercase tracking-widest animate-fade-in">Must be after start time</span>
                   )}
