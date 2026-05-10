@@ -67,7 +67,7 @@ export default function NotesPage() {
   const { notesTab, setNotesTab, setMobileNoteOpen, showConfirmDialog, isEditorFullscreen, setEditorFullscreen } = useUiStore();
   
   const[notes, setNotes] = useState<any[]>([]);
-  const [journals, setJournals] = useState<any[]>([]);
+  const[journals, setJournals] = useState<any[]>([]);
   const[trash, setTrash] = useState<any[]>([]);
   const[folders, setFolders] = useState<any[]>([]);
   
@@ -87,7 +87,7 @@ export default function NotesPage() {
   const [calMonth, setCalMonth] = useState(new Date());
 
   const[isMoveModalOpen, setIsMoveModalOpen] = useState(false);
-  const [moveTargetFolderId, setMoveTargetFolderId] = useState<string | null>(null);
+  const[moveTargetFolderId, setMoveTargetFolderId] = useState<string | null>(null);
 
   const desktopCalRef = useRef<HTMLDivElement>(null);
 
@@ -101,24 +101,24 @@ export default function NotesPage() {
       setShowCalendar(false);
       prevNotesTab.current = notesTab;
     }
-  }, [notesTab]);
+  },[notesTab]);
 
+  const prevFolderId = useRef(selectedFolderId);
   useEffect(() => {
-    const handleReset = (e: any) => {
-      if (e.detail === '/notes') {
-        setIsTrashOpen(false);
-      }
-    };
-    window.addEventListener('chronoa-reset-tab', handleReset);
-    return () => window.removeEventListener('chronoa-reset-tab', handleReset);
-  },[]);
+    if (prevFolderId.current !== selectedFolderId) {
+      setSelectedId(null);
+      setNoteToFocus(null);
+      setAutoSelectPending(true);
+      prevFolderId.current = selectedFolderId;
+    }
+  },[selectedFolderId]);
 
   // Guarantee we reset fullscreen configuration when leaving the Notes page
   useEffect(() => {
     return () => {
        setEditorFullscreen(false);
     };
-  }, [setEditorFullscreen]);
+  },[setEditorFullscreen]);
 
   // Global Escape Key Listener for Exiting Fullscreen & Navigating Back
   useEffect(() => {
@@ -378,15 +378,49 @@ export default function NotesPage() {
     }
     showConfirmDialog({
       title: "Delete Folder",
-      message: "Are you sure? Notes and subfolders inside will not be deleted, they will just be moved out of the folder.",
+      message: "Are you sure? This folder, along with all subfolders and notes inside it, will be permanently deleted.",
       isDestructive: true,
       onConfirm: async () => {
-        setFolders(prev => prev.filter(f => f.id !== folderId));
-        if (selectedFolderId === folderId) {
+        // Find all subfolders recursively to ensure we delete the whole tree
+        const getDescendants = (id: string, all: any[]): string[] => {
+          let desc: string[] =[];
+          const children = all.filter(f => f.parent_id === id);
+          for (const child of children) {
+            desc.push(child.id);
+            desc.push(...getDescendants(child.id, all));
+          }
+          return desc;
+        };
+        
+        const foldersToDelete =[folderId, ...getDescendants(folderId, folders)];
+        
+        // Find all notes inside these folders
+        const notesToDelete = notes.filter(n => n.folder_id && foldersToDelete.includes(n.folder_id)).map(n => n.id);
+        
+        // Optimistically update UI
+        setFolders(prev => prev.filter(f => !foldersToDelete.includes(f.id)));
+        setNotes(prev => prev.filter(n => !notesToDelete.includes(n.id)));
+        
+        // Adjust state if we are currently looking at or inside the deleted folder
+        if (selectedFolderId && foldersToDelete.includes(selectedFolderId)) {
            const f = folders.find(x => x.id === folderId);
            setSelectedFolderId(f?.parent_id || null);
         }
-        await supabase.from('note_folders').delete().eq('id', folderId);
+        
+        // Deselect Note if it was actively deleted
+        if (notesToDelete.includes(selectedId as string)) {
+           setSelectedId(null);
+           setIsListVisible(true);
+        }
+
+        // DB deletion (we delete notes first, then folders to avoid FK issues if CASCADE is missing)
+        if (notesToDelete.length > 0) {
+           await supabase.from('notes').delete().in('id', notesToDelete);
+        }
+        if (foldersToDelete.length > 0) {
+           await supabase.from('note_folders').delete().in('id', foldersToDelete);
+        }
+        
         fetchData();
       }
     });
@@ -821,26 +855,24 @@ export default function NotesPage() {
             <div className="flex items-center justify-between gap-3">
               <div 
                 className="flex items-center gap-2.5 text-[#3d3b33] dark:text-[#f0f0f0] cursor-pointer hover:opacity-80 transition-opacity min-w-0"
-                onClick={() => document.getElementById('notes-library-scroll-container')?.scrollTo({ top: 0, behavior: 'smooth' })}
+                onClick={() => {
+                  document.getElementById('notes-library-scroll-container')?.scrollTo({ top: 0, behavior: 'smooth' });
+                  if (!isTrashOpen) setSelectedFolderId(null);
+                }}
               >
-                {(isTrashOpen || selectedFolderId) && (
+                {isTrashOpen && (
                   <button onClick={(e) => { 
                     e.stopPropagation(); 
-                    if (isTrashOpen) {
-                      setIsTrashOpen(false); setSelectedId(null); setNoteToFocus(null); setAutoSelectPending(true); setShowCalendar(false); 
-                    } else {
-                      setSelectedFolderId(currentFolder?.parent_id || null);
-                    }
+                    setIsTrashOpen(false); setSelectedId(null); setNoteToFocus(null); setAutoSelectPending(true); setShowCalendar(false); 
                   }} className="flex items-center justify-center p-2.5 md:p-3 bg-white dark:bg-[#1a1a1a] text-[#888] rounded-xl border border-[#e0ddd5] dark:border-[#333] hover:text-[#3d3b33] dark:hover:text-[#f0f0f0] transition-all shadow-sm mr-1 shrink-0">
                     <ArrowLeft size={18} />
                   </button>
                 )}
-                {!isTrashOpen && !selectedFolderId && <Library size={20} className="text-[#c2956e] shrink-0" />}
-                {!isTrashOpen && selectedFolderId && <Folder size={20} className="text-[#c2956e] shrink-0" />}
+                {!isTrashOpen && <Library size={20} className="text-[#c2956e] shrink-0" />}
                 {isTrashOpen && <Trash2 size={24} className="text-[#c2956e] shrink-0" />}
                 
                 <h1 className="text-2xl md:text-4xl font-serif font-medium tracking-tight truncate max-w-[200px] md:max-w-[300px]">
-                  {isTrashOpen ? 'Trash' : (currentFolder ? currentFolder.name : 'Library')}
+                  {isTrashOpen ? 'Trash' : 'Library'}
                 </h1>
               </div>
               
@@ -911,6 +943,28 @@ export default function NotesPage() {
                     </button>
                   ))}
                 </div>
+
+                {notesTab === 'notes' && !isTrashOpen && selectedFolderId && (
+                   <div className="flex items-center gap-2 mt-1 overflow-x-auto no-scrollbar pb-1">
+                      <button 
+                        onClick={() => setSelectedFolderId(currentFolder?.parent_id || null)}
+                        className="flex items-center justify-center p-2 bg-white dark:bg-[#1a1a1a] text-[#888] rounded-xl border border-[#e0ddd5] dark:border-[#333] hover:text-[#3d3b33] dark:hover:text-[#f0f0f0] transition-all shadow-sm shrink-0"
+                      >
+                        <ArrowLeft size={16} />
+                      </button>
+                      <div className="flex items-center gap-1.5 text-[11px] font-medium text-[#888] whitespace-nowrap bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] px-3 py-2.5 rounded-xl shadow-sm flex-1 min-w-0">
+                         <button onClick={() => setSelectedFolderId(null)} className="hover:text-[#c2956e] transition-colors shrink-0">Library</button>
+                         {getFolderPath(selectedFolderId).map(f => (
+                            <React.Fragment key={f.id}>
+                              <ChevronRight size={14} className="text-[#b0ad9a] shrink-0" />
+                              <button onClick={() => setSelectedFolderId(f.id)} className={`hover:text-[#c2956e] transition-colors truncate max-w-[100px] md:max-w-[150px] shrink-0 ${selectedFolderId === f.id ? 'text-[#3d3b33] dark:text-white' : ''}`}>
+                                {f.name}
+                              </button>
+                            </React.Fragment>
+                         ))}
+                      </div>
+                   </div>
+                )}
               </div>
             </div>
           </div>
@@ -921,91 +975,96 @@ export default function NotesPage() {
                 <Sparkles className="animate-pulse text-[#c2956e]" />
                 <span className="text-[10px] font-bold uppercase tracking-widest">Opening Library...</span>
               </div>
-            ) : currentFolders.length > 0 || filteredItems.length > 0 ? (
+            ) : (
               <>
                 {notesTab === 'notes' && !isTrashOpen && !searchQuery && (
-                  <div className="flex items-center justify-between mb-2 px-1 mt-1">
-                    <span className="text-[10px] font-bold uppercase tracking-widest text-[#b0ad9a] dark:text-[#7a7a7a]">
-                      {currentFolder ? 'Subfolders' : 'Folders'}
-                    </span>
-                    <button onClick={createFolder} className="text-[#b0ad9a] hover:text-[#c2956e] transition-colors p-1" data-tooltip-id="global-tooltip" data-tooltip-content="New Folder">
-                      <Plus size={14} strokeWidth={2.5} />
-                    </button>
-                  </div>
-                )}
+                  <>
+                    <div className="flex items-center justify-between mb-2 px-1 mt-1">
+                      <span className="text-[10px] font-bold uppercase tracking-widest text-[#b0ad9a] dark:text-[#7a7a7a]">
+                        {currentFolder ? 'Subfolders' : 'Folders'}
+                      </span>
+                      <button onClick={createFolder} className="hidden md:flex text-[#b0ad9a] hover:text-[#c2956e] transition-colors p-1" data-tooltip-id="global-tooltip" data-tooltip-content="New Folder">
+                        <Plus size={14} strokeWidth={2.5} />
+                      </button>
+                    </div>
 
-                {currentFolders.map(folder => (
-                  <div 
-                    key={folder.id} 
-                    onClick={() => setSelectedFolderId(folder.id)} 
-                    className="group flex items-center justify-between p-3.5 mb-2 rounded-2xl bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] md:hover:border-[#c2956e]/40 shadow-sm transition-all cursor-pointer"
-                  >
-                    <div className="flex items-center gap-3 min-w-0">
-                      <div className="w-9 h-9 rounded-xl bg-[#c2956e]/10 text-[#c2956e] dark:bg-[#b0855f]/20 dark:text-[#d1a784] flex items-center justify-center shrink-0">
-                        <Folder size={18} />
+                    {currentFolders.length > 0 && currentFolders.map(folder => (
+                      <div 
+                        key={folder.id} 
+                        onClick={() => setSelectedFolderId(folder.id)} 
+                        className="group flex items-center justify-between p-3.5 mb-2 rounded-2xl bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] md:hover:border-[#c2956e]/40 shadow-sm transition-all cursor-pointer"
+                      >
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="w-9 h-9 rounded-xl bg-[#c2956e]/10 text-[#c2956e] dark:bg-[#b0855f]/20 dark:text-[#d1a784] flex items-center justify-center shrink-0">
+                            <Folder size={18} />
+                          </div>
+                          <span className="font-semibold text-[14px] text-[#3d3b33] dark:text-[#f0f0f0] truncate">{folder.name}</span>
+                        </div>
+                        <div className="flex items-center gap-1 shrink-0 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity">
+                          <button 
+                            onClick={(e) => { e.stopPropagation(); renameFolder(folder); }} 
+                            className="p-1.5 text-[#b0ad9a] hover:text-[#c2956e] transition-colors"
+                            data-tooltip-id="global-tooltip" data-tooltip-content="Rename Folder"
+                          >
+                            <Edit3 size={15} />
+                          </button>
+                          <button 
+                            onClick={(e) => { e.stopPropagation(); deleteFolder(folder.id); }} 
+                            className="p-1.5 text-[#b0ad9a] hover:text-red-500 transition-colors"
+                            data-tooltip-id="global-tooltip" data-tooltip-content="Delete Folder"
+                          >
+                            <Trash2 size={15} />
+                          </button>
+                          <ChevronRight size={16} className="text-[#b0ad9a] ml-0.5 opacity-50 group-hover:opacity-100" />
+                        </div>
                       </div>
-                      <span className="font-semibold text-[14px] text-[#3d3b33] dark:text-[#f0f0f0] truncate">{folder.name}</span>
-                    </div>
-                    <div className="flex items-center gap-1 shrink-0 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity">
-                      <button 
-                        onClick={(e) => { e.stopPropagation(); renameFolder(folder); }} 
-                        className="p-1.5 text-[#b0ad9a] hover:text-[#c2956e] transition-colors"
-                        data-tooltip-id="global-tooltip" data-tooltip-content="Rename Folder"
-                      >
-                        <Edit3 size={15} />
-                      </button>
-                      <button 
-                        onClick={(e) => { e.stopPropagation(); deleteFolder(folder.id); }} 
-                        className="p-1.5 text-[#b0ad9a] hover:text-red-500 transition-colors"
-                        data-tooltip-id="global-tooltip" data-tooltip-content="Delete Folder"
-                      >
-                        <Trash2 size={15} />
-                      </button>
-                      <ChevronRight size={16} className="text-[#b0ad9a] ml-0.5 opacity-50 group-hover:opacity-100" />
-                    </div>
-                  </div>
-                ))}
+                    ))}
 
-                {notesTab === 'notes' && !isTrashOpen && !searchQuery && (
-                  <div className="flex items-center justify-between mb-2 px-1 mt-4">
-                    <span className="text-[10px] font-bold uppercase tracking-widest text-[#b0ad9a] dark:text-[#7a7a7a]">
-                      Notes
-                    </span>
+                    <div className="flex items-center justify-between mb-2 px-1 mt-4">
+                      <span className="text-[10px] font-bold uppercase tracking-widest text-[#b0ad9a] dark:text-[#7a7a7a]">
+                        Notes
+                      </span>
+                    </div>
+                  </>
+                )}
+                
+                {filteredItems.length > 0 ? (
+                  <div className="space-y-3">
+                    {filteredItems.map(item => {
+                      const isJournal = isTrashOpen ? item.isJournal : notesTab === 'journal';
+                      const id = item.entry_date || item.id;
+                      const isSelected = selectedId === id;
+                      const title = isJournal ? formatDateLabel(item.entry_date) : (item.title || 'Untitled');
+                      const daysLeft = isTrashOpen ? Math.ceil(30 - (Date.now() - new Date(item.deleted_at).getTime()) / (1000 * 60 * 60 * 24)) : 0;
+
+                      return (
+                        <button key={id} onClick={() => handleSelectItem(id)} 
+                          className={`w-full text-left p-4 rounded-2xl transition-all duration-200 border relative group overflow-hidden ${
+                            isSelected 
+                            ? 'bg-white dark:bg-[#1e1e1e] border-[#e0ddd5] dark:border-[#222] lg:border-[#c2956e]/40 lg:dark:border-[#b0855f]/50 shadow-sm lg:shadow-md lg:translate-x-1' 
+                            : 'bg-[#fdfbf7] dark:bg-[#161616] border-[#f0ede8] dark:border-[#222] md:hover:border-[#c2956e]/20 md:dark:hover:border-[#b0855f]/20 md:hover:shadow-sm'
+                          }`}>
+                          {isSelected && <div className="hidden lg:block absolute left-0 top-0 bottom-0 w-1 bg-[#c2956e]" />}
+                          <div className="flex justify-between items-baseline mb-1 gap-3">
+                            <span className={`font-semibold text-[14px] truncate ${isSelected ? 'text-[#c2956e] dark:text-[#d1a784]' : 'text-[#3d3b33] dark:text-[#f0f0f0]'}`}>{title}</span>
+                            <span className="text-[9px] font-bold text-[#b0ad9a] dark:text-[#555] uppercase tracking-widest shrink-0">{formatDateLabel(item.updated_at || item.entry_date)}</span>
+                          </div>
+                          <div className="text-[11px] leading-relaxed line-clamp-2 text-[#888] dark:text-[#888]">
+                            {isTrashOpen && <span className="text-red-500 font-bold block mb-1 text-[9px] uppercase tracking-tighter">Deletes in {daysLeft} days</span>}
+                            <Snippet html={item.content} query={searchQuery} />
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="py-20 text-center text-[#b0ad9a] dark:text-[#555] italic text-xs">
+                    {searchQuery ? "No records match your search." : (notesTab === 'notes' && !isTrashOpen ? "No notes here." : "No records found.")}
                   </div>
                 )}
                 
-                <div className="space-y-3">
-                  {filteredItems.map(item => {
-                    const isJournal = isTrashOpen ? item.isJournal : notesTab === 'journal';
-                    const id = item.entry_date || item.id;
-                    const isSelected = selectedId === id;
-                    const title = isJournal ? formatDateLabel(item.entry_date) : (item.title || 'Untitled');
-                    const daysLeft = isTrashOpen ? Math.ceil(30 - (Date.now() - new Date(item.deleted_at).getTime()) / (1000 * 60 * 60 * 24)) : 0;
-
-                    return (
-                      <button key={id} onClick={() => handleSelectItem(id)} 
-                        className={`w-full text-left p-4 rounded-2xl transition-all duration-200 border relative group overflow-hidden ${
-                          isSelected 
-                          ? 'bg-white dark:bg-[#1e1e1e] border-[#e0ddd5] dark:border-[#222] lg:border-[#c2956e]/40 lg:dark:border-[#b0855f]/50 shadow-sm lg:shadow-md lg:translate-x-1' 
-                          : 'bg-[#fdfbf7] dark:bg-[#161616] border-[#f0ede8] dark:border-[#222] md:hover:border-[#c2956e]/20 md:dark:hover:border-[#b0855f]/20 md:hover:shadow-sm'
-                        }`}>
-                        {isSelected && <div className="hidden lg:block absolute left-0 top-0 bottom-0 w-1 bg-[#c2956e]" />}
-                        <div className="flex justify-between items-baseline mb-1 gap-3">
-                          <span className={`font-semibold text-[14px] truncate ${isSelected ? 'text-[#c2956e] dark:text-[#d1a784]' : 'text-[#3d3b33] dark:text-[#f0f0f0]'}`}>{title}</span>
-                          <span className="text-[9px] font-bold text-[#b0ad9a] dark:text-[#555] uppercase tracking-widest shrink-0">{formatDateLabel(item.updated_at || item.entry_date)}</span>
-                        </div>
-                        <div className="text-[11px] leading-relaxed line-clamp-2 text-[#888] dark:text-[#888]">
-                          {isTrashOpen && <span className="text-red-500 font-bold block mb-1 text-[9px] uppercase tracking-tighter">Deletes in {daysLeft} days</span>}
-                          <Snippet html={item.content} query={searchQuery} />
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
                 <div className="h-28 lg:h-0 w-full shrink-0 pointer-events-none" />
               </>
-            ) : (
-              <div className="py-20 text-center text-[#b0ad9a] dark:text-[#555] italic text-xs">No records found</div>
             )}
           </div>
         </div>
