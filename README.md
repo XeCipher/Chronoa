@@ -36,8 +36,6 @@
   &nbsp;
   <img src="https://img.shields.io/badge/TypeScript-5-3178C6?style=flat-square&logo=typescript&logoColor=white" />
   &nbsp;
-  <img src="https://img.shields.io/badge/Flask-Python-000000?style=flat-square&logo=flask" />
-  &nbsp;
   <img src="https://img.shields.io/badge/Supabase-Realtime-3ECF8E?style=flat-square&logo=supabase&logoColor=white" />
 
   <br /><br />
@@ -64,7 +62,7 @@ The background shifts in color throughout the day. Your timers follow you across
   <tr>
     <td valign="top" width="50%">
       <h3>Task Management</h3>
-      Infinite nesting, drag-and-drop reordering, and keyboard-first control throughout. Daily routine tasks reset automatically at your preferred hour, powered by a background scheduler.
+      Infinite nesting, drag-and-drop reordering, and keyboard-first control throughout. Daily routine tasks reset automatically at your preferred hour, powered by a Supabase pg_cron job running at the database level.
     </td>
     <td valign="top" width="50%">
       <h3>Time Tracking</h3>
@@ -105,9 +103,8 @@ The background shifts in color throughout the day. Your timers follow you across
 | --- | --- |
 | Frontend | Next.js 16 (App Router), React 19, TypeScript, Tailwind CSS 4 |
 | State and UI | Zustand, dnd-kit, Tiptap, Recharts |
-| Backend | Python, Flask, APScheduler |
-| Database and Auth | Supabase (PostgreSQL, Realtime Channels, Storage) |
-| Hosting | Vercel (Frontend), Render (Backend) |
+| Database and Auth | Supabase (PostgreSQL, Realtime Channels, Storage, pg_cron) |
+| Hosting | Vercel (Frontend) |
 
 <br />
 
@@ -118,17 +115,9 @@ The background shifts in color throughout the day. Your timers follow you across
 ```
 Chronoa/
 │
-├── backend/
-│   ├── app.py                   # Flask API entry point
-│   ├── config.py                # Environment configuration
-│   ├── routes/
-│   │   └── auth.py              # Account deletion and admin routes
-│   └── services/
-│       ├── db_client.py         # Supabase Python client
-│       └── routine_reset.py     # APScheduler cron for daily routine resets
-│
 └── frontend/
     ├── app/                     # Next.js App Router (Dashboard, Landing, Auth)
+    │   └── api/auth/            # Secure serverless routes for account deletion
     ├── components/
     │   ├── analytics/           # Recharts charts, heatmaps, rank badges
     │   ├── calendar/            # Month / Week / Day views, ICS parsing
@@ -150,35 +139,7 @@ Chronoa/
 ### Prerequisites
 
 - Node.js 18 or higher
-- Python 3.9 or higher
 - A [Supabase](https://supabase.com) project
-
-<br />
-
-### Backend
-
-```bash
-cd backend
-python -m venv venv
-source venv/bin/activate        # Windows: venv\Scripts\activate
-pip install -r requirements.txt
-```
-
-Create a `.env` file inside `backend/`:
-
-```env
-NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
-SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
-PORT=8000
-```
-
-Start the server:
-
-```bash
-python app.py
-```
-
-This also boots the APScheduler daemon responsible for resetting daily routines at midnight.
 
 <br />
 
@@ -194,7 +155,6 @@ Create a `.env.local` file inside `frontend/`:
 ```env
 NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
-NEXT_PUBLIC_BACKEND_URL=http://localhost:8000
 
 # Optional
 NEXT_PUBLIC_GA_ID=your_google_analytics_id
@@ -220,18 +180,18 @@ Chronoa uses **Supabase Realtime Channels** to push state changes across devices
 ```
   Device A (Laptop)               Supabase Realtime               Device B (Phone)
         |                                |                                |
-        |  ── play timer ──────────────► |  ── broadcast ───────────────► |
-        |  ── complete task ───────────► |  ── rt_normal_* ─────────────► |  instant UI update
+        |  -- play timer --------------> |  -- broadcast ---------------> |
+        |  -- complete task -----------> |  -- rt_normal_* -------------> |  instant UI update
         |                                |                                |
-        |         Flask APScheduler fires at midnight per user timezone   |
-        |                  → unchecks all daily routine tasks             |
+        |        Supabase pg_cron fires hourly per user timezone          |
+        |                  -> unchecks all daily routine tasks            |
 ```
 
 | Channel | Responsibility |
 | --- | --- |
 | `profiles.timer_state` | Syncs play, pause, and stop events across all active sessions |
 | `rt_normal_*` | Broadcasts task completions, additions, and deletions live |
-| Flask APScheduler | Cron job that resets daily routines at midnight per user timezone |
+| Supabase pg_cron | Postgres extension that resets daily routines at midnight per user timezone |
 
 <br />
 
@@ -240,10 +200,9 @@ Chronoa uses **Supabase Realtime Channels** to push state changes across devices
 ## Deployment
 
 | Service | Platform | Notes |
-| --- | --- | --- |
+| --- | --- |  --- |
 | Frontend | Vercel | Next.js edge deployment with PWA support. Installable on iOS via Safari. |
-| Backend | Render | Hosts the Flask server and the continuous APScheduler daemon. |
-| Database | Supabase | Handles PostgreSQL, Auth, Realtime channels, and image storage. |
+| Database | Supabase | Handles PostgreSQL, Auth, Realtime channels, image storage, and pg_cron jobs. |
 
 An optimized **Android APK** is also available for direct download from within the app.
 
