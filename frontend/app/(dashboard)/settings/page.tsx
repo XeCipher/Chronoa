@@ -69,9 +69,9 @@ export default function SettingsPage() {
   const [cityInput, setCityInput] = useState("");
   const[currentCity, setCurrentCity] = useState("");
   const [isSearching, setIsSearching] = useState(false);
-  const [os, setOs] = useState<'mac' | 'windows'>('windows');
+  const[os, setOs] = useState<'mac' | 'windows'>('windows');
   
-  const [searchQuery, setSearchQuery] = useState("");
+  const[searchQuery, setSearchQuery] = useState("");
   const [isHotkeysExpanded, setIsHotkeysExpanded] = useState(false);
 
   // Calendar States
@@ -90,7 +90,7 @@ export default function SettingsPage() {
   // Calendar Editing & Interaction States
   const[editingSourceId, setEditingSourceId] = useState<string | null>(null);
   const[editSourceName, setEditSourceName] = useState("");
-  const [editSourceUrl, setEditSourceUrl] = useState("");
+  const[editSourceUrl, setEditSourceUrl] = useState("");
   const[isUpdatingSource, setIsUpdatingSource] = useState(false);
   const[openColorDropdown, setOpenColorDropdown] = useState<string | null>(null);
 
@@ -471,10 +471,15 @@ export default function SettingsPage() {
       message: "Are you absolutely sure you want to delete your entire account? This action is irreversible.",
       isDestructive: true,
       onConfirm: async () => {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user) {
             try {
-                await fetch(`/api/auth/delete-account`, { method: 'DELETE' });
+                await fetch(`/api/auth/delete-account`, { 
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${session.access_token}`
+                    }
+                });
                 await supabase.auth.signOut();
                 window.location.href = "/";
             } catch(e) { console.error(e); }
@@ -712,7 +717,7 @@ export default function SettingsPage() {
                 { id: 'notes', keys:[altKeyDisplay, 'N'], desc: 'Go to Notes' },
                 { id: 'calendar', keys:[altKeyDisplay, 'C'], desc: 'Go to Calendar' },
                 { id: 'analytics', keys:[altKeyDisplay, 'A'], desc: 'Go to Analytics' },
-                { id: 'settings', keys: [altKeyDisplay, 'P'], desc: 'Go to Profile' },
+                { id: 'settings', keys:[altKeyDisplay, 'P'], desc: 'Go to Profile' },
                 { id: 'up', keys: [altKeyDisplay, '↑'], desc: 'Move Task Up' },
                 { id: 'down', keys: [altKeyDisplay, '↓'], desc: 'Move Task Down' },
                 { id: 'focus_up', keys:['Shift', '↑'], desc: 'Focus Task Above' },

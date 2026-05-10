@@ -1,39 +1,38 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { createServerClient } from '@supabase/ssr';
-import { cookies } from 'next/headers';
+
+// Ensure this API route is never statically cached
+export const dynamic = 'force-dynamic';
 
 export async function DELETE(request: Request) {
-  const cookieStore = await cookies();
+  const authHeader = request.headers.get('authorization');
   
-  const supabaseAuth = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        get(name: string) {
-          return cookieStore.get(name)?.value;
-        },
-      },
-    }
-  );
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
 
-  // 1. Authenticate user strictly from session
-  const { data: { user }, error: authError } = await supabaseAuth.auth.getUser();
+  const token = authHeader.replace('Bearer ', '');
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   
+  if (!supabaseUrl || !supabaseAnonKey || !supabaseServiceKey) {
+    return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
+  }
+
+  // 1. Verify the user's token securely
+  const supabaseAuth = createClient(supabaseUrl, supabaseAnonKey, {
+    global: { headers: { Authorization: `Bearer ${token}` } }
+  });
+
+  const { data: { user }, error: authError } = await supabaseAuth.auth.getUser();
+
   if (authError || !user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  
-  if (!supabaseUrl || !supabaseKey) {
-    return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
-  }
-
   // 2. Bypass RLS using the service role key to securely delete the user completely
-  const supabaseAdmin = createClient(supabaseUrl, supabaseKey);
+  const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
   try {
     // 3. Explicitly delete user data to avoid Foreign Key constraint issues if CASCADE is missing
@@ -42,6 +41,7 @@ export async function DELETE(request: Request) {
     await supabaseAdmin.from('calendar_events').delete().eq('user_id', user.id);
     await supabaseAdmin.from('calendar_sources').delete().eq('user_id', user.id);
     await supabaseAdmin.from('journal_entries').delete().eq('user_id', user.id);
+    await supabaseAdmin.from('notes').delete().eq('user_id', user.id);
     await supabaseAdmin.from('routine_history').delete().eq('user_id', user.id);
     await supabaseAdmin.from('profiles').delete().eq('id', user.id);
 

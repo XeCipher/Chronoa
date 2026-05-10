@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
+// Extremely important: ensures Vercel doesn't cache the API response at build-time
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: Request) {
   // Secure the route with Vercel CRON_SECRET to prevent random web pings
   const authHeader = request.headers.get('authorization');
@@ -37,21 +40,29 @@ export async function GET(request: Request) {
 
     if (usersError) throw usersError;
 
+    let processed = 0;
+
     if (users && users.length > 0) {
       for (const user of users) {
         try {
           const tz = user.timezone || 'UTC';
           
-          const formatter = new Intl.DateTimeFormat('en-US', {
-            timeZone: tz,
-            hour: 'numeric',
-            hour12: false
-          });
-          
-          const parts = formatter.formatToParts(new Date());
-          const hourPart = parts.find(p => p.type === 'hour');
-          let localHour = parseInt(hourPart?.value || '0', 10);
-          if (localHour === 24) localHour = 0;
+          let localHour = 0;
+          try {
+              const formatter = new Intl.DateTimeFormat('en-US', {
+                timeZone: tz,
+                hour: 'numeric',
+                hour12: false
+              });
+              
+              const parts = formatter.formatToParts(new Date());
+              const hourPart = parts.find(p => p.type === 'hour');
+              localHour = parseInt(hourPart?.value || '0', 10);
+              if (localHour === 24) localHour = 0;
+          } catch (tzErr) {
+              console.error(`Invalid timezone for user ${user.id}:`, tz);
+              continue;
+          }
 
           // 3. Reset routines if user's local hour exactly matches their routine_reset_hour
           if (localHour === user.routine_reset_hour) {
@@ -74,14 +85,17 @@ export async function GET(request: Request) {
               
               const { error: histError } = await supabaseAdmin.from('routine_history').insert(historyData);
               if (histError) console.error("Error inserting to routine_history:", histError);
-
-              // 5. Uncheck all routine tasks for the new day
-              await supabaseAdmin
-                .from('tasks')
-                .update({ is_completed: false, completed_at: null })
-                .eq('user_id', user.id)
-                .eq('task_type', 'routine');
             }
+
+            // 5. Uncheck all routine tasks for the new day
+            await supabaseAdmin
+              .from('tasks')
+              .update({ is_completed: false, completed_at: null })
+              .eq('user_id', user.id)
+              .eq('task_type', 'routine')
+              .is('deleted_at', null);
+              
+            processed++;
           }
         } catch (userErr) {
           console.error(`Error processing user ${user.id}:`, userErr);
@@ -89,8 +103,8 @@ export async function GET(request: Request) {
       }
     }
 
-    console.log('Routine Reset Job Finished.');
-    return NextResponse.json({ success: true, message: 'Routine reset successful' });
+    console.log(`Routine Reset Job Finished. Processed ${processed} users.`);
+    return NextResponse.json({ success: true, message: 'Routine reset successful', processed });
   } catch (error: any) {
     console.error('Routine reset error:', error);
     return NextResponse.json({ error: error.message }, { status: 500 });
