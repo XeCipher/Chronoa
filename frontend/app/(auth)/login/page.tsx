@@ -1,3 +1,4 @@
+// frontend/app/(auth)/login/page.tsx
 "use client";
 
 import { createBrowserClient } from '@supabase/ssr';
@@ -16,15 +17,17 @@ export default function AppLoginPage() {
 
   useEffect(() => {
     const checkSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
+      const { data: { user }, error } = await supabase.auth.getUser();
+      if (user && !error) {
         router.push('/home');
       } else {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) await supabase.auth.signOut();
         setIsChecking(false);
       }
     };
     checkSession();
-  }, [router, supabase.auth]);
+  },[router, supabase.auth]);
 
   useEffect(() => {
     try {
@@ -37,7 +40,7 @@ export default function AppLoginPage() {
       const isDark = theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
       document.documentElement.classList.toggle('dark', isDark);
     } catch (e) {}
-  }, []);
+  },[]);
 
   const handleGoogleLogin = async () => {
     setIsLoading(true);

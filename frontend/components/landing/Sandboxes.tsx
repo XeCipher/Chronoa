@@ -149,7 +149,7 @@ function MockWeatherWidget({ isDark }: { isDark: boolean }) {
 }
 
 function MockHomeTaskProgress({ isDark }: { isDark: boolean }) {
-  const [isToggled, setIsToggled] = useState(false);
+  const[isToggled, setIsToggled] = useState(false);
   const [stats, setStats] = useState({ routinePct: 50, normalLeft: 4 });
 
   useEffect(() => {
@@ -240,7 +240,7 @@ function ExpandedMockTasksProgressWidget({ routinePct, normalLeft }: { routinePc
 
 export function MockHomeSandbox() {
   const [isDark, setIsDark] = useState(false);
-  const [timeOfDay, setTimeOfDay] = useState<'dawn'|'day'|'dusk'|'night'>('day');
+  const[timeOfDay, setTimeOfDay] = useState<'dawn'|'day'|'dusk'|'night'>('day');
 
   useEffect(() => {
     const isSystemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
@@ -291,7 +291,7 @@ export function MockHomeSandbox() {
 }
 
 export function MockTaskSandbox() {
-  const [tasks, setTasks] = useState<Task[]>(initialMockTasks);
+  const[tasks, setTasks] = useState<Task[]>(initialMockTasks);
   const[stats, setStats] = useState({ routinePct: 50, normalLeft: 4 });
   const [isRoutineEditMode, setIsRoutineEditMode] = useState(false);
 
@@ -387,7 +387,7 @@ export function MockTaskSandbox() {
       color: null,
       keep_alive: false,
       is_collapsed: false,
-      children: []
+      children:[]
     } as Task;
     
     setTasks([...tasks, newTask]);
@@ -573,7 +573,7 @@ function MockGlobalTimeWidget({ hasRunning }: { hasRunning: boolean }) {
   if (!time) return null;
   
   return (
-    <div className="flex items-center justify-center gap-3 bg-white/80 dark:bg-[#1a1a1a]/90 backdrop-blur-xl border border-[#e0ddd5] dark:border-[#333] rounded-2xl px-6 py-3.5 shadow-sm pointer-events-none w-max max-w-[90vw] mb-4 md:mb-6 transition-all duration-300">
+    <div className="flex items-center justify-center gap-3 bg-white/80 dark:bg-[#1a1a1a]/90 backdrop-blur-xl border border-[#e0ddd5] dark:border-[#333] rounded-2xl px-6 py-3.5 shadow-sm pointer-events-none w-max max-w-[90vw] mb-6 md:mb-8 transition-all duration-300">
       <span className="text-[#3d3b33] dark:text-[#f0f0f0] font-serif text-xl leading-none shrink-0">
         {time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
       </span>
@@ -586,7 +586,7 @@ function MockGlobalTimeWidget({ hasRunning }: { hasRunning: boolean }) {
 }
 
 export function MockTimeSandbox() {
-  const [highlight, setHighlight] = useState(false);
+  const[highlight, setHighlight] = useState(false);
   const[activeTab, setActiveTab] = useState<'timer' | 'stopwatch'>('stopwatch');
   
   const [timers, setTimers] = useState<any[]>([
@@ -609,7 +609,7 @@ export function MockTimeSandbox() {
          startTime: null
        };
 
-       if (tab === 'timer') setTimers(prev => [...prev, newInstance]);
+       if (tab === 'timer') setTimers(prev =>[...prev, newInstance]);
        else setStopwatches(prev => [...prev, newInstance]);
        
        setActiveTab(tab);
@@ -667,8 +667,15 @@ export function MockTimeSandbox() {
   };
 
   return (
-    <div id="mock-time-sandbox" className={`w-full pt-10 md:pt-12 pb-8 md:pb-12 bg-[#fdfbf7] dark:bg-[#161616] border border-[#e0ddd5] dark:border-[#333] rounded-[2.5rem] md:rounded-[3rem] my-10 flex flex-col items-center relative shadow-sm min-h-[300px] md:min-h-[360px] transition-all duration-500 overflow-hidden w-full ${highlight ? 'ring-4 ring-[#c2956e]' : ''}`}>
-      <div className="text-center max-w-xl mx-auto mb-4 px-4 w-full">
+    <div id="mock-time-sandbox" className={`w-full pt-10 md:pt-14 pb-8 md:pb-14 bg-white/50 dark:bg-[#121212]/50 backdrop-blur-2xl border border-[#e0ddd5] dark:border-[#333] rounded-[2.5rem] md:rounded-[3rem] my-10 flex flex-col items-center relative shadow-sm min-h-[300px] md:min-h-[360px] transition-all duration-500 overflow-hidden ${highlight ? 'ring-4 ring-[#c2956e]' : ''}`}>
+      
+      {/* Decorative ambient background for the card */}
+      <div className="absolute inset-0 pointer-events-none -z-10 mix-blend-multiply dark:mix-blend-screen opacity-30">
+        <div className="absolute -top-32 -left-32 w-96 h-96 bg-[#c2956e] rounded-full blur-[100px] opacity-20" />
+        <div className="absolute -bottom-32 -right-32 w-96 h-96 bg-[#a882c2] rounded-full blur-[100px] opacity-10" />
+      </div>
+
+      <div className="text-center max-w-xl mx-auto mb-8 px-4 w-full">
         <h3 className="text-3xl md:text-4xl font-serif text-[#3d3b33] dark:text-[#f0f0f0] mb-3">Own Your Time</h3>
         <p className="text-[#888] dark:text-[#a0a0a0] leading-relaxed text-sm">
           Aesthetically pleasing, millisecond-accurate timers and stopwatches that synchronize in real-time across your phone and laptop. Below is the global time widget, which is present on every page of the laptop interface.
@@ -677,13 +684,13 @@ export function MockTimeSandbox() {
       
       <MockGlobalTimeWidget hasRunning={hasRunning} />
 
-      <div className="w-full flex flex-col items-center relative z-10 mb-2 md:mb-6 w-full">
-        <div className="flex justify-center items-center w-[24rem] max-w-[85vw] mb-4">
+      <div className="w-full flex flex-col items-center relative z-10 w-full mt-2">
+        <div className="flex justify-center items-center w-[24rem] max-w-[85vw] mb-6">
           <div className="flex bg-[#ebe8e2] dark:bg-[#1a1a1a] p-1 rounded-full shadow-inner border border-[#d4d0c8] dark:border-[#333]">
             {(['stopwatch', 'timer'] as const).map(tab => (
               <button 
                 key={tab} onClick={() => setActiveTab(tab)}
-                className={`px-5 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all flex items-center gap-1.5 ${activeTab === tab ? 'bg-white dark:bg-[#2a2a2a] text-[#c2956e] dark:text-[#d1a784] shadow-sm' : 'text-[#888] dark:text-[#a0a0a0] md:hover:text-[#3d3b33] md:dark:hover:text-[#f0f0f0]'}`}
+                className={`px-5 py-2 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all flex items-center gap-1.5 ${activeTab === tab ? 'bg-white dark:bg-[#2a2a2a] text-[#c2956e] dark:text-[#d1a784] shadow-sm' : 'text-[#888] dark:text-[#a0a0a0] md:hover:text-[#3d3b33] md:dark:hover:text-[#f0f0f0]'}`}
               >
                 {tab} {isAnyRunning(tab) && <span className="w-1.5 h-1.5 bg-[#c2956e] dark:bg-[#b0855f] rounded-full animate-ping"/>}
               </button>
@@ -691,7 +698,7 @@ export function MockTimeSandbox() {
           </div>
         </div>
 
-        <div className="w-full max-w-full overflow-x-auto no-scrollbar snap-x snap-mandatory flex flex-row pb-8 -mb-8">
+        <div className="w-full max-w-full overflow-x-auto no-scrollbar snap-x snap-mandatory flex flex-row pb-8 -mb-8 pt-4">
           <div className="flex-1 min-w-0 shrink"></div>
           <div className="flex gap-4 px-4 sm:px-8 w-max shrink-0">
             {activeList.map(engine => (

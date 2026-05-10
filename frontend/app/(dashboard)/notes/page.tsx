@@ -4,7 +4,7 @@
 import { useEffect, useState, useMemo, useCallback, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import DistractionFreeEditor from "@/components/notes/DistractionFreeEditor";
-import { Search, Plus, Trash2, BookOpen, FileText, ChevronLeft, RotateCcw, Library, Sparkles, CalendarDays, X, ChevronRight, ArrowLeft } from "lucide-react";
+import { Search, Plus, Trash2, BookOpen, FileText, ChevronLeft, RotateCcw, Library, Sparkles, CalendarDays, X, ChevronRight, ArrowLeft, Folder } from "lucide-react";
 import { useUiStore } from "@/store/uiStore";
 import { usePathname } from "next/navigation";
 
@@ -36,6 +36,7 @@ const syncOfflineData = async () => {
       if (item.type === 'notes') {
         const payload: any = { content: item.content, updated_at: item.updated_at };
         if (item.title !== undefined) payload.title = item.title;
+        if (item.folder_id !== undefined) payload.folder_id = item.folder_id;
         await supabase.from('notes').update(payload).eq('id', item.id);
       } else {
         const { data, error } = await supabase.from('journal_entries')
@@ -66,10 +67,12 @@ export default function NotesPage() {
   
   const[notes, setNotes] = useState<any[]>([]);
   const [journals, setJournals] = useState<any[]>([]);
-  const [trash, setTrash] = useState<any[]>([]);
+  const[trash, setTrash] = useState<any[]>([]);
+  const [folders, setFolders] = useState<any[]>([]);
   
   const[searchQuery, setSearchQuery] = useState("");
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const[selectedId, setSelectedId] = useState<string | null>(null);
+  const[selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState("");
   const[noteToFocus, setNoteToFocus] = useState<string | null>(null);
   
@@ -165,24 +168,33 @@ export default function NotesPage() {
     const cachedNotes = localStorage.getItem('chronoa_cache_notes');
     const cachedJournals = localStorage.getItem('chronoa_cache_journals');
     const cachedTrash = localStorage.getItem('chronoa_cache_trash');
+    const cachedFolders = localStorage.getItem('chronoa_cache_folders');
     
     if (cachedNotes) try { setNotes(JSON.parse(cachedNotes)); setLoading(false); } catch (e) {}
     if (cachedJournals) try { setJournals(JSON.parse(cachedJournals)); setLoading(false); } catch (e) {}
     if (cachedTrash) try { setTrash(JSON.parse(cachedTrash)); } catch (e) {}
+    if (cachedFolders) try { setFolders(JSON.parse(cachedFolders)); } catch (e) {}
   },[]);
 
   const fetchData = useCallback(async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { setLoading(false); return; }
 
-    const { data: nData } = await supabase.from('notes').select('*').is('deleted_at', null).order('updated_at', { ascending: false });
-    const newNotes = nData ||[];
-    setNotes(newNotes);
+    const[nData, jData, fData, tData, jTrashData] = await Promise.all([
+      supabase.from('notes').select('*').is('deleted_at', null).order('updated_at', { ascending: false }),
+      supabase.from('journal_entries').select('*').is('deleted_at', null).order('entry_date', { ascending: false }),
+      supabase.from('note_folders').select('*').eq('user_id', user.id).order('created_at', { ascending: true }),
+      supabase.from('notes').select('*').not('deleted_at', 'is', null),
+      supabase.from('journal_entries').select('*').not('deleted_at', 'is', null)
+    ]);
 
-    const { data: jData } = await supabase.from('journal_entries').select('*').is('deleted_at', null).order('entry_date', { ascending: false });
-    const todayStr = getLocalYYYYMMDD(new Date());
+    const newNotes = nData.data ||[];
+    setNotes(newNotes);
     
-    let jList = jData ||[];
+    setFolders(fData.data ||[]);
+
+    const todayStr = getLocalYYYYMMDD(new Date());
+    let jList = jData.data ||[];
 
     const emptyJournals = jList.filter(j => {
       if (j.entry_date === todayStr) return false;
@@ -201,12 +213,9 @@ export default function NotesPage() {
     }
     setJournals(jList);
 
-    const { data: tData } = await supabase.from('notes').select('*').not('deleted_at', 'is', null);
-    const { data: jTrashData } = await supabase.from('journal_entries').select('*').not('deleted_at', 'is', null);
-    
     const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-    const validTrashNotes = (tData ||[]).filter(note => new Date(note.deleted_at) > thirtyDaysAgo).map(n => ({ ...n, isJournal: false }));
-    const validTrashJournals = (jTrashData ||[]).filter(j => new Date(j.deleted_at) > thirtyDaysAgo).map(j => ({ ...j, isJournal: true }));
+    const validTrashNotes = (tData.data ||[]).filter(note => new Date(note.deleted_at) > thirtyDaysAgo).map(n => ({ ...n, isJournal: false }));
+    const validTrashJournals = (jTrashData.data ||[]).filter(j => new Date(j.deleted_at) > thirtyDaysAgo).map(j => ({ ...j, isJournal: true }));
     
     const combinedTrash =[...validTrashNotes, ...validTrashJournals].sort((a, b) => new Date(b.deleted_at).getTime() - new Date(a.deleted_at).getTime());
     
@@ -254,8 +263,9 @@ export default function NotesPage() {
       localStorage.setItem('chronoa_cache_notes', JSON.stringify(notes));
       localStorage.setItem('chronoa_cache_journals', JSON.stringify(journals));
       localStorage.setItem('chronoa_cache_trash', JSON.stringify(trash));
+      localStorage.setItem('chronoa_cache_folders', JSON.stringify(folders));
     }
-  },[notes, journals, trash, loading]);
+  },[notes, journals, trash, folders, loading]);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -293,9 +303,45 @@ export default function NotesPage() {
     if (window.innerWidth < 1024) setIsListVisible(false);
   };
 
+  const createFolder = async () => {
+    if (!navigator.onLine) {
+       showConfirmDialog({ title: "Offline", message: "You need to be online to create folders.", confirmText: "Dismiss", onConfirm: () => {} });
+       return;
+    }
+    const name = prompt("Enter folder name:");
+    if (!name || !name.trim()) return;
+    const { data: { user } } = await supabase.auth.getUser();
+    const { data } = await supabase.from('note_folders').insert({ user_id: user?.id, name: name.trim() }).select().single();
+    if (data) {
+      setFolders([...folders, data]);
+      setSelectedFolderId(data.id);
+    }
+  };
+
+  const deleteFolder = async (folderId: string) => {
+    if (!navigator.onLine) {
+       showConfirmDialog({ title: "Offline", message: "You need to be online to delete folders.", confirmText: "Dismiss", onConfirm: () => {} });
+       return;
+    }
+    showConfirmDialog({
+      title: "Delete Folder",
+      message: "Are you sure? Notes inside will not be deleted, they will just be moved out of the folder.",
+      isDestructive: true,
+      onConfirm: async () => {
+        setFolders(prev => prev.filter(f => f.id !== folderId));
+        if (selectedFolderId === folderId) setSelectedFolderId(null);
+        await supabase.from('note_folders').delete().eq('id', folderId);
+        fetchData();
+      }
+    });
+  };
+
   const createNote = async () => {
     const { data: { user } } = await supabase.auth.getUser();
-    const { data } = await supabase.from('notes').insert({ user_id: user?.id, title: 'New Note' }).select().single();
+    const payload: any = { user_id: user?.id, title: 'New Note' };
+    if (selectedFolderId) payload.folder_id = selectedFolderId;
+    
+    const { data } = await supabase.from('notes').insert(payload).select().single();
     if (data) {
       setNotes([data, ...notes]);
       handleSelectItem(data.id, true);
@@ -354,6 +400,28 @@ export default function NotesPage() {
     syncOfflineData();
   };
 
+  const moveToFolder = async (id: string, folderId: string | null) => {
+    if (!id || isTrashOpen || notesTab !== 'notes') return;
+    const cleanFolderId = folderId === "" ? null : folderId;
+    
+    setNotes(prev => prev.map(n => n.id === id ? { ...n, folder_id: cleanFolderId } : n));
+    const updatedNow = new Date().toISOString();
+
+    const queue = JSON.parse(localStorage.getItem('chronoa_offline_queue') || '[]');
+    const itemIndex = queue.findIndex((q: any) => q.id === id && q.type === 'notes');
+    const existingContent = notes.find(n => n.id === id)?.content || '';
+    const existingTitle = notes.find(n => n.id === id)?.title || 'Untitled';
+    
+    if (itemIndex >= 0) {
+      queue[itemIndex].folder_id = cleanFolderId;
+      queue[itemIndex].updated_at = updatedNow;
+    } else {
+      queue.push({ type: 'notes', id, content: existingContent, title: existingTitle, folder_id: cleanFolderId, updated_at: updatedNow });
+    }
+    localStorage.setItem('chronoa_offline_queue', JSON.stringify(queue));
+    syncOfflineData();
+  };
+
   const saveContent = async (html: string, id: string) => {
     if (!id || isTrashOpen) return;
     const updatedNow = new Date().toISOString();
@@ -367,7 +435,10 @@ export default function NotesPage() {
     
     if (notesTab === 'notes') {
        const currNote = notes.find(n => n.id === id);
-       if (currNote) payload.title = currNote.title;
+       if (currNote) {
+         payload.title = currNote.title;
+         payload.folder_id = currNote.folder_id;
+       }
     }
     
     if (itemIndex >= 0) queue[itemIndex] = payload;
@@ -476,6 +547,13 @@ export default function NotesPage() {
 
   const filteredItems = useMemo(() => {
     let list = isTrashOpen ? trash.filter(t => t.isJournal === (notesTab === 'journal')) : (notesTab === 'notes' ? notes : journals);
+    
+    if (notesTab === 'notes' && !isTrashOpen && selectedFolderId) {
+      list = list.filter(n => n.folder_id === selectedFolderId);
+    } else if (notesTab === 'notes' && !isTrashOpen && selectedFolderId === null) {
+      list = list; // all
+    }
+
     if (!searchQuery.trim()) return list;
     const q = searchQuery.toLowerCase();
     return list.filter(item => {
@@ -484,7 +562,7 @@ export default function NotesPage() {
       const plain = (item.content || "").replace(/<[^>]+>/g, ' ').toLowerCase();
       return title?.toLowerCase().includes(q) || plain.includes(q);
     });
-  },[notes, journals, trash, notesTab, searchQuery, isTrashOpen]);
+  },[notes, journals, trash, notesTab, searchQuery, isTrashOpen, selectedFolderId]);
 
   useEffect(() => {
     if (autoSelectPending && !loading && !isTrashOpen) {
@@ -498,6 +576,8 @@ export default function NotesPage() {
           setSelectedId(null);
           setNoteToFocus(null);
         }
+      } else {
+        setSelectedId(null);
       }
       setAutoSelectPending(false);
     }
@@ -580,54 +660,72 @@ export default function NotesPage() {
   };
 
   const renderEditorHeader = (isMobile: boolean = false) => (
-    <div className="flex flex-row items-center justify-between gap-3 relative group w-full">
-      <div className="flex items-center gap-3 flex-1 min-w-0">
-        {isMobile && (
-          <button 
-            onClick={() => { setSelectedId(null); setIsListVisible(true); setNoteToFocus(null); }} 
-            className="flex items-center justify-center p-2.5 bg-[#f7f5f0] dark:bg-[#1a1a1a] text-[#888] rounded-xl border border-[#e0ddd5] dark:border-[#333] hover:text-[#3d3b33] dark:hover:text-[#f0f0f0] transition-all shadow-sm shrink-0"
-          >
-            <ArrowLeft size={18} />
-          </button>
-        )}
-        <div className="flex-1 min-w-0">
-          {(!isTrashOpen && notesTab === 'journal') || selectedItem?.isJournal ? (
-            <div 
-              className="space-y-0.5 cursor-pointer hover:opacity-80 transition-opacity"
-              onClick={() => document.getElementById('notes-scroll-container')?.scrollTo({ top: 0, behavior: 'smooth' })}
+    <div className="flex flex-col gap-2 relative group w-full">
+      <div className="flex flex-row items-center justify-between gap-3 w-full">
+        <div className="flex items-center gap-3 flex-1 min-w-0">
+          {isMobile && (
+            <button 
+              onClick={() => { setSelectedId(null); setIsListVisible(true); setNoteToFocus(null); }} 
+              className="flex items-center justify-center p-2.5 bg-[#f7f5f0] dark:bg-[#1a1a1a] text-[#888] rounded-xl border border-[#e0ddd5] dark:border-[#333] hover:text-[#3d3b33] dark:hover:text-[#f0f0f0] transition-all shadow-sm shrink-0"
             >
-              <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-[#c2956e]">Daily Entry</p>
-              <h1 className="text-2xl lg:text-4xl text-[#3d3b33] dark:text-white font-serif leading-tight truncate lg:whitespace-normal">
-                {formatDateLabel(selectedItem?.entry_date || "")}
-              </h1>
-            </div>
+              <ArrowLeft size={18} />
+            </button>
+          )}
+          <div className="flex-1 min-w-0">
+            {(!isTrashOpen && notesTab === 'journal') || selectedItem?.isJournal ? (
+              <div 
+                className="space-y-0.5 cursor-pointer hover:opacity-80 transition-opacity"
+                onClick={() => document.getElementById('notes-scroll-container')?.scrollTo({ top: 0, behavior: 'smooth' })}
+              >
+                <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-[#c2956e]">Daily Entry</p>
+                <h1 className="text-2xl lg:text-4xl text-[#3d3b33] dark:text-white font-serif leading-tight truncate lg:whitespace-normal">
+                  {formatDateLabel(selectedItem?.entry_date || "")}
+                </h1>
+              </div>
+            ) : (
+              <input 
+                value={editTitle} onChange={e => setEditTitle(e.target.value)} onBlur={updateNoteTitle} disabled={isTrashOpen}
+                placeholder="Title..."
+                spellCheck={false}
+                className="text-2xl lg:text-4xl text-[#3d3b33] dark:text-white font-serif leading-tight bg-transparent outline-none w-full placeholder:text-[#e0ddd5] dark:placeholder:text-[#2a2a2a] transition-all truncate lg:whitespace-normal" 
+              />
+            )}
+          </div>
+        </div>
+
+        <div className="flex items-center gap-1 shrink-0">
+          {!isTrashOpen ? (
+            <button data-tooltip-id="global-tooltip" data-tooltip-content="Move to Trash" onClick={() => moveToTrash(selectedItem?.entry_date || selectedItem?.id)} className="w-9 h-9 lg:w-10 lg:h-10 text-[#b0ad9a] hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-full transition-all flex items-center justify-center bg-transparent outline-none">
+              <Trash2 size={18} />
+            </button>
           ) : (
-            <input 
-              value={editTitle} onChange={e => setEditTitle(e.target.value)} onBlur={updateNoteTitle} disabled={isTrashOpen}
-              placeholder="Title..."
-              spellCheck={false}
-              className="text-2xl lg:text-4xl text-[#3d3b33] dark:text-white font-serif leading-tight bg-transparent outline-none w-full placeholder:text-[#e0ddd5] dark:placeholder:text-[#2a2a2a] transition-all truncate lg:whitespace-normal" 
-            />
+            <>
+              <button data-tooltip-id="global-tooltip" data-tooltip-content="Restore" onClick={() => restoreNote(selectedItem)} className="w-9 h-9 lg:w-10 lg:h-10 text-[#7ca982] hover:bg-[#7ca982]/10 rounded-full transition-all flex items-center justify-center bg-transparent outline-none">
+                <RotateCcw size={18} />
+              </button>
+              <button data-tooltip-id="global-tooltip" data-tooltip-content="Delete Permanently" onClick={() => permanentlyDelete(selectedItem)} className="w-9 h-9 lg:w-10 lg:h-10 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-full transition-all flex items-center justify-center bg-transparent outline-none">
+                <Trash2 size={18} />
+              </button>
+            </>
           )}
         </div>
       </div>
-
-      <div className="flex items-center gap-1 shrink-0">
-        {!isTrashOpen ? (
-          <button data-tooltip-id="global-tooltip" data-tooltip-content="Move to Trash" onClick={() => moveToTrash(selectedItem?.entry_date || selectedItem?.id)} className="w-9 h-9 lg:w-10 lg:h-10 text-[#b0ad9a] hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-full transition-all flex items-center justify-center bg-transparent outline-none">
-            <Trash2 size={18} />
-          </button>
-        ) : (
-          <>
-            <button data-tooltip-id="global-tooltip" data-tooltip-content="Restore" onClick={() => restoreNote(selectedItem)} className="w-9 h-9 lg:w-10 lg:h-10 text-[#7ca982] hover:bg-[#7ca982]/10 rounded-full transition-all flex items-center justify-center bg-transparent outline-none">
-              <RotateCcw size={18} />
-            </button>
-            <button data-tooltip-id="global-tooltip" data-tooltip-content="Delete Permanently" onClick={() => permanentlyDelete(selectedItem)} className="w-9 h-9 lg:w-10 lg:h-10 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-full transition-all flex items-center justify-center bg-transparent outline-none">
-              <Trash2 size={18} />
-            </button>
-          </>
-        )}
-      </div>
+      
+      {notesTab === 'notes' && !isTrashOpen && selectedItem && !selectedItem.isJournal && (
+        <div className="flex items-center gap-2 mt-1">
+          <Folder size={14} className="text-[#888]" />
+          <select 
+            value={selectedItem.folder_id || ''}
+            onChange={(e) => moveToFolder(selectedItem.id, e.target.value)}
+            className="bg-transparent text-xs text-[#888] font-bold uppercase tracking-wider outline-none cursor-pointer"
+          >
+            <option value="">No Folder</option>
+            {folders.map(f => (
+               <option key={f.id} value={f.id}>{f.name}</option>
+            ))}
+          </select>
+        </div>
+      )}
     </div>
   );
 
@@ -712,7 +810,7 @@ export default function NotesPage() {
               </div>
             </div>
 
-            <div className="space-y-4">
+            <div className="space-y-3">
               <div className="relative">
                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-[#b0ad9a]" size={16} />
                 <input 
@@ -732,6 +830,30 @@ export default function NotesPage() {
                   ))}
                 </div>
               </div>
+
+              {!isTrashOpen && notesTab === 'notes' && (
+                <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-1">
+                  <button 
+                    onClick={() => { setSelectedFolderId(null); setAutoSelectPending(true); }} 
+                    className={`px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-widest whitespace-nowrap transition-colors border ${selectedFolderId === null ? 'bg-[#c2956e] text-white border-[#c2956e]' : 'bg-white dark:bg-[#1a1a1a] text-[#888] border-[#e0ddd5] dark:border-[#333] hover:text-[#3d3b33] dark:hover:text-white'}`}
+                  >
+                    All Notes
+                  </button>
+                  {folders.map(f => (
+                    <button 
+                      key={f.id} 
+                      onClick={() => { setSelectedFolderId(f.id); setAutoSelectPending(true); }}
+                      onDoubleClick={() => deleteFolder(f.id)}
+                      className={`px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-widest whitespace-nowrap transition-colors border ${selectedFolderId === f.id ? 'bg-[#c2956e] text-white border-[#c2956e]' : 'bg-white dark:bg-[#1a1a1a] text-[#888] border-[#e0ddd5] dark:border-[#333] hover:text-[#3d3b33] dark:hover:text-white'}`}
+                    >
+                      {f.name}
+                    </button>
+                  ))}
+                  <button onClick={createFolder} className="px-3 py-1.5 rounded-lg bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] text-[#888] hover:text-[#c2956e] transition-colors shrink-0">
+                    <Plus size={14} />
+                  </button>
+                </div>
+              )}
             </div>
           </div>
 

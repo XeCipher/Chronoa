@@ -27,7 +27,7 @@ export default function CalendarPage() {
   const { calendarView, setCalendarView, showConfirmDialog } = useUiStore();
   
   const [referenceDate, setReferenceDate] = useState(startOfDay(new Date()));
-  const [events, setEvents] = useState<CalendarEvent[]>([]);
+  const[events, setEvents] = useState<CalendarEvent[]>([]);
   const [syncErrors, setSyncErrors] = useState<string[]>([]);
   const [isSyncErrorModalOpen, setIsSyncErrorModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -41,10 +41,10 @@ export default function CalendarPage() {
   const [targetScrollTime, setTargetScrollTime] = useState<string | null>(null);
 
   // Used to cleanly inform the views to smoothly scroll down to the current time red-line
-  const [scrollToNowTrigger, setScrollToNowTrigger] = useState(0);
+  const[scrollToNowTrigger, setScrollToNowTrigger] = useState(0);
 
   // Date Picker States
-  const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
+  const[isDatePickerOpen, setIsDatePickerOpen] = useState(false);
   const [pickerMonth, setPickerMonth] = useState(startOfMonth(referenceDate));
   const datePickerRef = useRef<HTMLDivElement>(null);
   const titleRef = useRef<HTMLDivElement>(null);
@@ -53,14 +53,14 @@ export default function CalendarPage() {
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const [dragTimeRange, setDragTimeRange] = useState<{ start: Date, end: Date } | null>(null);
   const [defaultBaseDate, setDefaultBaseDate] = useState<Date | null>(null);
-  const [isMobile, setIsMobile] = useState(false);
+  const[isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 768);
     handleResize();
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
-  }, []);
+  },[]);
 
   // Debounce search input
   useEffect(() => {
@@ -92,7 +92,7 @@ export default function CalendarPage() {
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [isSearchOpen, isDatePickerOpen]);
+  },[isSearchOpen, isDatePickerOpen]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -114,7 +114,7 @@ export default function CalendarPage() {
         setIsLoading(false);
       } catch(e) {}
     }
-  }, []);
+  },[]);
 
   const fetchEvents = async () => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -122,7 +122,7 @@ export default function CalendarPage() {
     
     // Determine inactive sources to filter out
     const { data: sourcesData } = await supabase.from('calendar_sources').select('id, is_active').eq('user_id', user.id);
-    const inactiveSourceIds = sourcesData?.filter(s => s.is_active === false).map(s => s.id) || [];
+    const inactiveSourceIds = sourcesData?.filter(s => s.is_active === false).map(s => s.id) ||[];
     
     // Trigger background sync for external calendars (Throttled inside the function)
     syncExternalCalendars(user.id).then((errors) => {
@@ -237,7 +237,7 @@ export default function CalendarPage() {
   };
 
   const generateRecurringEvents = async (base: CalendarEvent, seriesId: string) => {
-    const instances: any[] = [];
+    const instances: any[] =[];
     let currentStart = new Date(base.start_time);
     let currentEnd = new Date(base.end_time);
     const limitDate = addYears(new Date(base.start_time), 1);
@@ -277,7 +277,11 @@ export default function CalendarPage() {
     const referenceEvent = originalEventObj || selectedEvent;
     
     if (referenceEvent?.is_readonly) {
-       await fetchEvents();
+       // Optimistically update the UI for all read-only events from this source to instantly show color change
+       if (updates.color && referenceEvent.source_id) {
+         setEvents(prev => prev.map(e => e.source_id === referenceEvent.source_id ? { ...e, color: updates.color! } : e));
+       }
+       setTimeout(() => { fetchEvents() }, 500);
        return;
     }
 
@@ -386,7 +390,7 @@ export default function CalendarPage() {
 
   const filteredEvents = searchQuery 
     ? events.filter(e => e.title.toLowerCase().includes(searchQuery.toLowerCase()))
-    : [];
+    :[];
 
   const displayTitle = () => {
     if (calendarView === 'month') return format(referenceDate, 'MMMM yyyy');

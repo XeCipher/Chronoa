@@ -42,6 +42,7 @@ export async function DELETE(request: Request) {
     await supabaseAdmin.from('calendar_sources').delete().eq('user_id', user.id);
     await supabaseAdmin.from('journal_entries').delete().eq('user_id', user.id);
     await supabaseAdmin.from('notes').delete().eq('user_id', user.id);
+    await supabaseAdmin.from('note_folders').delete().eq('user_id', user.id);
     await supabaseAdmin.from('routine_history').delete().eq('user_id', user.id);
     await supabaseAdmin.from('profiles').delete().eq('id', user.id);
 

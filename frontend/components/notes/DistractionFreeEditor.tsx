@@ -6,6 +6,8 @@ import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Underline from "@tiptap/extension-underline";
 import Link from "@tiptap/extension-link";
+import { Plugin, PluginKey } from "@tiptap/pm/state";
+import { Extension } from "@tiptap/core";
 import {
   Clock,
   Bold,
@@ -52,6 +54,32 @@ const PROMPTS =[
   "What are your main intentions for today?"
 ];
 
+// ProseMirror plugin to seamlessly auto-merge adjacent lists of the same type.
+const MergeListsPlugin = Extension.create({
+  name: 'mergeLists',
+  addProseMirrorPlugins() {
+    return[
+      new Plugin({
+        key: new PluginKey('mergeLists'),
+        appendTransaction(transactions, oldState, newState) {
+          let tr = newState.tr;
+          let modified = false;
+          newState.doc.descendants((node, pos) => {
+            if (node.type.name === 'orderedList' || node.type.name === 'bulletList') {
+              const nextNode = newState.doc.nodeAt(pos + node.nodeSize);
+              if (nextNode && nextNode.type.name === node.type.name) {
+                tr.join(pos + node.nodeSize);
+                modified = true;
+              }
+            }
+          });
+          return modified ? tr : null;
+        },
+      }),
+    ];
+  },
+});
+
 export default function DistractionFreeEditor({
   initialContent,
   isEditable = true,
@@ -96,7 +124,7 @@ export default function DistractionFreeEditor({
     if (noteType === "journal") {
       setPlaceholder(PROMPTS[Math.floor(Math.random() * PROMPTS.length)]);
     }
-  }, [noteType]);
+  },[noteType]);
 
   // ── Core Scroll Engine: Flawless Margin Management ─────────────────────────
   const ensureCursorVisible = useCallback((ed: ReturnType<typeof useEditor>) => {
@@ -153,6 +181,7 @@ export default function DistractionFreeEditor({
     extensions:[
       StarterKit.configure({ heading: { levels: [1, 2] } }),
       Underline,
+      MergeListsPlugin,
       Link.configure({
         openOnClick: true,
         autolink: true,
@@ -297,6 +326,33 @@ export default function DistractionFreeEditor({
       }
     };
   },[isEditable]);
+
+  // ── Touch Swipe to Indent / Unindent ───────────────────────────────────────
+  const touchStart = useRef<{x: number, y: number} | null>(null);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (!isEditable || !editor) return;
+    touchStart.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (!isEditable || !editor || !touchStart.current) return;
+    const touchEnd = { x: e.changedTouches[0].clientX, y: e.changedTouches[0].clientY };
+    const dx = touchEnd.x - touchStart.current.x;
+    const dy = touchEnd.y - touchStart.current.y;
+
+    // Detect horizontal swipe with minimal vertical drift
+    if (Math.abs(dy) < 40 && Math.abs(dx) > 60) {
+      if (dx > 0) {
+        // Swipe Right -> Indent
+        editor.chain().focus().sinkListItem('listItem').run();
+      } else {
+        // Swipe Left -> Unindent
+        editor.chain().focus().liftListItem('listItem').run();
+      }
+    }
+    touchStart.current = null;
+  };
 
   // ── Mobile Bubble Menu Logic ───────────────────────────────────────────────
   useEffect(() => {
@@ -456,7 +512,11 @@ export default function DistractionFreeEditor({
   );
 
   return (
-    <div className={`relative w-full flex flex-col gap-2 h-full ${isSandbox ? "md:gap-10" : "md:gap-4"}`}>
+    <div 
+      className={`relative w-full flex flex-col gap-2 h-full ${isSandbox ? "md:gap-10" : "md:gap-4"}`}
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
+    >
 
       {/* Mobile Top Bar */}
       <div className="md:hidden flex w-full justify-between items-center gap-1.5 z-10 mt-2 mb-0">

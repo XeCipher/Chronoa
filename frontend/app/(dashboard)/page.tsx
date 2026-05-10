@@ -33,11 +33,14 @@ export default function LandingPage() {
 
   // Redirect to last visited page or home if user is already logged in
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) {
+    supabase.auth.getUser().then(async ({ data: { user }, error }) => {
+      if (user && !error) {
         const target = lastVisitedPage && lastVisitedPage !== '/' && lastVisitedPage !== '/home' ? lastVisitedPage : '/home';
         router.replace(target);
       } else {
+        // If a dead session exists locally, clear it out.
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) await supabase.auth.signOut();
         setIsCheckingSession(false);
       }
     });
@@ -56,7 +59,7 @@ export default function LandingPage() {
         {/* Abstract Background Blur Orbs */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none flex items-center justify-center opacity-60">
           <motion.div animate={{ scale:[1, 1.1, 1], rotate: [0, 90, 0] }} transition={{ duration: 20, repeat: Infinity, ease: "linear" }} className="absolute w-[800px] h-[800px] -translate-y-48 translate-x-32" style={{ background: 'radial-gradient(circle, rgba(168,130,194,0.1) 0%, transparent 60%)' }} />
-          <motion.div animate={{ scale: [1, 1.2, 1], rotate: [0, -90, 0] }} transition={{ duration: 25, repeat: Infinity, ease: "linear" }} className="absolute w-[800px] h-[800px] translate-y-48 -translate-x-32" style={{ background: 'radial-gradient(circle, rgba(124,169,130,0.1) 0%, transparent 60%)' }} />
+          <motion.div animate={{ scale:[1, 1.2, 1], rotate: [0, -90, 0] }} transition={{ duration: 25, repeat: Infinity, ease: "linear" }} className="absolute w-[800px] h-[800px] translate-y-48 -translate-x-32" style={{ background: 'radial-gradient(circle, rgba(124,169,130,0.1) 0%, transparent 60%)' }} />
         </div>
 
         <motion.div 

@@ -50,18 +50,18 @@ const DAYS_OF_WEEK =[
 export default function EventModal({ isOpen, onClose, onSave, onDelete, initialEvent, dragTimeRange, defaultBaseDate, defaultTitle }: Props) {
   const { showConfirmDialog } = useUiStore();
 
-  const [title, setTitle] = useState("");
+  const[title, setTitle] = useState("");
   const[description, setDescription] = useState("");
-  const [location, setLocation] = useState("");
+  const[location, setLocation] = useState("");
   const[meetingUrl, setMeetingUrl] = useState("");
-  const [isAllDay, setIsAllDay] = useState(false);
+  const[isAllDay, setIsAllDay] = useState(false);
   const [startTime, setStartTime] = useState(new Date());
   const[endTime, setEndTime] = useState(new Date());
-  const [color, setColor] = useState("amber");
+  const[color, setColor] = useState("amber");
   const[isReadOnly, setIsReadOnly] = useState(false);
   const[sourceName, setSourceName] = useState<string | null>(null);
   
-  const [repeatSelect, setRepeatSelect] = useState("none");
+  const[repeatSelect, setRepeatSelect] = useState("none");
   const[customDays, setCustomDays] = useState<number[]>([]);
 
   // Autocomplete Recommendations State
@@ -99,7 +99,7 @@ export default function EventModal({ isOpen, onClose, onSave, onDelete, initialE
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
       
-      const [evRes, tkRes] = await Promise.all([
+      const[evRes, tkRes] = await Promise.all([
         supabase.from('calendar_events').select('*').eq('user_id', user.id).ilike('title', `%${title}%`).limit(10),
         supabase.from('tasks').select('*').eq('user_id', user.id).eq('is_completed', true).ilike('title', `%${title}%`).limit(10)
       ]);
@@ -125,7 +125,7 @@ export default function EventModal({ isOpen, onClose, onSave, onDelete, initialE
 
     const timer = setTimeout(fetchRecs, 300);
     return () => clearTimeout(timer);
-  }, [title, initialEvent, isReadOnly, isOpen]);
+  },[title, initialEvent, isReadOnly, isOpen]);
 
   useEffect(() => {
     if (isOpen) {
@@ -205,11 +205,6 @@ export default function EventModal({ isOpen, onClose, onSave, onDelete, initialE
       if (e.key === 'Escape' && isOpen) {
         e.preventDefault();
         
-        if (isReadOnly) {
-          onClose();
-          return;
-        }
-        
         let hasChanges = false;
         if (!initialEvent) {
           hasChanges = title.trim() !== (defaultTitle || "") || description.trim() !== "" || location.trim() !== "" || meetingUrl.trim() !== "";
@@ -220,10 +215,11 @@ export default function EventModal({ isOpen, onClose, onSave, onDelete, initialE
             location !== (initialEvent.location || "") ||
             meetingUrl !== (initialEvent.meeting_url || "") ||
             isAllDay !== initialEvent.is_all_day ||
-            color !== (initialEvent.color || "amber");
+            (!isReadOnly && color !== (initialEvent.color || "amber")); 
+            // Note: color change on readonly saves immediately, so no discard warning needed for that
         }
 
-        if (hasChanges) {
+        if (hasChanges && !isReadOnly) {
           showConfirmDialog({
             title: "Discard Changes?",
             message: "You have unsaved changes. Are you sure you want to discard them?",
@@ -245,7 +241,7 @@ export default function EventModal({ isOpen, onClose, onSave, onDelete, initialE
 
   const toggleCustomDay = (dayId: number) => {
     if (isReadOnly) return;
-    setCustomDays(prev => prev.includes(dayId) ? prev.filter(d => d !== dayId) : [...prev, dayId].sort());
+    setCustomDays(prev => prev.includes(dayId) ? prev.filter(d => d !== dayId) :[...prev, dayId].sort());
   };
 
   const getFinalRepeatPattern = () => {
@@ -568,6 +564,7 @@ export default function EventModal({ isOpen, onClose, onSave, onDelete, initialE
               />
             </div>
 
+            {/* Always allow color changing even for read-only events, to let users customize the calendar aesthetic */}
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 pt-1 w-full">
               <div className="flex items-center gap-2">
                  <Palette size={16} className="text-[#b0ad9a] ml-1 shrink-0" />

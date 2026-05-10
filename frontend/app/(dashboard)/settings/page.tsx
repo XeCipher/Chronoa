@@ -58,21 +58,21 @@ export default function SettingsPage() {
   } = useUiStore();
   
   const [userName, setUserName] = useState("");
-  const [userEmail, setUserEmail] = useState("");
+  const[userEmail, setUserEmail] = useState("");
   
   // Cache user avatar for instant load without layout shifting
-  const [userAvatar, setUserAvatar] = useState<string | null>(() => {
+  const[userAvatar, setUserAvatar] = useState<string | null>(() => {
     if (typeof window !== 'undefined') return localStorage.getItem('chronoa_avatar');
     return null;
   });
 
-  const [cityInput, setCityInput] = useState("");
+  const[cityInput, setCityInput] = useState("");
   const[currentCity, setCurrentCity] = useState("");
-  const [isSearching, setIsSearching] = useState(false);
+  const[isSearching, setIsSearching] = useState(false);
   const[os, setOs] = useState<'mac' | 'windows'>('windows');
   
   const[searchQuery, setSearchQuery] = useState("");
-  const [isHotkeysExpanded, setIsHotkeysExpanded] = useState(false);
+  const[isHotkeysExpanded, setIsHotkeysExpanded] = useState(false);
 
   // Calendar States
   const[isCalendarExpanded, setIsCalendarExpanded] = useState(false);
@@ -481,7 +481,9 @@ export default function SettingsPage() {
                     }
                 });
                 await supabase.auth.signOut();
-                window.location.href = "/";
+                localStorage.clear();
+                sessionStorage.clear();
+                window.location.replace("/");
             } catch(e) { console.error(e); }
         }
       }

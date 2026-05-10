@@ -43,7 +43,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
       if (event === 'SIGNED_OUT') {
-        window.location.href = "/";
+        // Only redirect if we aren't already on the landing page to prevent reload loops
+        if (window.location.pathname !== "/") {
+          window.location.href = "/";
+        }
       }
     });
     return () => subscription.unsubscribe();
@@ -53,8 +56,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     let channel: any;
 
     const checkAuthAndSubscribe = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
+      // Use getUser() to ping the server and verify the account actually exists
+      const { data: { user }, error } = await supabase.auth.getUser();
+      
+      if (!user || error) {
+        // If user is deleted but local session persists, clear it forcefully
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) {
+           await supabase.auth.signOut();
+        }
+        
         if (pathname !== "/") {
           window.location.href = "/";
         } else {
@@ -63,7 +74,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         return;
       }
       
-      const currentUserId = session.user.id;
+      const currentUserId = user.id;
       setUserId(currentUserId);
       setIsLoading(false);
 
@@ -274,7 +285,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
          setLastVisitedPage(pathname);
       }
     }
-  }, [pathname, isLoading, lastVisitedPage, router, setLastVisitedPage]);
+  },[pathname, isLoading, lastVisitedPage, router, setLastVisitedPage]);
 
   useEffect(() => {
     const isCurrentlyDark = theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
