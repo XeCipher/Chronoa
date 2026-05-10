@@ -67,7 +67,7 @@ export default function SettingsPage() {
   });
 
   const [cityInput, setCityInput] = useState("");
-  const [currentCity, setCurrentCity] = useState("");
+  const[currentCity, setCurrentCity] = useState("");
   const [isSearching, setIsSearching] = useState(false);
   const [os, setOs] = useState<'mac' | 'windows'>('windows');
   
@@ -75,13 +75,13 @@ export default function SettingsPage() {
   const [isHotkeysExpanded, setIsHotkeysExpanded] = useState(false);
 
   // Calendar States
-  const [isCalendarExpanded, setIsCalendarExpanded] = useState(false);
+  const[isCalendarExpanded, setIsCalendarExpanded] = useState(false);
   const [calSources, setCalSources] = useState<CalendarSource[]>([]);
   const [newLinkUrl, setNewLinkUrl] = useState("");
-  const [newLinkName, setNewLinkName] = useState("");
+  const[newLinkName, setNewLinkName] = useState("");
   const[isAddingLink, setIsAddingLink] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [showGithubModal, setShowGithubModal] = useState(false);
+  const[showGithubModal, setShowGithubModal] = useState(false);
   const[githubCountdown, setGithubCountdown] = useState(-1);
 
   // Feedback State
@@ -92,7 +92,7 @@ export default function SettingsPage() {
   const [editSourceName, setEditSourceName] = useState("");
   const [editSourceUrl, setEditSourceUrl] = useState("");
   const [isUpdatingSource, setIsUpdatingSource] = useState(false);
-  const [openColorDropdown, setOpenColorDropdown] = useState<string | null>(null);
+  const[openColorDropdown, setOpenColorDropdown] = useState<string | null>(null);
 
   // Global Escape Key Listener for Back Navigation & Modal Dismissals
   useEffect(() => {
@@ -460,7 +460,6 @@ export default function SettingsPage() {
     }
   };
 
-  // Safe redirect for entire application logouts
   const handleLogout = async () => { 
     await supabase.auth.signOut(); 
     window.location.href = "/"; 
@@ -475,7 +474,7 @@ export default function SettingsPage() {
         const { data: { user } } = await supabase.auth.getUser();
         if (user) {
             try {
-                await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/delete-account?user_id=${user.id}`, { method: 'DELETE' });
+                await fetch(`/api/auth/delete-account?user_id=${user.id}`, { method: 'DELETE' });
                 await supabase.auth.signOut();
                 window.location.href = "/";
             } catch(e) { console.error(e); }
@@ -711,8 +710,8 @@ export default function SettingsPage() {
                 { id: 'home', keys:[altKeyDisplay, 'H'], desc: 'Go to Home' },
                 { id: 'tasks', keys:[altKeyDisplay, 'T'], desc: 'Go to Tasks' },
                 { id: 'notes', keys:[altKeyDisplay, 'N'], desc: 'Go to Notes' },
-                { id: 'calendar', keys: [altKeyDisplay, 'C'], desc: 'Go to Calendar' },
-                { id: 'analytics', keys: [altKeyDisplay, 'A'], desc: 'Go to Analytics' },
+                { id: 'calendar', keys:[altKeyDisplay, 'C'], desc: 'Go to Calendar' },
+                { id: 'analytics', keys:[altKeyDisplay, 'A'], desc: 'Go to Analytics' },
                 { id: 'settings', keys: [altKeyDisplay, 'P'], desc: 'Go to Profile' },
                 { id: 'up', keys: [altKeyDisplay, '↑'], desc: 'Move Task Up' },
                 { id: 'down', keys: [altKeyDisplay, '↓'], desc: 'Move Task Down' },
@@ -881,7 +880,7 @@ export default function SettingsPage() {
     },
     {
       id: 'about',
-      keys: ['developer & source', 'github', 'open-source', 'chronoa', 'feedback'],
+      keys:['developer & source', 'github', 'open-source', 'chronoa', 'feedback'],
       className: '',
       render: () => (
         <section className="space-y-4">
