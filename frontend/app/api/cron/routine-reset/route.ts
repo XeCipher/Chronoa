@@ -17,7 +17,6 @@ export async function GET(request: Request) {
 
   // Bypass RLS using the service role key to process backend-level ops
   const supabaseAdmin = createClient(supabaseUrl, supabaseKey);
-  const currentHour = new Date().getUTCHours();
 
   try {
     console.log(`[${new Date().toISOString()}] Starting Routine Reset Job...`);
@@ -31,40 +30,61 @@ export async function GET(request: Request) {
       .not('deleted_at', 'is', null)
       .lt('deleted_at', fiveDaysAgo.toISOString());
 
-    // 2. Get users whose reset hour matches the current hour
+    // 2. Fetch all users to accurately calculate local time via their timezone
     const { data: users, error: usersError } = await supabaseAdmin
       .from('profiles')
-      .select('id, routine_reset_hour')
-      .eq('routine_reset_hour', currentHour);
+      .select('id, routine_reset_hour, timezone');
 
     if (usersError) throw usersError;
 
     if (users && users.length > 0) {
       for (const user of users) {
-        // 3. Get all completed routine tasks for this user
-        const { data: completedRoutines } = await supabaseAdmin
-          .from('tasks')
-          .select('title')
-          .eq('user_id', user.id)
-          .eq('task_type', 'routine')
-          .eq('is_completed', true);
-
-        if (completedRoutines && completedRoutines.length > 0) {
-          console.log(`Archiving ${completedRoutines.length} tasks for user ${user.id}`);
+        try {
+          const tz = user.timezone || 'UTC';
           
-          // 4. Move them to history
-          const historyData = completedRoutines.map((r: any) => ({
-            user_id: user.id,
-            task_title: r.title
-          }));
-          await supabaseAdmin.from('routine_history').insert(historyData);
+          const formatter = new Intl.DateTimeFormat('en-US', {
+            timeZone: tz,
+            hour: 'numeric',
+            hour12: false
+          });
+          
+          const parts = formatter.formatToParts(new Date());
+          const hourPart = parts.find(p => p.type === 'hour');
+          let localHour = parseInt(hourPart?.value || '0', 10);
+          if (localHour === 24) localHour = 0;
 
-          // 5. Uncheck all routine tasks for the new day
-          await supabaseAdmin
-            .from('tasks')
-            .update({ is_completed: false, completed_at: null })
-            .eq('user_id', user.id)
-            .eq('task_type', 'routine');
+          // 3. Reset routines if user's local hour exactly matches their routine_reset_hour
+          if (localHour === user.routine_reset_hour) {
+            const { data: completedRoutines } = await supabaseAdmin
+              .from('tasks')
+              .select('title')
+              .eq('user_id', user.id)
+              .eq('task_type', 'routine')
+              .eq('is_completed', true)
+              .is('deleted_at', null);
+
+            if (completedRoutines && completedRoutines.length > 0) {
+              console.log(`Archiving ${completedRoutines.length} tasks for user ${user.id}`);
+              
+              // 4. Move them to history
+              const historyData = completedRoutines.map((r: any) => ({
+                user_id: user.id,
+                task_title: r.title
+              }));
+              
+              const { error: histError } = await supabaseAdmin.from('routine_history').insert(historyData);
+              if (histError) console.error("Error inserting to routine_history:", histError);
+
+              // 5. Uncheck all routine tasks for the new day
+              await supabaseAdmin
+                .from('tasks')
+                .update({ is_completed: false, completed_at: null })
+                .eq('user_id', user.id)
+                .eq('task_type', 'routine');
+            }
+          }
+        } catch (userErr) {
+          console.error(`Error processing user ${user.id}:`, userErr);
         }
       }
     }

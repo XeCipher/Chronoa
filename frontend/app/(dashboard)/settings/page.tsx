@@ -76,8 +76,8 @@ export default function SettingsPage() {
 
   // Calendar States
   const[isCalendarExpanded, setIsCalendarExpanded] = useState(false);
-  const [calSources, setCalSources] = useState<CalendarSource[]>([]);
-  const [newLinkUrl, setNewLinkUrl] = useState("");
+  const[calSources, setCalSources] = useState<CalendarSource[]>([]);
+  const[newLinkUrl, setNewLinkUrl] = useState("");
   const[newLinkName, setNewLinkName] = useState("");
   const[isAddingLink, setIsAddingLink] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -89,9 +89,9 @@ export default function SettingsPage() {
 
   // Calendar Editing & Interaction States
   const[editingSourceId, setEditingSourceId] = useState<string | null>(null);
-  const [editSourceName, setEditSourceName] = useState("");
+  const[editSourceName, setEditSourceName] = useState("");
   const [editSourceUrl, setEditSourceUrl] = useState("");
-  const [isUpdatingSource, setIsUpdatingSource] = useState(false);
+  const[isUpdatingSource, setIsUpdatingSource] = useState(false);
   const[openColorDropdown, setOpenColorDropdown] = useState<string | null>(null);
 
   // Global Escape Key Listener for Back Navigation & Modal Dismissals
@@ -175,7 +175,7 @@ export default function SettingsPage() {
       }
     };
     fetchProfileAndCalendars();
-  }, [setRoutineResetHour, setDisabledHotkeys]);
+  },[setRoutineResetHour, setDisabledHotkeys]);
 
   useEffect(() => {
     let timer: NodeJS.Timeout;
@@ -258,7 +258,7 @@ export default function SettingsPage() {
   };
 
   const toggleHotkey = (id: string) => {
-    const newDisabled = disabledHotkeys.includes(id) ? disabledHotkeys.filter(k => k !== id) : [...disabledHotkeys, id];
+    const newDisabled = disabledHotkeys.includes(id) ? disabledHotkeys.filter(k => k !== id) :[...disabledHotkeys, id];
     setDisabledHotkeys(newDisabled);
     updateRemoteSetting('disabled_hotkeys', newDisabled);
   };
@@ -474,7 +474,7 @@ export default function SettingsPage() {
         const { data: { user } } = await supabase.auth.getUser();
         if (user) {
             try {
-                await fetch(`/api/auth/delete-account?user_id=${user.id}`, { method: 'DELETE' });
+                await fetch(`/api/auth/delete-account`, { method: 'DELETE' });
                 await supabase.auth.signOut();
                 window.location.href = "/";
             } catch(e) { console.error(e); }
@@ -715,13 +715,13 @@ export default function SettingsPage() {
                 { id: 'settings', keys: [altKeyDisplay, 'P'], desc: 'Go to Profile' },
                 { id: 'up', keys: [altKeyDisplay, '↑'], desc: 'Move Task Up' },
                 { id: 'down', keys: [altKeyDisplay, '↓'], desc: 'Move Task Down' },
-                { id: 'focus_up', keys: ['Shift', '↑'], desc: 'Focus Task Above' },
-                { id: 'focus_down', keys: ['Shift', '↓'], desc: 'Focus Task Below' },
-                { id: 'indent', keys: ['Tab'], desc: 'Indent Task' },
-                { id: 'unindent', keys: ['Shift', 'Tab'], desc: 'Unindent Task' },
-                { id: 'new_sibling', keys: [ctrlKeyDisplay, 'Enter'], desc: 'New Sibling Task' },
+                { id: 'focus_up', keys:['Shift', '↑'], desc: 'Focus Task Above' },
+                { id: 'focus_down', keys:['Shift', '↓'], desc: 'Focus Task Below' },
+                { id: 'indent', keys:['Tab'], desc: 'Indent Task' },
+                { id: 'unindent', keys:['Shift', 'Tab'], desc: 'Unindent Task' },
+                { id: 'new_sibling', keys:[ctrlKeyDisplay, 'Enter'], desc: 'New Sibling Task' },
                 { id: 'space', keys: ['Space'], desc: 'Play/Pause Timer' },
-                { id: 'escape', keys: ['Esc'], desc: 'Collapse Sidebar' },
+                { id: 'escape', keys:['Esc'], desc: 'Collapse Sidebar' },
               ].map((hk) => {
                 const isDisabled = disabledHotkeys?.includes(hk.id);
                 return (

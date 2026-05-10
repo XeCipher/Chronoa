@@ -17,7 +17,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const router = useRouter();
   const pathname = usePathname();
   const [isLoading, setIsLoading] = useState(true);
-  const [userId, setUserId] = useState<string | null>(null);
+  const[userId, setUserId] = useState<string | null>(null);
 
   const { 
     theme, 
@@ -47,7 +47,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       }
     });
     return () => subscription.unsubscribe();
-  }, []);
+  },[]);
 
   useEffect(() => {
     let channel: any;
@@ -69,6 +69,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
       const { data: profile } = await supabase.from('profiles').select('*').eq('id', currentUserId).single();
       if (profile) {
+        // Automatically sync system timezone for proper serverless cron execution
+        const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        if ((profile as any).timezone !== userTimezone) {
+          await supabase.from('profiles').update({ timezone: userTimezone }).eq('id', currentUserId);
+        }
+
         const state = useUiStore.getState();
         if (profile.theme) state.setTheme(profile.theme);
         if (profile.task_archive_delay !== null) state.setTaskArchiveDelay(profile.task_archive_delay);
@@ -85,8 +91,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           localSyncId.current = profile.timer_state.sync_id || generateSyncId();
           
           const newState = {
-            timers: profile.timer_state.timers || [],
-            stopwatches: profile.timer_state.stopwatches || [],
+            timers: profile.timer_state.timers ||[],
+            stopwatches: profile.timer_state.stopwatches ||[],
             activeTab: profile.timer_state.activeTab || 'stopwatch'
           };
           
@@ -120,8 +126,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                  isApplyingRemote.current = true;
                  
                  const parsedState = {
-                    timers: rec.timer_state.timers || [],
-                    stopwatches: rec.timer_state.stopwatches || [],
+                    timers: rec.timer_state.timers ||[],
+                    stopwatches: rec.timer_state.stopwatches ||[],
                     activeTab: rec.timer_state.activeTab || 'stopwatch'
                  };
                  
@@ -145,7 +151,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       }
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  },[]);
 
   useEffect(() => {
     if (isLoading || !userId) return;
@@ -230,7 +236,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       const isAlt = e.altKey;
-      const isTyping = ['INPUT', 'TEXTAREA'].includes((e.target as HTMLElement).tagName) || (e.target as HTMLElement).isContentEditable;
+      const isTyping =['INPUT', 'TEXTAREA'].includes((e.target as HTMLElement).tagName) || (e.target as HTMLElement).isContentEditable;
       if (isAlt) {
         const key = e.key.toLowerCase();
         if (key === 'h' && !disabledHotkeys?.includes('home')) { e.preventDefault(); router.push('/home'); }
@@ -246,7 +252,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [pathname, router, setNotesTab, isSidebarPinned, toggleSidebarPin, toggleFirstActive, hotkeysEnabled, disabledHotkeys]);
+  },[pathname, router, setNotesTab, isSidebarPinned, toggleSidebarPin, toggleFirstActive, hotkeysEnabled, disabledHotkeys]);
 
   useEffect(() => {
     if (!isLoading) {
