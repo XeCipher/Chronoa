@@ -10,7 +10,7 @@ type CalendarView = 'month' | 'week' | '2-day' | 'day';
 export type ConfirmDialogState = {
   title: string;
   message: string;
-  onConfirm: () => void;
+  onConfirm: (val?: string) => void;
   isDestructive?: boolean;
   confirmText?: string;
   cancelText?: string;
@@ -18,6 +18,9 @@ export type ConfirmDialogState = {
     text: string;
     onClick: () => void;
   };
+  isPrompt?: boolean;
+  promptPlaceholder?: string;
+  promptDefaultValue?: string;
 };
 
 interface UiState {
@@ -103,7 +106,7 @@ export const useUiStore = create<UiState>()(
       sessionsFilter: 'all',
       calendarView: 'month',
       hotkeysEnabled: true,
-      disabledHotkeys: [],
+      disabledHotkeys:[],
       moveCompletedToBottom: true,
       keepParentTaskAlive: false,
       addTaskAtTop: false,

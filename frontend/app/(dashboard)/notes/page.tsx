@@ -4,7 +4,7 @@
 import { useEffect, useState, useMemo, useCallback, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import DistractionFreeEditor from "@/components/notes/DistractionFreeEditor";
-import { Search, Plus, Trash2, BookOpen, FileText, ChevronLeft, RotateCcw, Library, Sparkles, CalendarDays, X, ChevronRight, ArrowLeft, Folder } from "lucide-react";
+import { Search, Plus, Trash2, BookOpen, FileText, ChevronLeft, RotateCcw, Library, Sparkles, CalendarDays, X, ChevronRight, ArrowLeft, Folder, FolderPlus } from "lucide-react";
 import { useUiStore } from "@/store/uiStore";
 import { usePathname } from "next/navigation";
 
@@ -80,7 +80,7 @@ export default function NotesPage() {
   const [isListVisible, setIsListVisible] = useState(true);
   const[isTrashOpen, setIsTrashOpen] = useState(false);
   const[autoSelectPending, setAutoSelectPending] = useState(true);
-  const [isScrolled, setIsScrolled] = useState(false);
+  const[isScrolled, setIsScrolled] = useState(false);
 
   const[showCalendar, setShowCalendar] = useState(false);
   const [calMonth, setCalMonth] = useState(new Date());
@@ -142,6 +142,12 @@ export default function NotesPage() {
           return;
         }
 
+        if (selectedFolderId && isListVisible) {
+          const currentFolder = folders.find(f => f.id === selectedFolderId);
+          setSelectedFolderId(currentFolder?.parent_id || null);
+          return;
+        }
+
         // Handle mobile interface back behavior
         if (!isListVisible) {
           setSelectedId(null);
@@ -153,7 +159,7 @@ export default function NotesPage() {
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  },[isEditorFullscreen, setEditorFullscreen, isTrashOpen, isListVisible]);
+  },[isEditorFullscreen, setEditorFullscreen, isTrashOpen, isListVisible, selectedFolderId, folders]);
 
   const handleTabChange = (id: Tab) => {
     setNotesTab(id);
@@ -291,7 +297,7 @@ export default function NotesPage() {
 
   useEffect(() => {
     setMobileNoteOpen(!isListVisible);
-  }, [isListVisible, setMobileNoteOpen]);
+  },[isListVisible, setMobileNoteOpen]);
 
   const handleSelectItem = (id: string, autoFocus: boolean = false) => {
     setSelectedId(id);
@@ -308,14 +314,33 @@ export default function NotesPage() {
        showConfirmDialog({ title: "Offline", message: "You need to be online to create folders.", confirmText: "Dismiss", onConfirm: () => {} });
        return;
     }
-    const name = prompt("Enter folder name:");
-    if (!name || !name.trim()) return;
-    const { data: { user } } = await supabase.auth.getUser();
-    const { data } = await supabase.from('note_folders').insert({ user_id: user?.id, name: name.trim() }).select().single();
-    if (data) {
-      setFolders([...folders, data]);
-      setSelectedFolderId(data.id);
-    }
+    
+    showConfirmDialog({
+      title: "New Folder",
+      message: "Enter a name for your new folder.",
+      isPrompt: true,
+      promptPlaceholder: "Folder name...",
+      confirmText: "Create",
+      onConfirm: async (name?: string) => {
+        if (!name || !name.trim()) return;
+        const { data: { user } } = await supabase.auth.getUser();
+        
+        const payload: any = { user_id: user?.id, name: name.trim() };
+        if (selectedFolderId) payload.parent_id = selectedFolderId;
+
+        const { data, error } = await supabase.from('note_folders').insert(payload).select().single();
+        
+        if (error) {
+          console.error("Error creating folder:", error);
+          showConfirmDialog({ title: "Error", message: `Could not create folder: ${error.message}`, confirmText: "OK", onConfirm: () => {} });
+          return;
+        }
+
+        if (data) {
+          setFolders(prev => [...prev, data]);
+        }
+      }
+    });
   };
 
   const deleteFolder = async (folderId: string) => {
@@ -325,11 +350,14 @@ export default function NotesPage() {
     }
     showConfirmDialog({
       title: "Delete Folder",
-      message: "Are you sure? Notes inside will not be deleted, they will just be moved out of the folder.",
+      message: "Are you sure? Notes and subfolders inside will not be deleted, they will just be moved out of the folder.",
       isDestructive: true,
       onConfirm: async () => {
         setFolders(prev => prev.filter(f => f.id !== folderId));
-        if (selectedFolderId === folderId) setSelectedFolderId(null);
+        if (selectedFolderId === folderId) {
+           const f = folders.find(x => x.id === folderId);
+           setSelectedFolderId(f?.parent_id || null);
+        }
         await supabase.from('note_folders').delete().eq('id', folderId);
         fetchData();
       }
@@ -359,7 +387,7 @@ export default function NotesPage() {
     }
     const { data: { user } } = await supabase.auth.getUser();
     const newJournal = { entry_date: dateStr, content: "<p></p>" };
-    setJournals(prev => [...prev, newJournal].sort((a, b) => new Date(b.entry_date).getTime() - new Date(a.entry_date).getTime()));
+    setJournals(prev =>[...prev, newJournal].sort((a, b) => new Date(b.entry_date).getTime() - new Date(a.entry_date).getTime()));
     handleSelectItem(dateStr, true);
     setShowCalendar(false);
     
@@ -548,13 +576,13 @@ export default function NotesPage() {
   const filteredItems = useMemo(() => {
     let list = isTrashOpen ? trash.filter(t => t.isJournal === (notesTab === 'journal')) : (notesTab === 'notes' ? notes : journals);
     
-    if (notesTab === 'notes' && !isTrashOpen && selectedFolderId) {
-      list = list.filter(n => n.folder_id === selectedFolderId);
-    } else if (notesTab === 'notes' && !isTrashOpen && selectedFolderId === null) {
-      list = list; // all
+    if (!searchQuery.trim()) {
+      if (notesTab === 'notes' && !isTrashOpen) {
+        list = list.filter(n => n.folder_id === selectedFolderId);
+      }
+      return list;
     }
 
-    if (!searchQuery.trim()) return list;
     const q = searchQuery.toLowerCase();
     return list.filter(item => {
       const isJournal = isTrashOpen ? item.isJournal : notesTab === 'journal';
@@ -563,6 +591,11 @@ export default function NotesPage() {
       return title?.toLowerCase().includes(q) || plain.includes(q);
     });
   },[notes, journals, trash, notesTab, searchQuery, isTrashOpen, selectedFolderId]);
+
+  const currentFolders = useMemo(() => {
+    if (notesTab !== 'notes' || isTrashOpen || searchQuery.trim()) return[];
+    return folders.filter(f => f.parent_id === selectedFolderId).sort((a,b) => a.name.localeCompare(b.name));
+  },[folders, selectedFolderId, notesTab, isTrashOpen, searchQuery]);
 
   useEffect(() => {
     if (autoSelectPending && !loading && !isTrashOpen) {
@@ -610,6 +643,18 @@ export default function NotesPage() {
     if (notesTab === 'notes') return notes.find(n => n.id === selectedId);
     return journals.find(j => j.entry_date === selectedId);
   },[selectedId, notesTab, notes, journals, trash, isTrashOpen]);
+
+  const currentFolder = folders.find(f => f.id === selectedFolderId);
+
+  const buildFolderOptions = (parentId: string | null = null, prefix = ""): {id: string, name: string}[] => {
+    let opts: any[] =[];
+    folders.filter(f => f.parent_id === parentId).forEach(f => {
+      opts.push({ id: f.id, name: prefix + f.name });
+      opts = opts.concat(buildFolderOptions(f.id, prefix + f.name + " / "));
+    });
+    return opts;
+  };
+  const folderOptions = buildFolderOptions();
 
   const renderCalendar = (isMobilePopover = false) => {
     const year = calMonth.getFullYear();
@@ -717,10 +762,10 @@ export default function NotesPage() {
           <select 
             value={selectedItem.folder_id || ''}
             onChange={(e) => moveToFolder(selectedItem.id, e.target.value)}
-            className="bg-transparent text-xs text-[#888] font-bold uppercase tracking-wider outline-none cursor-pointer"
+            className="bg-transparent text-xs text-[#888] font-bold uppercase tracking-wider outline-none cursor-pointer w-full max-w-[200px] truncate"
           >
             <option value="">No Folder</option>
-            {folders.map(f => (
+            {folderOptions.map(f => (
                <option key={f.id} value={f.id}>{f.name}</option>
             ))}
           </select>
@@ -747,18 +792,27 @@ export default function NotesPage() {
           <div className="p-4 md:p-8 lg:px-10 lg:pt-10 lg:pb-4 pb-4 space-y-4">
             <div className="flex items-center justify-between">
               <div 
-                className="flex items-center gap-2.5 text-[#3d3b33] dark:text-[#f0f0f0] cursor-pointer hover:opacity-80 transition-opacity"
+                className="flex items-center gap-2.5 text-[#3d3b33] dark:text-[#f0f0f0] cursor-pointer hover:opacity-80 transition-opacity min-w-0"
                 onClick={() => document.getElementById('notes-library-scroll-container')?.scrollTo({ top: 0, behavior: 'smooth' })}
               >
-                {isTrashOpen && (
-                  <button onClick={(e) => { e.stopPropagation(); setIsTrashOpen(false); setSelectedId(null); setNoteToFocus(null); setAutoSelectPending(true); setShowCalendar(false); }} className="flex items-center justify-center p-2.5 md:p-3 bg-white dark:bg-[#1a1a1a] text-[#888] rounded-xl border border-[#e0ddd5] dark:border-[#333] hover:text-[#3d3b33] dark:hover:text-[#f0f0f0] transition-all shadow-sm mr-1">
+                {(isTrashOpen || selectedFolderId) && (
+                  <button onClick={(e) => { 
+                    e.stopPropagation(); 
+                    if (isTrashOpen) {
+                      setIsTrashOpen(false); setSelectedId(null); setNoteToFocus(null); setAutoSelectPending(true); setShowCalendar(false); 
+                    } else {
+                      setSelectedFolderId(currentFolder?.parent_id || null);
+                    }
+                  }} className="flex items-center justify-center p-2.5 md:p-3 bg-white dark:bg-[#1a1a1a] text-[#888] rounded-xl border border-[#e0ddd5] dark:border-[#333] hover:text-[#3d3b33] dark:hover:text-[#f0f0f0] transition-all shadow-sm mr-1 shrink-0">
                     <ArrowLeft size={18} />
                   </button>
                 )}
-                {!isTrashOpen && <Library size={20} className="text-[#c2956e]" />}
-                {isTrashOpen && <Trash2 size={24} className="text-[#c2956e]" />}
-                <h1 className="text-2xl md:text-4xl font-serif font-medium tracking-tight">
-                  {isTrashOpen ? 'Trash' : 'Library'}
+                {!isTrashOpen && !selectedFolderId && <Library size={20} className="text-[#c2956e] shrink-0" />}
+                {!isTrashOpen && selectedFolderId && <Folder size={20} className="text-[#c2956e] shrink-0" />}
+                {isTrashOpen && <Trash2 size={24} className="text-[#c2956e] shrink-0" />}
+                
+                <h1 className="text-2xl md:text-4xl font-serif font-medium tracking-tight truncate max-w-[200px] md:max-w-[300px]">
+                  {isTrashOpen ? 'Trash' : (currentFolder ? currentFolder.name : 'Library')}
                 </h1>
               </div>
               
@@ -772,7 +826,14 @@ export default function NotesPage() {
                     >
                       <Trash2 size={16} />
                     </button>
-                    <button onClick={createNote} data-tooltip-id="global-tooltip" data-tooltip-content="New Note" className="hidden lg:flex w-10 h-10 items-center justify-center bg-[#c2956e] text-white dark:bg-[#b0855f] rounded-full md:hover:scale-105 transition-all shadow-lg">
+                    <button 
+                      onClick={createFolder} 
+                      data-tooltip-id="global-tooltip" data-tooltip-content="New Folder"
+                      className="hidden lg:flex w-10 h-10 shrink-0 items-center justify-center bg-white dark:bg-[#1a1a1a] text-[#888] hover:text-[#c2956e] border border-[#e0ddd5] dark:border-[#333] rounded-full transition-all shadow-sm"
+                    >
+                      <FolderPlus size={16} />
+                    </button>
+                    <button onClick={createNote} data-tooltip-id="global-tooltip" data-tooltip-content="New Note" className="hidden lg:flex w-10 h-10 items-center justify-center bg-[#c2956e] text-white dark:bg-[#b0855f] rounded-full md:hover:scale-105 transition-all shadow-lg shrink-0">
                       <Plus size={18} />
                     </button>
                   </>
@@ -830,30 +891,6 @@ export default function NotesPage() {
                   ))}
                 </div>
               </div>
-
-              {!isTrashOpen && notesTab === 'notes' && (
-                <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-1">
-                  <button 
-                    onClick={() => { setSelectedFolderId(null); setAutoSelectPending(true); }} 
-                    className={`px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-widest whitespace-nowrap transition-colors border ${selectedFolderId === null ? 'bg-[#c2956e] text-white border-[#c2956e]' : 'bg-white dark:bg-[#1a1a1a] text-[#888] border-[#e0ddd5] dark:border-[#333] hover:text-[#3d3b33] dark:hover:text-white'}`}
-                  >
-                    All Notes
-                  </button>
-                  {folders.map(f => (
-                    <button 
-                      key={f.id} 
-                      onClick={() => { setSelectedFolderId(f.id); setAutoSelectPending(true); }}
-                      onDoubleClick={() => deleteFolder(f.id)}
-                      className={`px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-widest whitespace-nowrap transition-colors border ${selectedFolderId === f.id ? 'bg-[#c2956e] text-white border-[#c2956e]' : 'bg-white dark:bg-[#1a1a1a] text-[#888] border-[#e0ddd5] dark:border-[#333] hover:text-[#3d3b33] dark:hover:text-white'}`}
-                    >
-                      {f.name}
-                    </button>
-                  ))}
-                  <button onClick={createFolder} className="px-3 py-1.5 rounded-lg bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] text-[#888] hover:text-[#c2956e] transition-colors shrink-0">
-                    <Plus size={14} />
-                  </button>
-                </div>
-              )}
             </div>
           </div>
 
@@ -863,8 +900,35 @@ export default function NotesPage() {
                 <Sparkles className="animate-pulse text-[#c2956e]" />
                 <span className="text-[10px] font-bold uppercase tracking-widest">Opening Library...</span>
               </div>
-            ) : filteredItems.length > 0 ? (
+            ) : currentFolders.length > 0 || filteredItems.length > 0 ? (
               <>
+                {currentFolders.map(folder => (
+                  <div 
+                    key={folder.id} 
+                    onClick={() => setSelectedFolderId(folder.id)} 
+                    onDoubleClick={() => deleteFolder(folder.id)}
+                    className="w-full text-left p-4 rounded-2xl transition-all duration-200 border relative group overflow-hidden bg-[#fdfbf7] dark:bg-[#161616] border-[#f0ede8] dark:border-[#222] md:hover:border-[#c2956e]/20 md:dark:hover:border-[#b0855f]/20 md:hover:shadow-sm cursor-pointer"
+                  >
+                    <div className="flex justify-between items-center">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 rounded-xl bg-[#c2956e]/10 text-[#c2956e] dark:bg-[#b0855f]/20 dark:text-[#d1a784]">
+                          <Folder size={18} />
+                        </div>
+                        <span className="font-semibold text-[14px] text-[#3d3b33] dark:text-[#f0f0f0]">{folder.name}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button 
+                          onClick={(e) => { e.stopPropagation(); deleteFolder(folder.id); }} 
+                          className="p-1.5 text-[#b0ad9a] hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                        <ChevronRight size={18} className="text-[#b0ad9a]" />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+                
                 {filteredItems.map(item => {
                   const isJournal = isTrashOpen ? item.isJournal : notesTab === 'journal';
                   const id = item.entry_date || item.id;
@@ -965,14 +1029,22 @@ export default function NotesPage() {
       </main>
 
       {isListVisible && !isTrashOpen && (
-        <div className="lg:hidden fixed bottom-[calc(110px+env(safe-area-inset-bottom))] right-6 z-[100] flex flex-col items-end">
+        <div className="lg:hidden fixed bottom-[calc(110px+env(safe-area-inset-bottom))] right-6 z-[100] flex flex-col items-end gap-3">
           {showCalendar && notesTab === 'journal' && (
             <>
               <div className="fixed inset-0 z-40" onClick={() => setShowCalendar(false)} />
-              <div className="relative z-50 mb-4 animate-fade-up origin-bottom-right">
+              <div className="relative z-50 mb-1 animate-fade-up origin-bottom-right">
                 {renderCalendar(true)}
               </div>
             </>
+          )}
+          {notesTab === 'notes' && (
+             <button 
+               onClick={createFolder}
+               className="relative z-50 w-12 h-12 bg-white dark:bg-[#252525] border border-[#e0ddd5] dark:border-[#333] text-[#888] rounded-full shadow-lg flex items-center justify-center active:scale-95 transition-all"
+             >
+               <FolderPlus size={20} />
+             </button>
           )}
           <button 
             onClick={() => {

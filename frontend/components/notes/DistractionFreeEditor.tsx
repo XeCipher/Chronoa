@@ -1,12 +1,15 @@
+// frontend/components/notes/DistractionFreeEditor.tsx
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useUiStore } from "@/store/uiStore";
-import { useEditor, EditorContent } from "@tiptap/react";
+import { useEditor, EditorContent, NodeViewWrapper, NodeViewContent, ReactNodeViewRenderer } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
+import Heading from "@tiptap/extension-heading";
 import Underline from "@tiptap/extension-underline";
 import Link from "@tiptap/extension-link";
 import { Plugin, PluginKey } from "@tiptap/pm/state";
+import { Decoration, DecorationSet } from "@tiptap/pm/view";
 import { Extension } from "@tiptap/core";
 import {
   Clock,
@@ -19,7 +22,9 @@ import {
   Heading2,
   Maximize,
   Minimize,
-  Link as LinkIcon
+  Link as LinkIcon,
+  ChevronDown,
+  ChevronRight
 } from "lucide-react";
 
 interface EditorProps {
@@ -80,6 +85,97 @@ const MergeListsPlugin = Extension.create({
   },
 });
 
+// The Collapsible Heading Extension
+const CollapsibleHeading = Heading.extend({
+  addAttributes() {
+    return {
+      ...this.parent?.(),
+      collapsed: {
+        default: false,
+        parseHTML: element => element.getAttribute('data-collapsed') === 'true',
+        renderHTML: attributes => {
+          if (!attributes.collapsed) return {};
+          return { 'data-collapsed': 'true' };
+        },
+      },
+    };
+  },
+  addNodeView() {
+    return ReactNodeViewRenderer(HeadingNodeView);
+  }
+});
+
+// The Interactive Heading Node View
+const HeadingNodeView = (props: any) => {
+  const { node, updateAttributes, editor } = props;
+  const { level, collapsed } = node.attrs;
+  const isEditable = editor.isEditable;
+  const Tag = `h${level}` as any;
+
+  return (
+    <NodeViewWrapper className="relative group">
+      {isEditable && (
+        <div 
+          contentEditable={false}
+          className="absolute -left-6 lg:-left-8 top-1/2 -translate-y-1/2 cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity text-[#b0ad9a] hover:text-[#c2956e] p-1 z-10"
+          onClick={() => updateAttributes({ collapsed: !collapsed })}
+        >
+          {collapsed ? <ChevronRight size={18} /> : <ChevronDown size={18} />}
+        </div>
+      )}
+      <NodeViewContent as={Tag} className={collapsed ? 'border-b-2 border-dashed border-[#c2956e]/40 dark:border-[#b0855f]/40 pb-1 mb-2 inline-block w-full' : ''} />
+    </NodeViewWrapper>
+  );
+};
+
+// Plugin to hide trailing elements up to the next highest or identical heading
+const CollapsePluginKey = new PluginKey('collapsePlugin');
+const CollapsePlugin = Extension.create({
+  name: 'collapsePlugin',
+  addProseMirrorPlugins() {
+    return[
+      new Plugin({
+        key: CollapsePluginKey,
+        state: {
+          init() { return DecorationSet.empty; },
+          apply(tr, oldSet, oldState, newState) {
+            const decos: Decoration[] =[];
+            let currentCollapseLevel: number | null = null;
+
+            newState.doc.forEach((node, offset) => {
+              if (node.type.name === 'heading') {
+                const level = node.attrs.level;
+                if (currentCollapseLevel !== null && level <= currentCollapseLevel) {
+                  currentCollapseLevel = null;
+                }
+                
+                if (currentCollapseLevel === null && node.attrs.collapsed) {
+                  currentCollapseLevel = level;
+                }
+              } else {
+                if (currentCollapseLevel !== null) {
+                  decos.push(
+                    Decoration.node(offset, offset + node.nodeSize, {
+                      class: 'hidden-by-collapse',
+                    })
+                  );
+                }
+              }
+            });
+
+            return DecorationSet.create(newState.doc, decos);
+          }
+        },
+        props: {
+          decorations(state) {
+            return this.getState(state);
+          }
+        }
+      })
+    ];
+  }
+});
+
 export default function DistractionFreeEditor({
   initialContent,
   isEditable = true,
@@ -120,6 +216,19 @@ export default function DistractionFreeEditor({
     link: false,
   });
 
+  // Intercept raw mouse downs so we don't accidentally fight manual selection drags
+  const isMouseDown = useRef(false);
+  useEffect(() => {
+    const down = () => { isMouseDown.current = true; };
+    const up = () => { isMouseDown.current = false; };
+    window.addEventListener('mousedown', down);
+    window.addEventListener('mouseup', up);
+    return () => {
+      window.removeEventListener('mousedown', down);
+      window.removeEventListener('mouseup', up);
+    };
+  },[]);
+
   useEffect(() => {
     if (noteType === "journal") {
       setPlaceholder(PROMPTS[Math.floor(Math.random() * PROMPTS.length)]);
@@ -128,7 +237,7 @@ export default function DistractionFreeEditor({
 
   // ── Core Scroll Engine: Flawless Margin Management ─────────────────────────
   const ensureCursorVisible = useCallback((ed: ReturnType<typeof useEditor>) => {
-    if (!ed) return;
+    if (!ed || isMouseDown.current) return;
 
     // Use requestAnimationFrame to ensure the DOM has painted the new line/character
     requestAnimationFrame(() => {
@@ -179,7 +288,9 @@ export default function DistractionFreeEditor({
   const editor = useEditor({
     editable: isEditable,
     extensions:[
-      StarterKit.configure({ heading: { levels: [1, 2] } }),
+      StarterKit.configure({ heading: false }), // Disabled native logic to apply custom attributes
+      CollapsibleHeading.configure({ levels: [1, 2] }),
+      CollapsePlugin,
       Underline,
       MergeListsPlugin,
       Link.configure({
@@ -216,6 +327,7 @@ export default function DistractionFreeEditor({
       });
     },
     onFocus: ({ editor: ed }) => {
+      if (isMouseDown.current) return;
       // Staggered checks to smoothly track the iOS/Android keyboard sliding animation
       ensureCursorVisibleRef.current(ed);
       setTimeout(() => ensureCursorVisibleRef.current(ed), 100);
