@@ -2,9 +2,10 @@
 "use client";
 
 import { useEffect, useState, useMemo, useCallback, useRef } from "react";
+import React from "react";
 import { supabase } from "@/lib/supabase";
 import DistractionFreeEditor from "@/components/notes/DistractionFreeEditor";
-import { Search, Plus, Trash2, BookOpen, FileText, ChevronLeft, RotateCcw, Library, Sparkles, CalendarDays, X, ChevronRight, ArrowLeft, Folder, FolderPlus } from "lucide-react";
+import { Search, Plus, Trash2, BookOpen, FileText, ChevronLeft, RotateCcw, Library, Sparkles, CalendarDays, X, ChevronRight, ArrowLeft, Folder, FolderPlus, Edit3, FolderInput } from "lucide-react";
 import { useUiStore } from "@/store/uiStore";
 import { usePathname } from "next/navigation";
 
@@ -68,22 +69,25 @@ export default function NotesPage() {
   const[notes, setNotes] = useState<any[]>([]);
   const [journals, setJournals] = useState<any[]>([]);
   const[trash, setTrash] = useState<any[]>([]);
-  const [folders, setFolders] = useState<any[]>([]);
+  const[folders, setFolders] = useState<any[]>([]);
   
   const[searchQuery, setSearchQuery] = useState("");
   const[selectedId, setSelectedId] = useState<string | null>(null);
   const[selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
-  const [editTitle, setEditTitle] = useState("");
+  const[editTitle, setEditTitle] = useState("");
   const[noteToFocus, setNoteToFocus] = useState<string | null>(null);
   
   const[loading, setLoading] = useState(true);
-  const [isListVisible, setIsListVisible] = useState(true);
+  const[isListVisible, setIsListVisible] = useState(true);
   const[isTrashOpen, setIsTrashOpen] = useState(false);
   const[autoSelectPending, setAutoSelectPending] = useState(true);
   const[isScrolled, setIsScrolled] = useState(false);
 
   const[showCalendar, setShowCalendar] = useState(false);
   const [calMonth, setCalMonth] = useState(new Date());
+
+  const[isMoveModalOpen, setIsMoveModalOpen] = useState(false);
+  const [moveTargetFolderId, setMoveTargetFolderId] = useState<string | null>(null);
 
   const desktopCalRef = useRef<HTMLDivElement>(null);
 
@@ -127,6 +131,11 @@ export default function NotesPage() {
           return;
         }
 
+        if (isMoveModalOpen) {
+          setIsMoveModalOpen(false);
+          return;
+        }
+
         // Do not interpret as 'back' if currently interacting with an input or editor
         const target = e.target as HTMLElement;
         if (['INPUT', 'TEXTAREA'].includes(target.tagName) || target.isContentEditable) {
@@ -159,7 +168,7 @@ export default function NotesPage() {
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  },[isEditorFullscreen, setEditorFullscreen, isTrashOpen, isListVisible, selectedFolderId, folders]);
+  },[isEditorFullscreen, setEditorFullscreen, isMoveModalOpen, isTrashOpen, isListVisible, selectedFolderId, folders]);
 
   const handleTabChange = (id: Tab) => {
     setNotesTab(id);
@@ -235,7 +244,7 @@ export default function NotesPage() {
     if (pathname === '/notes') {
       fetchData();
     }
-  }, [pathname, fetchData]);
+  },[pathname, fetchData]);
 
   useEffect(() => { 
     fetchData(); 
@@ -338,6 +347,25 @@ export default function NotesPage() {
 
         if (data) {
           setFolders(prev => [...prev, data]);
+        }
+      }
+    });
+  };
+
+  const renameFolder = (folder: any) => {
+    showConfirmDialog({
+      title: "Rename Folder",
+      message: "Enter a new name for this folder.",
+      isPrompt: true,
+      promptDefaultValue: folder.name,
+      promptPlaceholder: "Folder name...",
+      confirmText: "Rename",
+      onConfirm: async (newName?: string) => {
+        if (!newName || !newName.trim() || newName.trim() === folder.name) return;
+        const trimmed = newName.trim();
+        setFolders(prev => prev.map(f => f.id === folder.id ? { ...f, name: trimmed } : f));
+        if (navigator.onLine) {
+           await supabase.from('note_folders').update({ name: trimmed }).eq('id', folder.id);
         }
       }
     });
@@ -646,15 +674,20 @@ export default function NotesPage() {
 
   const currentFolder = folders.find(f => f.id === selectedFolderId);
 
-  const buildFolderOptions = (parentId: string | null = null, prefix = ""): {id: string, name: string}[] => {
-    let opts: any[] =[];
-    folders.filter(f => f.parent_id === parentId).forEach(f => {
-      opts.push({ id: f.id, name: prefix + f.name });
-      opts = opts.concat(buildFolderOptions(f.id, prefix + f.name + " / "));
-    });
-    return opts;
+  const getFolderPath = (folderId: string | null) => {
+    if (!folderId) return[];
+    const path =[];
+    let curr = folders.find(f => f.id === folderId);
+    while (curr) {
+      path.unshift(curr);
+      curr = folders.find(f => f.id === curr.parent_id);
+    }
+    return path;
   };
-  const folderOptions = buildFolderOptions();
+
+  const moveModalSubfolders = useMemo(() => {
+    return folders.filter(f => f.parent_id === moveTargetFolderId).sort((a,b) => a.name.localeCompare(b.name));
+  },[folders, moveTargetFolderId]);
 
   const renderCalendar = (isMobilePopover = false) => {
     const year = calMonth.getFullYear();
@@ -739,6 +772,17 @@ export default function NotesPage() {
         </div>
 
         <div className="flex items-center gap-1 shrink-0">
+          {!isTrashOpen && notesTab === 'notes' && !selectedItem?.isJournal && (
+             <button 
+               data-tooltip-id="global-tooltip" 
+               data-tooltip-content="Move Note" 
+               onClick={() => { setMoveTargetFolderId(selectedItem?.folder_id || null); setIsMoveModalOpen(true); }} 
+               className="w-9 h-9 lg:w-10 lg:h-10 text-[#b0ad9a] hover:text-[#c2956e] hover:bg-[#c2956e]/10 dark:hover:bg-[#b0855f]/20 rounded-full transition-all flex items-center justify-center bg-transparent outline-none mr-1"
+             >
+               <FolderInput size={18} />
+             </button>
+          )}
+
           {!isTrashOpen ? (
             <button data-tooltip-id="global-tooltip" data-tooltip-content="Move to Trash" onClick={() => moveToTrash(selectedItem?.entry_date || selectedItem?.id)} className="w-9 h-9 lg:w-10 lg:h-10 text-[#b0ad9a] hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-full transition-all flex items-center justify-center bg-transparent outline-none">
               <Trash2 size={18} />
@@ -755,22 +799,6 @@ export default function NotesPage() {
           )}
         </div>
       </div>
-      
-      {notesTab === 'notes' && !isTrashOpen && selectedItem && !selectedItem.isJournal && (
-        <div className="flex items-center gap-2 mt-1">
-          <Folder size={14} className="text-[#888]" />
-          <select 
-            value={selectedItem.folder_id || ''}
-            onChange={(e) => moveToFolder(selectedItem.id, e.target.value)}
-            className="bg-transparent text-xs text-[#888] font-bold uppercase tracking-wider outline-none cursor-pointer w-full max-w-[200px] truncate"
-          >
-            <option value="">No Folder</option>
-            {folderOptions.map(f => (
-               <option key={f.id} value={f.id}>{f.name}</option>
-            ))}
-          </select>
-        </div>
-      )}
     </div>
   );
 
@@ -790,7 +818,7 @@ export default function NotesPage() {
       `}>
         <div className="w-full lg:w-[350px] flex flex-col h-full shrink-0">
           <div className="p-4 md:p-8 lg:px-10 lg:pt-10 lg:pb-4 pb-4 space-y-4">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between gap-3">
               <div 
                 className="flex items-center gap-2.5 text-[#3d3b33] dark:text-[#f0f0f0] cursor-pointer hover:opacity-80 transition-opacity min-w-0"
                 onClick={() => document.getElementById('notes-library-scroll-container')?.scrollTo({ top: 0, behavior: 'smooth' })}
@@ -816,7 +844,7 @@ export default function NotesPage() {
                 </h1>
               </div>
               
-              <div className="flex items-center gap-2 relative">
+              <div className="flex items-center gap-1.5 md:gap-2 shrink-0 relative">
                 {!isTrashOpen && notesTab === 'notes' && (
                   <>
                     <button 
@@ -825,13 +853,6 @@ export default function NotesPage() {
                       className="w-10 h-10 flex shrink-0 items-center justify-center rounded-full transition-all text-[#888] md:hover:text-red-400 bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] shadow-sm"
                     >
                       <Trash2 size={16} />
-                    </button>
-                    <button 
-                      onClick={createFolder} 
-                      data-tooltip-id="global-tooltip" data-tooltip-content="New Folder"
-                      className="hidden lg:flex w-10 h-10 shrink-0 items-center justify-center bg-white dark:bg-[#1a1a1a] text-[#888] hover:text-[#c2956e] border border-[#e0ddd5] dark:border-[#333] rounded-full transition-all shadow-sm"
-                    >
-                      <FolderPlus size={16} />
                     </button>
                     <button onClick={createNote} data-tooltip-id="global-tooltip" data-tooltip-content="New Note" className="hidden lg:flex w-10 h-10 items-center justify-center bg-[#c2956e] text-white dark:bg-[#b0855f] rounded-full md:hover:scale-105 transition-all shadow-lg shrink-0">
                       <Plus size={18} />
@@ -894,7 +915,7 @@ export default function NotesPage() {
             </div>
           </div>
 
-          <div id="notes-library-scroll-container" className="flex-1 overflow-y-auto no-scrollbar px-4 pb-4 md:px-8 lg:px-10 lg:pl-8 space-y-3 scroll-smooth">
+          <div id="notes-library-scroll-container" className="flex-1 overflow-y-auto no-scrollbar px-4 pb-4 md:px-8 lg:px-10 lg:pl-8 scroll-smooth">
             {loading && notes.length === 0 && journals.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-12 gap-3 opacity-40">
                 <Sparkles className="animate-pulse text-[#c2956e]" />
@@ -902,59 +923,85 @@ export default function NotesPage() {
               </div>
             ) : currentFolders.length > 0 || filteredItems.length > 0 ? (
               <>
+                {notesTab === 'notes' && !isTrashOpen && !searchQuery && (
+                  <div className="flex items-center justify-between mb-2 px-1 mt-1">
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-[#b0ad9a] dark:text-[#7a7a7a]">
+                      {currentFolder ? 'Subfolders' : 'Folders'}
+                    </span>
+                    <button onClick={createFolder} className="text-[#b0ad9a] hover:text-[#c2956e] transition-colors p-1" data-tooltip-id="global-tooltip" data-tooltip-content="New Folder">
+                      <Plus size={14} strokeWidth={2.5} />
+                    </button>
+                  </div>
+                )}
+
                 {currentFolders.map(folder => (
                   <div 
                     key={folder.id} 
                     onClick={() => setSelectedFolderId(folder.id)} 
-                    onDoubleClick={() => deleteFolder(folder.id)}
-                    className="w-full text-left p-4 rounded-2xl transition-all duration-200 border relative group overflow-hidden bg-[#fdfbf7] dark:bg-[#161616] border-[#f0ede8] dark:border-[#222] md:hover:border-[#c2956e]/20 md:dark:hover:border-[#b0855f]/20 md:hover:shadow-sm cursor-pointer"
+                    className="group flex items-center justify-between p-3.5 mb-2 rounded-2xl bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] md:hover:border-[#c2956e]/40 shadow-sm transition-all cursor-pointer"
                   >
-                    <div className="flex justify-between items-center">
-                      <div className="flex items-center gap-3">
-                        <div className="p-2 rounded-xl bg-[#c2956e]/10 text-[#c2956e] dark:bg-[#b0855f]/20 dark:text-[#d1a784]">
-                          <Folder size={18} />
-                        </div>
-                        <span className="font-semibold text-[14px] text-[#3d3b33] dark:text-[#f0f0f0]">{folder.name}</span>
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="w-9 h-9 rounded-xl bg-[#c2956e]/10 text-[#c2956e] dark:bg-[#b0855f]/20 dark:text-[#d1a784] flex items-center justify-center shrink-0">
+                        <Folder size={18} />
                       </div>
-                      <div className="flex items-center gap-2">
-                        <button 
-                          onClick={(e) => { e.stopPropagation(); deleteFolder(folder.id); }} 
-                          className="p-1.5 text-[#b0ad9a] hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
-                        >
-                          <Trash2 size={16} />
-                        </button>
-                        <ChevronRight size={18} className="text-[#b0ad9a]" />
-                      </div>
+                      <span className="font-semibold text-[14px] text-[#3d3b33] dark:text-[#f0f0f0] truncate">{folder.name}</span>
+                    </div>
+                    <div className="flex items-center gap-1 shrink-0 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity">
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); renameFolder(folder); }} 
+                        className="p-1.5 text-[#b0ad9a] hover:text-[#c2956e] transition-colors"
+                        data-tooltip-id="global-tooltip" data-tooltip-content="Rename Folder"
+                      >
+                        <Edit3 size={15} />
+                      </button>
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); deleteFolder(folder.id); }} 
+                        className="p-1.5 text-[#b0ad9a] hover:text-red-500 transition-colors"
+                        data-tooltip-id="global-tooltip" data-tooltip-content="Delete Folder"
+                      >
+                        <Trash2 size={15} />
+                      </button>
+                      <ChevronRight size={16} className="text-[#b0ad9a] ml-0.5 opacity-50 group-hover:opacity-100" />
                     </div>
                   </div>
                 ))}
-                
-                {filteredItems.map(item => {
-                  const isJournal = isTrashOpen ? item.isJournal : notesTab === 'journal';
-                  const id = item.entry_date || item.id;
-                  const isSelected = selectedId === id;
-                  const title = isJournal ? formatDateLabel(item.entry_date) : (item.title || 'Untitled');
-                  const daysLeft = isTrashOpen ? Math.ceil(30 - (Date.now() - new Date(item.deleted_at).getTime()) / (1000 * 60 * 60 * 24)) : 0;
 
-                  return (
-                    <button key={id} onClick={() => handleSelectItem(id)} 
-                      className={`w-full text-left p-4 rounded-2xl transition-all duration-200 border relative group overflow-hidden ${
-                        isSelected 
-                        ? 'bg-white dark:bg-[#1e1e1e] border-[#e0ddd5] dark:border-[#222] lg:border-[#c2956e]/40 lg:dark:border-[#b0855f]/50 shadow-sm lg:shadow-md lg:translate-x-1' 
-                        : 'bg-[#fdfbf7] dark:bg-[#161616] border-[#f0ede8] dark:border-[#222] md:hover:border-[#c2956e]/20 md:dark:hover:border-[#b0855f]/20 md:hover:shadow-sm'
-                      }`}>
-                      {isSelected && <div className="hidden lg:block absolute left-0 top-0 bottom-0 w-1 bg-[#c2956e]" />}
-                      <div className="flex justify-between items-baseline mb-1 gap-3">
-                        <span className={`font-semibold text-[14px] truncate ${isSelected ? 'text-[#c2956e] dark:text-[#d1a784]' : 'text-[#3d3b33] dark:text-[#f0f0f0]'}`}>{title}</span>
-                        <span className="text-[9px] font-bold text-[#b0ad9a] dark:text-[#555] uppercase tracking-widest shrink-0">{formatDateLabel(item.updated_at || item.entry_date)}</span>
-                      </div>
-                      <div className="text-[11px] leading-relaxed line-clamp-2 text-[#888] dark:text-[#888]">
-                        {isTrashOpen && <span className="text-red-500 font-bold block mb-1 text-[9px] uppercase tracking-tighter">Deletes in {daysLeft} days</span>}
-                        <Snippet html={item.content} query={searchQuery} />
-                      </div>
-                    </button>
-                  );
-                })}
+                {notesTab === 'notes' && !isTrashOpen && !searchQuery && (
+                  <div className="flex items-center justify-between mb-2 px-1 mt-4">
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-[#b0ad9a] dark:text-[#7a7a7a]">
+                      Notes
+                    </span>
+                  </div>
+                )}
+                
+                <div className="space-y-3">
+                  {filteredItems.map(item => {
+                    const isJournal = isTrashOpen ? item.isJournal : notesTab === 'journal';
+                    const id = item.entry_date || item.id;
+                    const isSelected = selectedId === id;
+                    const title = isJournal ? formatDateLabel(item.entry_date) : (item.title || 'Untitled');
+                    const daysLeft = isTrashOpen ? Math.ceil(30 - (Date.now() - new Date(item.deleted_at).getTime()) / (1000 * 60 * 60 * 24)) : 0;
+
+                    return (
+                      <button key={id} onClick={() => handleSelectItem(id)} 
+                        className={`w-full text-left p-4 rounded-2xl transition-all duration-200 border relative group overflow-hidden ${
+                          isSelected 
+                          ? 'bg-white dark:bg-[#1e1e1e] border-[#e0ddd5] dark:border-[#222] lg:border-[#c2956e]/40 lg:dark:border-[#b0855f]/50 shadow-sm lg:shadow-md lg:translate-x-1' 
+                          : 'bg-[#fdfbf7] dark:bg-[#161616] border-[#f0ede8] dark:border-[#222] md:hover:border-[#c2956e]/20 md:dark:hover:border-[#b0855f]/20 md:hover:shadow-sm'
+                        }`}>
+                        {isSelected && <div className="hidden lg:block absolute left-0 top-0 bottom-0 w-1 bg-[#c2956e]" />}
+                        <div className="flex justify-between items-baseline mb-1 gap-3">
+                          <span className={`font-semibold text-[14px] truncate ${isSelected ? 'text-[#c2956e] dark:text-[#d1a784]' : 'text-[#3d3b33] dark:text-[#f0f0f0]'}`}>{title}</span>
+                          <span className="text-[9px] font-bold text-[#b0ad9a] dark:text-[#555] uppercase tracking-widest shrink-0">{formatDateLabel(item.updated_at || item.entry_date)}</span>
+                        </div>
+                        <div className="text-[11px] leading-relaxed line-clamp-2 text-[#888] dark:text-[#888]">
+                          {isTrashOpen && <span className="text-red-500 font-bold block mb-1 text-[9px] uppercase tracking-tighter">Deletes in {daysLeft} days</span>}
+                          <Snippet html={item.content} query={searchQuery} />
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
                 <div className="h-28 lg:h-0 w-full shrink-0 pointer-events-none" />
               </>
             ) : (
@@ -1027,6 +1074,58 @@ export default function NotesPage() {
           </div>
         )}
       </main>
+
+      {/* Move Note Modal */}
+      {isMoveModalOpen && (
+        <div className="fixed inset-0 z-[600] flex items-center justify-center px-4 bg-black/40 dark:bg-black/60 backdrop-blur-sm animate-fade-in">
+          <div className="bg-[#f7f5f0] dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] rounded-[2.5rem] w-full max-w-md shadow-2xl flex flex-col overflow-hidden max-h-[85vh] animate-fade-up">
+             <header className="px-6 py-6 border-b border-[#e0ddd5] dark:border-[#2a2a2a] flex justify-between items-center bg-white dark:bg-[#1e1e1e] shrink-0">
+                <h3 className="text-2xl font-serif text-[#3d3b33] dark:text-[#f0f0f0] font-medium tracking-tight">Move Note</h3>
+                <button onClick={() => setIsMoveModalOpen(false)} className="p-2 text-[#888] hover:text-[#3d3b33] dark:hover:text-white bg-[#f0ede8] dark:bg-[#252525] hover:bg-[#e0ddd5] dark:hover:bg-[#333] rounded-full transition-colors"><X size={18} /></button>
+             </header>
+             
+             <div className="p-6 md:p-8 overflow-y-auto no-scrollbar flex-1 space-y-5 bg-[#f7f5f0] dark:bg-[#121212]">
+                {/* Breadcrumbs Path Navigation */}
+                <div className="flex flex-wrap items-center gap-1.5 text-sm font-medium text-[#888]">
+                   <button onClick={() => setMoveTargetFolderId(null)} className={`hover:text-[#c2956e] transition-colors ${moveTargetFolderId === null ? 'text-[#3d3b33] dark:text-white' : ''}`}>Library</button>
+                   {getFolderPath(moveTargetFolderId).map(f => (
+                      <React.Fragment key={f.id}>
+                        <ChevronRight size={14} className="text-[#b0ad9a]" />
+                        <button onClick={() => setMoveTargetFolderId(f.id)} className={`hover:text-[#c2956e] transition-colors truncate max-w-[120px] ${moveTargetFolderId === f.id ? 'text-[#3d3b33] dark:text-white' : ''}`}>{f.name}</button>
+                      </React.Fragment>
+                   ))}
+                </div>
+
+                <div className="border border-[#e0ddd5] dark:border-[#333] rounded-2xl bg-white dark:bg-[#1a1a1a] overflow-hidden shadow-sm">
+                   {moveModalSubfolders.length > 0 ? moveModalSubfolders.map(f => (
+                     <div key={f.id} onClick={() => setMoveTargetFolderId(f.id)} className="flex items-center gap-3 p-3.5 border-b border-[#e0ddd5] dark:border-[#333] last:border-b-0 hover:bg-[#fdfbf7] dark:hover:bg-[#2a2a2a] cursor-pointer transition-colors group">
+                        <div className="w-8 h-8 rounded-xl bg-[#c2956e]/10 text-[#c2956e] flex items-center justify-center shrink-0">
+                          <Folder size={16} />
+                        </div>
+                        <span className="text-[14px] font-medium text-[#3d3b33] dark:text-white truncate">{f.name}</span>
+                        <ChevronRight size={16} className="ml-auto text-[#b0ad9a] opacity-50 group-hover:opacity-100 transition-opacity" />
+                     </div>
+                   )) : (
+                     <div className="p-6 text-center text-xs text-[#b0ad9a] italic">No subfolders here.</div>
+                   )}
+                </div>
+             </div>
+             
+             <footer className="px-6 py-5 border-t border-[#e0ddd5] dark:border-[#2a2a2a] bg-white dark:bg-[#1e1e1e] flex justify-end gap-3 shrink-0">
+                <button onClick={() => setIsMoveModalOpen(false)} className="px-5 py-2.5 rounded-xl text-[11px] font-bold uppercase tracking-widest text-[#888] hover:text-[#3d3b33] dark:hover:text-white transition-colors">Cancel</button>
+                <button 
+                   onClick={() => { 
+                     moveToFolder(selectedId!, moveTargetFolderId); 
+                     setIsMoveModalOpen(false); 
+                   }} 
+                   className="px-6 py-2.5 rounded-xl text-[11px] font-bold uppercase tracking-widest text-white bg-[#c2956e] hover:bg-[#b0855f] transition-all shadow-md hover:shadow-lg hover:-translate-y-0.5"
+                >
+                   Move Here
+                </button>
+             </footer>
+          </div>
+        </div>
+      )}
 
       {isListVisible && !isTrashOpen && (
         <div className="lg:hidden fixed bottom-[calc(110px+env(safe-area-inset-bottom))] right-6 z-[100] flex flex-col items-end gap-3">
