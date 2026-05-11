@@ -78,6 +78,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       setUserId(currentUserId);
       setIsLoading(false);
 
+      supabase.from('profiles').update({ last_accessed_at: new Date().toISOString() }).eq('id', currentUserId).then();
+
       const { data: profile } = await supabase.from('profiles').select('*').eq('id', currentUserId).single();
       if (profile) {
         // Automatically sync system timezone for proper serverless cron execution
@@ -163,6 +165,20 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   },[]);
+
+  useEffect(() => {
+    if (!userId) return;
+
+    const updateLastAccessed = () => {
+      supabase.from('profiles').update({ last_accessed_at: new Date().toISOString() }).eq('id', userId).then();
+    };
+
+    const intervalId = setInterval(updateLastAccessed, 5 * 60 * 1000); // 5 minutes
+
+    return () => {
+      clearInterval(intervalId);
+    };
+  }, [userId]);
 
   useEffect(() => {
     if (isLoading || !userId) return;
