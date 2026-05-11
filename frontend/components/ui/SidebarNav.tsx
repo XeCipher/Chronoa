@@ -13,8 +13,9 @@ export default function SidebarNav() {
   
   const { isSidebarPinned, toggleSidebarPin, isSidebarIconPinned, toggleSidebarIconPin, mobileNoteOpen, isEditorFullscreen } = useUiStore();
   const [isHovered, setIsHovered] = useState(false);
-  const [isAsleep, setIsAsleep] = useState(false);
+  const[isAsleep, setIsAsleep] = useState(false);
   const [touchOpen, setTouchOpen] = useState(false);
+  const [spinKey, setSpinKey] = useState(0);
   
   // Cache user avatar for instant load
   const [userAvatar, setUserAvatar] = useState<string | null>(() => {
@@ -29,7 +30,12 @@ export default function SidebarNav() {
         localStorage.setItem('chronoa_avatar', user.user_metadata.avatar_url);
       }
     });
-  }, []);
+  },[]);
+
+  // Update spinKey on pathname change to trigger re-animation on the Sun logo
+  useEffect(() => {
+    setSpinKey(prev => prev + 1);
+  }, [pathname]);
 
   // Auto-close to asleep (hidden) state in 3 seconds
   useEffect(() => {
@@ -54,12 +60,12 @@ export default function SidebarNav() {
       }, 3000);
     }
     return () => clearTimeout(timeout);
-  }, [isHovered, touchOpen, isSidebarPinned, pathname]);
+  },[isHovered, touchOpen, isSidebarPinned, pathname]);
 
   const isExpanded = isSidebarPinned || isHovered || touchOpen;
   const isHiddenMode = !isExpanded && isAsleep && !isSidebarIconPinned;
 
-  const navItems = [
+  const desktopNavItems =[
     { name: "Home", href: "/home", icon: Home },
     { name: "Tasks", href: "/tasks", icon: CheckSquare },
     { name: "Notes", href: "/notes", icon: FileText },
@@ -67,16 +73,25 @@ export default function SidebarNav() {
     { name: "Analytics", href: "/analytics", icon: BarChart2 },
   ];
 
-  const currentItem = navItems.find(item => item.href === pathname) || { 
+  const mobileNavItems =[
+    { name: "Tasks", href: "/tasks", icon: CheckSquare },
+    { name: "Notes", href: "/notes", icon: FileText },
+    { name: "Home", href: "/home", icon: Sun, isLogo: true },
+    { name: "Calendar", href: "/calendar", icon: CalendarDays },
+    { name: "Analytics", href: "/analytics", icon: BarChart2 },
+  ];
+
+  const currentItem = desktopNavItems.find(item => item.href === pathname) || { 
     name: pathname === '/settings' ? 'Profile' : pathname === '/sessions' ? 'Time Log' : 'Chronoa' 
   };
 
   const handleTabClick = (e: React.MouseEvent, href: string, isActive: boolean) => {
     if (isActive) {
       e.preventDefault();
+      setSpinKey(prev => prev + 1); // Triggers re-spin if actively tapped again
       window.dispatchEvent(new CustomEvent('chronoa-reset-tab', { detail: href }));
       
-      const containers = ["notes-library-scroll-container", "notes-scroll-container", "tasks-scroll-container", "analytics-scroll-container", "sessions-scroll-container", "settings-scroll-container"];
+      const containers =["notes-library-scroll-container", "notes-scroll-container", "tasks-scroll-container", "analytics-scroll-container", "sessions-scroll-container", "settings-scroll-container"];
       for (const id of containers) {
         const el = document.getElementById(id);
         if (el) el.scrollTo({ top: 0, behavior: "smooth" });
@@ -101,9 +116,12 @@ export default function SidebarNav() {
           className={`absolute top-1/2 left-11 -translate-y-1/2 -translate-x-1/2 transition-all duration-500 delay-100 flex items-center justify-center w-10 z-30 ${
           isHiddenMode && !isEditorFullscreen ? 'opacity-100 pointer-events-auto cursor-pointer' : 'opacity-0 pointer-events-none'
         }`}>
-          <span className="-rotate-90 whitespace-nowrap text-[10px] tracking-[0.4em] uppercase font-bold text-[#b0ad9a] dark:text-[#7a7a7a]">
-            {currentItem.name}
-          </span>
+          <div className="-rotate-90 flex items-center gap-3">
+             <Sun key={`vert-logo-${spinKey}`} size={16} className="text-[#c2956e] dark:text-[#b0855f] animate-spin-once shrink-0" />
+             <span className="whitespace-nowrap text-[10px] tracking-[0.4em] uppercase font-bold text-[#b0ad9a] dark:text-[#7a7a7a]">
+               {currentItem.name}
+             </span>
+          </div>
         </div>
 
         <div className={`absolute inset-y-0 left-0 h-full bg-[#f7f5f0] dark:bg-[#161616] flex flex-col z-40 transition-all duration-500 ease-in-out overflow-hidden ${
@@ -114,19 +132,28 @@ export default function SidebarNav() {
         }`}>
           
           <div className="flex items-center h-24 relative shrink-0">
-            <div className={`absolute inset-0 flex items-center px-8 transition-opacity duration-300 ${isExpanded ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
-              <h2 className="text-3xl text-[#3d3b33] dark:text-[#e0e0e0]" style={{ fontFamily: 'var(--font-cormorant), serif' }}>
+            {/* Expanded State with Text + Logo */}
+            <div className={`absolute inset-0 flex items-center px-6 gap-3 transition-opacity duration-300 ${isExpanded ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+              <Sun 
+                 className={`text-[#c2956e] dark:text-[#b0855f] shrink-0 transition-transform duration-700 ease-out ${isExpanded ? 'rotate-45 scale-110' : 'rotate-0 scale-100'}`} 
+                 size={28} 
+              />
+              <h2 className="text-3xl text-[#3d3b33] dark:text-[#e0e0e0] font-serif tracking-tight mt-1" style={{ fontFamily: 'var(--font-cormorant), serif' }}>
                 Chronoa
               </h2>
             </div>
             
+            {/* Collapsed State with smaller Logo only */}
             <div className={`absolute inset-0 flex items-center justify-center transition-opacity duration-300 ${isExpanded ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
-               <Sun className="text-[#c2956e] dark:text-[#b0855f]" size={22} />
+               <Sun 
+                 className={`text-[#c2956e] dark:text-[#b0855f] transition-transform duration-700 ease-out ${isExpanded ? 'rotate-45 scale-110' : 'rotate-0 scale-100'}`} 
+                 size={22} 
+               />
             </div>
           </div>
 
           <nav className="flex-1 space-y-2 pt-4 overflow-y-auto no-scrollbar pb-4">
-            {navItems.map((item) => {
+            {desktopNavItems.map((item) => {
               const isActive = pathname === item.href;
               return (
                 <Link
@@ -200,18 +227,29 @@ export default function SidebarNav() {
 
       {/* Mobile Bottom Nav */}
       <nav className={`md:hidden fixed bottom-0 left-0 w-full h-[calc(82px+env(safe-area-inset-bottom))] pb-[calc(1.5rem+env(safe-area-inset-bottom))] pt-0 px-6 bg-white/95 dark:bg-[#121212]/95 backdrop-blur-xl border-t border-[#e0ddd5] dark:border-[#2a2a2a] flex items-center justify-between z-[100] transition-transform duration-300 ease-in-out overflow-x-auto no-scrollbar ${mobileNoteOpen || isEditorFullscreen ? 'translate-y-full' : 'translate-y-0'}`}>
-        {navItems.map((item) => {
+        {mobileNavItems.map((item) => {
           const isActive = pathname === item.href;
           return (
             <Link
               key={item.name}
               href={item.href}
               onClick={(e) => handleTabClick(e, item.href, isActive)}
-              className={`flex items-center justify-center w-[50px] shrink-0 h-[50px] transition-all ${
+              className={`flex items-center justify-center shrink-0 transition-all ${
+                item.isLogo ? 'w-[56px] h-[56px]' : 'w-[50px] h-[50px]'
+              } ${
                 isActive ? "text-[#c2956e] dark:text-[#d1a784]" : "text-[#888888] dark:text-[#a0a0a0] active:text-[#3d3b33] dark:active:text-[#fff]"
               }`}
             >
-              <item.icon className="w-[24px] h-[24px]" strokeWidth={isActive ? 2.5 : 2} />
+              {item.isLogo ? (
+                <item.icon 
+                  key={`mob-logo-${isActive ? spinKey : ''}`}
+                  className={`shrink-0 transition-transform ${isActive ? 'animate-spin-once text-[#c2956e] dark:text-[#d1a784]' : ''}`} 
+                  style={{ width: 32, height: 32 }}
+                  strokeWidth={isActive ? 2.5 : 2} 
+                />
+              ) : (
+                <item.icon className="w-[24px] h-[24px]" strokeWidth={isActive ? 2.5 : 2} />
+              )}
             </Link>
           );
         })}
