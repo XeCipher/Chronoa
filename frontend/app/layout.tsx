@@ -31,12 +31,9 @@ export const metadata: Metadata = {
     statusBarStyle: "black-translucent",
   },
   icons: {
-    icon:[
-      { url: '/icon-light.svg', media: '(prefers-color-scheme: light)' },
-      { url: '/icon-dark.svg', media: '(prefers-color-scheme: dark)' }
-    ],
+    icon: [{ url: '/icon.svg' }],
     apple: [{ url: '/apple-icon.png' }]
-  }, 
+  },
 };
 
 // This successfully prevents the annoying Safari iOS zoom on inputs

@@ -17,7 +17,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const router = useRouter();
   const pathname = usePathname();
   const [isLoading, setIsLoading] = useState(true);
-  const[userId, setUserId] = useState<string | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
 
   const { 
     theme, 
@@ -286,7 +286,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       if (!initialRestoreDone.current) {
         initialRestoreDone.current = true;
         const isEntryPage = pathname === '/' || pathname === '/home';
-        if (isEntryPage && lastVisitedPage && lastVisitedPage !== '/' && lastVisitedPage !== '/home') {
+        // Only trigger initial redirection for valid authenticated users (prevents redirect loops on logout)
+        if (userId && isEntryPage && lastVisitedPage && lastVisitedPage !== '/' && lastVisitedPage !== '/home') {
            isRedirecting.current = true;
            router.replace(lastVisitedPage);
            return;
@@ -298,10 +299,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
          return; 
       } else {
          isRedirecting.current = false;
-         setLastVisitedPage(pathname);
+         // Only save the active page state if the user is authenticated 
+         if (userId) {
+           setLastVisitedPage(pathname);
+         }
       }
     }
-  },[pathname, isLoading, lastVisitedPage, router, setLastVisitedPage]);
+  },[pathname, isLoading, lastVisitedPage, router, setLastVisitedPage, userId]);
 
   useEffect(() => {
     const isCurrentlyDark = theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);

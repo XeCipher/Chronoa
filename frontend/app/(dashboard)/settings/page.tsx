@@ -54,10 +54,11 @@ export default function SettingsPage() {
   const { 
     taskArchiveDelay, setTaskArchiveDelay, routineResetHour, setRoutineResetHour, theme, setTheme,
     hotkeysEnabled, setHotkeysEnabled, disabledHotkeys, setDisabledHotkeys, moveCompletedToBottom, setMoveCompletedToBottom,
-    keepParentTaskAlive, setKeepParentTaskAlive, addTaskAtTop, setAddTaskAtTop, showHomeTaskProgress, setShowHomeTaskProgress, showConfirmDialog
+    keepParentTaskAlive, setKeepParentTaskAlive, addTaskAtTop, setAddTaskAtTop, showHomeTaskProgress, setShowHomeTaskProgress, showConfirmDialog,
+    setLastVisitedPage
   } = useUiStore();
   
-  const [userName, setUserName] = useState("");
+  const[userName, setUserName] = useState("");
   const[userEmail, setUserEmail] = useState("");
   
   // Cache user avatar for instant load without layout shifting
@@ -461,6 +462,7 @@ export default function SettingsPage() {
   };
 
   const handleLogout = async () => { 
+    setLastVisitedPage('/'); // Explicitly clear last visited page memory to prevent redirect loops
     await supabase.auth.signOut(); 
     window.location.href = "/"; 
   };
@@ -480,6 +482,7 @@ export default function SettingsPage() {
                         'Authorization': `Bearer ${session.access_token}`
                     }
                 });
+                setLastVisitedPage('/'); // Explicitly clear memory
                 await supabase.auth.signOut();
                 localStorage.clear();
                 sessionStorage.clear();
@@ -721,7 +724,7 @@ export default function SettingsPage() {
                 { id: 'analytics', keys:[altKeyDisplay, 'A'], desc: 'Go to Analytics' },
                 { id: 'settings', keys:[altKeyDisplay, 'P'], desc: 'Go to Profile' },
                 { id: 'up', keys: [altKeyDisplay, '↑'], desc: 'Move Task Up' },
-                { id: 'down', keys: [altKeyDisplay, '↓'], desc: 'Move Task Down' },
+                { id: 'down', keys:[altKeyDisplay, '↓'], desc: 'Move Task Down' },
                 { id: 'focus_up', keys:['Shift', '↑'], desc: 'Focus Task Above' },
                 { id: 'focus_down', keys:['Shift', '↓'], desc: 'Focus Task Below' },
                 { id: 'indent', keys:['Tab'], desc: 'Indent Task' },
