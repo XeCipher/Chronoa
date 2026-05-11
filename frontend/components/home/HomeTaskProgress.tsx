@@ -8,9 +8,30 @@ import { CheckCircle2, ListTodo } from "lucide-react";
 
 export default function HomeTaskProgress() {
   const { showHomeTaskProgress } = useUiStore();
-  const [routinePct, setRoutinePct] = useState(0);
-  const [normalLeft, setNormalLeft] = useState(0);
-  const [loading, setLoading] = useState(true);
+  
+  // Synchronously initialize state with localStorage to completely eliminate the mount flicker
+  const [routinePct, setRoutinePct] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const cached = localStorage.getItem('chronoa_cache_home_task_routine_pct');
+      return cached ? parseInt(cached, 10) : 0;
+    }
+    return 0;
+  });
+  
+  const[normalLeft, setNormalLeft] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const cached = localStorage.getItem('chronoa_cache_home_task_normal_left');
+      return cached ? parseInt(cached, 10) : 0;
+    }
+    return 0;
+  });
+  
+  const [loading, setLoading] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('chronoa_cache_home_task_routine_pct') === null;
+    }
+    return true;
+  });
   
   const [isExpanded, setIsExpanded] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
@@ -30,7 +51,7 @@ export default function HomeTaskProgress() {
        document.removeEventListener("mousedown", handleClickOutside);
        document.removeEventListener("touchstart", handleClickOutside);
     };
-  }, []);
+  },[]);
 
   useEffect(() => {
     if (!showHomeTaskProgress) return;
@@ -52,8 +73,12 @@ export default function HomeTaskProgress() {
         const routineDone = routines.filter(t => t.is_completed).length;
         
         const newPct = routineTotal === 0 ? 0 : Math.round((routineDone / routineTotal) * 100);
+        
         setRoutinePct(newPct);
         setNormalLeft(normals.length);
+        
+        localStorage.setItem('chronoa_cache_home_task_routine_pct', newPct.toString());
+        localStorage.setItem('chronoa_cache_home_task_normal_left', normals.length.toString());
       }
       setLoading(false);
     };
@@ -65,7 +90,7 @@ export default function HomeTaskProgress() {
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
-  }, [showHomeTaskProgress]);
+  },[showHomeTaskProgress]);
 
   if (!showHomeTaskProgress || loading) return null;
 

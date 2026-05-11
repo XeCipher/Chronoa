@@ -120,6 +120,30 @@ export default function NotesPage() {
     };
   },[setEditorFullscreen]);
 
+  // Reset View Event Listener (Nav tab tapped while already on Notes)
+  useEffect(() => {
+    const handleReset = (e: any) => {
+      if (e.detail === '/notes') {
+        setIsTrashOpen(false);
+        setSelectedFolderId(null); // Return to library root
+        setSelectedId(null);
+        setNoteToFocus(null);
+        
+        // Restore standard layout based on viewport
+        if (typeof window !== 'undefined' && window.innerWidth < 1024) {
+          setIsListVisible(true);
+        } else {
+          setAutoSelectPending(true);
+        }
+        
+        setShowCalendar(false);
+        setSearchQuery("");
+      }
+    };
+    window.addEventListener('chronoa-reset-tab', handleReset);
+    return () => window.removeEventListener('chronoa-reset-tab', handleReset);
+  },[]);
+
   // Global Escape Key Listener for Exiting Fullscreen & Navigating Back
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {

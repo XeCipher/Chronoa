@@ -7,8 +7,11 @@ import { Moon, Sun } from "lucide-react";
 import { useUiStore } from "@/store/uiStore";
 
 export const useGoogleLogin = () => {
-  const[isLoggingIn, setIsLoggingIn] = useState(false);
-  const supabase = createBrowserClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
+  const supabase = createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!, 
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  );
 
   const handleLogin = async () => {
     setIsLoggingIn(true);
@@ -36,7 +39,7 @@ export function LandingNav() {
   const { theme, setTheme } = useUiStore();
   const { handleLogin, isLoggingIn } = useGoogleLogin();
   const [scrolled, setScrolled] = useState(false);
-  const [mounted, setMounted] = useState(false);
+  const[mounted, setMounted] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -48,33 +51,6 @@ export function LandingNav() {
   },[]);
 
   const isCurrentlyDark = theme === 'dark' || (theme === 'system' && typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches);
-
-  useEffect(() => {
-    const updateFavicon = () => {
-      const iconUrl = isCurrentlyDark ? '/icon-dark.svg' : '/icon-light.svg';
-      const links = document.querySelectorAll("link[rel='icon']");
-      if (links.length > 0) {
-        links.forEach(link => {
-          (link as HTMLLinkElement).href = iconUrl;
-          (link as HTMLLinkElement).removeAttribute('media');
-        });
-      } else {
-        const link = document.createElement('link');
-        link.rel = 'icon';
-        link.href = iconUrl;
-        document.head.appendChild(link);
-      }
-    };
-
-    updateFavicon();
-
-    if (theme === 'system') {
-      const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-      const handleChange = () => updateFavicon();
-      mediaQuery.addEventListener('change', handleChange);
-      return () => mediaQuery.removeEventListener('change', handleChange);
-    }
-  }, [theme, isCurrentlyDark]);
 
   const toggleTheme = () => {
     const newTheme = isCurrentlyDark ? 'light' : 'dark';
