@@ -25,7 +25,7 @@ export default function ProductivityChart({ dailyMap, isSandbox = false }: { dai
   
   const currentSaturday = getSaturday(today);
 
-  const [endDate, setEndDate] = useState<Date>(today);
+  const[endDate, setEndDate] = useState<Date>(today);
   const [showCalendar, setShowCalendar] = useState(false);
   const [calMonth, setCalMonth] = useState<Date>(new Date());
   const calRef = useRef<HTMLDivElement>(null);
@@ -37,7 +37,7 @@ export default function ProductivityChart({ dailyMap, isSandbox = false }: { dai
     handleResize();
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
-  }, []);
+  },[]);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -45,7 +45,7 @@ export default function ProductivityChart({ dailyMap, isSandbox = false }: { dai
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
+  },[]);
 
   const handlePrev = () => {
     if (isSandbox && weeksBack >= 3) return;
@@ -77,7 +77,7 @@ export default function ProductivityChart({ dailyMap, isSandbox = false }: { dai
   };
 
   const chartData = useMemo(() => {
-    const data = [];
+    const data =[];
     for(let i=6; i>=0; i--) {
       const d = new Date(endDate);
       d.setDate(d.getDate() - i);
@@ -89,8 +89,8 @@ export default function ProductivityChart({ dailyMap, isSandbox = false }: { dai
         fullDate: d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
         tasks: record ? record.taskCount : 0,
         focus: record ? record.focusMinutes : 0,
-        rawTasks: record ? record.tasks : [],
-        rawSessions: record ? record.sessions : []
+        rawTasks: record ? record.tasks :[],
+        rawSessions: record ? record.sessions :[]
       });
     }
     return data;
@@ -118,7 +118,14 @@ export default function ProductivityChart({ dailyMap, isSandbox = false }: { dai
             </div>
             <div className="flex flex-col text-right">
               <span className="text-[9px] font-bold uppercase tracking-widest text-[#c2956e] mb-0.5">Focus</span>
-              <span className="text-sm font-semibold text-[#3d3b33] dark:text-[#e0e0e0]">{Math.floor(data.focus)}m</span>
+              <span className="text-sm font-semibold text-[#3d3b33] dark:text-[#e0e0e0]">
+                {(() => {
+                  const focusMins = Math.floor(data.focus);
+                  const h = Math.floor(focusMins / 60);
+                  const m = focusMins % 60;
+                  return h > 0 ? `${h}h ${m}m` : `${m}m`;
+                })()}
+              </span>
             </div>
           </div>
         </div>
@@ -145,7 +152,7 @@ export default function ProductivityChart({ dailyMap, isSandbox = false }: { dai
     const firstDay = new Date(year, month, 1).getDay();
     const daysInMonth = new Date(year, month + 1, 0).getDate();
     
-    const days = [];
+    const days =[];
     for (let i = 0; i < firstDay; i++) days.push(null);
     for (let i = 1; i <= daysInMonth; i++) days.push(new Date(year, month, i));
 

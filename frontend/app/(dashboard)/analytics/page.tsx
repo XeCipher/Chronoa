@@ -31,7 +31,7 @@ export interface AnalyticsData {
   levelInfo: { level: number; rank: string; progress: number; xp: number };
 }
 
-export const RANKS = [
+export const RANKS =[
   { name: "Novice", minLevel: 1, minXp: 0 },
   { name: "Apprentice", minLevel: 4, minXp: 450 },
   { name: "Scholar", minLevel: 7, minXp: 1800 },
@@ -194,13 +194,35 @@ export default function AnalyticsPage() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const [tasksRes, sessionsRes, journalRes] = await Promise.all([
+      let routineHistoryQuery = supabase.from('routine_history').select('id, task_id, task_title, completed_at').eq('user_id', user.id);
+
+      const [tasksRes, sessionsRes, journalRes, rhRes] = await Promise.all([
         supabase.from('tasks').select('id, title, parent_id, task_type, is_completed, completed_at, deleted_at').eq('user_id', user.id).is('deleted_at', null),
         supabase.from('time_sessions').select('duration_seconds, created_at, title').eq('user_id', user.id),
-        supabase.from('journal_entries').select('entry_date').eq('user_id', user.id).is('deleted_at', null)
+        supabase.from('journal_entries').select('entry_date').eq('user_id', user.id).is('deleted_at', null),
+        routineHistoryQuery
       ]);
 
-      const newTasks = tasksRes.data || [];
+      // Explicitly type finalRhData so task_id is treated as optional, enabling the fallback to succeed cleanly without TS errors
+      let finalRhData: { id: any; task_id?: any; task_title: any; completed_at: any; }[] | null = rhRes.data;
+      if (rhRes.error) {
+        // Safe fallback if the task_id column hasn't been created on Supabase yet
+        const fallbackRh = await supabase.from('routine_history').select('id, task_title, completed_at').eq('user_id', user.id);
+        finalRhData = fallbackRh.data;
+      }
+
+      const historicalRoutines = (finalRhData || []).map((rh: any) => ({
+        id: `rh_${rh.id}`,
+        original_task_id: rh.task_id,
+        title: rh.task_title,
+        parent_id: null,
+        task_type: 'routine',
+        is_completed: true,
+        completed_at: rh.completed_at,
+        deleted_at: null
+      }));
+
+      const newTasks = [...(tasksRes.data || []), ...historicalRoutines];
       const newSessions = sessionsRes.data || [];
       const newJournals = journalRes.data || [];
 
@@ -246,7 +268,7 @@ export default function AnalyticsPage() {
 
   const taskTree = useMemo(() => {
     if (filterType === 'all') return [];
-    const items = rawTasks.filter(t => t.task_type === filterType);
+    const items = rawTasks.filter(t => t.task_type === filterType && !t.id.startsWith('rh_'));
     const map = new Map<string, any>();
     
     items.forEach(t => map.set(t.id, { ...t, children: [], descendantCount: 0 }));
@@ -284,13 +306,17 @@ export default function AnalyticsPage() {
     if (selectedTrackedIds.size > 0) {
       const collect = (id: string) => {
         trackedIds.add(id);
-        const t = rawTasks.find(x => x.id === id);
+        const t = rawTasks.find(x => x.id === id && !x.id.startsWith('rh_'));
         if (t && t.title) trackedTitles.add(t.title.trim());
-        rawTasks.filter(x => x.parent_id === id).forEach(child => collect(child.id));
+        rawTasks.filter(x => x.parent_id === id && !x.id.startsWith('rh_')).forEach(child => collect(child.id));
       };
       selectedTrackedIds.forEach(id => collect(id));
       
-      baseTasks = baseTasks.filter(t => trackedIds.has(t.id));
+      baseTasks = baseTasks.filter(t => 
+        trackedIds.has(t.id) || 
+        (t.original_task_id && trackedIds.has(t.original_task_id)) ||
+        (t.id.startsWith('rh_') && trackedTitles.has(t.title.trim()))
+      );
     }
 
     const copyOfCompletedTasks = baseTasks.filter(t => t.is_completed && t.completed_at);
