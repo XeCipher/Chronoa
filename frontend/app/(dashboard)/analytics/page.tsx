@@ -502,13 +502,13 @@ export default function AnalyticsPage() {
             </div>
           </div>
           
-          <div className="flex items-center gap-3 w-full md:w-auto shrink-0">
+          <div className="flex items-center gap-2 md:gap-3 w-full md:w-auto overflow-x-auto no-scrollbar pb-1 md:pb-0 shrink-0 justify-start">
             {filterType !== 'all' && (
               <button 
                 onClick={() => setIsTrackerModalOpen(true)}
                 data-tooltip-id="global-tooltip"
                 data-tooltip-content={`Track Specific ${filterType === 'routine' ? 'Routines' : 'Tasks'}`}
-                className={`order-2 md:order-1 relative flex items-center justify-center w-[42px] h-[42px] rounded-xl transition-colors shadow-sm border shrink-0 ${selectedTrackedIds.size > 0 ? 'bg-[#c2956e] text-white border-[#c2956e]' : 'bg-white dark:bg-[#1a1a1a] text-[#888] border-[#e0ddd5] dark:border-[#333] hover:text-[#c2956e]'}`}
+                className={`order-2 md:order-1 relative flex items-center justify-center w-[40px] h-[40px] md:w-[42px] md:h-[42px] rounded-xl transition-colors shadow-sm border shrink-0 ${selectedTrackedIds.size > 0 ? 'bg-[#c2956e] text-white border-[#c2956e]' : 'bg-white dark:bg-[#1a1a1a] text-[#888] border-[#e0ddd5] dark:border-[#333] hover:text-[#c2956e]'}`}
               >
                 <Target size={18} /> 
                 {selectedTrackedIds.size > 0 && (
@@ -519,12 +519,12 @@ export default function AnalyticsPage() {
               </button>
             )}
             
-            <div className="order-1 md:order-2 flex w-full md:w-auto bg-[#ebe8e2]/50 dark:bg-[#1a1a1a] p-1.5 rounded-[1.25rem] border border-[#e0ddd5] dark:border-[#333] shadow-inner shrink-0">
+            <div className="order-1 md:order-2 flex w-max md:w-auto bg-[#ebe8e2]/50 dark:bg-[#1a1a1a] p-1.5 rounded-[1.25rem] border border-[#e0ddd5] dark:border-[#333] shadow-inner shrink-0">
               {['all', 'routine', 'normal'].map(f => (
                 <button 
                   key={f} 
                   onClick={() => setFilterType(f as any)}
-                  className={`flex-1 md:flex-none flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all ${filterType === f ? 'bg-white dark:bg-[#2a2a2a] text-[#c2956e] dark:text-[#d1a784] shadow-sm' : 'text-[#888] md:hover:text-[#3d3b33] md:dark:hover:text-white'}`}
+                  className={`flex-1 md:flex-none flex items-center justify-center gap-2 px-4 md:px-5 py-2 md:py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all ${filterType === f ? 'bg-white dark:bg-[#2a2a2a] text-[#c2956e] dark:text-[#d1a784] shadow-sm' : 'text-[#888] md:hover:text-[#3d3b33] md:dark:hover:text-white'}`}
                 >
                   {f}
                 </button>

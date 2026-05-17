@@ -39,7 +39,8 @@ export function LandingNav() {
   const { theme, setTheme } = useUiStore();
   const { handleLogin, isLoggingIn } = useGoogleLogin();
   const [scrolled, setScrolled] = useState(false);
-  const[mounted, setMounted] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  const [isSpinning, setIsSpinning] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -58,21 +59,24 @@ export function LandingNav() {
     document.documentElement.classList.toggle('dark', newTheme === 'dark');
   };
 
-  const scrollToTop = () => {
+  const handleLogoClick = () => {
     const container = document.getElementById("landing-scroll-container");
     if (container) {
       container.scrollTo({ top: 0, behavior: 'smooth' });
     }
+    // Trigger spin animation for satisfying mobile interaction 
+    setIsSpinning(true);
+    setTimeout(() => setIsSpinning(false), 700);
   };
 
   return (
     <nav className={`fixed top-0 left-0 w-full z-[100] transition-all duration-500 ${scrolled ? 'bg-white/30 dark:bg-[#121212]/40 backdrop-blur-xl border-none shadow-none' : 'bg-transparent border-transparent'}`}>
       <div className="max-w-7xl w-full mx-auto px-4 sm:px-6 md:px-10 h-20 flex items-center justify-between">
         <div 
-          onClick={scrollToTop}
+          onClick={handleLogoClick}
           className="flex items-center gap-3 cursor-pointer group hover:opacity-80 transition-opacity"
         >
-          <ChronoaLogo className="w-8 h-8 sm:w-9 sm:h-9 text-[#c2956e] dark:text-[#b0855f] group-hover:rotate-45 transition-transform duration-700 ease-out" />
+          <ChronoaLogo className={`w-8 h-8 sm:w-9 sm:h-9 text-[#c2956e] dark:text-[#b0855f] md:group-hover:rotate-45 transition-transform duration-700 ease-out ${isSpinning ? 'animate-spin-once' : ''}`} />
           <h1 className="text-2xl sm:text-3xl text-[#3d3b33] dark:text-[#e0e0e0] font-serif font-medium tracking-tight">
             Chronoa
           </h1>
