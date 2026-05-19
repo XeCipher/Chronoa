@@ -1,7 +1,7 @@
 // frontend/components/ai/AiChatWidget.tsx
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { 
   Sparkles, Send, X, Mic, RefreshCw, CheckCircle2, CheckSquare, 
   CalendarDays, FileText, BookOpen, Loader2, Edit3, Trash2, Timer, 
@@ -40,20 +40,20 @@ export function AiButton({ variant }: { variant: 'desktop' | 'mobile' | 'global'
   );
 }
 
-// Short, punchy, diverse prompts for the compact layout
+// Short, punchy, diverse prompts with beautiful colors for the compact layout
 const CRAZY_PROMPTS = [
-  { icon: Sparkles, text: "Analyze today's focus" },
-  { icon: Timer, text: "Start a 25m focus timer" },
-  { icon: CalendarDays, text: "Clear afternoon schedule" },
-  { icon: BookOpen, text: "Draft a journal entry" },
-  { icon: CheckSquare, text: "Add 'Review PRs' task" },
-  { icon: FileText, text: "Append a note idea" },
-  { icon: Square, text: "Stop all timers" },
-  { icon: CheckCircle2, text: "Mark 'Workout' complete" },
-  { icon: CalendarDays, text: "Add 3PM coffee break" },
-  { icon: Sparkles, text: "What should I prioritize?" },
-  { icon: Navigation, text: "Show my analytics" },
-  { icon: BookOpen, text: "Recent journal thoughts?" }
+  { icon: Sparkles, text: "Analyze today's focus", color: "text-purple-600 dark:text-purple-400", bg: "bg-purple-100 dark:bg-purple-500/20", border: "hover:border-purple-500/50 dark:hover:border-purple-500/50" },
+  { icon: Timer, text: "Start a 25m focus timer", color: "text-amber-600 dark:text-amber-400", bg: "bg-amber-100 dark:bg-amber-500/20", border: "hover:border-amber-500/50 dark:hover:border-amber-500/50" },
+  { icon: CalendarDays, text: "Clear afternoon schedule", color: "text-rose-600 dark:text-rose-400", bg: "bg-rose-100 dark:bg-rose-500/20", border: "hover:border-rose-500/50 dark:hover:border-rose-500/50" },
+  { icon: BookOpen, text: "Draft a journal entry", color: "text-emerald-600 dark:text-emerald-400", bg: "bg-emerald-100 dark:bg-emerald-500/20", border: "hover:border-emerald-500/50 dark:hover:border-emerald-500/50" },
+  { icon: CheckSquare, text: "Add 'Review PRs' task", color: "text-[#7ca982] dark:text-[#8cbd92]", bg: "bg-[#7ca982]/20 dark:bg-[#7ca982]/20", border: "hover:border-[#7ca982]/50 dark:hover:border-[#7ca982]/50" },
+  { icon: FileText, text: "Append a note idea", color: "text-blue-600 dark:text-blue-400", bg: "bg-blue-100 dark:bg-blue-500/20", border: "hover:border-blue-500/50 dark:hover:border-blue-500/50" },
+  { icon: Square, text: "Stop all timers", color: "text-rose-600 dark:text-rose-400", bg: "bg-rose-100 dark:bg-rose-500/20", border: "hover:border-rose-500/50 dark:hover:border-rose-500/50" },
+  { icon: CheckCircle2, text: "Mark 'Workout' complete", color: "text-[#7ca982] dark:text-[#8cbd92]", bg: "bg-[#7ca982]/20 dark:bg-[#7ca982]/20", border: "hover:border-[#7ca982]/50 dark:hover:border-[#7ca982]/50" },
+  { icon: CalendarDays, text: "Add 3PM coffee break", color: "text-purple-600 dark:text-purple-400", bg: "bg-purple-100 dark:bg-purple-500/20", border: "hover:border-purple-500/50 dark:hover:border-purple-500/50" },
+  { icon: Sparkles, text: "What should I prioritize?", color: "text-amber-600 dark:text-amber-400", bg: "bg-amber-100 dark:bg-amber-500/20", border: "hover:border-amber-500/50 dark:hover:border-amber-500/50" },
+  { icon: Navigation, text: "Show my analytics", color: "text-blue-600 dark:text-blue-400", bg: "bg-blue-100 dark:bg-blue-500/20", border: "hover:border-blue-500/50 dark:hover:border-blue-500/50" },
+  { icon: BookOpen, text: "Recent journal thoughts?", color: "text-emerald-600 dark:text-emerald-400", bg: "bg-emerald-100 dark:bg-emerald-500/20", border: "hover:border-emerald-500/50 dark:hover:border-emerald-500/50" }
 ];
 
 const fetchUserContext = async () => {
@@ -78,7 +78,6 @@ const fetchUserContext = async () => {
   ctx += `### Your Tasks\n`;
   if (tasks) {
      const pending = tasks.filter(t => !t.is_completed);
-     // Bulletproof logic ensuring we ONLY grab tasks completed literally today
      const completedToday = tasks.filter(t => t.is_completed && t.completed_at && new Date(t.completed_at).getTime() >= todayStart.getTime());
      
      ctx += `Pending Tasks:\n${pending.map(t => `- [ID: ${t.id}] ${t.title} (${t.task_type})`).join('\n')}\n\n`;
@@ -134,13 +133,18 @@ const tools: any = [{
   functionDeclarations: [
     {
       name: 'add_task',
-      description: 'Adds a new task to the workspace.',
+      description: 'Adds a new task to the workspace. Can optionally create nested subtasks within it.',
       parameters: {
         type: "OBJECT",
         properties: {
           title: { type: "STRING", description: "The task title" },
           task_type: { type: "STRING", description: '"normal" or "routine"' },
           color: { type: "STRING", description: '"none", "rose", "amber", "emerald", "blue", "purple"' },
+          subtasks: {
+            type: "ARRAY",
+            items: { type: "STRING" },
+            description: "Optional list of subtask titles to nest under this task"
+          }
         },
         required: ["title", "task_type"]
       }
@@ -285,6 +289,65 @@ const tools: any = [{
   ]
 }];
 
+// Memoized MarqueeRow to completely prevent lagging while the user types in the input
+const MarqueeRow = React.memo(({ prompts, speed = 0.5 }: { prompts: any[], speed?: number }) => {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const isHovered = useRef(false);
+
+  useEffect(() => {
+    let animationFrameId: number;
+    let lastTime = 0;
+    let accumulatedScroll = 0;
+
+    const scroll = (time: number) => {
+      if (!lastTime) lastTime = time;
+      const dt = time - lastTime;
+      lastTime = time;
+
+      if (scrollRef.current && !isHovered.current) {
+        accumulatedScroll += dt * 0.05 * speed;
+        if (accumulatedScroll >= 1) {
+           scrollRef.current.scrollLeft += Math.floor(accumulatedScroll);
+           accumulatedScroll -= Math.floor(accumulatedScroll);
+        }
+        if (scrollRef.current.scrollLeft >= scrollRef.current.scrollWidth / 2) {
+           scrollRef.current.scrollLeft -= scrollRef.current.scrollWidth / 2;
+        }
+      }
+      animationFrameId = requestAnimationFrame(scroll);
+    };
+    animationFrameId = requestAnimationFrame(scroll);
+    return () => cancelAnimationFrame(animationFrameId);
+  }, [speed]);
+
+  return (
+    <div 
+      ref={scrollRef} 
+      className="flex w-full overflow-x-auto no-scrollbar gap-3 pl-4 pr-0 py-2"
+      onMouseEnter={() => isHovered.current = true}
+      onMouseLeave={() => isHovered.current = false}
+      onTouchStart={() => isHovered.current = true}
+      onTouchEnd={() => isHovered.current = false}
+    >
+      <div className="flex gap-4 w-max">
+        {[...prompts, ...prompts].map((p, i) => (
+           <button 
+             key={i} 
+             onClick={() => window.dispatchEvent(new CustomEvent('chronoa-ai-prompt', { detail: p.text }))} 
+             className={`flex items-center gap-3 px-5 py-3.5 rounded-2xl bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] transition-all shrink-0 cursor-pointer shadow-sm group select-none hover:-translate-y-0.5 ${p.border}`}
+           >
+             <div className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${p.bg}`}>
+               <p.icon size={14} className={`${p.color} transition-colors`} />
+             </div>
+             <span className="text-[14px] font-medium text-[#888] dark:text-[#a0a0a0] group-hover:text-[#3d3b33] dark:group-hover:text-[#f0f0f0] whitespace-nowrap transition-colors">{p.text}</span>
+           </button>
+        ))}
+      </div>
+    </div>
+  );
+});
+MarqueeRow.displayName = 'MarqueeRow';
+
 export function AiChatPanel() {
   const router = useRouter();
   const { isAiChatOpen, setAiChatOpen } = useUiStore();
@@ -313,6 +376,23 @@ export function AiChatPanel() {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isTyping]);
+
+  useEffect(() => {
+    const handleEvent = (e: any) => handleSend(e.detail);
+    window.addEventListener('chronoa-ai-prompt', handleEvent);
+    return () => window.removeEventListener('chronoa-ai-prompt', handleEvent);
+  });
+
+  // Global Escape Key Listener for AI Chat
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isAiChatOpen) {
+        setAiChatOpen(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isAiChatOpen, setAiChatOpen]);
 
   const toggleDictation = () => {
     if (isDictating) {
@@ -375,10 +455,10 @@ export function AiChatPanel() {
       if (m.role === 'user') formatted.push({ role: 'user', parts: [{ text: m.text }] });
       else if (m.role === 'model' && m.text) formatted.push({ role: 'model', parts: [{ text: m.text }] });
       else if (m.role === 'tool_call') {
-        formatted.push({ role: 'model', parts: [{ functionCall: { name: m.call.name, args: m.call.args } }] });
+        formatted.push({ role: 'model', parts: m.modelParts });
       }
       else if (m.role === 'tool_result') {
-        formatted.push({ role: 'user', parts: [{ functionResponse: { name: m.callName, response: m.result } }] });
+        formatted.push({ role: 'user', parts: m.functionResponses });
       }
     }
     return formatted;
@@ -392,18 +472,36 @@ export function AiChatPanel() {
     const parseLocalTime = (isoNoZ: string) => new Date(isoNoZ).toISOString();
 
     switch (call.name) {
-      case 'add_task':
+      case 'add_task': {
+        const taskId = crypto.randomUUID();
         await supabase.from('tasks').insert({
-          id: crypto.randomUUID(),
+          id: taskId,
           user_id: user.id,
           title: args.title,
           task_type: args.task_type || 'normal',
           position: 0,
           color: args.color && args.color !== 'none' ? args.color : null
         });
-        break;
 
-      case 'update_task':
+        // Natively handle subtasks to allow single tool-call generation of nested tasks
+        if (args.subtasks && Array.isArray(args.subtasks)) {
+           const subtaskInserts = args.subtasks.map((st: string, idx: number) => ({
+              id: crypto.randomUUID(),
+              user_id: user.id,
+              title: st,
+              task_type: args.task_type || 'normal',
+              parent_id: taskId,
+              position: idx,
+              color: null
+           }));
+           if (subtaskInserts.length > 0) {
+              await supabase.from('tasks').insert(subtaskInserts);
+           }
+        }
+        break;
+      }
+
+      case 'update_task': {
         const taskUpdates: any = {};
         if (args.title) taskUpdates.title = args.title;
         if (args.is_completed !== undefined) {
@@ -413,6 +511,7 @@ export function AiChatPanel() {
         if (args.color) taskUpdates.color = args.color === 'none' ? null : args.color;
         await supabase.from('tasks').update(taskUpdates).eq('id', args.id);
         break;
+      }
 
       case 'delete_task':
         await supabase.from('tasks').update({ deleted_at: new Date().toISOString() }).eq('id', args.id);
@@ -536,8 +635,16 @@ export function AiChatPanel() {
     if (action === 'add') {
       setIsTyping(true);
       try {
-        await executeTool(msg.call);
-        const resultMsg = { id: crypto.randomUUID(), role: 'tool_result', callName: msg.call.name, result: { success: true, message: 'Action executed successfully.' } };
+        const calls = msg.modelParts.filter((p: any) => p.functionCall).map((p: any) => p.functionCall);
+        for (const c of calls) {
+          await executeTool(c);
+        }
+        
+        const functionResponses = msg.modelParts.filter((p: any) => p.functionCall).map((p: any) => ({
+           functionResponse: { name: p.functionCall!.name, response: { success: true, message: 'Action executed successfully.' } }
+        }));
+
+        const resultMsg = { id: crypto.randomUUID(), role: 'tool_result', callName: msg.call.name, result: { success: true }, functionResponses };
         setMessages(prev => [...prev, resultMsg]);
         
         const res = await generateAIResponse([...messages, resultMsg]);
@@ -548,7 +655,12 @@ export function AiChatPanel() {
       setIsTyping(false);
     } else if (action === 'skip') {
       setIsTyping(true);
-      const resultMsg = { id: crypto.randomUUID(), role: 'tool_result', callName: msg.call.name, result: { success: false, message: 'User skipped this action.' } };
+      
+      const functionResponses = msg.modelParts.filter((p: any) => p.functionCall).map((p: any) => ({
+         functionResponse: { name: p.functionCall!.name, response: { success: false, message: 'User skipped this action.' } }
+      }));
+
+      const resultMsg = { id: crypto.randomUUID(), role: 'tool_result', callName: msg.call.name, result: { success: false }, functionResponses };
       setMessages(prev => [...prev, resultMsg]);
       
       try {
@@ -587,27 +699,33 @@ export function AiChatPanel() {
       const res = await generateAIResponse(currentHistory);
 
       if (res.functionCalls && res.functionCalls.length > 0) {
-        const call = res.functionCalls[0];
+        const calls = res.functionCalls;
+        const call = calls[0]; // For display
+        const modelParts = res.candidates?.[0]?.content?.parts || calls.map(c => ({ functionCall: { name: c.name, args: c.args } }));
         const msgId = crypto.randomUUID();
         
         const autoExecute = call.name && ['start_focus_timer', 'stop_all_timers', 'navigate_to'].includes(call.name);
         
         if (autoExecute) {
-            setMessages(prev => [...prev, { id: msgId, role: 'tool_call', call, status: 'success' }]);
-            await executeTool(call);
+            setMessages(prev => [...prev, { id: msgId, role: 'tool_call', call, modelParts, status: 'success' }]);
+            for (const c of calls) await executeTool(c);
             
             if (call.name === 'navigate_to') {
                 setIsTyping(false);
                 return; 
             }
             
-            const resultMsg = { id: crypto.randomUUID(), role: 'tool_result', callName: call.name, result: { success: true } };
+            const functionResponses = modelParts.filter((p: any) => p.functionCall).map((p: any) => ({
+               functionResponse: { name: p.functionCall!.name, response: { success: true } }
+            }));
+            
+            const resultMsg = { id: crypto.randomUUID(), role: 'tool_result', callName: call.name, result: { success: true }, functionResponses };
             setMessages(prev => [...prev, resultMsg]);
             
-            const res2 = await generateAIResponse([...currentHistory, { id: msgId, role: 'tool_call', call }, resultMsg]);
+            const res2 = await generateAIResponse([...currentHistory, { id: msgId, role: 'tool_call', call, modelParts }, resultMsg]);
             if (res2.text) setMessages(prev => [...prev, { id: crypto.randomUUID(), role: 'model', text: res2.text }]);
         } else {
-            setMessages(prev => [...prev, { id: msgId, role: 'tool_call', call, status: 'pending' }]);
+            setMessages(prev => [...prev, { id: msgId, role: 'tool_call', call, modelParts, status: 'pending' }]);
         }
       } else if (res.text) {
         setMessages(prev => [...prev, { id: crypto.randomUUID(), role: 'model', text: res.text }]);
@@ -634,21 +752,27 @@ export function AiChatPanel() {
       const res = await generateAIResponse(currentHistory);
 
       if (res.functionCalls && res.functionCalls.length > 0) {
-        const call = res.functionCalls[0];
+        const calls = res.functionCalls;
+        const call = calls[0];
+        const modelParts = res.candidates?.[0]?.content?.parts || calls.map(c => ({ functionCall: { name: c.name, args: c.args } }));
         const msgId = crypto.randomUUID();
         
         if (call.name && ['start_focus_timer', 'stop_all_timers', 'navigate_to'].includes(call.name)) {
-            setMessages(prev => [...prev, { id: msgId, role: 'tool_call', call, status: 'success' }]);
-            await executeTool(call);
+            setMessages(prev => [...prev, { id: msgId, role: 'tool_call', call, modelParts, status: 'success' }]);
+            for (const c of calls) await executeTool(c);
             if (call.name === 'navigate_to') { setIsTyping(false); return; }
             
-            const resultMsg = { id: crypto.randomUUID(), role: 'tool_result', callName: call.name, result: { success: true } };
+            const functionResponses = modelParts.filter((p: any) => p.functionCall).map((p: any) => ({
+               functionResponse: { name: p.functionCall!.name, response: { success: true } }
+            }));
+            
+            const resultMsg = { id: crypto.randomUUID(), role: 'tool_result', callName: call.name, result: { success: true }, functionResponses };
             setMessages(prev => [...prev, resultMsg]);
             
-            const res2 = await generateAIResponse([...currentHistory, { id: msgId, role: 'tool_call', call }, resultMsg]);
+            const res2 = await generateAIResponse([...currentHistory, { id: msgId, role: 'tool_call', call, modelParts }, resultMsg]);
             if (res2.text) setMessages(prev => [...prev, { id: crypto.randomUUID(), role: 'model', text: res2.text }]);
         } else {
-            setMessages(prev => [...prev, { id: msgId, role: 'tool_call', call, status: 'pending' }]);
+            setMessages(prev => [...prev, { id: msgId, role: 'tool_call', call, modelParts, status: 'pending' }]);
         }
       } else if (res.text) {
         setMessages(prev => [...prev, { id: crypto.randomUUID(), role: 'model', text: res.text }]);
@@ -723,7 +847,13 @@ export function AiChatPanel() {
         
         <div className="text-sm text-[#888] dark:text-[#a0a0a0] mb-4 space-y-1">
           {cName === 'add_task' && (
-             <><p><span className="font-medium text-[#3d3b33] dark:text-[#e0e0e0]">Title:</span> {args.title}</p><p><span className="font-medium text-[#3d3b33] dark:text-[#e0e0e0]">Type:</span> {args.task_type}</p></>
+             <>
+               <p><span className="font-medium text-[#3d3b33] dark:text-[#e0e0e0]">Title:</span> {args.title}</p>
+               <p><span className="font-medium text-[#3d3b33] dark:text-[#e0e0e0]">Type:</span> {args.task_type}</p>
+               {args.subtasks && args.subtasks.length > 0 && (
+                 <p><span className="font-medium text-[#3d3b33] dark:text-[#e0e0e0]">Subtasks:</span> {args.subtasks.join(', ')}</p>
+               )}
+             </>
           )}
           {cName === 'update_task' && (
              <><p><span className="font-medium text-[#3d3b33] dark:text-[#e0e0e0]">Task:</span> {args.title || args.id?.split('-')[0]}</p>{args.is_completed !== undefined && <p><span className="font-medium text-[#3d3b33] dark:text-[#e0e0e0]">Done:</span> {args.is_completed ? 'Yes' : 'No'}</p>}</>
@@ -765,61 +895,6 @@ export function AiChatPanel() {
     );
   };
 
-  const MarqueeRow = ({ prompts, speed = 0.5 }: { prompts: any[], speed?: number }) => {
-    const scrollRef = useRef<HTMLDivElement>(null);
-    const isHovered = useRef(false);
-
-    useEffect(() => {
-      let animationFrameId: number;
-      let lastTime = 0;
-      let accumulatedScroll = 0;
-
-      const scroll = (time: number) => {
-        if (!lastTime) lastTime = time;
-        const dt = time - lastTime;
-        lastTime = time;
-
-        if (scrollRef.current && !isHovered.current) {
-          accumulatedScroll += dt * 0.05 * speed;
-          if (accumulatedScroll >= 1) {
-             scrollRef.current.scrollLeft += Math.floor(accumulatedScroll);
-             accumulatedScroll -= Math.floor(accumulatedScroll);
-          }
-          if (scrollRef.current.scrollLeft >= scrollRef.current.scrollWidth / 2) {
-             scrollRef.current.scrollLeft -= scrollRef.current.scrollWidth / 2;
-          }
-        }
-        animationFrameId = requestAnimationFrame(scroll);
-      };
-      animationFrameId = requestAnimationFrame(scroll);
-      return () => cancelAnimationFrame(animationFrameId);
-    }, [speed]);
-
-    return (
-      <div 
-        ref={scrollRef} 
-        className="flex w-full overflow-x-auto no-scrollbar gap-3 pl-4 pr-0"
-        onMouseEnter={() => isHovered.current = true}
-        onMouseLeave={() => isHovered.current = false}
-        onTouchStart={() => isHovered.current = true}
-        onTouchEnd={() => isHovered.current = false}
-      >
-        <div className="flex gap-3 w-max">
-          {[...prompts, ...prompts].map((p, i) => (
-             <button 
-               key={i} 
-               onClick={() => handleSend(p.text)} 
-               className="flex items-center gap-2.5 px-4 py-3 rounded-2xl bg-[#fdfbf7] dark:bg-[#222] border border-[#e0ddd5] dark:border-[#333] hover:border-[#c2956e]/50 dark:hover:border-[#b0855f]/50 transition-colors shrink-0 cursor-pointer shadow-sm group select-none"
-             >
-               <p.icon size={15} className="text-[#b0ad9a] dark:text-[#7a7a7a] group-hover:text-[#c2956e] dark:group-hover:text-[#b0855f] transition-colors" />
-               <span className="text-[13px] font-medium text-[#888] dark:text-[#a0a0a0] group-hover:text-[#3d3b33] dark:group-hover:text-[#f0f0f0] whitespace-nowrap transition-colors">{p.text}</span>
-             </button>
-          ))}
-        </div>
-      </div>
-    );
-  };
-
   return (
     <>
       <div className={`fixed inset-0 bg-black/20 dark:bg-black/40 backdrop-blur-sm z-[400] transition-opacity duration-500 ${isAiChatOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`} onClick={() => setAiChatOpen(false)} />
@@ -838,8 +913,8 @@ export function AiChatPanel() {
         </div>
 
         {messages.length === 0 ? (
-          <div className="flex-1 flex flex-col items-center justify-center overflow-hidden w-full">
-             <div className="flex flex-col items-center opacity-90 px-6 pt-8 pb-4">
+          <div className="flex-1 flex flex-col items-center justify-center overflow-hidden w-full relative py-8">
+             <div className="flex flex-col items-center justify-center opacity-90 px-6 mb-8">
                <div className="w-16 h-16 rounded-full bg-[#fdfbf7] dark:bg-[#252525] border border-[#e0ddd5] dark:border-[#333] shadow-sm flex items-center justify-center mb-6">
                   <Sparkles size={28} className="text-[#c2956e] dark:text-[#b0855f]" />
                </div>
@@ -847,14 +922,16 @@ export function AiChatPanel() {
              </div>
              
              <div 
-               className="w-full relative overflow-hidden mt-6 flex flex-col gap-3" 
+               className="w-full relative px-4" 
                style={{ 
                  maskImage: 'linear-gradient(to right, transparent, black 5%, black 95%, transparent)', 
                  WebkitMaskImage: 'linear-gradient(to right, transparent, black 5%, black 95%, transparent)' 
                }}
              >
-                <MarqueeRow prompts={row1Prompts.current} speed={0.5} />
-                <MarqueeRow prompts={row2Prompts.current} speed={0.4} />
+                <div className="flex flex-col gap-3 pb-2">
+                   <MarqueeRow prompts={row1Prompts.current} speed={0.5} />
+                   <MarqueeRow prompts={row2Prompts.current} speed={0.4} />
+                </div>
              </div>
           </div>
         ) : (

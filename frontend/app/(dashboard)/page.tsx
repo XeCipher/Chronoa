@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { motion } from "framer-motion";
 import { LandingNav, ChronoaLogo, GithubIcon, useGoogleLogin } from "@/components/landing/LandingNav";
-import { MockHomeSandbox, MockTaskSandbox, MockTimeSandbox, MockCalendarSandbox, MockNotesSandbox, MockAnalyticsSandbox } from "@/components/landing/Sandboxes";
+import { MockHomeSandbox, MockTaskSandbox, MockTimeSandbox, MockCalendarSandbox, MockNotesSandbox, MockAnalyticsSandbox, MockAiSandbox } from "@/components/landing/Sandboxes";
 import { DownloadsSection } from "@/components/landing/Downloads";
 import DeveloperMessageModal from "@/components/landing/DeveloperMessageModal";
 import { ArrowRight, MessageSquareHeart } from "lucide-react";
@@ -125,6 +125,10 @@ export default function LandingPage() {
 
         <FadeIn>
           <MockAnalyticsSandbox />
+        </FadeIn>
+        
+        <FadeIn>
+          <MockAiSandbox />
         </FadeIn>
 
         <FadeIn>

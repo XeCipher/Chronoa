@@ -1,12 +1,17 @@
 // frontend/components/landing/Sandboxes.tsx
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import RecursiveCheckbox from "@/components/ui/RecursiveCheckbox";
 import WeekView from "@/components/calendar/WeekView";
 import DistractionFreeEditor from "@/components/notes/DistractionFreeEditor";
 import { initialMockTasks, generateMockEvents, generateMockDailyMap, generateMockSessions } from "./MockData";
-import { CheckCircle2, ListTodo, Cloud, Sun, Moon, CloudSun, CloudMoon, CloudRain, CloudDrizzle, Snowflake, CloudLightning, Wind, MapPin, Plus, Play, Pause, Square, Trash2 } from "lucide-react";
+import { 
+  CheckCircle2, ListTodo, Cloud, Sun, Moon, CloudSun, CloudMoon, 
+  CloudRain, CloudDrizzle, Snowflake, CloudLightning, Wind, MapPin, 
+  Plus, Play, Pause, Square, Trash2, Timer, CheckSquare, CalendarDays, 
+  BookOpen, Navigation, FileText, Sparkles 
+} from "lucide-react";
 import { Task, CalendarEvent } from "@/types/app.types";
 
 import ProductivityChart from "@/components/analytics/ProductivityChart";
@@ -294,6 +299,7 @@ export function MockTaskSandbox() {
   const[tasks, setTasks] = useState<Task[]>(initialMockTasks);
   const[stats, setStats] = useState({ routinePct: 50, normalLeft: 4 });
   const [isRoutineEditMode, setIsRoutineEditMode] = useState(false);
+  const [highlight, setHighlight] = useState(false);
 
   useEffect(() => {
     const totalRoutines = tasks.filter(t => t.task_type === 'routine').length;
@@ -304,6 +310,43 @@ export function MockTaskSandbox() {
     setStats({ routinePct, normalLeft });
     window.dispatchEvent(new CustomEvent('mock-tasks-updated', { detail: { routinePct, normalLeft } }));
   }, [tasks]);
+
+  useEffect(() => {
+    const listener = (e: any) => {
+      const title = e.detail.title;
+      setTasks(prev => {
+        const newTask = {
+          id: Math.random().toString(),
+          user_id: 'mock',
+          title: title,
+          task_type: 'normal',
+          parent_id: null,
+          position: prev.length,
+          is_completed: false,
+          created_at: new Date().toISOString(),
+          completed_at: null,
+          deleted_at: null,
+          color: null,
+          keep_alive: false,
+          is_collapsed: false,
+          children:[]
+        } as Task;
+        return [...prev, newTask];
+      });
+      
+      const el = document.getElementById('mock-task-sandbox');
+      if (el) {
+         const container = document.getElementById('landing-scroll-container');
+         if (container) {
+            container.scrollTo({ top: el.offsetTop - 100, behavior: 'smooth' });
+         }
+      }
+      setHighlight(true);
+      setTimeout(() => setHighlight(false), 2000);
+    };
+    window.addEventListener('sandbox-add-task', listener);
+    return () => window.removeEventListener('sandbox-add-task', listener);
+  }, []);
 
   const onUpdate = (id: string, updates: any) => {
     setTasks(prev => {
@@ -405,7 +448,7 @@ export function MockTaskSandbox() {
   const normals = roots.filter(t => t.task_type === 'normal');
 
   return (
-    <div className="flex flex-col gap-6 w-full pt-16 md:pt-32">
+    <div id="mock-task-sandbox" className={`flex flex-col gap-6 w-full pt-10 md:pt-16 pb-10 transition-all duration-500 rounded-[3rem] p-2 md:p-6 ${highlight ? 'ring-4 ring-[#c2956e] bg-white/30 dark:bg-[#1a1a1a]/30' : ''}`}>
       <div className="text-center max-w-2xl mx-auto mb-4 px-4">
         <h3 className="text-3xl md:text-4xl font-serif text-[#3d3b33] dark:text-[#f0f0f0] mb-3">Frictionless Workflows</h3>
         <p className="text-[#888] dark:text-[#a0a0a0] leading-relaxed text-sm">
@@ -465,7 +508,7 @@ export function MockTaskSandbox() {
   );
 }
 
-// Local isolated implementation for the time sandbox (Using solid aesthetic)
+// Local isolated implementation for the time sandbox
 function MockEngineCard({ engine, tab, onUpdate, onRemove, isOnlyInstance }: any) {
   const [liveSeconds, setLiveSeconds] = useState(engine.accumulatedSeconds);
 
@@ -800,9 +843,27 @@ export function MockCalendarSandbox() {
 
 export function MockNotesSandbox() {
   const [content, setContent] = useState(`<h1>A Blank Canvas</h1><p>Chronoa provides a completely distraction-free markdown environment for your thoughts, meeting notes, and daily journaling.</p><p><br/></p><p>Go ahead, <strong>type something here</strong>. Use standard markdown shortcuts or highlight text to style it.</p>`);
+  const [highlight, setHighlight] = useState(false);
+
+  useEffect(() => {
+    const listener = (e: any) => {
+      setContent(prev => prev + `<p><br></p><p><strong>AI:</strong> ${e.detail.text}</p>`);
+      const el = document.getElementById('mock-notes-sandbox');
+      if (el) {
+         const container = document.getElementById('landing-scroll-container');
+         if (container) {
+            container.scrollTo({ top: el.offsetTop - 100, behavior: 'smooth' });
+         }
+      }
+      setHighlight(true);
+      setTimeout(() => setHighlight(false), 2000);
+    };
+    window.addEventListener('sandbox-add-note', listener);
+    return () => window.removeEventListener('sandbox-add-note', listener);
+  }, []);
 
   return (
-    <div className="w-full flex flex-col gap-4 md:gap-6 my-10 md:my-20 max-lg:h-[72vh] max-lg:max-h-[550px] max-lg:min-h-[430px]">
+    <div id="mock-notes-sandbox" className={`w-full flex flex-col gap-4 md:gap-6 my-10 md:my-20 max-lg:h-[72vh] max-lg:max-h-[550px] max-lg:min-h-[430px] transition-all duration-500 rounded-[3rem] p-2 md:p-6 ${highlight ? 'ring-4 ring-[#c2956e] bg-white/30 dark:bg-[#1a1a1a]/30' : ''}`}>
       <div className="text-center max-w-2xl mx-auto px-4 w-full shrink-0">
         <h3 className="text-3xl md:text-4xl font-serif text-[#3d3b33] dark:text-[#f0f0f0] mb-2 md:mb-3">Clarity & Focus</h3>
         <p className="text-[#888] dark:text-[#a0a0a0] leading-relaxed text-sm">
@@ -819,9 +880,26 @@ export function MockNotesSandbox() {
 export function MockAnalyticsSandbox() {
   const dailyMap = useMemo(() => generateMockDailyMap(),[]);
   const rawSessions = useMemo(() => generateMockSessions(),[]);
+  const [highlight, setHighlight] = useState(false);
+
+  useEffect(() => {
+    const listener = () => {
+      const el = document.getElementById('mock-analytics-sandbox');
+      if (el) {
+         const container = document.getElementById('landing-scroll-container');
+         if (container) {
+            container.scrollTo({ top: el.offsetTop - 100, behavior: 'smooth' });
+         }
+      }
+      setHighlight(true);
+      setTimeout(() => setHighlight(false), 2000);
+    };
+    window.addEventListener('sandbox-analytics', listener);
+    return () => window.removeEventListener('sandbox-analytics', listener);
+  }, []);
 
   return (
-    <div className="w-full flex flex-col gap-6 md:gap-8 my-10 md:my-20 w-full">
+    <div id="mock-analytics-sandbox" className={`w-full flex flex-col gap-6 md:gap-8 my-10 md:my-20 transition-all duration-500 rounded-[3rem] p-2 md:p-6 ${highlight ? 'ring-4 ring-[#c2956e] bg-white/30 dark:bg-[#1a1a1a]/30' : ''}`}>
       <div className="text-center max-w-2xl mx-auto mb-10 px-4 w-full">
         <h3 className="text-3xl md:text-4xl font-serif text-[#3d3b33] dark:text-[#f0f0f0] mb-3">Insights That Matter</h3>
         <p className="text-[#888] dark:text-[#a0a0a0] leading-relaxed text-sm">
@@ -841,6 +919,126 @@ export function MockAnalyticsSandbox() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6 w-full">
         <ActivityHeatmap dailyMap={dailyMap} isSandbox={true} />
         <FocusDistribution rawSessions={rawSessions} />
+      </div>
+    </div>
+  );
+}
+
+const MarqueeRow = React.memo(({ prompts, speed = 0.5 }: { prompts: any[], speed?: number }) => {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const isHovered = useRef(false);
+
+  useEffect(() => {
+    let animationFrameId: number;
+    let lastTime = 0;
+    let accumulatedScroll = 0;
+
+    const scroll = (time: number) => {
+      if (!lastTime) lastTime = time;
+      const dt = time - lastTime;
+      lastTime = time;
+
+      if (scrollRef.current && !isHovered.current) {
+        accumulatedScroll += dt * 0.05 * speed;
+        if (accumulatedScroll >= 1) {
+           scrollRef.current.scrollLeft += Math.floor(accumulatedScroll);
+           accumulatedScroll -= Math.floor(accumulatedScroll);
+        }
+        if (scrollRef.current.scrollLeft >= scrollRef.current.scrollWidth / 2) {
+           scrollRef.current.scrollLeft -= scrollRef.current.scrollWidth / 2;
+        }
+      }
+      animationFrameId = requestAnimationFrame(scroll);
+    };
+    animationFrameId = requestAnimationFrame(scroll);
+    return () => cancelAnimationFrame(animationFrameId);
+  }, [speed]);
+
+  if (prompts.length === 0) return null;
+
+  return (
+    <div 
+      ref={scrollRef} 
+      className="flex w-full overflow-x-auto no-scrollbar gap-3 pl-4 pr-0 py-2"
+      onMouseEnter={() => isHovered.current = true}
+      onMouseLeave={() => isHovered.current = false}
+      onTouchStart={() => isHovered.current = true}
+      onTouchEnd={() => isHovered.current = false}
+    >
+      <div className="flex gap-4 w-max">
+        {[...prompts, ...prompts].map((p, i) => (
+           <button 
+             key={i} 
+             onClick={p.action} 
+             className={`flex items-center gap-3 px-5 py-3.5 rounded-2xl bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] transition-all shrink-0 cursor-pointer shadow-sm group select-none hover:-translate-y-0.5 ${p.border}`}
+           >
+             <div className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${p.bg}`}>
+               <p.icon size={14} className={`${p.color} transition-colors`} />
+             </div>
+             <span className="text-[14px] font-medium text-[#888] dark:text-[#a0a0a0] group-hover:text-[#3d3b33] dark:group-hover:text-[#f0f0f0] whitespace-nowrap transition-colors">{p.text}</span>
+           </button>
+        ))}
+      </div>
+    </div>
+  );
+});
+MarqueeRow.displayName = 'MarqueeRow';
+
+export function MockAiSandbox() {
+  const [row1, setRow1] = useState<any[]>([]);
+  const [row2, setRow2] = useState<any[]>([]);
+
+  useEffect(() => {
+    const scrollToSandbox = (id: string) => {
+      const el = document.getElementById(id);
+      if (el) {
+         const container = document.getElementById('landing-scroll-container');
+         if (container) {
+            container.scrollTo({ top: el.offsetTop - 100, behavior: 'smooth' });
+         }
+      }
+    };
+
+    const HARDCODED_PROMPTS = [
+      { icon: Timer, text: "Start a 25m deep work timer", color: "text-amber-600 dark:text-amber-400", bg: "bg-amber-100 dark:bg-amber-500/20", border: "hover:border-amber-500/50 dark:hover:border-amber-500/50", action: () => window.dispatchEvent(new CustomEvent('sandbox-send-focus', { detail: { tab: 'timer', title: 'Deep Work' } })) },
+      { icon: CheckSquare, text: "Add 'Review PRs' to my tasks", color: "text-emerald-600 dark:text-emerald-400", bg: "bg-emerald-100 dark:bg-emerald-500/20", border: "hover:border-emerald-500/50 dark:hover:border-emerald-500/50", action: () => window.dispatchEvent(new CustomEvent('sandbox-add-task', { detail: { title: 'Review PRs' } })) },
+      { icon: CalendarDays, text: "Schedule a team sync at 3 PM", color: "text-blue-600 dark:text-blue-400", bg: "bg-blue-100 dark:bg-blue-500/20", border: "hover:border-blue-500/50 dark:hover:border-blue-500/50", action: () => window.dispatchEvent(new CustomEvent('sandbox-add-calendar', { detail: { title: 'Team Sync' } })) },
+      { icon: BookOpen, text: "Draft a journal entry about today", color: "text-rose-600 dark:text-rose-400", bg: "bg-rose-100 dark:bg-rose-500/20", border: "hover:border-rose-500/50 dark:hover:border-rose-500/50", action: () => window.dispatchEvent(new CustomEvent('sandbox-add-note', { detail: { text: 'Today was highly productive. I managed to stay focused and clear my task list.' } })) },
+      { icon: Timer, text: "Start a 10m quick break timer", color: "text-amber-600 dark:text-amber-400", bg: "bg-amber-100 dark:bg-amber-500/20", border: "hover:border-amber-500/50 dark:hover:border-amber-500/50", action: () => window.dispatchEvent(new CustomEvent('sandbox-send-focus', { detail: { tab: 'timer', title: 'Quick Break' } })) },
+      { icon: CheckSquare, text: "Add 'Buy groceries' task", color: "text-[#7ca982] dark:text-[#8cbd92]", bg: "bg-[#7ca982]/20 dark:bg-[#7ca982]/20", border: "hover:border-[#7ca982]/50 dark:hover:border-[#7ca982]/50", action: () => window.dispatchEvent(new CustomEvent('sandbox-add-task', { detail: { title: 'Buy groceries' } })) },
+      { icon: CalendarDays, text: "Schedule 'Deep Work' for tomorrow", color: "text-purple-600 dark:text-purple-400", bg: "bg-purple-100 dark:bg-purple-500/20", border: "hover:border-purple-500/50 dark:hover:border-purple-500/50", action: () => window.dispatchEvent(new CustomEvent('sandbox-add-calendar', { detail: { title: 'Deep Work' } })) },
+      { icon: FileText, text: "Note down a new project idea", color: "text-rose-600 dark:text-rose-400", bg: "bg-rose-100 dark:bg-rose-500/20", border: "hover:border-rose-500/50 dark:hover:border-rose-500/50", action: () => window.dispatchEvent(new CustomEvent('sandbox-add-note', { detail: { text: 'Project Idea: A new minimalist workspace app that integrates AI.' } })) },
+      { icon: Navigation, text: "Show my analytics", color: "text-blue-600 dark:text-blue-400", bg: "bg-blue-100 dark:bg-blue-500/20", border: "hover:border-blue-500/50 dark:hover:border-blue-500/50", action: () => { scrollToSandbox('mock-analytics-sandbox'); window.dispatchEvent(new CustomEvent('sandbox-analytics')); } },
+      { icon: Navigation, text: "Take me to my calendar", color: "text-purple-600 dark:text-purple-400", bg: "bg-purple-100 dark:bg-purple-500/20", border: "hover:border-purple-500/50 dark:hover:border-purple-500/50", action: () => scrollToSandbox('mock-calendar-sandbox') },
+      { icon: CheckSquare, text: "Let's do some planning", color: "text-emerald-600 dark:text-emerald-400", bg: "bg-emerald-100 dark:bg-emerald-500/20", border: "hover:border-emerald-500/50 dark:hover:border-emerald-500/50", action: () => scrollToSandbox('mock-task-sandbox') },
+      { icon: Square, text: "Start a stopwatch for reading", color: "text-amber-600 dark:text-amber-400", bg: "bg-amber-100 dark:bg-amber-500/20", border: "hover:border-amber-500/50 dark:hover:border-amber-500/50", action: () => window.dispatchEvent(new CustomEvent('sandbox-send-focus', { detail: { tab: 'stopwatch', title: 'Reading' } })) },
+    ];
+
+    const shuffled = [...HARDCODED_PROMPTS].sort(() => 0.5 - Math.random());
+    setRow1(shuffled.slice(0, 6));
+    setRow2(shuffled.slice(6, 12));
+  }, []);
+
+  return (
+    <div className="w-full flex flex-col gap-6 md:gap-8 my-10 md:my-20">
+      <div className="text-center max-w-2xl mx-auto px-4 w-full shrink-0 mb-6">
+        <div className="flex justify-center mb-6">
+           <div className="w-16 h-16 rounded-full bg-[#c2956e]/10 flex items-center justify-center text-[#c2956e] shadow-sm border border-[#c2956e]/20">
+              <Sparkles size={32} className="fill-current" />
+           </div>
+        </div>
+        <h3 className="text-3xl md:text-5xl font-serif text-[#3d3b33] dark:text-[#f0f0f0] mb-4 tracking-tight">And of course, an Intelligence.</h3>
+        <p className="text-[#888] dark:text-[#a0a0a0] leading-relaxed text-sm md:text-base">
+          Manual data entry is a thing of the past. Chronoa AI is deeply woven into your workspace to automate your workflow. It doesn't just converse with you. It executes commands instantly. Try the actions below to experience it natively.
+        </p>
+      </div>
+
+      <div className="mx-auto w-full max-w-3xl flex flex-col items-center justify-center">
+        <div className="w-full relative overflow-hidden flex flex-col gap-2 py-4"
+             style={{ maskImage: 'linear-gradient(to right, transparent, black 10%, black 90%, transparent)', WebkitMaskImage: 'linear-gradient(to right, transparent, black 10%, black 90%, transparent)' }}>
+           <MarqueeRow prompts={row1} speed={0.6} />
+           <MarqueeRow prompts={row2} speed={0.4} />
+        </div>
       </div>
     </div>
   );
