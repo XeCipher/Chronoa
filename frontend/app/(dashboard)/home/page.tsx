@@ -8,6 +8,7 @@ import ProductivityWidgets from "@/components/home/ProductivityWidgets";
 import WeatherWidget from "@/components/home/WeatherWidget";
 import HomeTaskProgress from "@/components/home/HomeTaskProgress";
 import TodayCalendarWidget from "@/components/calendar/TodayCalendarWidget";
+import { AiButton } from "@/components/ai/AiChatWidget";
 import { useTimerStore } from "@/store/timerStore";
 import { User } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -18,13 +19,12 @@ export default function HomePage() {
   const [isHovered, setIsHovered] = useState(false);
   const [isTouched, setIsTouched] = useState(false);
   
-  // Cache user avatar for instant load without layout shifting
-  const[userAvatar, setUserAvatar] = useState<string | null>(() => {
+  const [userAvatar, setUserAvatar] = useState<string | null>(() => {
     if (typeof window !== 'undefined') return localStorage.getItem('chronoa_avatar');
     return null;
   });
 
-  const[timeSessionsCount, setTimeSessionsCount] = useState<number | null>(null);
+  const [timeSessionsCount, setTimeSessionsCount] = useState<number | null>(null);
   
   const isPinned = useTimerStore((state: any) => state.isPinned);
   const forceShow = useTimerStore((state: any) => state.forceShowWidgets);
@@ -57,6 +57,7 @@ export default function HomePage() {
     <div className="relative w-full h-full overflow-hidden flex items-center justify-center touch-none overscroll-none">
       <SceneryBackground />
       
+      {/* Mobile Top Profile Avatar */}
       <div className="fixed top-[calc(1.5rem+env(safe-area-inset-top))] left-[calc(1.5rem+env(safe-area-inset-left))] md:hidden z-40">
         <button 
           onClick={() => router.push('/settings')} 
@@ -69,6 +70,11 @@ export default function HomePage() {
           )}
         </button>
       </div>
+      
+      {/* Mobile AI Button directly below the Profile avatar */}
+      <div className="fixed top-[calc(1.5rem+env(safe-area-inset-top)+3.5rem)] left-[calc(1.5rem+env(safe-area-inset-left))] z-40 md:hidden pointer-events-none [&>*]:pointer-events-auto">
+        <AiButton variant="mobile" />
+      </div>
 
       <div className="fixed top-[calc(1.5rem+env(safe-area-inset-top))] right-[calc(1.5rem+env(safe-area-inset-right))] md:top-10 md:right-12 z-40 md:z-20 flex flex-col items-end gap-3 pointer-events-none [&>*]:pointer-events-auto">
         <WeatherWidget />
@@ -76,7 +82,8 @@ export default function HomePage() {
       </div>
 
       <div className={`fixed z-20 flex flex-col items-end gap-4 md:bottom-10 md:right-10 bottom-[calc(90px+env(safe-area-inset-bottom))] right-6 pointer-events-none [&>*]:pointer-events-auto transition-all duration-[800ms] ease-[cubic-bezier(0.16,1,0.3,1)] ${showWidget ? 'opacity-0 translate-x-24 pointer-events-none' : 'opacity-100 translate-x-0'}`}>
-        <div className="hidden md:block">
+        <div className="hidden md:flex flex-col items-end gap-4">
+          <AiButton variant="desktop" />
           <TodayCalendarWidget variant="home" />
         </div>
       </div>
@@ -97,7 +104,6 @@ export default function HomePage() {
         <div className={`transition-colors duration-500 rounded-full animate-pulse ${isAnyRunning ? 'w-16 h-1.5 bg-red-500 shadow-[0_0_12px_rgba(239,68,68,0.8)]' : 'w-8 h-[2px] bg-[#888]/80 dark:bg-[#a0a0a0]/80'}`} />
       </div>
 
-      {/* Controlled Hover & Interaction Region */}
       <div 
         className="absolute bottom-0 left-0 w-full h-[15vh] md:h-[25vh] z-30 pointer-events-none"
         onMouseEnter={() => {
@@ -112,8 +118,6 @@ export default function HomePage() {
           }
         }}
       >
-        
-        {/* Hit Trigger: Only center on desktop, full width on mobile */}
         <div
           className="absolute bottom-0 left-1/2 -translate-x-1/2 w-full md:w-[600px] h-full pointer-events-auto cursor-pointer md:cursor-default"
           onClick={() => {
@@ -134,7 +138,6 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* Background dismiss for touch devices */}
         {isTouched && !isPinned && (
           <button
             className="fixed inset-0 z-0 cursor-default outline-none pointer-events-auto"
@@ -143,7 +146,6 @@ export default function HomePage() {
           />
         )}
 
-        {/* The Widgets: Inherits pointer-events-auto only when visible, ensuring outside hovers don't unintentionally re-trigger it */}
         <div className={`absolute bottom-6 md:bottom-10 left-0 w-full flex justify-center z-10 ${showWidget ? 'pointer-events-auto' : 'pointer-events-none'}`}>
           <ProductivityWidgets isVisible={showWidget} />
         </div>

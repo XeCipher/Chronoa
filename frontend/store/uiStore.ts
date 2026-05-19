@@ -54,6 +54,7 @@ interface UiState {
   confirmDialog: ConfirmDialogState | null;
   isGlobalTimeWidgetExpanded: boolean;
   isEditorFullscreen: boolean;
+  isAiChatOpen: boolean;
   
   setTaskArchiveDelay: (delay: number) => void;
   setRoutineResetHour: (hour: number) => void;
@@ -87,6 +88,8 @@ interface UiState {
   setGlobalTimeWidgetExpanded: (val: boolean) => void;
   toggleEditorFullscreen: () => void;
   setEditorFullscreen: (val: boolean) => void;
+  toggleAiChat: () => void;
+  setAiChatOpen: (val: boolean) => void;
 }
 
 export const useUiStore = create<UiState>()(
@@ -106,7 +109,7 @@ export const useUiStore = create<UiState>()(
       sessionsFilter: 'all',
       calendarView: 'month',
       hotkeysEnabled: true,
-      disabledHotkeys:[],
+      disabledHotkeys: [],
       moveCompletedToBottom: true,
       keepParentTaskAlive: false,
       addTaskAtTop: false,
@@ -121,6 +124,7 @@ export const useUiStore = create<UiState>()(
       confirmDialog: null,
       isGlobalTimeWidgetExpanded: false,
       isEditorFullscreen: false,
+      isAiChatOpen: false,
 
       setTaskArchiveDelay: (delay) => set({ taskArchiveDelay: delay }),
       setRoutineResetHour: (hour) => set({ routineResetHour: hour }),
@@ -162,11 +166,13 @@ export const useUiStore = create<UiState>()(
       setGlobalTimeWidgetExpanded: (val) => set({ isGlobalTimeWidgetExpanded: val }),
       toggleEditorFullscreen: () => set((state) => ({ isEditorFullscreen: !state.isEditorFullscreen })),
       setEditorFullscreen: (val) => set({ isEditorFullscreen: val }),
+      toggleAiChat: () => set(state => ({ isAiChatOpen: !state.isAiChatOpen })),
+      setAiChatOpen: (val) => set({ isAiChatOpen: val }),
     }),
     { 
       name: 'chronoa-settings',
       partialize: (state) => Object.fromEntries(
-        Object.entries(state).filter(([key]) => !['activeTaskIdWithMenu', 'mobileNoteOpen', 'confirmDialog', 'isGlobalTimeWidgetExpanded', 'isEditorFullscreen'].includes(key))
+        Object.entries(state).filter(([key]) => !['activeTaskIdWithMenu', 'mobileNoteOpen', 'confirmDialog', 'isGlobalTimeWidgetExpanded', 'isEditorFullscreen', 'isAiChatOpen'].includes(key))
       ),
     }
   )

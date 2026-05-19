@@ -9,6 +9,7 @@ import { useUiStore } from "@/store/uiStore";
 import { useTimerStore } from "@/store/timerStore";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import GlobalTimeWidget from "@/components/ui/GlobalTimeWidget";
+import { AiChatPanel } from "@/components/ai/AiChatWidget";
 import { Tooltip } from "react-tooltip";
 
 const generateSyncId = () => (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : Math.random().toString(36).substring(2);
@@ -43,7 +44,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
       if (event === 'SIGNED_OUT') {
-        // Only redirect if we aren't already on the landing page to prevent reload loops
         if (window.location.pathname !== "/") {
           window.location.href = "/";
         }
@@ -56,11 +56,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     let channel: any;
 
     const checkAuthAndSubscribe = async () => {
-      // Use getUser() to ping the server and verify the account actually exists
       const { data: { user }, error } = await supabase.auth.getUser();
       
       if (!user || error) {
-        // If user is deleted but local session persists, clear it forcefully
         const { data: { session } } = await supabase.auth.getSession();
         if (session) {
            await supabase.auth.signOut();
@@ -82,7 +80,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
       const { data: profile } = await supabase.from('profiles').select('*').eq('id', currentUserId).single();
       if (profile) {
-        // Automatically sync system timezone for proper serverless cron execution
         const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
         if ((profile as any).timezone !== userTimezone) {
           await supabase.from('profiles').update({ timezone: userTimezone }).eq('id', currentUserId);
@@ -104,8 +101,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           localSyncId.current = profile.timer_state.sync_id || generateSyncId();
           
           const newState = {
-            timers: profile.timer_state.timers ||[],
-            stopwatches: profile.timer_state.stopwatches ||[],
+            timers: profile.timer_state.timers || [],
+            stopwatches: profile.timer_state.stopwatches || [],
             activeTab: profile.timer_state.activeTab || 'stopwatch'
           };
           
@@ -139,8 +136,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                  isApplyingRemote.current = true;
                  
                  const parsedState = {
-                    timers: rec.timer_state.timers ||[],
-                    stopwatches: rec.timer_state.stopwatches ||[],
+                    timers: rec.timer_state.timers || [],
+                    stopwatches: rec.timer_state.stopwatches || [],
                     activeTab: rec.timer_state.activeTab || 'stopwatch'
                  };
                  
@@ -173,7 +170,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       supabase.from('profiles').update({ last_accessed_at: new Date().toISOString() }).eq('id', userId).then();
     };
 
-    const intervalId = setInterval(updateLastAccessed, 5 * 60 * 1000); // 5 minutes
+    const intervalId = setInterval(updateLastAccessed, 5 * 60 * 1000); 
 
     return () => {
       clearInterval(intervalId);
@@ -263,7 +260,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       const isAlt = e.altKey;
-      const isTyping =['INPUT', 'TEXTAREA'].includes((e.target as HTMLElement).tagName) || (e.target as HTMLElement).isContentEditable;
+      const isTyping = ['INPUT', 'TEXTAREA'].includes((e.target as HTMLElement).tagName) || (e.target as HTMLElement).isContentEditable;
       if (isAlt) {
         const key = e.key.toLowerCase();
         if (key === 'h' && !disabledHotkeys?.includes('home')) { e.preventDefault(); router.push('/home'); }
@@ -286,7 +283,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       if (!initialRestoreDone.current) {
         initialRestoreDone.current = true;
         const isEntryPage = pathname === '/' || pathname === '/home';
-        // Only trigger initial redirection for valid authenticated users (prevents redirect loops on logout)
         if (userId && isEntryPage && lastVisitedPage && lastVisitedPage !== '/' && lastVisitedPage !== '/home') {
            isRedirecting.current = true;
            router.replace(lastVisitedPage);
@@ -295,11 +291,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       }
       
       if (isRedirecting.current && (pathname === '/' || pathname === '/home')) {
-         // Wait for the redirect to settle
          return; 
       } else {
          isRedirecting.current = false;
-         // Only save the active page state if the user is authenticated 
          if (userId) {
            setLastVisitedPage(pathname);
          }
@@ -342,6 +336,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       
       <ConfirmDialog />
       <GlobalTimeWidget />
+      <AiChatPanel />
     </div>
   );
 }

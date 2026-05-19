@@ -8,6 +8,7 @@ import { supabase } from "@/lib/supabase";
 import { Play, Pause, Square, Trash2, Plus, History } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useUiStore } from "@/store/uiStore";
+import { AiButton } from "@/components/ai/AiChatWidget";
 
 const playChime = () => {
   try {
@@ -65,7 +66,7 @@ function MiniEngineCard({ engine, tab }: { engine: EngineInstance, tab: 'timer' 
   const handleStopAndSave = async (forceSaveSeconds?: number) => {
     const currentList = useTimerStore.getState()[tab === 'timer' ? 'timers' : 'stopwatches'];
     const currentEngine = currentList.find(e => e.id === engine.id);
-    if (!currentEngine) return; // Prevent double saving across synced devices
+    if (!currentEngine) return; 
 
     store.pause(tab, engine.id);
     const finalSeconds = forceSaveSeconds ?? (currentEngine.isRunning && currentEngine.startTime 
@@ -90,7 +91,6 @@ function MiniEngineCard({ engine, tab }: { engine: EngineInstance, tab: 'timer' 
       const targetSecs = engine.targetMinutes * 60;
       if (liveSeconds >= targetSecs) {
         const performAutoStop = async () => {
-          // Micro-stagger delay to handle multiple devices executing safely
           await new Promise(resolve => setTimeout(resolve, Math.random() * 500));
           if (isCancelled) return;
           
@@ -276,95 +276,99 @@ export default function GlobalTimeWidget() {
   const isExpanded = isHovered || isGlobalTimeWidgetExpanded;
 
   return (
-    <div 
-      className="hidden md:flex fixed bottom-8 right-10 z-[150] flex-col items-end group"
-      onMouseEnter={() => { if (!isTouch) { setIsHovered(true); setGlobalTimeWidgetExpanded(false); } }}
-      onMouseLeave={() => { if (!isTouch) setIsHovered(false); }}
-      onMouseMove={() => { if (isTouch) resetInactivityTimer(); }}
-      onTouchStart={() => { if (isTouch) resetInactivityTimer(); }}
-    >
-      <div className="absolute bottom-full right-0 w-full h-[15%] bg-transparent z-[-1]" />
-
-      <div className={`absolute bottom-[110%] right-0 w-[400px] bg-white/90 dark:bg-[#161616]/95 backdrop-blur-2xl border border-[#e0ddd5] dark:border-[#333] rounded-[2rem] p-6 shadow-2xl transition-all duration-400 origin-bottom-right flex flex-col gap-5 ${isExpanded ? 'scale-100 opacity-100 translate-y-0 pointer-events-auto' : 'scale-95 opacity-0 translate-y-4 pointer-events-none'}`}>
-        
-        <div className="flex flex-col items-center border-b border-[#e0ddd5] dark:border-[#333] pb-6 pt-2">
-          <div className="text-[3.25rem] text-[#3d3b33] dark:text-[#f0f0f0] font-mono font-light tracking-tighter flex items-baseline gap-1 leading-none">
-            {time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }).split(' ')[0]}
-            <span className="text-2xl text-[#c2956e] dark:text-[#b0855f] mb-1">:{time.getSeconds().toString().padStart(2, '0')}</span>
-            <span className="text-xl text-[#b0ad9a] dark:text-[#7a7a7a] ml-1">{time.getHours() >= 12 ? 'PM' : 'AM'}</span>
-          </div>
-          <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#b0ad9a] dark:text-[#7a7a7a] mt-3">
-            {time.toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
-          </p>
-        </div>
-
-        <div className="flex justify-between items-center w-full">
-          <div className="relative flex bg-[#ebe8e2]/50 dark:bg-[#1a1a1a] p-1.5 rounded-[1.25rem] border border-[#e0ddd5] dark:border-[#333] w-full max-w-[240px] shadow-inner">
-            {(['stopwatch', 'timer'] as const).map(tab => {
-              const isActive = store.activeTab === tab;
-              return (
-                <button 
-                  key={tab} 
-                  onClick={() => store.setActiveTab(tab)}
-                  className={`relative flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all duration-300 z-10
-                    ${isActive 
-                      ? 'text-[#3d3b33] dark:text-[#f0f0f0]' 
-                      : 'text-[#888] hover:text-[#3d3b33] dark:hover:text-[#ccc]'}`}
-                >
-                  {isActive && (
-                    <div className="absolute inset-0 bg-white dark:bg-[#2a2a2a] rounded-xl shadow-[0_2px_8px_rgba(0,0,0,0.08)] dark:shadow-[0_2px_8px_rgba(0,0,0,0.4)] border border-[#f0ede8] dark:border-[#3a3a3a] -z-10 transition-all duration-300" />
-                  )}
-                  <span className={`transition-colors duration-300 ${isActive ? 'text-[#c2956e] dark:text-[#d1a784]' : ''}`}>
-                    {tab}
-                  </span>
-                  {isAnyRunning(tab) && <span className="w-1.5 h-1.5 bg-[#c2956e] dark:bg-[#b0855f] rounded-full animate-ping shadow-[0_0_4px_#c2956e]"/>}
-                </button>
-              );
-            })}
-          </div>
-          
-          <button onClick={() => router.push('/sessions')} className="w-10 h-10 flex items-center justify-center rounded-[1rem] hover:bg-[#ebe8e2]/50 dark:hover:bg-[#222] transition-colors text-[#b0ad9a] dark:text-[#888] hover:text-[#3d3b33] dark:hover:text-[#f0f0f0] border border-[#e0ddd5] dark:border-[#333] shadow-sm">
-            <History size={16} />
-          </button>
-        </div>
-
-        <div className="flex flex-col gap-3 max-h-[42vh] overflow-y-auto no-scrollbar px-1 -mx-1">
-          {activeList && activeList.map(engine => (
-            <MiniEngineCard key={engine.id} engine={engine} tab={store.activeTab} />
-          ))}
-          
-          <button onClick={() => store.addInstance(store.activeTab)} className="w-full shrink-0 flex items-center justify-center gap-2 py-4 border border-dashed border-[#d4d0c8] dark:border-[#444] rounded-[1.25rem] text-[11px] font-bold uppercase tracking-widest text-[#b0ad9a] dark:text-[#7a7a7a] hover:text-[#c2956e] dark:hover:text-[#b0855f] hover:border-[#c2956e] dark:hover:border-[#b0855f] transition-colors hover:bg-white/50 dark:hover:bg-[#222]/50">
-            <Plus size={16} /> Add {store.activeTab}
-          </button>
-          
-          <div className="h-2 w-full shrink-0 pointer-events-none" />
-        </div>
-
-      </div>
-
+    <div className="hidden md:flex fixed bottom-8 right-10 z-[150] items-end gap-4 pointer-events-none">
+      
       <div 
-        onClick={() => {
-          setGlobalTimeWidgetExpanded(true);
-          if (inactivityTimerRef.current) clearTimeout(inactivityTimerRef.current);
-          inactivityTimerRef.current = setTimeout(() => {
-            setGlobalTimeWidgetExpanded(false);
-          }, 3000);
-        }}
-        className={`relative flex items-center gap-3 bg-white/70 dark:bg-[#1a1a1a]/80 backdrop-blur-xl border border-[#e0ddd5] dark:border-[#333] rounded-2xl px-6 py-3.5 transition-all duration-400 ease-out cursor-pointer overflow-hidden ${isExpanded ? 'shadow-[0_8px_30px_rgba(194,149,110,0.2)] dark:shadow-[0_8px_30px_rgba(0,0,0,0.6)] border-[#c2956e] dark:border-[#b0855f] scale-105' : 'shadow-[0_4px_20px_rgba(0,0,0,0.05)] dark:shadow-[0_4px_20px_rgba(0,0,0,0.4)] hover:shadow-md hover:scale-[1.02]'}`}
+        className="relative flex flex-col items-end group pointer-events-auto"
+        onMouseEnter={() => { if (!isTouch) { setIsHovered(true); setGlobalTimeWidgetExpanded(false); } }}
+        onMouseLeave={() => { if (!isTouch) setIsHovered(false); }}
+        onMouseMove={() => { if (isTouch) resetInactivityTimer(); }}
+        onTouchStart={() => { if (isTouch) resetInactivityTimer(); }}
       >
-        <div className={`absolute inset-0 bg-gradient-to-r from-[#c2956e]/0 via-[#c2956e]/5 dark:via-[#c2956e]/10 to-[#c2956e]/0 transition-opacity duration-500 ${isExpanded ? 'opacity-100' : 'opacity-0'}`} />
-        
-        <span className="relative z-10 text-[#3d3b33] dark:text-[#f0f0f0] font-serif text-xl leading-none">
-          {time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-        </span>
-        
-        <div className={`relative z-10 rounded-full transition-all duration-500 ${hasRunning ? 'w-2.5 h-2.5 bg-red-500 animate-pulse shadow-[0_0_8px_rgba(239,68,68,0.8)]' : 'w-[3px] h-3.5 bg-[#c2956e] dark:bg-[#b0855f]'}`} />
-        
-        <span className="relative z-10 text-[#b0ad9a] dark:text-[#888] font-bold text-[10px] uppercase tracking-[0.2em] leading-none mt-0.5">
-          {time.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' })}
-        </span>
+        <div className="absolute bottom-full right-0 w-full h-[15%] bg-transparent z-[-1]" />
+
+        <div className={`absolute bottom-[110%] right-0 w-[400px] bg-white/90 dark:bg-[#161616]/95 backdrop-blur-2xl border border-[#e0ddd5] dark:border-[#333] rounded-[2rem] p-6 shadow-2xl transition-all duration-400 origin-bottom-right flex flex-col gap-5 ${isExpanded ? 'scale-100 opacity-100 translate-y-0 pointer-events-auto' : 'scale-95 opacity-0 translate-y-4 pointer-events-none'}`}>
+          
+          <div className="flex flex-col items-center border-b border-[#e0ddd5] dark:border-[#333] pb-6 pt-2">
+            <div className="text-[3.25rem] text-[#3d3b33] dark:text-[#f0f0f0] font-mono font-light tracking-tighter flex items-baseline gap-1 leading-none">
+              {time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }).split(' ')[0]}
+              <span className="text-2xl text-[#c2956e] dark:text-[#b0855f] mb-1">:{time.getSeconds().toString().padStart(2, '0')}</span>
+              <span className="text-xl text-[#b0ad9a] dark:text-[#7a7a7a] ml-1">{time.getHours() >= 12 ? 'PM' : 'AM'}</span>
+            </div>
+            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#b0ad9a] dark:text-[#7a7a7a] mt-3">
+              {time.toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
+            </p>
+          </div>
+
+          <div className="flex justify-between items-center w-full">
+            <div className="relative flex bg-[#ebe8e2]/50 dark:bg-[#1a1a1a] p-1.5 rounded-[1.25rem] border border-[#e0ddd5] dark:border-[#333] w-full max-w-[240px] shadow-inner">
+              {(['stopwatch', 'timer'] as const).map(tab => {
+                const isActive = store.activeTab === tab;
+                return (
+                  <button 
+                    key={tab} 
+                    onClick={() => store.setActiveTab(tab)}
+                    className={`relative flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all duration-300 z-10
+                      ${isActive 
+                        ? 'text-[#3d3b33] dark:text-[#f0f0f0]' 
+                        : 'text-[#888] hover:text-[#3d3b33] dark:hover:text-[#ccc]'}`}
+                  >
+                    {isActive && (
+                      <div className="absolute inset-0 bg-white dark:bg-[#2a2a2a] rounded-xl shadow-[0_2px_8px_rgba(0,0,0,0.08)] dark:shadow-[0_2px_8px_rgba(0,0,0,0.4)] border border-[#f0ede8] dark:border-[#3a3a3a] -z-10 transition-all duration-300" />
+                    )}
+                    <span className={`transition-colors duration-300 ${isActive ? 'text-[#c2956e] dark:text-[#d1a784]' : ''}`}>
+                      {tab}
+                    </span>
+                    {isAnyRunning(tab) && <span className="w-1.5 h-1.5 bg-[#c2956e] dark:bg-[#b0855f] rounded-full animate-ping shadow-[0_0_4px_#c2956e]"/>}
+                  </button>
+                );
+              })}
+            </div>
+            
+            <button onClick={() => router.push('/sessions')} className="w-10 h-10 flex items-center justify-center rounded-[1rem] hover:bg-[#ebe8e2]/50 dark:hover:bg-[#222] transition-colors text-[#b0ad9a] dark:text-[#888] hover:text-[#3d3b33] dark:hover:text-[#f0f0f0] border border-[#e0ddd5] dark:border-[#333] shadow-sm">
+              <History size={16} />
+            </button>
+          </div>
+
+          <div className="flex flex-col gap-3 max-h-[42vh] overflow-y-auto no-scrollbar px-1 -mx-1">
+            {activeList && activeList.map(engine => (
+              <MiniEngineCard key={engine.id} engine={engine} tab={store.activeTab} />
+            ))}
+            
+            <button onClick={() => store.addInstance(store.activeTab)} className="w-full shrink-0 flex items-center justify-center gap-2 py-4 border border-dashed border-[#d4d0c8] dark:border-[#444] rounded-[1.25rem] text-[11px] font-bold uppercase tracking-widest text-[#b0ad9a] dark:text-[#7a7a7a] hover:text-[#c2956e] dark:hover:text-[#b0855f] hover:border-[#c2956e] dark:hover:border-[#b0855f] transition-colors hover:bg-white/50 dark:hover:bg-[#222]/50">
+              <Plus size={16} /> Add {store.activeTab}
+            </button>
+            
+            <div className="h-2 w-full shrink-0 pointer-events-none" />
+          </div>
+
+        </div>
+
+        <div 
+          onClick={() => {
+            setGlobalTimeWidgetExpanded(true);
+            if (inactivityTimerRef.current) clearTimeout(inactivityTimerRef.current);
+            inactivityTimerRef.current = setTimeout(() => {
+              setGlobalTimeWidgetExpanded(false);
+            }, 3000);
+          }}
+          className={`relative flex items-center gap-3 bg-white/70 dark:bg-[#1a1a1a]/80 backdrop-blur-xl border border-[#e0ddd5] dark:border-[#333] rounded-[1rem] px-6 h-[52px] transition-all duration-400 ease-out cursor-pointer overflow-hidden ${isExpanded ? 'shadow-[0_8px_30px_rgba(194,149,110,0.2)] dark:shadow-[0_8px_30px_rgba(0,0,0,0.6)] border-[#c2956e] dark:border-[#b0855f] scale-[1.02]' : 'shadow-[0_4px_20px_rgba(0,0,0,0.05)] dark:shadow-[0_4px_20px_rgba(0,0,0,0.4)] hover:shadow-md hover:scale-[1.01]'}`}
+        >
+          <div className={`absolute inset-0 bg-gradient-to-r from-[#c2956e]/0 via-[#c2956e]/5 dark:via-[#c2956e]/10 to-[#c2956e]/0 transition-opacity duration-500 ${isExpanded ? 'opacity-100' : 'opacity-0'}`} />
+          
+          <span className="relative z-10 text-[#3d3b33] dark:text-[#f0f0f0] font-serif text-xl leading-none">
+            {time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+          </span>
+          
+          <div className={`relative z-10 rounded-full transition-all duration-500 ${hasRunning ? 'w-2.5 h-2.5 bg-red-500 animate-pulse shadow-[0_0_8px_rgba(239,68,68,0.8)]' : 'w-[3px] h-3.5 bg-[#c2956e] dark:bg-[#b0855f]'}`} />
+          
+          <span className="relative z-10 text-[#b0ad9a] dark:text-[#888] font-bold text-[10px] uppercase tracking-[0.2em] leading-none mt-0.5">
+            {time.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' })}
+          </span>
+        </div>
       </div>
 
+      <AiButton variant="global" />
     </div>
   );
 }
