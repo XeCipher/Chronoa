@@ -42,18 +42,18 @@ export function AiButton({ variant }: { variant: 'desktop' | 'mobile' | 'global'
 
 // Short, punchy, diverse prompts with beautiful colors for the compact layout
 const CRAZY_PROMPTS = [
-  { icon: Sparkles, text: "Analyze today's focus", color: "text-purple-600 dark:text-purple-400", bg: "bg-purple-100 dark:bg-purple-500/20", border: "hover:border-purple-500/50 dark:hover:border-purple-500/50" },
-  { icon: Timer, text: "Start a 25m focus timer", color: "text-amber-600 dark:text-amber-400", bg: "bg-amber-100 dark:bg-amber-500/20", border: "hover:border-amber-500/50 dark:hover:border-amber-500/50" },
-  { icon: CalendarDays, text: "Clear afternoon schedule", color: "text-rose-600 dark:text-rose-400", bg: "bg-rose-100 dark:bg-rose-500/20", border: "hover:border-rose-500/50 dark:hover:border-rose-500/50" },
-  { icon: BookOpen, text: "Draft a journal entry", color: "text-emerald-600 dark:text-emerald-400", bg: "bg-emerald-100 dark:bg-emerald-500/20", border: "hover:border-emerald-500/50 dark:hover:border-emerald-500/50" },
-  { icon: CheckSquare, text: "Add 'Review PRs' task", color: "text-[#7ca982] dark:text-[#8cbd92]", bg: "bg-[#7ca982]/20 dark:bg-[#7ca982]/20", border: "hover:border-[#7ca982]/50 dark:hover:border-[#7ca982]/50" },
-  { icon: FileText, text: "Append a note idea", color: "text-blue-600 dark:text-blue-400", bg: "bg-blue-100 dark:bg-blue-500/20", border: "hover:border-blue-500/50 dark:hover:border-blue-500/50" },
-  { icon: Square, text: "Stop all timers", color: "text-rose-600 dark:text-rose-400", bg: "bg-rose-100 dark:bg-rose-500/20", border: "hover:border-rose-500/50 dark:hover:border-rose-500/50" },
-  { icon: CheckCircle2, text: "Mark 'Workout' complete", color: "text-[#7ca982] dark:text-[#8cbd92]", bg: "bg-[#7ca982]/20 dark:bg-[#7ca982]/20", border: "hover:border-[#7ca982]/50 dark:hover:border-[#7ca982]/50" },
-  { icon: CalendarDays, text: "Add 3PM coffee break", color: "text-purple-600 dark:text-purple-400", bg: "bg-purple-100 dark:bg-purple-500/20", border: "hover:border-purple-500/50 dark:hover:border-purple-500/50" },
-  { icon: Sparkles, text: "What should I prioritize?", color: "text-amber-600 dark:text-amber-400", bg: "bg-amber-100 dark:bg-amber-500/20", border: "hover:border-amber-500/50 dark:hover:border-amber-500/50" },
-  { icon: Navigation, text: "Show my analytics", color: "text-blue-600 dark:text-blue-400", bg: "bg-blue-100 dark:bg-blue-500/20", border: "hover:border-blue-500/50 dark:hover:border-blue-500/50" },
-  { icon: BookOpen, text: "Recent journal thoughts?", color: "text-emerald-600 dark:text-emerald-400", bg: "bg-emerald-100 dark:bg-emerald-500/20", border: "hover:border-emerald-500/50 dark:hover:border-emerald-500/50" }
+  { icon: Sparkles, text: "Analyze today's focus", color: "text-purple-600 dark:text-purple-400", bg: "bg-purple-100 dark:bg-purple-500/20", border: "md:hover:border-purple-500/50 md:dark:hover:border-purple-500/50" },
+  { icon: Timer, text: "Start a 25m focus timer", color: "text-amber-600 dark:text-amber-400", bg: "bg-amber-100 dark:bg-amber-500/20", border: "md:hover:border-amber-500/50 md:dark:hover:border-amber-500/50" },
+  { icon: CalendarDays, text: "Clear afternoon schedule", color: "text-rose-600 dark:text-rose-400", bg: "bg-rose-100 dark:bg-rose-500/20", border: "md:hover:border-rose-500/50 md:dark:hover:border-rose-500/50" },
+  { icon: BookOpen, text: "Draft a journal entry", color: "text-emerald-600 dark:text-emerald-400", bg: "bg-emerald-100 dark:bg-emerald-500/20", border: "md:hover:border-emerald-500/50 md:dark:hover:border-emerald-500/50" },
+  { icon: CheckSquare, text: "Add 'Review PRs' task", color: "text-[#7ca982] dark:text-[#8cbd92]", bg: "bg-[#7ca982]/20 dark:bg-[#7ca982]/20", border: "md:hover:border-[#7ca982]/50 md:dark:hover:border-[#7ca982]/50" },
+  { icon: FileText, text: "Append a note idea", color: "text-blue-600 dark:text-blue-400", bg: "bg-blue-100 dark:bg-blue-500/20", border: "md:hover:border-blue-500/50 md:dark:hover:border-blue-500/50" },
+  { icon: Square, text: "Stop all timers", color: "text-rose-600 dark:text-rose-400", bg: "bg-rose-100 dark:bg-rose-500/20", border: "md:hover:border-rose-500/50 md:dark:hover:border-rose-500/50" },
+  { icon: CheckCircle2, text: "Mark 'Workout' complete", color: "text-[#7ca982] dark:text-[#8cbd92]", bg: "bg-[#7ca982]/20 dark:bg-[#7ca982]/20", border: "md:hover:border-[#7ca982]/50 md:dark:hover:border-[#7ca982]/50" },
+  { icon: CalendarDays, text: "Add 3PM coffee break", color: "text-purple-600 dark:text-purple-400", bg: "bg-purple-100 dark:bg-purple-500/20", border: "md:hover:border-purple-500/50 md:dark:hover:border-purple-500/50" },
+  { icon: Sparkles, text: "What should I prioritize?", color: "text-amber-600 dark:text-amber-400", bg: "bg-amber-100 dark:bg-amber-500/20", border: "md:hover:border-amber-500/50 md:dark:hover:border-amber-500/50" },
+  { icon: Navigation, text: "Show my analytics", color: "text-blue-600 dark:text-blue-400", bg: "bg-blue-100 dark:bg-blue-500/20", border: "md:hover:border-blue-500/50 md:dark:hover:border-blue-500/50" },
+  { icon: BookOpen, text: "Recent journal thoughts?", color: "text-emerald-600 dark:text-emerald-400", bg: "bg-emerald-100 dark:bg-emerald-500/20", border: "md:hover:border-emerald-500/50 md:dark:hover:border-emerald-500/50" }
 ];
 
 const fetchUserContext = async () => {
@@ -293,6 +293,7 @@ const tools: any = [{
 const MarqueeRow = React.memo(({ prompts, speed = 0.5 }: { prompts: any[], speed?: number }) => {
   const scrollRef = useRef<HTMLDivElement>(null);
   const isHovered = useRef(false);
+  const touchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     let animationFrameId: number;
@@ -324,22 +325,37 @@ const MarqueeRow = React.memo(({ prompts, speed = 0.5 }: { prompts: any[], speed
     <div 
       ref={scrollRef} 
       className="flex w-full overflow-x-auto no-scrollbar gap-3 pl-4 pr-0 py-2"
-      onMouseEnter={() => isHovered.current = true}
+      onMouseEnter={() => {
+        if (touchTimeoutRef.current) clearTimeout(touchTimeoutRef.current);
+        isHovered.current = true;
+      }}
       onMouseLeave={() => isHovered.current = false}
-      onTouchStart={() => isHovered.current = true}
-      onTouchEnd={() => isHovered.current = false}
+      onTouchStart={() => {
+        if (touchTimeoutRef.current) clearTimeout(touchTimeoutRef.current);
+        isHovered.current = true;
+      }}
+      onTouchEnd={() => {
+        touchTimeoutRef.current = setTimeout(() => {
+          isHovered.current = false;
+        }, 400);
+      }}
+      onTouchCancel={() => {
+        touchTimeoutRef.current = setTimeout(() => {
+          isHovered.current = false;
+        }, 400);
+      }}
     >
       <div className="flex gap-4 w-max">
         {[...prompts, ...prompts].map((p, i) => (
            <button 
              key={i} 
              onClick={() => window.dispatchEvent(new CustomEvent('chronoa-ai-prompt', { detail: p.text }))} 
-             className={`flex items-center gap-3 px-5 py-3.5 rounded-2xl bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] transition-all shrink-0 cursor-pointer shadow-sm group select-none hover:-translate-y-0.5 ${p.border}`}
+             className={`flex items-center gap-3 px-5 py-3.5 rounded-2xl bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] transition-all shrink-0 cursor-pointer shadow-sm group select-none md:hover:-translate-y-0.5 ${p.border}`}
            >
              <div className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${p.bg}`}>
                <p.icon size={14} className={`${p.color} transition-colors`} />
              </div>
-             <span className="text-[14px] font-medium text-[#888] dark:text-[#a0a0a0] group-hover:text-[#3d3b33] dark:group-hover:text-[#f0f0f0] whitespace-nowrap transition-colors">{p.text}</span>
+             <span className="text-[14px] font-medium text-[#888] dark:text-[#a0a0a0] md:group-hover:text-[#3d3b33] md:dark:group-hover:text-[#f0f0f0] whitespace-nowrap transition-colors">{p.text}</span>
            </button>
         ))}
       </div>
