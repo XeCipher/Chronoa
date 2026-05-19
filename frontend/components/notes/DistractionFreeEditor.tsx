@@ -394,7 +394,8 @@ export default function DistractionFreeEditor({
   useEffect(() => {
     if (shouldFocusOnMount && editor && window.innerWidth >= 1024) {
       setTimeout(() => {
-        if (!editor.isFocused) editor.commands.focus("end");
+        // Fix: Use 'start' instead of 'end' so it doesn't aggressively scroll to the bottom of long notes
+        if (!editor.isFocused) editor.commands.focus("start");
       }, 150);
     }
   },[shouldFocusOnMount, editor]);

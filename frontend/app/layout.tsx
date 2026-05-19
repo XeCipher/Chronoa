@@ -6,7 +6,7 @@ import GoogleAnalytics from "@/components/GoogleAnalytics";
 
 const cormorant = Cormorant_Garamond({
   subsets: ["latin"],
-  weight:["300", "400", "500", "600"],
+  weight: ["300", "400", "500", "600"],
   variable: "--font-cormorant",
 });
 
@@ -22,7 +22,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Chronoa",
     description: "Your aesthetic workspace. Completely synced.",
-    images:[{ url: '/opengraph-image.png', width: 1200, height: 630 }],
+    images: [{ url: '/opengraph-image.png', width: 1200, height: 630 }],
     type: 'website',
   },
   appleWebApp: {
@@ -37,11 +37,16 @@ export const metadata: Metadata = {
 };
 
 // This successfully prevents the annoying Safari iOS zoom on inputs
+// Also correctly handles PWA Web App Native top/bottom bars coloring for Android
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#f7f5f0" },
+    { media: "(prefers-color-scheme: dark)", color: "#121212" },
+  ],
 };
 
 export default function RootLayout({

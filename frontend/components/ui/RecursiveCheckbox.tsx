@@ -71,14 +71,14 @@ export default function RecursiveCheckbox({
   const { addInstance, setTitle: setTimerTitle, setActiveTab, setForceShowWidgets } = useTimerStore();
 
   const [localTitle, setLocalTitle] = useState(task.title);
-  const[isExpanded, setIsExpanded] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
   const [isOverflowing, setIsOverflowing] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [menuRect, setMenuRect] = useState<DOMRect | null>(null);
 
   const [optimisticCollapsed, setOptimisticCollapsed] = useState<boolean | null>(null);
   
-  const[localCollapsed, setLocalCollapsed] = useState<boolean>(() => {
+  const [localCollapsed, setLocalCollapsed] = useState<boolean>(() => {
     return getDescendantCount(task) > 5;
   });
 
@@ -153,6 +153,7 @@ export default function RecursiveCheckbox({
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
+      // Prevents closing edit mode if clicking inside the floating context menu
       if ((event.target as Element).closest?.('.context-menu-portal')) return;
       
       if (activeTaskIdWithMenu !== task.id) return;
@@ -169,12 +170,25 @@ export default function RecursiveCheckbox({
 
   useEffect(() => {
     if (activeTaskIdWithMenu !== task.id) return;
-    const handleScroll = (e: Event) => {
-      if ((e.target as HTMLElement).closest('.context-menu-portal')) return;
+    
+    // Add initialization delay to stop layout micro-scrolls from auto-collapsing the menu
+    let isJustOpened = true;
+    const timer = setTimeout(() => { isJustOpened = false; }, 150);
+
+    const handleUserScroll = (e: Event) => {
+      if (isJustOpened) return;
+      if ((e.target as HTMLElement).closest?.('.context-menu-portal')) return;
       setActiveTaskIdWithMenu(null);
     };
-    window.addEventListener('scroll', handleScroll, true);
-    return () => window.removeEventListener('scroll', handleScroll, true);
+    
+    // Explicitly listen ONLY to physical user scrolls to prevent programmatic rendering shifts from closing the menu
+    window.addEventListener('wheel', handleUserScroll, { capture: true, passive: true });
+    window.addEventListener('touchmove', handleUserScroll, { capture: true, passive: true });
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener('wheel', handleUserScroll, { capture: true } as any);
+      window.removeEventListener('touchmove', handleUserScroll, { capture: true } as any);
+    };
   },[activeTaskIdWithMenu, task.id, setActiveTaskIdWithMenu]);
 
   useEffect(() => {
@@ -288,6 +302,7 @@ export default function RecursiveCheckbox({
 
   const toggleMenu = (e: React.MouseEvent) => {
     e.stopPropagation();
+    e.preventDefault();
     if (isMenuOpen) {
       setActiveTaskIdWithMenu(null);
     } else {
@@ -353,6 +368,7 @@ export default function RecursiveCheckbox({
               e.preventDefault();
               e.stopPropagation();
             }}
+            onPointerDown={(e) => e.stopPropagation()}
             className="text-[#c2956e] dark:text-[#d1a784] hover:text-[#b0855f] dark:hover:text-[#e0b589] underline decoration-[#c2956e]/40 dark:decoration-[#d1a784]/40 hover:decoration-[#b0855f] dark:hover:decoration-[#e0b589] underline-offset-[3px] transition-colors cursor-pointer"
           >
             {part}
@@ -430,6 +446,7 @@ export default function RecursiveCheckbox({
         className="context-menu-portal fixed z-[9999] bg-white/95 dark:bg-[#1c1c1c]/95 backdrop-blur-xl border border-[#e0ddd5] dark:border-[#333] shadow-2xl rounded-2xl p-1.5 flex flex-col w-[180px] animate-fade-up overflow-y-auto no-scrollbar max-h-[70vh]"
         style={{ top, bottom, left }}
         onClick={(e) => e.stopPropagation()}
+        onPointerDown={(e) => e.stopPropagation()}
       >
         {viewMode === 'focus' && (
            <>
@@ -532,6 +549,7 @@ export default function RecursiveCheckbox({
             e.stopPropagation(); 
             if (viewMode === 'focus') onUpdate(task.id, { is_completed: !task.is_completed }); 
           }} 
+          onPointerDown={(e) => e.stopPropagation()}
           disabled={viewMode !== 'focus'}
           className={`${checkboxSize} ${checkboxRadius} shrink-0 border flex items-center justify-center transition-all duration-200 ${viewMode !== 'focus' ? 'cursor-default opacity-80' : 'cursor-pointer'} ${task.is_completed ? "bg-[#7ca982] dark:bg-[#6a9a70] border-[#7ca982] shadow-[0_0_0_3px_rgba(124,169,130,0.12)]" : "border-[#d4d0c8] dark:border-[#555] bg-white dark:bg-[#1a1a1a] md:hover:border-[#7ca982] md:hover:shadow-[0_0_0_3px_rgba(124,169,130,0.10)]"}`}
         >
@@ -554,6 +572,7 @@ export default function RecursiveCheckbox({
                    localStorage.setItem('chronoa_archive_collapsed', JSON.stringify(parsed));
                }
              }} 
+             onPointerDown={(e) => e.stopPropagation()}
              className="shrink-0 -ml-1 text-[#b0ad9a] md:hover:text-[#c2956e] md:dark:hover:text-[#d1a784] transition-colors p-1"
            >
               {isCollapsed ? <ChevronRight size={14} /> : <ChevronDown size={14} className="opacity-100 lg:opacity-40 lg:group-hover:opacity-100" />}
@@ -661,6 +680,7 @@ export default function RecursiveCheckbox({
           {isOverflowing && (
              <button 
                 onClick={(e) => { e.stopPropagation(); setIsExpanded(!isExpanded); }}
+                onPointerDown={(e) => e.stopPropagation()}
                 className="text-[10px] text-[#c2956e] dark:text-[#b0855f] font-bold uppercase tracking-wider mt-0.5 opacity-80 md:hover:opacity-100 transition-opacity flex items-center gap-1 w-max outline-none"
              >
                 {isExpanded ? "Show Less" : "Read More"}
@@ -684,6 +704,7 @@ export default function RecursiveCheckbox({
             {viewMode === 'focus' && showManagementActions && !disableMenu && (
                <button 
                   onClick={(e) => { e.stopPropagation(); onAdd(task.parent_id, task); }} 
+                  onPointerDown={(e) => e.stopPropagation()}
                   className="w-8 h-8 flex items-center justify-center rounded-lg text-[#c4c0b8] md:hover:text-[#c2956e] md:hover:bg-[#c2956e]/10 transition-all" 
                >
                   <Plus size={18} />
@@ -693,6 +714,7 @@ export default function RecursiveCheckbox({
             {!disableMenu && (
               <button 
                  onClick={toggleMenu} 
+                 onPointerDown={(e) => e.stopPropagation()}
                  className={`menu-toggle-btn w-8 h-8 flex items-center justify-center rounded-lg text-[#c4c0b8] md:hover:text-[#3d3b33] md:dark:hover:text-white md:hover:bg-[#ebe8e2] md:dark:hover:bg-[#333] transition-all ${isMenuOpen ? 'bg-[#ebe8e2] dark:bg-[#333] text-[#3d3b33] dark:text-white' : ''}`}
               >
                  <MoreVertical size={16} />
