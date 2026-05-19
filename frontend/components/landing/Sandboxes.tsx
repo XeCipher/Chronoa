@@ -965,7 +965,7 @@ const MarqueeRow = React.memo(({ prompts, speed = 0.5 }: { prompts: any[], speed
         if (touchTimeoutRef.current) clearTimeout(touchTimeoutRef.current);
         isHovered.current = true;
       }}
-      onMouseLeave={() => isHovered.current = false}
+      onMouseLeave={() => { isHovered.current = false; }}
       onTouchStart={() => {
         if (touchTimeoutRef.current) clearTimeout(touchTimeoutRef.current);
         isHovered.current = true;
@@ -984,8 +984,13 @@ const MarqueeRow = React.memo(({ prompts, speed = 0.5 }: { prompts: any[], speed
       <div className="flex gap-4 w-max">
         {[...prompts, ...prompts].map((p, i) => (
            <button 
-             key={i} 
-             onClick={p.action} 
+             key={i}
+             // On mobile, onTouchEnd fires the action directly and prevents the browser
+             // from reclassifying the tap as a scroll gesture (which swallows onClick).
+             // e.preventDefault() also kills the 300ms synthetic-click delay.
+             onTouchEnd={(e) => { e.preventDefault(); p.action(); }}
+             onClick={p.action}
+             style={{ touchAction: 'manipulation' }}
              className={`flex items-center gap-3 px-5 py-3.5 rounded-2xl bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] transition-all shrink-0 cursor-pointer shadow-sm group select-none md:hover:-translate-y-0.5 ${p.border}`}
            >
              <div className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${p.bg}`}>
@@ -1018,11 +1023,11 @@ export function MockAiSandbox() {
     const HARDCODED_PROMPTS = [
       { icon: Timer, text: "Start a 25m deep work timer", color: "text-amber-600 dark:text-amber-400", bg: "bg-amber-100 dark:bg-amber-500/20", border: "md:hover:border-amber-500/50 md:dark:hover:border-amber-500/50", action: () => window.dispatchEvent(new CustomEvent('sandbox-send-focus', { detail: { tab: 'timer', title: 'Deep Work' } })) },
       { icon: CheckSquare, text: "Add 'Review PRs' to my tasks", color: "text-emerald-600 dark:text-emerald-400", bg: "bg-emerald-100 dark:bg-emerald-500/20", border: "md:hover:border-emerald-500/50 md:dark:hover:border-emerald-500/50", action: () => window.dispatchEvent(new CustomEvent('sandbox-add-task', { detail: { title: 'Review PRs' } })) },
-      { icon: CalendarDays, text: "Schedule a team sync at 3 PM", color: "text-blue-600 dark:text-blue-400", bg: "bg-blue-100 dark:bg-blue-500/20", border: "md:hover:border-blue-500/50 md:dark:hover:border-blue-500/50", action: () => window.dispatchEvent(new CustomEvent('sandbox-add-calendar', { detail: { title: 'Team Sync' } })) },
+      { icon: CalendarDays, text: "Schedule a team sync", color: "text-blue-600 dark:text-blue-400", bg: "bg-blue-100 dark:bg-blue-500/20", border: "md:hover:border-blue-500/50 md:dark:hover:border-blue-500/50", action: () => window.dispatchEvent(new CustomEvent('sandbox-add-calendar', { detail: { title: 'Team Sync' } })) },
       { icon: BookOpen, text: "Draft a journal entry about today", color: "text-rose-600 dark:text-rose-400", bg: "bg-rose-100 dark:bg-rose-500/20", border: "md:hover:border-rose-500/50 md:dark:hover:border-rose-500/50", action: () => window.dispatchEvent(new CustomEvent('sandbox-add-note', { detail: { text: 'Today was highly productive. I managed to stay focused and clear my task list.' } })) },
-      { icon: Timer, text: "Start a 10m quick break timer", color: "text-amber-600 dark:text-amber-400", bg: "bg-amber-100 dark:bg-amber-500/20", border: "md:hover:border-amber-500/50 md:dark:hover:border-amber-500/50", action: () => window.dispatchEvent(new CustomEvent('sandbox-send-focus', { detail: { tab: 'timer', title: 'Quick Break' } })) },
+      { icon: Timer, text: "Start a break timer", color: "text-amber-600 dark:text-amber-400", bg: "bg-amber-100 dark:bg-amber-500/20", border: "md:hover:border-amber-500/50 md:dark:hover:border-amber-500/50", action: () => window.dispatchEvent(new CustomEvent('sandbox-send-focus', { detail: { tab: 'timer', title: 'Break' } })) },
       { icon: CheckSquare, text: "Add 'Buy groceries' task", color: "text-[#7ca982] dark:text-[#8cbd92]", bg: "bg-[#7ca982]/20 dark:bg-[#7ca982]/20", border: "md:hover:border-[#7ca982]/50 md:dark:hover:border-[#7ca982]/50", action: () => window.dispatchEvent(new CustomEvent('sandbox-add-task', { detail: { title: 'Buy groceries' } })) },
-      { icon: CalendarDays, text: "Schedule 'Deep Work' for tomorrow", color: "text-purple-600 dark:text-purple-400", bg: "bg-purple-100 dark:bg-purple-500/20", border: "md:hover:border-purple-500/50 md:dark:hover:border-purple-500/50", action: () => window.dispatchEvent(new CustomEvent('sandbox-add-calendar', { detail: { title: 'Deep Work' } })) },
+      { icon: CalendarDays, text: "Schedule 'Deep Work'", color: "text-purple-600 dark:text-purple-400", bg: "bg-purple-100 dark:bg-purple-500/20", border: "md:hover:border-purple-500/50 md:dark:hover:border-purple-500/50", action: () => window.dispatchEvent(new CustomEvent('sandbox-add-calendar', { detail: { title: 'Deep Work' } })) },
       { icon: FileText, text: "Note down a new project idea", color: "text-rose-600 dark:text-rose-400", bg: "bg-rose-100 dark:bg-rose-500/20", border: "md:hover:border-rose-500/50 md:dark:hover:border-rose-500/50", action: () => window.dispatchEvent(new CustomEvent('sandbox-add-note', { detail: { text: 'Project Idea: A new minimalist workspace app that integrates AI.' } })) },
       { icon: Navigation, text: "Show my analytics", color: "text-blue-600 dark:text-blue-400", bg: "bg-blue-100 dark:bg-blue-500/20", border: "md:hover:border-blue-500/50 md:dark:hover:border-blue-500/50", action: () => { scrollToSandbox('mock-analytics-sandbox'); window.dispatchEvent(new CustomEvent('sandbox-analytics')); } },
       { icon: Navigation, text: "Take me to my calendar", color: "text-purple-600 dark:text-purple-400", bg: "bg-purple-100 dark:bg-purple-500/20", border: "md:hover:border-purple-500/50 md:dark:hover:border-purple-500/50", action: () => scrollToSandbox('mock-calendar-sandbox') },
