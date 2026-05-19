@@ -5,7 +5,7 @@ import { useState, useEffect, useRef } from "react";
 import { 
   Sparkles, Send, X, Mic, RefreshCw, CheckCircle2, CheckSquare, 
   CalendarDays, FileText, BookOpen, Loader2, Edit3, Trash2, Timer, 
-  Square, Navigation 
+  Square, Navigation, AlertTriangle
 } from "lucide-react";
 import { GoogleGenAI } from "@google/genai";
 import { useUiStore } from "@/store/uiStore";
@@ -40,36 +40,59 @@ export function AiButton({ variant }: { variant: 'desktop' | 'mobile' | 'global'
   );
 }
 
-const EXAMPLE_PROMPTS = [
-  "Add a team meeting tomorrow at 10 AM",
-  "Start a 25 min focus timer for Coding",
-  "Mark my 'Read 10 pages' task as complete",
-  "Am I being productive today?",
-  "Take me to my calendar"
+// Short, punchy, diverse prompts for the compact layout
+const CRAZY_PROMPTS = [
+  { icon: Sparkles, text: "Analyze today's focus" },
+  { icon: Timer, text: "Start a 25m focus timer" },
+  { icon: CalendarDays, text: "Clear afternoon schedule" },
+  { icon: BookOpen, text: "Draft a journal entry" },
+  { icon: CheckSquare, text: "Add 'Review PRs' task" },
+  { icon: FileText, text: "Append a note idea" },
+  { icon: Square, text: "Stop all timers" },
+  { icon: CheckCircle2, text: "Mark 'Workout' complete" },
+  { icon: CalendarDays, text: "Add 3PM coffee break" },
+  { icon: Sparkles, text: "What should I prioritize?" },
+  { icon: Navigation, text: "Show my analytics" },
+  { icon: BookOpen, text: "Recent journal thoughts?" }
 ];
 
 const fetchUserContext = async () => {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return "";
   
-  const { data: tasks } = await supabase.from('tasks').select('id, title, is_completed, task_type').eq('user_id', user.id).is('deleted_at', null).order('position', { ascending: true });
+  const todayStart = new Date();
+  todayStart.setHours(0, 0, 0, 0);
+
+  const { data: tasks } = await supabase.from('tasks').select('id, title, is_completed, task_type, completed_at').eq('user_id', user.id).is('deleted_at', null).order('position', { ascending: true });
   const { data: journals } = await supabase.from('journal_entries').select('entry_date, content').eq('user_id', user.id).order('entry_date', { ascending: false }).limit(3);
   const { data: events } = await supabase.from('calendar_events').select('id, title, start_time, end_time').eq('user_id', user.id).gte('start_time', new Date().toISOString()).order('start_time', { ascending: true }).limit(8);
-  
+  const { data: notes } = await supabase.from('notes').select('id, title').eq('user_id', user.id).is('deleted_at', null).order('updated_at', { ascending: false }).limit(8);
+
   const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const niceDate = new Date().toLocaleString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' });
   
   let ctx = `Current Context:\n`;
-  ctx += `- Date/Time: ${new Date().toLocaleString()}\n`;
+  ctx += `- Date/Time: ${niceDate}\n`;
   ctx += `- Timezone: ${tz}\n\n`;
   
   ctx += `### Your Tasks\n`;
   if (tasks) {
      const pending = tasks.filter(t => !t.is_completed);
-     const completed = tasks.filter(t => t.is_completed);
+     // Bulletproof logic ensuring we ONLY grab tasks completed literally today
+     const completedToday = tasks.filter(t => t.is_completed && t.completed_at && new Date(t.completed_at).getTime() >= todayStart.getTime());
+     
      ctx += `Pending Tasks:\n${pending.map(t => `- [ID: ${t.id}] ${t.title} (${t.task_type})`).join('\n')}\n\n`;
-     ctx += `Completed Today:\n${completed.slice(0, 5).map(t => `- ${t.title}`).join('\n')}\n\n`;
+     ctx += `Completed Today:\n${completedToday.length > 0 ? completedToday.map(t => `- ${t.title}`).join('\n') : 'None yet.'}\n\n`;
   }
   
+  ctx += `### Your Notes\n`;
+  if (notes && notes.length > 0) {
+      notes.forEach(n => ctx += `- [Note] "${n.title}"\n`);
+      ctx += '\n';
+  } else {
+      ctx += `No notes found.\n\n`;
+  }
+
   ctx += `### Upcoming Events\n`;
   if (events) {
      events.forEach(e => {
@@ -204,6 +227,18 @@ const tools: any = [{
       }
     },
     {
+      name: 'append_to_note',
+      description: 'Appends content to an existing note. Finds note by partial or exact title.',
+      parameters: {
+        type: "OBJECT",
+        properties: {
+          title: { type: "STRING", description: "The title of the existing note" },
+          content: { type: "STRING", description: "HTML string to append to the note" }
+        },
+        required: ["title", "content"]
+      }
+    },
+    {
       name: 'add_journal',
       description: 'Prepares to add a journal entry. Can append to existing.',
       parameters: {
@@ -259,12 +294,19 @@ export function AiChatPanel() {
   const [isDictating, setIsDictating] = useState(false);
   const [context, setContext] = useState("");
   
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const recognitionRef = useRef<any>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const row1Prompts = useRef([...CRAZY_PROMPTS].sort(() => 0.5 - Math.random()).slice(0, 6));
+  const row2Prompts = useRef([...CRAZY_PROMPTS].sort(() => 0.5 - Math.random()).slice(6, 12));
 
   useEffect(() => {
     if (isAiChatOpen) {
        fetchUserContext().then(setContext);
+    } else {
+       setIsDictating(false);
+       if (recognitionRef.current) recognitionRef.current.stop();
     }
   }, [isAiChatOpen]);
 
@@ -294,11 +336,20 @@ export function AiChatPanel() {
         }
         if (final) {
           setInput(prev => prev + (prev.length > 0 && !prev.endsWith(' ') ? ' ' : '') + final);
+          if (textareaRef.current) {
+            textareaRef.current.style.height = '38px';
+            textareaRef.current.style.height = Math.min(textareaRef.current.scrollHeight, 120) + 'px';
+          }
         }
       };
       
       recognition.onerror = (event: any) => {
-        console.error("Speech recognition error:", event.error);
+        if (event.error === 'network') {
+           setInput("Dictation requires an active internet connection.");
+           setTimeout(() => setInput(""), 3500);
+        } else {
+           console.warn("Speech recognition error:", event.error);
+        }
         setIsDictating(false);
       };
 
@@ -314,12 +365,13 @@ export function AiChatPanel() {
 
   const getModelName = () => {
     const usage = getAiUsage();
-    return usage.count >= 5 ? "gemini-2.5-flash-lite" : "gemini-2.5-flash";
+    return usage.count >= 10 ? "gemini-flash-lite-latest" : "gemini-flash-latest";
   };
 
   const formatHistory = (msgs: any[]) => {
     const formatted: any[] = [];
     for (const m of msgs) {
+      if (m.isError) continue;
       if (m.role === 'user') formatted.push({ role: 'user', parts: [{ text: m.text }] });
       else if (m.role === 'model' && m.text) formatted.push({ role: 'model', parts: [{ text: m.text }] });
       else if (m.role === 'tool_call') {
@@ -337,7 +389,6 @@ export function AiChatPanel() {
     if (!user) return;
     const args = call.args;
 
-    // Helper to safely parse AI local time without Z shifting
     const parseLocalTime = (isoNoZ: string) => new Date(isoNoZ).toISOString();
 
     switch (call.name) {
@@ -402,6 +453,24 @@ export function AiChatPanel() {
         await supabase.from('notes').insert({ user_id: user.id, title: args.title, content: args.content });
         break;
 
+      case 'append_to_note': {
+        const { data: existingNotes } = await supabase.from('notes')
+          .select('id, content')
+          .eq('user_id', user.id)
+          .ilike('title', `%${args.title}%`)
+          .is('deleted_at', null)
+          .limit(1);
+
+        if (existingNotes && existingNotes.length > 0) {
+          const note = existingNotes[0];
+          const newContent = `${note.content || ''}<p><br></p>${args.content}`;
+          await supabase.from('notes').update({ content: newContent }).eq('id', note.id);
+        } else {
+          throw new Error(`Could not find a note matching "${args.title}".`);
+        }
+        break;
+      }
+
       case 'add_journal': {
         const { data: existing } = await supabase.from('journal_entries').select('content').eq('user_id', user.id).eq('entry_date', args.date).single();
         if (existing && args.append) {
@@ -438,6 +507,27 @@ export function AiChatPanel() {
     }
   };
 
+  const generateAIResponse = async (history: any[]) => {
+    const ai = new GoogleGenAI({
+      apiKey: process.env.NEXT_PUBLIC_GEMPRISM_API_KEY || "dummy",
+      httpOptions: { baseUrl: "https://gemprism.vercel.app/api/proxy" },
+    });
+    
+    const systemInstruction = `You are Chronoa AI, an elite productivity assistant natively integrated into the user's workspace. Always adopt a calm, encouraging, and highly aesthetic tone.
+    CRITICAL RULES:
+    1. ONLY call tools when the user explicitly commands you to add, update, append, delete, start, stop, or navigate.
+    2. Do NOT use tools for read-only queries. Read the Context and answer natively.
+    3. If generating ISO times for tools, ALWAYS use local format YYYY-MM-DDTHH:mm:ss WITHOUT 'Z' at the end.
+    
+    ${context}`;
+
+    return await ai.models.generateContent({ 
+      model: getModelName(), 
+      contents: formatHistory(history), 
+      config: { systemInstruction, tools } 
+    });
+  };
+
   const handleToolAction = async (msgId: string, action: 'add' | 'retry' | 'skip') => {
     setMessages(prev => prev.map(m => m.id === msgId ? { ...m, status: action } : m));
     const msg = messages.find(m => m.id === msgId);
@@ -450,16 +540,10 @@ export function AiChatPanel() {
         const resultMsg = { id: crypto.randomUUID(), role: 'tool_result', callName: msg.call.name, result: { success: true, message: 'Action executed successfully.' } };
         setMessages(prev => [...prev, resultMsg]);
         
-        const ai = new GoogleGenAI({
-          apiKey: process.env.NEXT_PUBLIC_GEMPRISM_API_KEY || "dummy",
-          httpOptions: { baseUrl: "https://gemprism.vercel.app/api/proxy" },
-        });
-        const systemInstruction = `You are Chronoa AI, an elite productivity assistant. Always adopt a calm, encouraging, and aesthetic tone.\n\n${context}`;
-        const hist = formatHistory([...messages, resultMsg]);
-        const res = await ai.models.generateContent({ model: getModelName(), contents: hist, config: { systemInstruction, tools } });
+        const res = await generateAIResponse([...messages, resultMsg]);
         setMessages(prev => [...prev, { id: crypto.randomUUID(), role: 'model', text: res.text }]);
-      } catch(e) {
-        setMessages(prev => [...prev, { id: crypto.randomUUID(), role: 'model', text: 'Action completed! ✅' }]);
+      } catch(e: any) {
+        setMessages(prev => [...prev, { id: crypto.randomUUID(), role: 'model', text: e.message ? `Error: ${e.message}` : 'Action completed! ✅' }]);
       }
       setIsTyping(false);
     } else if (action === 'skip') {
@@ -467,14 +551,8 @@ export function AiChatPanel() {
       const resultMsg = { id: crypto.randomUUID(), role: 'tool_result', callName: msg.call.name, result: { success: false, message: 'User skipped this action.' } };
       setMessages(prev => [...prev, resultMsg]);
       
-      const ai = new GoogleGenAI({
-        apiKey: process.env.NEXT_PUBLIC_GEMPRISM_API_KEY || "dummy",
-        httpOptions: { baseUrl: "https://gemprism.vercel.app/api/proxy" },
-      });
-      const systemInstruction = `You are Chronoa AI, an elite productivity assistant. Always adopt a calm, encouraging, and aesthetic tone.\n\n${context}`;
-      const hist = formatHistory([...messages, resultMsg]);
       try {
-        const res = await ai.models.generateContent({ model: getModelName(), contents: hist, config: { systemInstruction, tools } });
+        const res = await generateAIResponse([...messages, resultMsg]);
         setMessages(prev => [...prev, { id: crypto.randomUUID(), role: 'model', text: res.text }]);
       } catch(e) {
         setMessages(prev => [...prev, { id: crypto.randomUUID(), role: 'model', text: 'Skipped.' }]);
@@ -489,32 +567,24 @@ export function AiChatPanel() {
     if (!text.trim() || isTyping) return;
     incrementAiUsage();
     
+    if (isDictating) {
+      if (recognitionRef.current) recognitionRef.current.stop();
+      setIsDictating(false);
+    }
+
     const newUserMsg = { id: crypto.randomUUID(), role: 'user', text };
     setMessages(prev => [...prev, newUserMsg]);
     setInput("");
+    
+    if (textareaRef.current) {
+      textareaRef.current.style.height = '38px';
+    }
+    
     setIsTyping(true);
 
     try {
-      const ai = new GoogleGenAI({
-        apiKey: process.env.NEXT_PUBLIC_GEMPRISM_API_KEY || "dummy",
-        httpOptions: { baseUrl: "https://gemprism.vercel.app/api/proxy" },
-      });
-      
-      const systemInstruction = `You are Chronoa AI, an elite productivity assistant natively integrated into the user's workspace. Always adopt a calm, encouraging, and highly aesthetic tone.
-      CRITICAL RULES:
-      1. ONLY call tools when the user explicitly commands you to add, update, delete, start, stop, or navigate.
-      2. Do NOT use tools for read-only queries (like asking what tasks are left or what is on the schedule). Read the Context and answer natively.
-      3. If generating ISO times for tools, ALWAYS use local format YYYY-MM-DDTHH:mm:ss WITHOUT 'Z' at the end.
-      
-      ${context}`;
-      
-      const currentHistory = formatHistory([...messages, newUserMsg]);
-
-      const res = await ai.models.generateContent({ 
-        model: getModelName(), 
-        contents: currentHistory, 
-        config: { systemInstruction, tools } 
-      });
+      const currentHistory = [...messages, newUserMsg];
+      const res = await generateAIResponse(currentHistory);
 
       if (res.functionCalls && res.functionCalls.length > 0) {
         const call = res.functionCalls[0];
@@ -528,15 +598,13 @@ export function AiChatPanel() {
             
             if (call.name === 'navigate_to') {
                 setIsTyping(false);
-                return; // Chat closes automatically via executeTool
+                return; 
             }
             
             const resultMsg = { id: crypto.randomUUID(), role: 'tool_result', callName: call.name, result: { success: true } };
             setMessages(prev => [...prev, resultMsg]);
             
-            const currentHistory2 = formatHistory([...messages, newUserMsg, { id: msgId, role: 'tool_call', call }, resultMsg]);
-            const res2 = await ai.models.generateContent({ model: getModelName(), contents: currentHistory2, config: { systemInstruction, tools } });
-            
+            const res2 = await generateAIResponse([...currentHistory, { id: msgId, role: 'tool_call', call }, resultMsg]);
             if (res2.text) setMessages(prev => [...prev, { id: crypto.randomUUID(), role: 'model', text: res2.text }]);
         } else {
             setMessages(prev => [...prev, { id: msgId, role: 'tool_call', call, status: 'pending' }]);
@@ -546,7 +614,53 @@ export function AiChatPanel() {
       }
     } catch (e) {
       console.error(e);
-      setMessages(prev => [...prev, { id: crypto.randomUUID(), role: 'model', text: "I'm having trouble connecting right now. Please try again." }]);
+      setMessages(prev => [...prev, { 
+        id: crypto.randomUUID(), 
+        role: 'model', 
+        text: "I couldn't connect to my thought processes just now. The connection might have slipped.",
+        isError: true,
+        failedPrompt: text
+      }]);
+    }
+    setIsTyping(false);
+  };
+
+  const handleRetry = async (errorMsgId: string, failedPromptText: string) => {
+    setMessages(prev => prev.filter(m => m.id !== errorMsgId));
+    setIsTyping(true);
+    
+    try {
+      const currentHistory = messages.filter(m => m.id !== errorMsgId);
+      const res = await generateAIResponse(currentHistory);
+
+      if (res.functionCalls && res.functionCalls.length > 0) {
+        const call = res.functionCalls[0];
+        const msgId = crypto.randomUUID();
+        
+        if (call.name && ['start_focus_timer', 'stop_all_timers', 'navigate_to'].includes(call.name)) {
+            setMessages(prev => [...prev, { id: msgId, role: 'tool_call', call, status: 'success' }]);
+            await executeTool(call);
+            if (call.name === 'navigate_to') { setIsTyping(false); return; }
+            
+            const resultMsg = { id: crypto.randomUUID(), role: 'tool_result', callName: call.name, result: { success: true } };
+            setMessages(prev => [...prev, resultMsg]);
+            
+            const res2 = await generateAIResponse([...currentHistory, { id: msgId, role: 'tool_call', call }, resultMsg]);
+            if (res2.text) setMessages(prev => [...prev, { id: crypto.randomUUID(), role: 'model', text: res2.text }]);
+        } else {
+            setMessages(prev => [...prev, { id: msgId, role: 'tool_call', call, status: 'pending' }]);
+        }
+      } else if (res.text) {
+        setMessages(prev => [...prev, { id: crypto.randomUUID(), role: 'model', text: res.text }]);
+      }
+    } catch (e) {
+      setMessages(prev => [...prev, { 
+        id: crypto.randomUUID(), 
+        role: 'model', 
+        text: "Still having trouble connecting. Let's try again in a moment.",
+        isError: true,
+        failedPrompt: failedPromptText
+      }]);
     }
     setIsTyping(false);
   };
@@ -573,6 +687,7 @@ export function AiChatPanel() {
         case 'update_event': return <Edit3 size={16} className="text-[#c2956e] dark:text-[#b0855f]" />;
         case 'delete_event': return <Trash2 size={16} className="text-red-500" />;
         case 'add_note': return <FileText size={16} className="text-[#c2956e] dark:text-[#b0855f]" />;
+        case 'append_to_note': return <FileText size={16} className="text-[#c2956e] dark:text-[#b0855f]" />;
         case 'add_journal': return <BookOpen size={16} className="text-[#c2956e] dark:text-[#b0855f]" />;
         case 'start_focus_timer': return <Timer size={16} className="text-[#c2956e] dark:text-[#b0855f]" />;
         case 'stop_all_timers': return <Square size={16} className="text-[#c2956e] dark:text-[#b0855f]" />;
@@ -590,6 +705,7 @@ export function AiChatPanel() {
         case 'update_event': return 'Update Event';
         case 'delete_event': return 'Delete Event';
         case 'add_note': return 'New Note';
+        case 'append_to_note': return 'Append to Note';
         case 'add_journal': return 'Journal Entry';
         case 'start_focus_timer': return 'Start Timer';
         case 'stop_all_timers': return 'Stop Timers';
@@ -610,18 +726,21 @@ export function AiChatPanel() {
              <><p><span className="font-medium text-[#3d3b33] dark:text-[#e0e0e0]">Title:</span> {args.title}</p><p><span className="font-medium text-[#3d3b33] dark:text-[#e0e0e0]">Type:</span> {args.task_type}</p></>
           )}
           {cName === 'update_task' && (
-             <><p><span className="font-medium text-[#3d3b33] dark:text-[#e0e0e0]">Task:</span> {args.title || args.id.split('-')[0]}</p>{args.is_completed !== undefined && <p><span className="font-medium text-[#3d3b33] dark:text-[#e0e0e0]">Done:</span> {args.is_completed ? 'Yes' : 'No'}</p>}</>
+             <><p><span className="font-medium text-[#3d3b33] dark:text-[#e0e0e0]">Task:</span> {args.title || args.id?.split('-')[0]}</p>{args.is_completed !== undefined && <p><span className="font-medium text-[#3d3b33] dark:text-[#e0e0e0]">Done:</span> {args.is_completed ? 'Yes' : 'No'}</p>}</>
           )}
           {cName === 'delete_task' && <p>Are you sure you want to delete <span className="font-medium text-[#3d3b33] dark:text-[#e0e0e0]">"{args.title}"</span>?</p>}
           {cName === 'add_event' && (
              <><p><span className="font-medium text-[#3d3b33] dark:text-[#e0e0e0]">Title:</span> {args.title}</p><p><span className="font-medium text-[#3d3b33] dark:text-[#e0e0e0]">Time:</span> {new Date(args.start_time).toLocaleString()}</p></>
           )}
           {cName === 'update_event' && (
-             <><p><span className="font-medium text-[#3d3b33] dark:text-[#e0e0e0]">Event:</span> {args.title || args.id.split('-')[0]}</p>{args.start_time && <p><span className="font-medium text-[#3d3b33] dark:text-[#e0e0e0]">New Time:</span> {new Date(args.start_time).toLocaleString()}</p>}</>
+             <><p><span className="font-medium text-[#3d3b33] dark:text-[#e0e0e0]">Event:</span> {args.title || args.id?.split('-')[0]}</p>{args.start_time && <p><span className="font-medium text-[#3d3b33] dark:text-[#e0e0e0]">New Time:</span> {new Date(args.start_time).toLocaleString()}</p>}</>
           )}
           {cName === 'delete_event' && <p>Are you sure you want to delete <span className="font-medium text-[#3d3b33] dark:text-[#e0e0e0]">"{args.title}"</span>?</p>}
           {(cName === 'add_note' || cName === 'add_journal') && (
              <p className="line-clamp-2">{args.content.replace(/<[^>]*>?/gm, '')}</p>
+          )}
+          {cName === 'append_to_note' && (
+             <><p><span className="font-medium text-[#3d3b33] dark:text-[#e0e0e0]">Note Title:</span> {args.title}</p><p className="line-clamp-2">{args.content.replace(/<[^>]*>?/gm, '')}</p></>
           )}
           {cName === 'start_focus_timer' && (
              <><p><span className="font-medium text-[#3d3b33] dark:text-[#e0e0e0]">Focusing on:</span> {args.title}</p><p><span className="font-medium text-[#3d3b33] dark:text-[#e0e0e0]">Duration:</span> {args.duration_minutes}m</p></>
@@ -646,6 +765,61 @@ export function AiChatPanel() {
     );
   };
 
+  const MarqueeRow = ({ prompts, speed = 0.5 }: { prompts: any[], speed?: number }) => {
+    const scrollRef = useRef<HTMLDivElement>(null);
+    const isHovered = useRef(false);
+
+    useEffect(() => {
+      let animationFrameId: number;
+      let lastTime = 0;
+      let accumulatedScroll = 0;
+
+      const scroll = (time: number) => {
+        if (!lastTime) lastTime = time;
+        const dt = time - lastTime;
+        lastTime = time;
+
+        if (scrollRef.current && !isHovered.current) {
+          accumulatedScroll += dt * 0.05 * speed;
+          if (accumulatedScroll >= 1) {
+             scrollRef.current.scrollLeft += Math.floor(accumulatedScroll);
+             accumulatedScroll -= Math.floor(accumulatedScroll);
+          }
+          if (scrollRef.current.scrollLeft >= scrollRef.current.scrollWidth / 2) {
+             scrollRef.current.scrollLeft -= scrollRef.current.scrollWidth / 2;
+          }
+        }
+        animationFrameId = requestAnimationFrame(scroll);
+      };
+      animationFrameId = requestAnimationFrame(scroll);
+      return () => cancelAnimationFrame(animationFrameId);
+    }, [speed]);
+
+    return (
+      <div 
+        ref={scrollRef} 
+        className="flex w-full overflow-x-auto no-scrollbar gap-3 pl-4 pr-0"
+        onMouseEnter={() => isHovered.current = true}
+        onMouseLeave={() => isHovered.current = false}
+        onTouchStart={() => isHovered.current = true}
+        onTouchEnd={() => isHovered.current = false}
+      >
+        <div className="flex gap-3 w-max">
+          {[...prompts, ...prompts].map((p, i) => (
+             <button 
+               key={i} 
+               onClick={() => handleSend(p.text)} 
+               className="flex items-center gap-2.5 px-4 py-3 rounded-2xl bg-[#fdfbf7] dark:bg-[#222] border border-[#e0ddd5] dark:border-[#333] hover:border-[#c2956e]/50 dark:hover:border-[#b0855f]/50 transition-colors shrink-0 cursor-pointer shadow-sm group select-none"
+             >
+               <p.icon size={15} className="text-[#b0ad9a] dark:text-[#7a7a7a] group-hover:text-[#c2956e] dark:group-hover:text-[#b0855f] transition-colors" />
+               <span className="text-[13px] font-medium text-[#888] dark:text-[#a0a0a0] group-hover:text-[#3d3b33] dark:group-hover:text-[#f0f0f0] whitespace-nowrap transition-colors">{p.text}</span>
+             </button>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
   return (
     <>
       <div className={`fixed inset-0 bg-black/20 dark:bg-black/40 backdrop-blur-sm z-[400] transition-opacity duration-500 ${isAiChatOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`} onClick={() => setAiChatOpen(false)} />
@@ -664,31 +838,51 @@ export function AiChatPanel() {
         </div>
 
         {messages.length === 0 ? (
-          <div className="flex-1 flex flex-col items-center justify-center text-center opacity-70 px-6">
-             <Sparkles size={40} className="mb-4 text-[#c2956e] dark:text-[#b0855f]" />
-             <p className="text-sm text-[#3d3b33] dark:text-[#e0e0e0] font-medium mb-6 px-4">How can I help you focus today?</p>
-             <div className="flex flex-col gap-2.5 w-full max-w-[280px]">
-                {EXAMPLE_PROMPTS.map(p => (
-                  <button key={p} onClick={() => handleSend(p)} className="px-4 py-3.5 rounded-2xl bg-[#f7f5f0] dark:bg-[#222] border border-[#e0ddd5] dark:border-[#333] text-xs text-[#888] dark:text-[#a0a0a0] hover:text-[#c2956e] dark:hover:text-[#d1a784] hover:border-[#c2956e]/50 transition-colors text-left shadow-sm leading-relaxed">{p}</button>
-                ))}
+          <div className="flex-1 flex flex-col items-center justify-center overflow-hidden w-full">
+             <div className="flex flex-col items-center opacity-90 px-6 pt-8 pb-4">
+               <div className="w-16 h-16 rounded-full bg-[#fdfbf7] dark:bg-[#252525] border border-[#e0ddd5] dark:border-[#333] shadow-sm flex items-center justify-center mb-6">
+                  <Sparkles size={28} className="text-[#c2956e] dark:text-[#b0855f]" />
+               </div>
+               <p className="text-2xl font-serif text-[#3d3b33] dark:text-[#e0e0e0] font-medium px-4 text-center tracking-tight">How can I help you focus today?</p>
+             </div>
+             
+             <div 
+               className="w-full relative overflow-hidden mt-6 flex flex-col gap-3" 
+               style={{ 
+                 maskImage: 'linear-gradient(to right, transparent, black 5%, black 95%, transparent)', 
+                 WebkitMaskImage: 'linear-gradient(to right, transparent, black 5%, black 95%, transparent)' 
+               }}
+             >
+                <MarqueeRow prompts={row1Prompts.current} speed={0.5} />
+                <MarqueeRow prompts={row2Prompts.current} speed={0.4} />
              </div>
           </div>
         ) : (
           <div className="flex-1 overflow-y-auto no-scrollbar p-6 space-y-6">
             {messages.map(m => (
-               <div key={m.id} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+               <div key={m.id} className={`flex flex-col gap-2 ${m.role === 'user' ? 'items-end' : 'items-start'}`}>
                   {m.role === 'tool_call' ? (
                      <ToolCard msg={m} />
                   ) : m.role === 'tool_result' ? null : (
-                     <div className={`px-5 py-3.5 rounded-[1.25rem] max-w-[85%] text-sm leading-relaxed shadow-sm ${m.role === 'user' ? 'bg-[#c2956e] text-white rounded-br-md' : 'bg-[#f7f5f0] dark:bg-[#222] border border-[#e0ddd5] dark:border-[#333] text-[#3d3b33] dark:text-[#e0e0e0] rounded-bl-md'}`}>
+                     <div className={`px-5 py-3.5 rounded-[1.25rem] max-w-[85%] text-sm leading-relaxed shadow-sm ${m.role === 'user' ? 'bg-[#c2956e] text-white rounded-br-md' : m.isError ? 'bg-red-50 dark:bg-red-900/10 border border-red-100 dark:border-red-900/30 text-red-500 rounded-bl-md' : 'bg-[#fdfbf7] dark:bg-[#222] border border-[#e0ddd5] dark:border-[#333] text-[#3d3b33] dark:text-[#e0e0e0] rounded-bl-md'}`}>
+                       {m.isError && <AlertTriangle size={18} className="mb-2" />}
                        {renderMarkdown(m.text || '')}
                      </div>
+                  )}
+                  
+                  {m.isError && m.failedPrompt && (
+                     <button 
+                       onClick={() => handleRetry(m.id, m.failedPrompt)}
+                       className="flex items-center gap-1.5 px-4 py-2 mt-1 rounded-xl text-[10px] font-bold uppercase tracking-widest text-[#3d3b33] dark:text-white bg-white dark:bg-[#252525] border border-[#e0ddd5] dark:border-[#444] shadow-sm hover:bg-[#f0ede8] dark:hover:bg-[#333] transition-colors"
+                     >
+                        <RefreshCw size={12} /> Try Again
+                     </button>
                   )}
                </div>
             ))}
             {isTyping && (
                <div className="flex justify-start">
-                  <div className="px-5 py-3.5 rounded-[1.25rem] bg-[#f7f5f0] dark:bg-[#222] border border-[#e0ddd5] dark:border-[#333] rounded-bl-md flex gap-1.5 items-center h-[52px] shadow-sm">
+                  <div className="px-5 py-3.5 rounded-[1.25rem] bg-[#fdfbf7] dark:bg-[#222] border border-[#e0ddd5] dark:border-[#333] rounded-bl-md flex gap-1.5 items-center h-[52px] shadow-sm">
                      <span className="w-1.5 h-1.5 bg-[#c2956e] dark:bg-[#b0855f] rounded-full animate-bounce" />
                      <span className="w-1.5 h-1.5 bg-[#c2956e] dark:bg-[#b0855f] rounded-full animate-bounce" style={{ animationDelay: '0.1s' }} />
                      <span className="w-1.5 h-1.5 bg-[#c2956e] dark:bg-[#b0855f] rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
@@ -700,29 +894,59 @@ export function AiChatPanel() {
         )}
 
         <div className="p-4 md:p-6 border-t border-[#e0ddd5] dark:border-[#2a2a2a] shrink-0 bg-[#fdfbf7] dark:bg-[#1a1a1a]">
-          <div className="relative flex items-center">
-            <textarea 
-              value={input}
-              onChange={e => setInput(e.target.value)}
-              onKeyDown={e => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                  e.preventDefault();
-                  handleSend(input);
-                }
-              }}
-              placeholder={isDictating ? "Listening..." : "Ask Chronoa AI..."}
-              spellCheck={false}
-              className={`w-full bg-white dark:bg-[#252525] border border-[#e0ddd5] dark:border-[#333] rounded-[1.5rem] pl-5 pr-28 py-4 text-sm outline-none focus:border-[#c2956e] dark:focus:border-[#b0855f] resize-none h-[54px] max-h-[120px] shadow-sm text-[#3d3b33] dark:text-[#f0f0f0] transition-colors ${isDictating ? 'placeholder:text-red-500/70 border-red-500/50' : ''}`}
-            />
-            <div className="absolute right-2 flex items-center gap-1.5">
-              <button onClick={toggleDictation} className={`p-2.5 rounded-xl transition-colors ${isDictating ? 'bg-red-100 dark:bg-red-900/20 text-red-500 animate-pulse' : 'text-[#888] hover:bg-[#f0ede8] dark:hover:bg-[#333]'}`}>
-                <Mic size={18} />
-              </button>
-              <button onClick={() => handleSend(input)} disabled={!input.trim() || isTyping} className="p-2.5 bg-[#c2956e] dark:bg-[#b0855f] text-white rounded-xl disabled:opacity-50 transition-colors shadow-sm hover:bg-[#b0855f] dark:hover:bg-[#9e7653]">
-                <Send size={18} />
-              </button>
-            </div>
+          
+          <div className={`relative flex items-end w-full bg-white dark:bg-[#252525] border border-[#e0ddd5] dark:border-[#333] rounded-[1.5rem] shadow-sm focus-within:border-[#c2956e] dark:focus-within:border-[#b0855f] transition-colors overflow-hidden min-h-[54px] py-2 pl-5 pr-2 ${isDictating ? 'border-red-500/50 dark:border-red-500/50 bg-red-50/50 dark:bg-red-900/10' : ''}`}>
+             
+             {isDictating ? (
+               <div className="flex-1 h-[38px] flex items-center overflow-hidden">
+                 <div className="flex items-center gap-1 mr-3 shrink-0">
+                   <div className="w-1 h-3 bg-red-500 rounded-full animate-[pulse_1s_ease-in-out_infinite]" />
+                   <div className="w-1 h-4 bg-red-500 rounded-full animate-[pulse_1.2s_ease-in-out_infinite_0.2s]" />
+                   <div className="w-1 h-2 bg-red-500 rounded-full animate-[pulse_0.8s_ease-in-out_infinite_0.4s]" />
+                 </div>
+                 <span className="text-red-500 text-sm font-medium truncate flex-1">
+                    {input || "Listening to you..."}
+                 </span>
+               </div>
+             ) : (
+               <textarea 
+                 ref={textareaRef}
+                 value={input}
+                 onChange={e => {
+                    setInput(e.target.value);
+                    e.target.style.height = '38px';
+                    e.target.style.height = Math.min(e.target.scrollHeight, 120) + 'px';
+                 }}
+                 onKeyDown={e => {
+                   if (e.key === 'Enter' && !e.shiftKey) {
+                     e.preventDefault();
+                     handleSend(input);
+                   }
+                 }}
+                 placeholder="Ask Chronoa AI..."
+                 spellCheck={false}
+                 className="flex-1 bg-transparent py-[8px] text-sm leading-[20px] outline-none resize-none no-scrollbar text-[#3d3b33] dark:text-[#f0f0f0] placeholder:text-[#c4c0b8] dark:placeholder:text-[#666]"
+                 style={{ height: '38px', maxHeight: '120px' }}
+               />
+             )}
+             
+             <div className="flex items-center gap-1.5 shrink-0 ml-2">
+               <button 
+                 onClick={toggleDictation} 
+                 className={`w-9 h-9 rounded-xl flex items-center justify-center transition-colors shadow-sm ${isDictating ? 'bg-red-100 dark:bg-red-900/40 text-red-500 hover:bg-red-200 dark:hover:bg-red-900/60' : 'text-[#888] bg-[#f7f5f0] dark:bg-[#1a1a1a] hover:bg-[#e0ddd5] dark:hover:bg-[#333]'}`}
+               >
+                 {isDictating ? <Square size={14} fill="currentColor" /> : <Mic size={16} />}
+               </button>
+               <button 
+                 onClick={() => handleSend(input)} 
+                 disabled={(!input.trim() && !isDictating) || isTyping} 
+                 className="w-9 h-9 rounded-xl flex items-center justify-center bg-[#c2956e] dark:bg-[#b0855f] text-white disabled:opacity-50 transition-colors shadow-sm hover:bg-[#b0855f] dark:hover:bg-[#9e7653]"
+               >
+                 <Send size={15} className="-ml-0.5" />
+               </button>
+             </div>
           </div>
+
         </div>
       </div>
     </>

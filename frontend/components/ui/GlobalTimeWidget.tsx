@@ -278,6 +278,9 @@ export default function GlobalTimeWidget() {
   return (
     <div className="hidden md:flex fixed bottom-8 right-10 z-[150] items-end gap-4 pointer-events-none">
       
+      {/* Moved AI Button to the left of the Time Widget container */}
+      <AiButton variant="global" />
+
       <div 
         className="relative flex flex-col items-end group pointer-events-auto"
         onMouseEnter={() => { if (!isTouch) { setIsHovered(true); setGlobalTimeWidgetExpanded(false); } }}
@@ -367,8 +370,6 @@ export default function GlobalTimeWidget() {
           </span>
         </div>
       </div>
-
-      <AiButton variant="global" />
     </div>
   );
 }

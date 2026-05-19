@@ -818,7 +818,7 @@ export default function SettingsPage() {
     {
       id: 'weather',
       keys: ['weather location', 'city', 'detect', 'map pin'],
-      className: 'hidden md:flex flex-col',
+      className: 'flex flex-col',
       render: () => (
         <section className="space-y-4">
           <div className="flex items-center gap-3 text-[#5b9ea0] dark:text-[#6baea0]">
