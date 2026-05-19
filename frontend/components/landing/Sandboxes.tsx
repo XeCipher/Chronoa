@@ -999,9 +999,7 @@ const MarqueeRow = React.memo(({ prompts, speed = 0.5 }: { prompts: any[], speed
         {[...prompts, ...prompts].map((p, i) => (
            <button 
              key={i}
-             onTouchEnd={(e) => { e.preventDefault(); p.action(); }}
              onClick={p.action}
-             style={{ touchAction: 'manipulation' }}
              className={`flex items-center gap-3 px-5 py-3.5 rounded-2xl bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] transition-all shrink-0 cursor-pointer shadow-sm group select-none md:hover:-translate-y-0.5 ${p.border}`}
            >
              <div className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${p.bg}`}>

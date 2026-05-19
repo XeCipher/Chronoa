@@ -51,7 +51,7 @@ export default function LandingPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f7f5f0] dark:bg-[#121212] text-[#3d3b33] dark:text-[#f0f0f0] overflow-x-hidden selection:bg-[#c2956e]/30 dark:selection:bg-[#b0855f]/40 relative flex flex-col w-full max-w-[100vw]">
+    <div className="min-h-screen bg-[#f7f5f0] dark:bg-[#121212] text-[#3d3b33] dark:text-[#f0f0f0] selection:bg-[#c2956e]/30 dark:selection:bg-[#b0855f]/40 relative flex flex-col w-full max-w-[100vw]">
       <LandingNav />
 
       {/* Hero Section */}

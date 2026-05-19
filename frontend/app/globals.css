@@ -61,6 +61,11 @@ input, textarea, .chronoa-editor, .task-input-field {
   user-select: auto;
 }
 
+/* Enforce immediate click registration on touch interfaces, bypassing the 300ms delay */
+button, a, input, select, textarea, [role="button"] {
+  touch-action: manipulation;
+}
+
 h1, h2, h3, h4 { font-family: var(--font-display); font-weight: 500; }
 
 /* ─── Scrollbar ──────────────────────────────────────────────────────────── */

@@ -315,7 +315,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   if (isLandingPage) {
     return (
       <div className="flex h-screen w-full overflow-hidden bg-[#f7f5f0] dark:bg-[#121212]">
-        <main id="landing-scroll-container" className="flex-1 h-full overflow-y-auto no-scrollbar relative min-w-0 scroll-smooth">
+        <main id="landing-scroll-container" className="flex-1 h-full overflow-y-auto overflow-x-hidden no-scrollbar relative min-w-0">
           {children}
         </main>
       </div>
@@ -325,7 +325,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   return (
     <div className={`flex h-screen w-full overflow-hidden ${isHomePage ? 'bg-transparent' : 'bg-[#f7f5f0] dark:bg-[#121212]'}`}>
       <SidebarNav />
-      <main id="main-scroll-container" className="flex-1 h-full overflow-hidden relative min-w-0 pb-[calc(82px+env(safe-area-inset-bottom))] md:pb-0 pt-[max(1rem,env(safe-area-inset-top))] md:pt-0 scroll-smooth">
+      <main id="main-scroll-container" className="flex-1 h-full overflow-hidden relative min-w-0 pb-[calc(82px+env(safe-area-inset-bottom))] md:pb-0 pt-[max(1rem,env(safe-area-inset-top))] md:pt-0">
         {children}
       </main>
 

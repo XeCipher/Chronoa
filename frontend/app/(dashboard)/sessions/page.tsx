@@ -207,7 +207,7 @@ export default function SessionsPage() {
         </div>
 
         {/* Scrollable Content Layer */}
-        <div id="sessions-scroll-container" className="flex-1 overflow-y-scroll overflow-x-hidden no-scrollbar px-4 md:px-8 lg:px-10 pt-2 md:pt-0 pb-8 md:pb-12 w-full min-h-0 scroll-smooth">
+        <div id="sessions-scroll-container" className="flex-1 overflow-y-scroll overflow-x-hidden no-scrollbar px-4 md:px-8 lg:px-10 pt-2 md:pt-0 pb-8 md:pb-12 w-full min-h-0">
           
           <div className="max-w-4xl mx-auto w-full flex flex-col space-y-3">
             {loading && sessions.length === 0 ? (
