@@ -10,7 +10,7 @@ import {
   CheckCircle2, ListTodo, Cloud, Sun, Moon, CloudSun, CloudMoon, 
   CloudRain, CloudDrizzle, Snowflake, CloudLightning, Wind, MapPin, 
   Plus, Play, Pause, Square, Trash2, Timer, CheckSquare, CalendarDays, 
-  BookOpen, Navigation, FileText, Sparkles 
+  BookOpen, Navigation, FileText, Sparkles, ChevronLeft, ChevronRight 
 } from "lucide-react";
 import { Task, CalendarEvent } from "@/types/app.types";
 
@@ -929,6 +929,19 @@ const MarqueeRow = React.memo(({ prompts, speed = 0.5 }: { prompts: any[], speed
   const isHovered = useRef(false);
   const touchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Pause the auto-scroll momentarily during a manual button scroll
+  useEffect(() => {
+    const handleManualScrollStart = () => {
+      if (touchTimeoutRef.current) clearTimeout(touchTimeoutRef.current);
+      isHovered.current = true;
+      touchTimeoutRef.current = setTimeout(() => {
+        isHovered.current = false;
+      }, 800); // Resume auto-scrolling smoothly after 800ms
+    };
+    window.addEventListener('sandbox-manual-scroll', handleManualScrollStart);
+    return () => window.removeEventListener('sandbox-manual-scroll', handleManualScrollStart);
+  }, []);
+
   useEffect(() => {
     let animationFrameId: number;
     let lastTime = 0;
@@ -960,7 +973,8 @@ const MarqueeRow = React.memo(({ prompts, speed = 0.5 }: { prompts: any[], speed
   return (
     <div 
       ref={scrollRef} 
-      className="flex w-full overflow-x-auto no-scrollbar gap-3 pl-4 pr-0 py-2"
+      // Added marquee-scroll-container class
+      className="marquee-scroll-container flex w-full overflow-x-auto no-scrollbar gap-3 pl-4 pr-0 py-2"
       onMouseEnter={() => {
         if (touchTimeoutRef.current) clearTimeout(touchTimeoutRef.current);
         isHovered.current = true;
@@ -985,9 +999,6 @@ const MarqueeRow = React.memo(({ prompts, speed = 0.5 }: { prompts: any[], speed
         {[...prompts, ...prompts].map((p, i) => (
            <button 
              key={i}
-             // On mobile, onTouchEnd fires the action directly and prevents the browser
-             // from reclassifying the tap as a scroll gesture (which swallows onClick).
-             // e.preventDefault() also kills the 300ms synthetic-click delay.
              onTouchEnd={(e) => { e.preventDefault(); p.action(); }}
              onClick={p.action}
              style={{ touchAction: 'manipulation' }}
@@ -1040,6 +1051,15 @@ export function MockAiSandbox() {
     setRow2(shuffled.slice(6, 12));
   }, []);
 
+  // Handles manual control of horizontal scrolling targeting both rows smoothly
+  const handleManualScroll = (direction: 'left' | 'right') => {
+    window.dispatchEvent(new CustomEvent('sandbox-manual-scroll'));
+    const containers = document.querySelectorAll('.marquee-scroll-container');
+    containers.forEach(container => {
+      container.scrollBy({ left: direction === 'left' ? -250 : 250, behavior: 'smooth' });
+    });
+  };
+
   return (
     <div id="intelligence" className="w-full flex flex-col gap-6 md:gap-8 my-10 md:my-20">
       <div className="text-center max-w-2xl mx-auto px-4 w-full shrink-0 mb-6">
@@ -1059,6 +1079,16 @@ export function MockAiSandbox() {
              style={{ maskImage: 'linear-gradient(to right, transparent, black 10%, black 90%, transparent)', WebkitMaskImage: 'linear-gradient(to right, transparent, black 10%, black 90%, transparent)' }}>
            <MarqueeRow prompts={row1} speed={0.6} />
            <MarqueeRow prompts={row2} speed={0.4} />
+        </div>
+
+        {/* Manual Horizontal Scroll Controls for Mobile */}
+        <div className="flex md:hidden items-center justify-center gap-4 mt-2">
+            <button onClick={() => handleManualScroll('left')} className="p-3.5 rounded-full bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] shadow-sm text-[#888] active:scale-95 transition-transform" aria-label="Scroll left">
+                <ChevronLeft size={20} />
+            </button>
+            <button onClick={() => handleManualScroll('right')} className="p-3.5 rounded-full bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] shadow-sm text-[#888] active:scale-95 transition-transform" aria-label="Scroll right">
+                <ChevronRight size={20} />
+            </button>
         </div>
       </div>
     </div>
