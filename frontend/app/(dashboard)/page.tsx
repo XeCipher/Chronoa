@@ -75,14 +75,14 @@ export default function LandingPage() {
           </p>
           <button
             onClick={handleLogin} disabled={isLoggingIn}
-            className="group relative flex items-center justify-center gap-2 px-6 py-3 bg-[#c2956e] text-white rounded-xl text-[11px] font-bold uppercase tracking-widest transition-all duration-300 hover:bg-[#b0855f] hover:shadow-[0_8px_30px_rgba(194,149,110,0.4)] hover:-translate-y-1 disabled:opacity-50 overflow-hidden"
+            className="group relative flex items-center justify-center gap-2 px-6 py-3 bg-[#c2956e] text-white rounded-xl text-[11px] font-bold uppercase tracking-widest transition-all duration-300 md:hover:bg-[#b0855f] md:hover:shadow-[0_8px_30px_rgba(194,149,110,0.4)] md:hover:-translate-y-1 disabled:opacity-50 overflow-hidden"
           >
-            <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out" />
+            <div className="absolute inset-0 bg-white/20 translate-y-full md:group-hover:translate-y-0 transition-transform duration-300 ease-out" />
             {isLoggingIn ? (
               <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin relative z-10" />
             ) : (
               <span className="relative z-10 flex items-center gap-2">
-                 Enter Workspace <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
+                 Enter Workspace <ArrowRight size={16} className="md:group-hover:translate-x-1 transition-transform" />
               </span>
             )}
           </button>
@@ -154,14 +154,14 @@ export default function LandingPage() {
               <button 
                 onClick={handleLogin} 
                 disabled={isLoggingIn} 
-                className="group relative flex items-center justify-center gap-3 px-10 py-4 bg-[#c2956e] text-white rounded-2xl text-xs md:text-sm font-bold uppercase tracking-widest hover:bg-[#b0855f] hover:shadow-[0_10px_40px_rgba(194,149,110,0.5)] hover:-translate-y-1 transition-all duration-300 disabled:opacity-50 overflow-hidden"
+                className="group relative flex items-center justify-center gap-3 px-10 py-4 bg-[#c2956e] text-white rounded-2xl text-xs md:text-sm font-bold uppercase tracking-widest md:hover:bg-[#b0855f] md:hover:shadow-[0_10px_40px_rgba(194,149,110,0.5)] md:hover:-translate-y-1 transition-all duration-300 disabled:opacity-50 overflow-hidden"
               >
-                <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out" />
+                <div className="absolute inset-0 bg-white/20 translate-y-full md:group-hover:translate-y-0 transition-transform duration-300 ease-out" />
                 {isLoggingIn ? (
                   <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin relative z-10" />
                 ) : (
                   <span className="relative z-10 flex items-center gap-3">
-                     Enter App <ArrowRight size={18} className="group-hover:translate-x-1.5 transition-transform" />
+                     Enter App <ArrowRight size={18} className="md:group-hover:translate-x-1.5 transition-transform" />
                   </span>
                 )}
               </button>
@@ -183,10 +183,10 @@ export default function LandingPage() {
            </div>
            <div className="flex flex-col items-center md:items-end gap-4">
               <div className="flex gap-4">
-                 <a href="https://github.com/XeCipher/Chronoa" target="_blank" rel="noreferrer" className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white dark:bg-[#252525] border border-[#e0ddd5] dark:border-[#333] text-[#888] hover:text-[#3d3b33] dark:hover:text-[#f0f0f0] transition-colors shadow-sm text-xs font-bold uppercase tracking-widest">
+                 <a href="https://github.com/XeCipher/Chronoa" target="_blank" rel="noreferrer" className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white dark:bg-[#252525] border border-[#e0ddd5] dark:border-[#333] text-[#888] md:hover:text-[#3d3b33] md:dark:hover:text-[#f0f0f0] transition-colors shadow-sm text-xs font-bold uppercase tracking-widest">
                    <GithubIcon size={16} /> GitHub
                  </a>
-                 <button onClick={() => setIsDeveloperModalOpen(true)} className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#c2956e] text-white hover:bg-[#b0855f] transition-colors shadow-sm text-xs font-bold uppercase tracking-widest">
+                 <button onClick={() => setIsDeveloperModalOpen(true)} className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#c2956e] text-white md:hover:bg-[#b0855f] transition-colors shadow-sm text-xs font-bold uppercase tracking-widest">
                    <MessageSquareHeart size={16} /> Contact Dev
                  </button>
               </div>

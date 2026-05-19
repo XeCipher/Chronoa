@@ -17,8 +17,8 @@ export function DownloadsSection() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8 max-w-5xl mx-auto px-4 md:px-6">
         {/* Android APK */}
-        <div className="group relative bg-white/40 dark:bg-[#1a1a1a]/40 backdrop-blur-xl border border-[#e0ddd5] dark:border-[#333] rounded-[2rem] md:rounded-[2.5rem] p-6 md:p-10 shadow-sm hover:shadow-xl dark:hover:shadow-[0_10px_40px_rgba(0,0,0,0.4)] transition-all duration-500 overflow-hidden flex flex-col justify-between h-full md:min-h-[420px]">
-          <div className="absolute -top-10 -right-10 p-8 opacity-[0.03] dark:opacity-[0.05] pointer-events-none group-hover:scale-110 group-hover:rotate-12 transition-transform duration-700">
+        <div className="group relative bg-white/40 dark:bg-[#1a1a1a]/40 backdrop-blur-xl border border-[#e0ddd5] dark:border-[#333] rounded-[2rem] md:rounded-[2.5rem] p-6 md:p-10 shadow-sm md:hover:shadow-xl md:dark:hover:shadow-[0_10px_40px_rgba(0,0,0,0.4)] transition-all duration-500 overflow-hidden flex flex-col justify-between h-full md:min-h-[420px]">
+          <div className="absolute -top-10 -right-10 p-8 opacity-[0.03] dark:opacity-[0.05] pointer-events-none md:group-hover:scale-110 md:group-hover:rotate-12 transition-transform duration-700">
             <Smartphone size={250} />
           </div>
           
@@ -38,7 +38,7 @@ export function DownloadsSection() {
                   Your browser may flag this as "harmful" since it's not on the Play Store. Chronoa is fully open-source and completely safe.
                 </p>
               </div>
-              <a href="/chronoa.apk" download className="w-full flex items-center justify-center gap-2 py-3 md:py-4 bg-[#7ca982] text-white font-bold text-[10px] md:text-[11px] uppercase tracking-widest rounded-xl md:rounded-2xl hover:bg-[#6a9a70] hover:-translate-y-1 transition-all shadow-[0_8px_20px_rgba(124,169,130,0.3)]">
+              <a href="/chronoa.apk" download className="w-full flex items-center justify-center gap-2 py-3 md:py-4 bg-[#7ca982] text-white font-bold text-[10px] md:text-[11px] uppercase tracking-widest rounded-xl md:rounded-2xl md:hover:bg-[#6a9a70] md:hover:-translate-y-1 transition-all shadow-[0_8px_20px_rgba(124,169,130,0.3)]">
                 <Download size={16} /> Download APK (1.4 MB)
               </a>
             </div>
@@ -46,8 +46,8 @@ export function DownloadsSection() {
         </div>
 
         {/* PWA iOS / Web */}
-        <div className="group relative bg-white/40 dark:bg-[#1a1a1a]/40 backdrop-blur-xl border border-[#e0ddd5] dark:border-[#333] rounded-[2rem] md:rounded-[2.5rem] p-6 md:p-10 shadow-sm hover:shadow-xl dark:hover:shadow-[0_10px_40px_rgba(0,0,0,0.4)] transition-all duration-500 overflow-hidden flex flex-col justify-between h-full md:min-h-[420px]">
-          <div className="absolute -top-10 -right-10 p-8 opacity-[0.03] dark:opacity-[0.05] pointer-events-none group-hover:scale-110 group-hover:-rotate-12 transition-transform duration-700">
+        <div className="group relative bg-white/40 dark:bg-[#1a1a1a]/40 backdrop-blur-xl border border-[#e0ddd5] dark:border-[#333] rounded-[2rem] md:rounded-[2.5rem] p-6 md:p-10 shadow-sm md:hover:shadow-xl md:dark:hover:shadow-[0_10px_40px_rgba(0,0,0,0.4)] transition-all duration-500 overflow-hidden flex flex-col justify-between h-full md:min-h-[420px]">
+          <div className="absolute -top-10 -right-10 p-8 opacity-[0.03] dark:opacity-[0.05] pointer-events-none md:group-hover:scale-110 md:group-hover:-rotate-12 transition-transform duration-700">
             <AppWindow size={250} />
           </div>
 

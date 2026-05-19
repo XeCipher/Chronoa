@@ -128,7 +128,7 @@ function MockWeatherWidget({ isDark }: { isDark: boolean }) {
       onMouseEnter={() => { if (window.matchMedia('(hover: hover)').matches) setIsToggled(true); }}
       onMouseLeave={() => { if (window.matchMedia('(hover: hover)').matches) setIsToggled(false); }}
       onClick={() => setIsToggled(!isToggled)}
-      className={`flex items-center shadow-[0_8px_30px_rgb(0,0,0,0.08)] rounded-[2rem] p-1.5 md:p-2 cursor-pointer transition-all duration-500 ease-in-out h-[48px] md:h-[56px] overflow-hidden backdrop-blur-xl ${isToggled ? 'max-w-[250px] pr-4 md:pr-5' : 'max-w-[90px] md:max-w-[104px]'}`}
+      className={`flex items-center shadow-[0_8px_30px_rgb(0,0,0,0.08)] rounded-[2rem] p-1.5 md:p-2 cursor-pointer transition-all duration-500 ease-in-out h-[48px] md:h-[56px] overflow-hidden backdrop-blur-xl ${isToggled ? 'max-w-[250px] pr-4 md:pr-5' : 'max-w-[90px] md:max-w-[104px] md:hover:max-w-[250px] md:hover:pr-4 md:hover:pr-5'}`}
       style={{ backgroundColor: bgGlass, borderColor: borderGlass }}
     >
       <div className="flex items-center w-[78px] md:w-[88px] shrink-0 justify-between">
@@ -139,7 +139,7 @@ function MockWeatherWidget({ isDark }: { isDark: boolean }) {
           {Math.round(weather.temperature_2m)}°
         </span>
       </div>
-      <div className={`flex overflow-hidden transition-all duration-500 ease-in-out ${isToggled ? 'max-w-[150px] opacity-100 ml-1.5 md:ml-2' : 'max-w-0 opacity-0 ml-0'}`}>
+      <div className={`flex overflow-hidden transition-all duration-500 ease-in-out ${isToggled ? 'max-w-[150px] opacity-100 ml-1.5 md:ml-2' : 'max-w-0 opacity-0 md:group-hover:max-w-[150px] md:group-hover:opacity-100 md:group-hover:ml-1.5 md:group-hover:md:ml-2'}`}>
         <div className="whitespace-nowrap flex flex-col justify-center border-l pl-2.5 md:pl-3" style={{ borderColor: isDark ? 'rgba(255,255,255,0.15)' : 'rgba(61,59,51,0.15)' }}>
           <span className="text-[10px] md:text-[11px] font-semibold leading-tight tracking-wide" style={{ color: textColor }}>
             {details.text}
@@ -280,12 +280,12 @@ export function MockHomeSandbox() {
 
       <div className="flex flex-row flex-wrap justify-center gap-2 md:gap-3 items-center z-20">
         <div className="flex items-center gap-1 bg-white dark:bg-[#1a1a1a] p-1.5 rounded-full border border-[#e0ddd5] dark:border-[#333] shadow-sm">
-          <button onClick={() => setIsDark(false)} className={`p-2 rounded-full transition-all ${!isDark ? 'bg-[#f7f5f0] dark:bg-[#252525] text-[#c2956e] dark:text-[#d1a784] shadow-sm' : 'text-[#888] hover:text-[#3d3b33] dark:hover:text-[#f0f0f0]'}`}><Sun size={14}/></button>
-          <button onClick={() => setIsDark(true)} className={`p-2 rounded-full transition-all ${isDark ? 'bg-[#f7f5f0] dark:bg-[#252525] text-[#c2956e] dark:text-[#d1a784] shadow-sm' : 'text-[#888] hover:text-[#3d3b33] dark:hover:text-[#f0f0f0]'}`}><Moon size={14}/></button>
+          <button onClick={() => setIsDark(false)} className={`p-2 rounded-full transition-all ${!isDark ? 'bg-[#f7f5f0] dark:bg-[#252525] text-[#c2956e] dark:text-[#d1a784] shadow-sm' : 'text-[#888] md:hover:text-[#3d3b33] md:dark:hover:text-[#f0f0f0]'}`}><Sun size={14}/></button>
+          <button onClick={() => setIsDark(true)} className={`p-2 rounded-full transition-all ${isDark ? 'bg-[#f7f5f0] dark:bg-[#252525] text-[#c2956e] dark:text-[#d1a784] shadow-sm' : 'text-[#888] md:hover:text-[#3d3b33] md:dark:hover:text-[#f0f0f0]'}`}><Moon size={14}/></button>
         </div>
         <div className="flex items-center gap-1 bg-white dark:bg-[#1a1a1a] p-1.5 rounded-full border border-[#e0ddd5] dark:border-[#333] shadow-sm">
           {(['dawn', 'day', 'dusk', 'night'] as const).map(t => (
-            <button key={t} onClick={() => setTimeOfDay(t)} className={`px-4 md:px-6 py-2 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all ${timeOfDay === t ? 'bg-[#f7f5f0] dark:bg-[#252525] text-[#c2956e] dark:text-[#d1a784] shadow-sm' : 'text-[#888] hover:text-[#3d3b33] dark:hover:text-[#f0f0f0]'}`}>
+            <button key={t} onClick={() => setTimeOfDay(t)} className={`px-4 md:px-6 py-2 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all ${timeOfDay === t ? 'bg-[#f7f5f0] dark:bg-[#252525] text-[#c2956e] dark:text-[#d1a784] shadow-sm' : 'text-[#888] md:hover:text-[#3d3b33] md:dark:hover:text-[#f0f0f0]'}`}>
               {t}
             </button>
           ))}
@@ -470,7 +470,7 @@ export function MockTaskSandbox() {
                    </div>
                    <div className="flex items-center gap-2">
                        {isRoutineEditMode && (
-                           <button onClick={() => onAdd('routine', null)} className="w-8 h-8 rounded-full bg-[#f7f5f0] dark:bg-[#252525] text-[#c2956e] dark:text-[#d1a784] flex items-center justify-center border border-[#e0ddd5] dark:border-[#333] hover:bg-[#c2956e]/10 transition-colors shadow-sm"><Plus size={16}/></button>
+                           <button onClick={() => onAdd('routine', null)} className="w-8 h-8 rounded-full bg-[#f7f5f0] dark:bg-[#252525] text-[#c2956e] dark:text-[#d1a784] flex items-center justify-center border border-[#e0ddd5] dark:border-[#333] md:hover:bg-[#c2956e]/10 transition-colors shadow-sm"><Plus size={16}/></button>
                        )}
                        <button onClick={() => setIsRoutineEditMode(!isRoutineEditMode)} className={`flex items-center justify-center gap-1.5 px-3 h-8 rounded-full text-[10px] font-[600] tracking-[0.08em] uppercase transition-all shadow-sm border ${isRoutineEditMode ? 'bg-[#c2956e] text-white border-[#c2956e]' : 'bg-[#f7f5f0] dark:bg-[#252525] text-[#c2956e] dark:text-[#d1a784] border-[#e0ddd5] dark:border-[#333]'}`}>
                            {isRoutineEditMode ? 'Done' : 'Edit'}
@@ -494,7 +494,7 @@ export function MockTaskSandbox() {
                      <h2 className="text-[22px] md:text-[26px] text-[#3d3b33] dark:text-[#f0f0f0] font-serif font-medium tracking-tight leading-none">Tasks & Ideas</h2>
                      <p className="text-[10px] text-[#b0ad9a] dark:text-[#7a7a7a] mt-1.5 font-medium">One-off tasks and projects.</p>
                  </div>
-                 <button onClick={() => onAdd('normal', null)} className="w-8 h-8 rounded-full bg-[#f7f5f0] dark:bg-[#252525] text-[#c2956e] dark:text-[#d1a784] flex items-center justify-center border border-[#e0ddd5] dark:border-[#333] hover:bg-[#c2956e]/10 transition-colors shadow-sm"><Plus size={16}/></button>
+                 <button onClick={() => onAdd('normal', null)} className="w-8 h-8 rounded-full bg-[#f7f5f0] dark:bg-[#252525] text-[#c2956e] dark:text-[#d1a784] flex items-center justify-center border border-[#e0ddd5] dark:border-[#333] md:hover:bg-[#c2956e]/10 transition-colors shadow-sm"><Plus size={16}/></button>
              </div>
           </div>
           <div className="flex-1 overflow-y-auto no-scrollbar p-4 md:p-5 flex flex-col gap-[2px]">

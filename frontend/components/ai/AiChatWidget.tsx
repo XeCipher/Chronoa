@@ -32,7 +32,7 @@ export function AiButton({ variant }: { variant: 'desktop' | 'mobile' | 'global'
     <button 
       onClick={(e) => { e.stopPropagation(); toggleAiChat(); }}
       data-tooltip-id="global-tooltip" data-tooltip-content="Chronoa AI"
-      className={`w-10 h-10 md:w-14 md:h-14 rounded-full bg-white/70 md:bg-[#c2956e] dark:bg-[#1a1a1a]/80 md:dark:bg-[#b0855f] backdrop-blur-xl md:backdrop-blur-none border border-[#e0ddd5] md:border-transparent dark:border-[#333] md:dark:border-transparent text-[#c2956e] md:text-white dark:text-[#b0855f] md:dark:text-white shadow-lg flex items-center justify-center hover:scale-105 active:scale-95 transition-all group shrink-0
+      className={`w-10 h-10 md:w-14 md:h-14 rounded-full bg-[#c2956e] dark:bg-[#b0855f] text-white shadow-lg flex items-center justify-center hover:scale-105 active:scale-95 transition-all group shrink-0
       ${variant === 'desktop' ? 'hidden md:flex' : 'flex md:hidden'}`}
     >
       <Sparkles size={20} className="md:w-[22px] md:h-[22px] group-hover:animate-pulse" />

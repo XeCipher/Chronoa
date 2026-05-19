@@ -99,7 +99,7 @@ export default function DeveloperMessageModal({ isOpen, onClose }: Props) {
               </div>
             </div>
           </div>
-          <button onClick={onClose} disabled={isSubmitting} className="p-2 text-gray-400 hover:text-[#3d3b33] dark:hover:text-white bg-gray-50 dark:bg-[#252525] hover:bg-gray-100 dark:hover:bg-[#333] rounded-full transition-colors disabled:opacity-50">
+          <button onClick={onClose} disabled={isSubmitting} className="p-2 text-gray-400 md:hover:text-[#3d3b33] md:dark:hover:text-white bg-gray-50 dark:bg-[#252525] md:hover:bg-gray-100 md:dark:hover:bg-[#333] rounded-full transition-colors disabled:opacity-50">
             <X size={18} />
           </button>
         </header>
@@ -168,13 +168,13 @@ export default function DeveloperMessageModal({ isOpen, onClose }: Props) {
         {/* Footer */}
         {step !== 2 && (
           <footer className="px-6 py-5 border-t border-[#e0ddd5] dark:border-[#2a2a2a] flex justify-end gap-3 bg-[#f7f5f0] dark:bg-[#161616] shrink-0">
-            <button onClick={onClose} disabled={isSubmitting} className="px-5 py-3 rounded-xl font-bold text-[11px] uppercase tracking-widest text-[#888] hover:bg-white dark:hover:bg-[#2a2a2a] hover:text-[#3d3b33] dark:hover:text-white transition-colors disabled:opacity-50 border border-transparent hover:border-[#e0ddd5] dark:hover:border-[#444] shadow-sm">
+            <button onClick={onClose} disabled={isSubmitting} className="px-5 py-3 rounded-xl font-bold text-[11px] uppercase tracking-widest text-[#888] md:hover:bg-white md:dark:hover:bg-[#2a2a2a] md:hover:text-[#3d3b33] md:dark:hover:text-white transition-colors disabled:opacity-50 border border-transparent md:hover:border-[#e0ddd5] md:dark:hover:border-[#444] shadow-sm">
               Cancel
             </button>
             <button 
               onClick={handleSubmit} 
               disabled={!subject.trim() || !message.trim() || isSubmitting}
-              className="flex items-center gap-2 px-8 py-3 rounded-xl font-bold text-[11px] uppercase tracking-widest text-white bg-[#c2956e] dark:bg-[#b0855f] hover:bg-[#b0855f] dark:hover:bg-[#9e7653] disabled:opacity-50 disabled:cursor-not-allowed shadow-md transition-colors"
+              className="flex items-center gap-2 px-8 py-3 rounded-xl font-bold text-[11px] uppercase tracking-widest text-white bg-[#c2956e] dark:bg-[#b0855f] md:hover:bg-[#b0855f] md:dark:hover:bg-[#9e7653] disabled:opacity-50 disabled:cursor-not-allowed shadow-md transition-colors"
             >
               {isSubmitting ? (
                 <><Loader2 size={16} className="animate-spin" /> Sending...</>
