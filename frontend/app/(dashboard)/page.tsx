@@ -18,7 +18,7 @@ const FadeIn = ({ children, delay = 0 }: { children: React.ReactNode, delay?: nu
     whileInView={{ opacity: 1, y: 0 }}
     viewport={{ once: true, margin: "-100px" }}
     transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1], delay }}
-    className="w-full relative z-10" // added relative z-10 to prevent any overlap issues
+    className="w-full relative z-10"
   >
     {children}
   </motion.div>
@@ -31,14 +31,12 @@ export default function LandingPage() {
   const [isCheckingSession, setIsCheckingSession] = useState(true);
   const lastVisitedPage = useUiStore((state) => state.lastVisitedPage);
 
-  // Redirect to last visited page or home if user is already logged in
   useEffect(() => {
     supabase.auth.getUser().then(async ({ data: { user }, error }) => {
       if (user && !error) {
         const target = lastVisitedPage && lastVisitedPage !== '/' && lastVisitedPage !== '/home' ? lastVisitedPage : '/home';
         router.replace(target);
       } else {
-        // If a dead session exists locally, clear it out.
         const { data: { session } } = await supabase.auth.getSession();
         if (session) await supabase.auth.signOut();
         setIsCheckingSession(false);
@@ -56,10 +54,10 @@ export default function LandingPage() {
 
       {/* Hero Section */}
       <section className="relative w-full min-h-[100dvh] flex flex-col items-center justify-center px-4 md:px-6 pt-16 shrink-0 overflow-hidden">
-        {/* Abstract Background Blur Orbs */}
+        {/* Abstract Background Blur Orbs - Hardware Accelerated */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none flex items-center justify-center opacity-60">
-          <motion.div animate={{ scale: [1, 1.1, 1], rotate: [0, 90, 0] }} transition={{ duration: 20, repeat: Infinity, ease: "linear" }} className="absolute w-[800px] h-[800px] -translate-y-48 translate-x-32" style={{ background: 'radial-gradient(circle, rgba(168,130,194,0.1) 0%, transparent 60%)' }} />
-          <motion.div animate={{ scale: [1, 1.2, 1], rotate: [0, -90, 0] }} transition={{ duration: 25, repeat: Infinity, ease: "linear" }} className="absolute w-[800px] h-[800px] translate-y-48 -translate-x-32" style={{ background: 'radial-gradient(circle, rgba(124,169,130,0.1) 0%, transparent 60%)' }} />
+          <motion.div animate={{ scale: [1, 1.1, 1], rotate: [0, 90, 0] }} transition={{ duration: 20, repeat: Infinity, ease: "linear" }} className="absolute w-[800px] h-[800px] -translate-y-48 translate-x-32" style={{ background: 'radial-gradient(circle, rgba(168,130,194,0.1) 0%, transparent 60%)', willChange: 'transform', transform: 'translateZ(0)' }} />
+          <motion.div animate={{ scale: [1, 1.2, 1], rotate: [0, -90, 0] }} transition={{ duration: 25, repeat: Infinity, ease: "linear" }} className="absolute w-[800px] h-[800px] translate-y-48 -translate-x-32" style={{ background: 'radial-gradient(circle, rgba(124,169,130,0.1) 0%, transparent 60%)', willChange: 'transform', transform: 'translateZ(0)' }} />
         </div>
 
         <motion.div 
@@ -107,40 +105,19 @@ export default function LandingPage() {
           <MockHomeSandbox />
         </FadeIn>
 
-        <FadeIn>
-          <MockTaskSandbox />
-        </FadeIn>
+        <FadeIn><MockTaskSandbox /></FadeIn>
+        <FadeIn><MockTimeSandbox /></FadeIn>
+        <FadeIn><MockCalendarSandbox /></FadeIn>
+        <FadeIn><MockNotesSandbox /></FadeIn>
+        <FadeIn><MockAnalyticsSandbox /></FadeIn>
+        <FadeIn><MockAiSandbox /></FadeIn>
+        <FadeIn><DownloadsSection /></FadeIn>
 
-        <FadeIn>
-          <MockTimeSandbox />
-        </FadeIn>
-
-        <FadeIn>
-          <MockCalendarSandbox />
-        </FadeIn>
-
-        <FadeIn>
-          <MockNotesSandbox />
-        </FadeIn>
-
-        <FadeIn>
-          <MockAnalyticsSandbox />
-        </FadeIn>
-        
-        <FadeIn>
-          <MockAiSandbox />
-        </FadeIn>
-
-        <FadeIn>
-          <DownloadsSection />
-        </FadeIn>
-
-        {/* Final CTA Redesign */}
         <FadeIn>
           <div className="relative w-full text-center py-20 md:py-28 bg-[#fdfbf7] dark:bg-[#161616] rounded-[2.5rem] md:rounded-[4rem] border border-[#e0ddd5] dark:border-[#333] px-4 shadow-xl overflow-hidden isolate pointer-events-auto">
             <div className="absolute inset-0 z-0 opacity-40 mix-blend-multiply dark:mix-blend-screen pointer-events-none">
-              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-[radial-gradient(circle,rgba(194,149,110,0.15)_0%,transparent_60%)]" />
-              <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-[radial-gradient(circle,rgba(168,130,194,0.1)_0%,transparent_60%)]" />
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-[radial-gradient(circle,rgba(194,149,110,0.15)_0%,transparent_60%)]" style={{ willChange: 'transform', transform: 'translateZ(0)' }} />
+              <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-[radial-gradient(circle,rgba(168,130,194,0.1)_0%,transparent_60%)]" style={{ willChange: 'transform', transform: 'translateZ(0)' }} />
             </div>
             
             <div className="relative z-10 flex flex-col items-center">

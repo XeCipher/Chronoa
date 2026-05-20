@@ -66,7 +66,6 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
     })
   );
 
-  // Normal tasks will never be collapsed on mobile; only routines can be toggled
   const isCollapsedMobile = type === 'routine' ? mobileRoutineCollapsed : false;
 
   const fetchTasks = async () => {
@@ -123,7 +122,6 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
-      // Prevents closing edit mode if clicking inside the floating context menu
       if ((e.target as Element).closest?.('.context-menu-portal')) return;
       
       if (
@@ -233,7 +231,7 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
     if (isToggling) {
       const addChildrenToUpdate = (parentId: string) => {
         tasks
-          .filter((t) => t.parent_id === parentId)
+          .filter((t) => t.parent_id === parentId && t.deleted_at === null)
           .forEach((child) => {
             const isVisibleInFocus = !child.is_completed || taskArchiveDelay < 0 || (child.completed_at && now - new Date(child.completed_at).getTime() < delayMs);
 
@@ -268,9 +266,16 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
         const shouldKeepAlive = keepParentTaskAlive || parentTask?.keep_alive;
 
         const siblings = tasks.filter(
-          (t) => t.parent_id === currentTask.parent_id && t.id !== taskId
+          (t) => t.parent_id === currentTask.parent_id && t.id !== taskId && t.deleted_at === null
         );
-        const allSiblingsChecked = siblings.every((s) => s.is_completed);
+        
+        const allSiblingsChecked = siblings.every((s) => {
+          const pendingUpdate = tasksToUpdate.find(u => u.id === s.id);
+          if (pendingUpdate && pendingUpdate.updates.is_completed !== undefined) {
+             return pendingUpdate.updates.is_completed;
+          }
+          return s.is_completed;
+        });
 
         if (status && allSiblingsChecked && !shouldKeepAlive) {
           tasksToUpdate.push({
@@ -279,13 +284,16 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
           });
           checkParentStatus(currentTask.parent_id, true);
         } else if (!status) {
-          tasksToUpdate.push({
-            id: currentTask.parent_id,
-            updates: { is_completed: false, completed_at: null },
-          });
-          checkParentStatus(currentTask.parent_id, false);
+          if (!tasksToUpdate.some(u => u.id === currentTask.parent_id)) {
+            tasksToUpdate.push({
+              id: currentTask.parent_id,
+              updates: { is_completed: false, completed_at: null },
+            });
+            checkParentStatus(currentTask.parent_id, false);
+          }
         }
       };
+      
       checkParentStatus(id, !!isDone);
       updates.completed_at = completionTime;
     }
@@ -419,7 +427,6 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
   const onRestore = async (id: string, mode: 'from_trash' | 'from_archive') => {
     const idsToUpdate = [id];
 
-    // Recursively find and restore all children
     const findChildren = (parentId: string) => {
       tasks.filter(t => t.parent_id === parentId).forEach(child => {
         if (!idsToUpdate.includes(child.id)) {
@@ -430,7 +437,6 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
     };
     findChildren(id);
 
-    // Recursively find and restore all ancestors to maintain tree structure
     let current = tasks.find(t => t.id === id);
     while (current && current.parent_id) {
        const parent = tasks.find(t => t.id === current!.parent_id);

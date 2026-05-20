@@ -289,67 +289,48 @@ const tools: any = [{
   ]
 }];
 
-// Memoized MarqueeRow to completely prevent lagging while the user types in the input
+// Memoized MarqueeRow with intelligent native scroll capability
 const MarqueeRow = React.memo(({ prompts, speed = 0.5 }: { prompts: any[], speed?: number }) => {
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const isHovered = useRef(false);
-  const touchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-
+  const [isHovered, setIsHovered] = useState(false);
+  const [isTouch, setIsTouch] = useState(false);
+  
   useEffect(() => {
-    let animationFrameId: number;
-    let lastTime = 0;
-    let accumulatedScroll = 0;
+    setIsTouch(window.matchMedia('(hover: none)').matches || ('ontouchstart' in window) || navigator.maxTouchPoints > 0);
+  }, []);
 
-    const scroll = (time: number) => {
-      if (!lastTime) lastTime = time;
-      const dt = time - lastTime;
-      lastTime = time;
+  const duration = 30 / speed; 
 
-      if (scrollRef.current && !isHovered.current) {
-        accumulatedScroll += dt * 0.05 * speed;
-        if (accumulatedScroll >= 1) {
-           scrollRef.current.scrollLeft += Math.floor(accumulatedScroll);
-           accumulatedScroll -= Math.floor(accumulatedScroll);
-        }
-        if (scrollRef.current.scrollLeft >= scrollRef.current.scrollWidth / 2) {
-           scrollRef.current.scrollLeft -= scrollRef.current.scrollWidth / 2;
-        }
-      }
-      animationFrameId = requestAnimationFrame(scroll);
-    };
-    animationFrameId = requestAnimationFrame(scroll);
-    return () => cancelAnimationFrame(animationFrameId);
-  }, [speed]);
+  if (prompts.length === 0) return null;
 
   return (
     <div 
-      ref={scrollRef} 
-      className="flex w-full overflow-x-auto no-scrollbar gap-3 pl-4 pr-0 py-2"
-      onMouseEnter={() => {
-        if (touchTimeoutRef.current) clearTimeout(touchTimeoutRef.current);
-        isHovered.current = true;
-      }}
-      onMouseLeave={() => isHovered.current = false}
-      onTouchStart={() => {
-        if (touchTimeoutRef.current) clearTimeout(touchTimeoutRef.current);
-        isHovered.current = true;
-      }}
-      onTouchEnd={() => {
-        touchTimeoutRef.current = setTimeout(() => {
-          isHovered.current = false;
-        }, 400);
-      }}
-      onTouchCancel={() => {
-        touchTimeoutRef.current = setTimeout(() => {
-          isHovered.current = false;
-        }, 400);
-      }}
+      className={`flex w-full relative py-2 ${isTouch ? 'overflow-x-auto no-scrollbar' : 'overflow-hidden'}`}
+      onMouseEnter={() => { if (!isTouch) setIsHovered(true); }}
+      onMouseLeave={() => { if (!isTouch) setIsHovered(false); }}
     >
-      <div className="flex gap-4 w-max">
+      <style dangerouslySetInnerHTML={{__html: `
+        @keyframes marquee-infinite-scroll {
+          0% { transform: translateX(0); }
+          100% { transform: translateX(-50%); }
+        }
+        .animate-marquee-infinite {
+          animation: marquee-infinite-scroll linear infinite;
+        }
+      `}} />
+      <div 
+        className={`flex gap-4 w-max pl-4 ${isTouch ? '' : 'animate-marquee-infinite'}`} 
+        style={!isTouch ? { 
+          animationDuration: `${duration}s`, 
+          animationPlayState: isHovered ? 'paused' : 'running' 
+        } : undefined}
+      >
         {[...prompts, ...prompts].map((p, i) => (
            <button 
              key={i} 
-             onClick={() => window.dispatchEvent(new CustomEvent('chronoa-ai-prompt', { detail: p.text }))} 
+             onClick={(e) => {
+               e.preventDefault();
+               window.dispatchEvent(new CustomEvent('chronoa-ai-prompt', { detail: p.text }));
+             }} 
              className={`flex items-center gap-3 px-5 py-3.5 rounded-2xl bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] transition-all shrink-0 cursor-pointer shadow-sm group select-none md:hover:-translate-y-0.5 ${p.border}`}
            >
              <div className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${p.bg}`}>
@@ -399,7 +380,6 @@ export function AiChatPanel() {
     return () => window.removeEventListener('chronoa-ai-prompt', handleEvent);
   });
 
-  // Global Escape Key Listener for AI Chat
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && isAiChatOpen) {
@@ -499,7 +479,6 @@ export function AiChatPanel() {
           color: args.color && args.color !== 'none' ? args.color : null
         });
 
-        // Natively handle subtasks to allow single tool-call generation of nested tasks
         if (args.subtasks && Array.isArray(args.subtasks)) {
            const subtaskInserts = args.subtasks.map((st: string, idx: number) => ({
               id: crypto.randomUUID(),
@@ -716,7 +695,7 @@ export function AiChatPanel() {
 
       if (res.functionCalls && res.functionCalls.length > 0) {
         const calls = res.functionCalls;
-        const call = calls[0]; // For display
+        const call = calls[0]; 
         const modelParts = res.candidates?.[0]?.content?.parts || calls.map(c => ({ functionCall: { name: c.name, args: c.args } }));
         const msgId = crypto.randomUUID();
         

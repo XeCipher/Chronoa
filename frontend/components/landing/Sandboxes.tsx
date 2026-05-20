@@ -302,10 +302,10 @@ export function MockTaskSandbox() {
   const [highlight, setHighlight] = useState(false);
 
   useEffect(() => {
-    const totalRoutines = tasks.filter(t => t.task_type === 'routine').length;
-    const doneRoutines = tasks.filter(t => t.task_type === 'routine' && t.is_completed).length;
+    const totalRoutines = tasks.filter(t => t.task_type === 'routine' && t.deleted_at === null).length;
+    const doneRoutines = tasks.filter(t => t.task_type === 'routine' && t.is_completed && t.deleted_at === null).length;
     const routinePct = totalRoutines === 0 ? 0 : Math.round((doneRoutines / totalRoutines) * 100);
-    const normalLeft = tasks.filter(t => t.task_type === 'normal' && !t.is_completed).length;
+    const normalLeft = tasks.filter(t => t.task_type === 'normal' && !t.is_completed && t.deleted_at === null).length;
     
     setStats({ routinePct, normalLeft });
     window.dispatchEvent(new CustomEvent('mock-tasks-updated', { detail: { routinePct, normalLeft } }));
@@ -335,11 +335,10 @@ export function MockTaskSandbox() {
       });
       
       const el = document.getElementById('mock-task-sandbox');
-      if (el) {
-         const container = document.getElementById('landing-scroll-container');
-         if (container) {
-            container.scrollTo({ top: el.offsetTop - 100, behavior: 'smooth' });
-         }
+      const container = document.getElementById('landing-scroll-container');
+      if (el && container) {
+         const targetScrollTop = container.scrollTop + el.getBoundingClientRect().top - container.getBoundingClientRect().top - 100;
+         container.scrollTo({ top: Math.max(0, targetScrollTop), behavior: 'smooth' });
       }
       setHighlight(true);
       setTimeout(() => setHighlight(false), 2000);
@@ -351,6 +350,7 @@ export function MockTaskSandbox() {
   const onUpdate = (id: string, updates: any) => {
     setTasks(prev => {
        let next = prev.map(t => t.id === id ? { ...t, ...updates } : t);
+       
        if (updates.is_completed !== undefined) {
          const setChildren = (parentId: string, status: boolean) => {
            next = next.map(t => {
@@ -364,12 +364,21 @@ export function MockTaskSandbox() {
          setChildren(id, updates.is_completed);
 
          const checkParent = (taskId: string) => {
-           const t = next.find(x => x.id === taskId);
-           if (t && t.parent_id) {
-             const siblings = next.filter(x => x.parent_id === t.parent_id);
-             const allDone = siblings.every(x => x.is_completed);
-             next = next.map(x => x.id === t.parent_id ? { ...x, is_completed: allDone } : x);
-             checkParent(t.parent_id);
+           const currentTask = next.find(x => x.id === taskId);
+           if (!currentTask?.parent_id) return;
+           
+           const parentTask = next.find(x => x.id === currentTask.parent_id);
+           const shouldKeepAlive = parentTask?.keep_alive; 
+           
+           const siblings = next.filter(x => x.parent_id === currentTask.parent_id && x.deleted_at === null); 
+           const allDone = siblings.every(x => x.is_completed);
+             
+           if (currentTask.is_completed && allDone && !shouldKeepAlive) {
+               next = next.map(x => x.id === currentTask.parent_id ? { ...x, is_completed: true } : x);
+               checkParent(currentTask.parent_id);
+           } else if (!currentTask.is_completed) {
+               next = next.map(x => x.id === currentTask.parent_id ? { ...x, is_completed: false } : x);
+               checkParent(currentTask.parent_id);
            }
          };
          checkParent(id);
@@ -658,11 +667,10 @@ export function MockTimeSandbox() {
        setActiveTab(tab);
 
        const el = document.getElementById('mock-time-sandbox');
-       if (el) {
-          const container = document.getElementById('landing-scroll-container');
-          if (container) {
-             container.scrollTo({ top: el.offsetTop - 100, behavior: 'smooth' });
-          }
+       const container = document.getElementById('landing-scroll-container');
+       if (el && container) {
+          const targetScrollTop = container.scrollTop + el.getBoundingClientRect().top - container.getBoundingClientRect().top - 100;
+          container.scrollTo({ top: Math.max(0, targetScrollTop), behavior: 'smooth' });
        }
        setHighlight(true);
        setTimeout(() => setHighlight(false), 2000);
@@ -797,11 +805,10 @@ export function MockCalendarSandbox() {
       setTargetScrollTime(newEvent.start_time);
 
       const el = document.getElementById('mock-calendar-sandbox');
-      if (el) {
-         const container = document.getElementById('landing-scroll-container');
-         if (container) {
-            container.scrollTo({ top: el.offsetTop - 100, behavior: 'smooth' });
-         }
+      const container = document.getElementById('landing-scroll-container');
+      if (el && container) {
+         const targetScrollTop = container.scrollTop + el.getBoundingClientRect().top - container.getBoundingClientRect().top - 100;
+         container.scrollTo({ top: Math.max(0, targetScrollTop), behavior: 'smooth' });
       }
       setHighlight(true);
       setTimeout(() => setHighlight(false), 2000);
@@ -849,11 +856,10 @@ export function MockNotesSandbox() {
     const listener = (e: any) => {
       setContent(prev => prev + `<p><br></p><p><strong>AI:</strong> ${e.detail.text}</p>`);
       const el = document.getElementById('mock-notes-sandbox');
-      if (el) {
-         const container = document.getElementById('landing-scroll-container');
-         if (container) {
-            container.scrollTo({ top: el.offsetTop - 100, behavior: 'smooth' });
-         }
+      const container = document.getElementById('landing-scroll-container');
+      if (el && container) {
+         const targetScrollTop = container.scrollTop + el.getBoundingClientRect().top - container.getBoundingClientRect().top - 100;
+         container.scrollTo({ top: Math.max(0, targetScrollTop), behavior: 'smooth' });
       }
       setHighlight(true);
       setTimeout(() => setHighlight(false), 2000);
@@ -885,11 +891,10 @@ export function MockAnalyticsSandbox() {
   useEffect(() => {
     const listener = () => {
       const el = document.getElementById('mock-analytics-sandbox');
-      if (el) {
-         const container = document.getElementById('landing-scroll-container');
-         if (container) {
-            container.scrollTo({ top: el.offsetTop - 100, behavior: 'smooth' });
-         }
+      const container = document.getElementById('landing-scroll-container');
+      if (el && container) {
+         const targetScrollTop = container.scrollTop + el.getBoundingClientRect().top - container.getBoundingClientRect().top - 100;
+         container.scrollTo({ top: Math.max(0, targetScrollTop), behavior: 'smooth' });
       }
       setHighlight(true);
       setTimeout(() => setHighlight(false), 2000);
@@ -925,67 +930,45 @@ export function MockAnalyticsSandbox() {
 }
 
 const MarqueeRow = React.memo(({ prompts, speed = 0.5 }: { prompts: any[], speed?: number }) => {
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const isHovered = useRef(false);
-  const [pointerStart, setPointerStart] = useState({ x: 0, y: 0 });
-
+  const [isHovered, setIsHovered] = useState(false);
+  const [isTouch, setIsTouch] = useState(false);
+  
   useEffect(() => {
-    let animationFrameId: number;
-    let lastTime = 0;
-    let accumulatedScroll = 0;
+    setIsTouch(window.matchMedia('(hover: none)').matches || ('ontouchstart' in window) || navigator.maxTouchPoints > 0);
+  }, []);
 
-    const scroll = (time: number) => {
-      if (!lastTime) lastTime = time;
-      const dt = time - lastTime;
-      lastTime = time;
-
-      if (scrollRef.current && !isHovered.current) {
-        accumulatedScroll += dt * 0.05 * speed;
-        if (accumulatedScroll >= 1) {
-           scrollRef.current.scrollLeft += Math.floor(accumulatedScroll);
-           accumulatedScroll -= Math.floor(accumulatedScroll);
-        }
-        if (scrollRef.current.scrollLeft >= scrollRef.current.scrollWidth / 2) {
-           scrollRef.current.scrollLeft -= scrollRef.current.scrollWidth / 2;
-        }
-      }
-      animationFrameId = requestAnimationFrame(scroll);
-    };
-    animationFrameId = requestAnimationFrame(scroll);
-    return () => cancelAnimationFrame(animationFrameId);
-  }, [speed]);
+  const duration = 30 / speed; 
 
   if (prompts.length === 0) return null;
 
   return (
     <div 
-      ref={scrollRef} 
-      className="marquee-scroll-container flex w-full overflow-x-auto no-scrollbar gap-3 pl-4 pr-0 py-2"
-      onMouseEnter={() => { isHovered.current = true; }}
-      onMouseLeave={() => { isHovered.current = false; }}
-      onPointerDown={() => { isHovered.current = true; }}
-      onPointerUp={() => { isHovered.current = false; }}
-      onPointerCancel={() => { isHovered.current = false; }}
+      className={`flex w-full relative py-2 ${isTouch ? 'overflow-x-auto no-scrollbar' : 'overflow-hidden'}`}
+      onMouseEnter={() => { if (!isTouch) setIsHovered(true); }}
+      onMouseLeave={() => { if (!isTouch) setIsHovered(false); }}
     >
-      <div className="flex gap-4 w-max">
+      <style dangerouslySetInnerHTML={{__html: `
+        @keyframes marquee-infinite-scroll {
+          0% { transform: translateX(0); }
+          100% { transform: translateX(-50%); }
+        }
+        .animate-marquee-infinite {
+          animation: marquee-infinite-scroll linear infinite;
+        }
+      `}} />
+      <div 
+        className={`flex gap-4 w-max pl-4 ${isTouch ? '' : 'animate-marquee-infinite'}`} 
+        style={!isTouch ? { 
+          animationDuration: `${duration}s`, 
+          animationPlayState: isHovered ? 'paused' : 'running' 
+        } : undefined}
+      >
         {[...prompts, ...prompts].map((p, i) => (
            <button 
              key={i}
-             onPointerDown={(e) => {
-               setPointerStart({ x: e.clientX, y: e.clientY });
-               isHovered.current = true;
-             }}
-             onPointerUp={(e) => {
-               const dx = Math.abs(e.clientX - pointerStart.x);
-               const dy = Math.abs(e.clientY - pointerStart.y);
-               // Tolerance increased slightly to bypass touch jiggles on sensitive screens
-               if (dx < 15 && dy < 15) {
-                 p.action();
-               }
-             }}
              onClick={(e) => {
                e.preventDefault(); 
-               p.action();
+               if (p.action) p.action();
              }}
              className={`flex items-center gap-3 px-5 py-3.5 rounded-2xl bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] transition-all shrink-0 cursor-pointer shadow-sm group select-none md:hover:-translate-y-0.5 ${p.border}`}
            >
@@ -1008,11 +991,10 @@ export function MockAiSandbox() {
   useEffect(() => {
     const scrollToSandbox = (id: string) => {
       const el = document.getElementById(id);
-      if (el) {
-         const container = document.getElementById('landing-scroll-container');
-         if (container) {
-            container.scrollTo({ top: el.offsetTop - 100, behavior: 'smooth' });
-         }
+      const container = document.getElementById('landing-scroll-container');
+      if (el && container) {
+          const targetScrollTop = container.scrollTop + el.getBoundingClientRect().top - container.getBoundingClientRect().top - 100;
+          container.scrollTo({ top: Math.max(0, targetScrollTop), behavior: 'smooth' });
       }
     };
 
@@ -1051,7 +1033,7 @@ export function MockAiSandbox() {
       </div>
 
       <div className="mx-auto w-full max-w-3xl flex flex-col items-center justify-center">
-        <div className="w-full relative overflow-hidden flex flex-col gap-2 py-4"
+        <div className="w-full relative flex flex-col gap-2 py-4"
              style={{ maskImage: 'linear-gradient(to right, transparent, black 10%, black 90%, transparent)', WebkitMaskImage: 'linear-gradient(to right, transparent, black 10%, black 90%, transparent)' }}>
            <MarqueeRow prompts={row1} speed={0.6} />
            <MarqueeRow prompts={row2} speed={0.4} />
