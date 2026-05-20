@@ -17,8 +17,8 @@ const FadeIn = ({ children, delay = 0 }: { children: React.ReactNode, delay?: nu
     initial={{ opacity: 0, y: 50 }}
     whileInView={{ opacity: 1, y: 0 }}
     viewport={{ once: true, margin: "-100px" }}
-    transition={{ duration: 0.8, ease:[0.16, 1, 0.3, 1], delay }}
-    className="w-full"
+    transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1], delay }}
+    className="w-full relative z-10" // added relative z-10 to prevent any overlap issues
   >
     {children}
   </motion.div>
@@ -58,13 +58,13 @@ export default function LandingPage() {
       <section className="relative w-full min-h-[100dvh] flex flex-col items-center justify-center px-4 md:px-6 pt-16 shrink-0 overflow-hidden">
         {/* Abstract Background Blur Orbs */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none flex items-center justify-center opacity-60">
-          <motion.div animate={{ scale:[1, 1.1, 1], rotate: [0, 90, 0] }} transition={{ duration: 20, repeat: Infinity, ease: "linear" }} className="absolute w-[800px] h-[800px] -translate-y-48 translate-x-32" style={{ background: 'radial-gradient(circle, rgba(168,130,194,0.1) 0%, transparent 60%)' }} />
-          <motion.div animate={{ scale:[1, 1.2, 1], rotate: [0, -90, 0] }} transition={{ duration: 25, repeat: Infinity, ease: "linear" }} className="absolute w-[800px] h-[800px] translate-y-48 -translate-x-32" style={{ background: 'radial-gradient(circle, rgba(124,169,130,0.1) 0%, transparent 60%)' }} />
+          <motion.div animate={{ scale: [1, 1.1, 1], rotate: [0, 90, 0] }} transition={{ duration: 20, repeat: Infinity, ease: "linear" }} className="absolute w-[800px] h-[800px] -translate-y-48 translate-x-32" style={{ background: 'radial-gradient(circle, rgba(168,130,194,0.1) 0%, transparent 60%)' }} />
+          <motion.div animate={{ scale: [1, 1.2, 1], rotate: [0, -90, 0] }} transition={{ duration: 25, repeat: Infinity, ease: "linear" }} className="absolute w-[800px] h-[800px] translate-y-48 -translate-x-32" style={{ background: 'radial-gradient(circle, rgba(124,169,130,0.1) 0%, transparent 60%)' }} />
         </div>
 
         <motion.div 
           initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 1, ease: "easeOut" }}
-          className="z-10 flex flex-col items-center text-center max-w-3xl -translate-y-8"
+          className="z-10 flex flex-col items-center text-center max-w-3xl -translate-y-8 pointer-events-auto"
         >
           <h1 className="text-5xl sm:text-7xl md:text-8xl font-serif tracking-tight leading-none mb-6 md:mb-8">
             Your aesthetic workspace. <br/>
@@ -75,9 +75,9 @@ export default function LandingPage() {
           </p>
           <button
             onClick={handleLogin} disabled={isLoggingIn}
-            className="group relative flex items-center justify-center gap-2 px-6 py-3 bg-[#c2956e] text-white rounded-xl text-[11px] font-bold uppercase tracking-widest transition-all duration-300 md:hover:bg-[#b0855f] md:hover:shadow-[0_8px_30px_rgba(194,149,110,0.4)] md:hover:-translate-y-1 disabled:opacity-50 overflow-hidden"
+            className="group relative flex items-center justify-center gap-2 px-6 py-3 bg-[#c2956e] text-white rounded-xl text-[11px] font-bold uppercase tracking-widest transition-all duration-300 md:hover:bg-[#b0855f] md:hover:shadow-[0_8px_30px_rgba(194,149,110,0.4)] md:hover:-translate-y-1 disabled:opacity-50 overflow-hidden cursor-pointer"
           >
-            <div className="absolute inset-0 bg-white/20 translate-y-full md:group-hover:translate-y-0 transition-transform duration-300 ease-out" />
+            <div className="absolute inset-0 bg-white/20 translate-y-full md:group-hover:translate-y-0 transition-transform duration-300 ease-out pointer-events-none" />
             {isLoggingIn ? (
               <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin relative z-10" />
             ) : (
@@ -91,14 +91,14 @@ export default function LandingPage() {
         {/* Scroll Indicator */}
         <motion.div 
           animate={{ y: [0, 10, 0] }} transition={{ duration: 2, repeat: Infinity }}
-          className="absolute bottom-6 md:bottom-10 left-1/2 -translate-x-1/2 text-[#b0ad9a] dark:text-[#555] flex flex-col items-center gap-2"
+          className="absolute bottom-6 md:bottom-10 left-1/2 -translate-x-1/2 text-[#b0ad9a] dark:text-[#555] flex flex-col items-center gap-2 pointer-events-none"
         >
           <span className="text-[9px] md:text-[10px] font-bold uppercase tracking-widest">Scroll to explore</span>
           <div className="w-px h-8 md:h-10 bg-gradient-to-b from-current to-transparent" />
         </motion.div>
       </section>
 
-      <div className="max-w-7xl w-full mx-auto px-4 sm:px-6 md:px-10 pb-16 flex flex-col gap-16 md:gap-32 flex-1">
+      <div className="max-w-7xl w-full mx-auto px-4 sm:px-6 md:px-10 pb-16 flex flex-col gap-16 md:gap-32 flex-1 relative z-10 pointer-events-auto">
         <FadeIn>
           <div className="text-center mb-8 md:mb-10 mt-10 w-full">
             <h2 className="text-3xl md:text-4xl font-serif mb-3 md:mb-4">A Living Environment</h2>
@@ -137,7 +137,7 @@ export default function LandingPage() {
 
         {/* Final CTA Redesign */}
         <FadeIn>
-          <div className="relative w-full text-center py-20 md:py-28 bg-[#fdfbf7] dark:bg-[#161616] rounded-[2.5rem] md:rounded-[4rem] border border-[#e0ddd5] dark:border-[#333] px-4 shadow-xl overflow-hidden isolate">
+          <div className="relative w-full text-center py-20 md:py-28 bg-[#fdfbf7] dark:bg-[#161616] rounded-[2.5rem] md:rounded-[4rem] border border-[#e0ddd5] dark:border-[#333] px-4 shadow-xl overflow-hidden isolate pointer-events-auto">
             <div className="absolute inset-0 z-0 opacity-40 mix-blend-multiply dark:mix-blend-screen pointer-events-none">
               <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-[radial-gradient(circle,rgba(194,149,110,0.15)_0%,transparent_60%)]" />
               <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-[radial-gradient(circle,rgba(168,130,194,0.1)_0%,transparent_60%)]" />
@@ -154,9 +154,9 @@ export default function LandingPage() {
               <button 
                 onClick={handleLogin} 
                 disabled={isLoggingIn} 
-                className="group relative flex items-center justify-center gap-3 px-10 py-4 bg-[#c2956e] text-white rounded-2xl text-xs md:text-sm font-bold uppercase tracking-widest md:hover:bg-[#b0855f] md:hover:shadow-[0_10px_40px_rgba(194,149,110,0.5)] md:hover:-translate-y-1 transition-all duration-300 disabled:opacity-50 overflow-hidden"
+                className="group relative flex items-center justify-center gap-3 px-10 py-4 bg-[#c2956e] text-white rounded-2xl text-xs md:text-sm font-bold uppercase tracking-widest md:hover:bg-[#b0855f] md:hover:shadow-[0_10px_40px_rgba(194,149,110,0.5)] md:hover:-translate-y-1 transition-all duration-300 disabled:opacity-50 overflow-hidden cursor-pointer"
               >
-                <div className="absolute inset-0 bg-white/20 translate-y-full md:group-hover:translate-y-0 transition-transform duration-300 ease-out" />
+                <div className="absolute inset-0 bg-white/20 translate-y-full md:group-hover:translate-y-0 transition-transform duration-300 ease-out pointer-events-none" />
                 {isLoggingIn ? (
                   <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin relative z-10" />
                 ) : (
@@ -170,7 +170,7 @@ export default function LandingPage() {
         </FadeIn>
       </div>
 
-      <footer className="w-full border-t border-[#e0ddd5] dark:border-[#2a2a2a] bg-[#fdfbf7] dark:bg-[#161616] pt-16 pb-[calc(2rem+env(safe-area-inset-bottom))] md:pb-8 px-6 md:px-12 mt-auto shrink-0 z-10 relative">
+      <footer className="w-full border-t border-[#e0ddd5] dark:border-[#2a2a2a] bg-[#fdfbf7] dark:bg-[#161616] pt-16 pb-[calc(2rem+env(safe-area-inset-bottom))] md:pb-8 px-6 md:px-12 mt-auto shrink-0 z-10 relative pointer-events-auto">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center md:items-start gap-10 md:gap-0">
            <div className="flex flex-col items-center md:items-start gap-4">
               <div className="flex items-center gap-3 text-[#3d3b33] dark:text-[#e0e0e0]">
@@ -183,10 +183,10 @@ export default function LandingPage() {
            </div>
            <div className="flex flex-col items-center md:items-end gap-4">
               <div className="flex gap-4">
-                 <a href="https://github.com/XeCipher/Chronoa" target="_blank" rel="noreferrer" className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white dark:bg-[#252525] border border-[#e0ddd5] dark:border-[#333] text-[#888] md:hover:text-[#3d3b33] md:dark:hover:text-[#f0f0f0] transition-colors shadow-sm text-xs font-bold uppercase tracking-widest">
+                 <a href="https://github.com/XeCipher/Chronoa" target="_blank" rel="noreferrer" className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white dark:bg-[#252525] border border-[#e0ddd5] dark:border-[#333] text-[#888] md:hover:text-[#3d3b33] md:dark:hover:text-[#f0f0f0] transition-colors shadow-sm text-xs font-bold uppercase tracking-widest cursor-pointer">
                    <GithubIcon size={16} /> GitHub
                  </a>
-                 <button onClick={() => setIsDeveloperModalOpen(true)} className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#c2956e] text-white md:hover:bg-[#b0855f] transition-colors shadow-sm text-xs font-bold uppercase tracking-widest">
+                 <button onClick={() => setIsDeveloperModalOpen(true)} className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#c2956e] text-white md:hover:bg-[#b0855f] transition-colors shadow-sm text-xs font-bold uppercase tracking-widest cursor-pointer">
                    <MessageSquareHeart size={16} /> Contact Dev
                  </button>
               </div>

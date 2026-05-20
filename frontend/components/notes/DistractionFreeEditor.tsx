@@ -48,7 +48,7 @@ type ActiveStates = {
   link: boolean;
 };
 
-const PROMPTS =[
+const PROMPTS = [
   "What are you grateful for today?",
   "What's on your mind right now?",
   "Describe a small win from today.",
@@ -63,7 +63,7 @@ const PROMPTS =[
 const MergeListsPlugin = Extension.create({
   name: 'mergeLists',
   addProseMirrorPlugins() {
-    return[
+    return [
       new Plugin({
         key: new PluginKey('mergeLists'),
         appendTransaction(transactions, oldState, newState) {
@@ -118,7 +118,7 @@ const HeadingNodeView = (props: any) => {
         <div 
           contentEditable={false}
           className="absolute -left-6 lg:-left-8 top-1/2 -translate-y-1/2 cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity text-[#b0ad9a] hover:text-[#c2956e] p-1 z-10"
-          onClick={() => updateAttributes({ collapsed: !collapsed })}
+          onPointerDown={(e) => { e.preventDefault(); updateAttributes({ collapsed: !collapsed }); }}
         >
           {collapsed ? <ChevronRight size={18} /> : <ChevronDown size={18} />}
         </div>
@@ -133,13 +133,13 @@ const CollapsePluginKey = new PluginKey('collapsePlugin');
 const CollapsePlugin = Extension.create({
   name: 'collapsePlugin',
   addProseMirrorPlugins() {
-    return[
+    return [
       new Plugin({
         key: CollapsePluginKey,
         state: {
           init() { return DecorationSet.empty; },
           apply(tr, oldSet, oldState, newState) {
-            const decos: Decoration[] =[];
+            const decos: Decoration[] = [];
             let currentCollapseLevel: number | null = null;
 
             newState.doc.forEach((node, offset) => {
@@ -186,12 +186,12 @@ export default function DistractionFreeEditor({
   shouldFocusOnMount = false,
 }: EditorProps) {
   const { journalZoom, setJournalZoom, isEditorFullscreen, toggleEditorFullscreen } = useUiStore();
-  const[saveStatus, setSaveStatus] = useState("Saved");
+  const [saveStatus, setSaveStatus] = useState("Saved");
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  const[placeholder, setPlaceholder] = useState("");
+  const [placeholder, setPlaceholder] = useState("");
 
-  const[bubbleStyle, setBubbleStyle] = useState<React.CSSProperties>({
+  const [bubbleStyle, setBubbleStyle] = useState<React.CSSProperties>({
     opacity: 0,
     pointerEvents: "none",
     position: "fixed",
@@ -203,9 +203,9 @@ export default function DistractionFreeEditor({
   const onSaveRef = useRef(onSave);
   useEffect(() => {
     onSaveRef.current = onSave;
-  },[onSave]);
+  }, [onSave]);
 
-  const[activeStates, setActiveStates] = useState<ActiveStates>({
+  const [activeStates, setActiveStates] = useState<ActiveStates>({
     bold: false,
     italic: false,
     underline: false,
@@ -223,17 +223,21 @@ export default function DistractionFreeEditor({
     const up = () => { isMouseDown.current = false; };
     window.addEventListener('mousedown', down);
     window.addEventListener('mouseup', up);
+    window.addEventListener('pointerdown', down);
+    window.addEventListener('pointerup', up);
     return () => {
       window.removeEventListener('mousedown', down);
       window.removeEventListener('mouseup', up);
+      window.removeEventListener('pointerdown', down);
+      window.removeEventListener('pointerup', up);
     };
-  },[]);
+  }, []);
 
   useEffect(() => {
     if (noteType === "journal") {
       setPlaceholder(PROMPTS[Math.floor(Math.random() * PROMPTS.length)]);
     }
-  },[noteType]);
+  }, [noteType]);
 
   // ── Core Scroll Engine: Flawless Margin Management ─────────────────────────
   const ensureCursorVisible = useCallback((ed: ReturnType<typeof useEditor>) => {
@@ -277,7 +281,7 @@ export default function DistractionFreeEditor({
         }
       } catch (_) {}
     });
-  },[]);
+  }, []);
 
   const ensureCursorVisibleRef = useRef(ensureCursorVisible);
   useEffect(() => {
@@ -287,7 +291,7 @@ export default function DistractionFreeEditor({
   // ── Editor Configuration ───────────────────────────────────────────────────
   const editor = useEditor({
     editable: isEditable,
-    extensions:[
+    extensions: [
       StarterKit.configure({ heading: false }), // Disabled native logic to apply custom attributes
       CollapsibleHeading.configure({ levels: [1, 2] }),
       CollapsePlugin,
@@ -363,7 +367,7 @@ export default function DistractionFreeEditor({
         }
       }
     }
-  },[initialContent, editor]);
+  }, [initialContent, editor]);
 
   // ── VisualViewport Resize Listener ─────────────────────────────────────────
   useEffect(() => {
@@ -388,7 +392,7 @@ export default function DistractionFreeEditor({
         onSaveRef.current(editor.getHTML());
       }
     };
-  },[editor]);
+  }, [editor]);
 
   // ── Auto-Focus on Mount (Desktop) ──────────────────────────────────────────
   useEffect(() => {
@@ -398,7 +402,7 @@ export default function DistractionFreeEditor({
         if (!editor.isFocused) editor.commands.focus("start");
       }, 150);
     }
-  },[shouldFocusOnMount, editor]);
+  }, [shouldFocusOnMount, editor]);
 
   // ── Ctrl/Cmd + Zoom Interaction ────────────────────────────────────────────
   useEffect(() => {
@@ -438,7 +442,7 @@ export default function DistractionFreeEditor({
         editorEl.removeEventListener("keydown", handleKeyDown as any);
       }
     };
-  },[isEditable]);
+  }, [isEditable]);
 
   // ── Touch Swipe to Indent / Unindent ───────────────────────────────────────
   const touchStart = useRef<{x: number, y: number} | null>(null);
@@ -568,10 +572,10 @@ export default function DistractionFreeEditor({
   // ── UI Components ──────────────────────────────────────────────────────────
   const ToolbarButton = ({ onClick, isActive, title, children }: any) => (
     <button
-      onMouseDown={(e) => { e.preventDefault(); onClick(); }}
+      onPointerDown={(e) => { e.preventDefault(); onClick(); }} // Replaced onMouseDown with onPointerDown
       data-tooltip-id="global-tooltip"
       data-tooltip-content={title}
-      className={`flex items-center justify-center w-8 h-8 rounded-xl transition-all duration-150 shrink-0 ${
+      className={`flex items-center justify-center w-8 h-8 rounded-xl transition-all duration-150 shrink-0 cursor-pointer ${
         isActive
           ? "bg-[#c2956e] dark:bg-[#b0855f] text-white shadow-sm"
           : "text-[#888] dark:text-[#999] hover:text-[#3d3b33] dark:hover:text-[#f0f0f0] hover:bg-[#f0ede8] dark:hover:bg-[#2a2a2a]"
@@ -586,13 +590,13 @@ export default function DistractionFreeEditor({
   const ZoomControl = ({ preventFocus = false }: { preventFocus?: boolean }) => {
     const bind = (fn: () => void) =>
       preventFocus
-        ? { onMouseDown: (e: React.MouseEvent) => { e.preventDefault(); fn(); } }
+        ? { onPointerDown: (e: React.MouseEvent) => { e.preventDefault(); fn(); } } // Replaced onMouseDown with onPointerDown
         : { onClick: fn };
     return (
       <div className="flex items-center gap-1 bg-[#f7f5f0] dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#2a2a2a] px-2 py-1 rounded-xl shrink-0">
         <button
           {...bind(() => setJournalZoom(Math.max(50, journalZoom - 10)))}
-          className="text-[#888] hover:text-[#c2956e] dark:hover:text-[#d1a784] text-sm font-bold leading-none transition-colors w-4 text-center select-none"
+          className="text-[#888] hover:text-[#c2956e] dark:hover:text-[#d1a784] text-sm font-bold leading-none transition-colors w-4 text-center select-none cursor-pointer"
         >
           −
         </button>
@@ -601,7 +605,7 @@ export default function DistractionFreeEditor({
         </span>
         <button
           {...bind(() => setJournalZoom(Math.min(200, journalZoom + 10)))}
-          className="text-[#888] hover:text-[#c2956e] dark:hover:text-[#d1a784] text-sm font-bold leading-none transition-colors w-4 text-center select-none"
+          className="text-[#888] hover:text-[#c2956e] dark:hover:text-[#d1a784] text-sm font-bold leading-none transition-colors w-4 text-center select-none cursor-pointer"
         >
           +
         </button>
@@ -643,8 +647,8 @@ export default function DistractionFreeEditor({
         <div className="flex items-center gap-1.5">
           {isEditable && (
             <button
-              onMouseDown={(e) => { e.preventDefault(); insertTimestamp(); }}
-              className="flex items-center justify-center w-[30px] h-[30px] rounded-xl bg-[#f7f5f0] dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#2a2a2a] text-[#888] hover:text-[#c2956e] shadow-sm transition-colors"
+              onPointerDown={(e) => { e.preventDefault(); insertTimestamp(); }} // Replaced onMouseDown with onPointerDown
+              className="cursor-pointer flex items-center justify-center w-[30px] h-[30px] rounded-xl bg-[#f7f5f0] dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#2a2a2a] text-[#888] hover:text-[#c2956e] shadow-sm transition-colors"
             >
               <Clock size={14} />
             </button>
@@ -693,8 +697,8 @@ export default function DistractionFreeEditor({
               <ZoomControl preventFocus />
               {!isSandbox && (
                 <button
-                  onMouseDown={(e) => { e.preventDefault(); toggleEditorFullscreen(); }}
-                  className="flex items-center justify-center w-[30px] h-[30px] md:w-8 md:h-8 rounded-xl bg-[#f7f5f0] dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#2a2a2a] text-[#888] hover:text-[#c2956e] dark:hover:text-[#d1a784] shadow-sm transition-colors shrink-0"
+                  onPointerDown={(e) => { e.preventDefault(); toggleEditorFullscreen(); }} // Replaced onMouseDown with onPointerDown
+                  className="cursor-pointer flex items-center justify-center w-[30px] h-[30px] md:w-8 md:h-8 rounded-xl bg-[#f7f5f0] dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#2a2a2a] text-[#888] hover:text-[#c2956e] dark:hover:text-[#d1a784] shadow-sm transition-colors shrink-0"
                   data-tooltip-id="global-tooltip"
                   data-tooltip-content={isEditorFullscreen ? "Exit Fullscreen" : "Fullscreen"}
                 >
@@ -712,8 +716,8 @@ export default function DistractionFreeEditor({
           <ZoomControl />
           {!isSandbox && (
             <button
-              onMouseDown={(e) => { e.preventDefault(); toggleEditorFullscreen(); }}
-              className="flex items-center justify-center w-[30px] h-[30px] md:w-8 md:h-8 rounded-xl bg-[#f7f5f0] dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#2a2a2a] text-[#888] hover:text-[#c2956e] dark:hover:text-[#d1a784] shadow-sm transition-colors shrink-0"
+              onPointerDown={(e) => { e.preventDefault(); toggleEditorFullscreen(); }} // Replaced onMouseDown with onPointerDown
+              className="cursor-pointer flex items-center justify-center w-[30px] h-[30px] md:w-8 md:h-8 rounded-xl bg-[#f7f5f0] dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#2a2a2a] text-[#888] hover:text-[#c2956e] dark:hover:text-[#d1a784] shadow-sm transition-colors shrink-0"
               data-tooltip-id="global-tooltip"
               data-tooltip-content={isEditorFullscreen ? "Exit Fullscreen" : "Fullscreen"}
             >

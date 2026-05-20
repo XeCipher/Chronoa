@@ -47,13 +47,13 @@ function MockLandingScenery({ WTime, isDark }: { WTime: string, isDark: boolean 
 }
 
 function MockCenterClock({ isDark }: { isDark: boolean }) {
-  const[time, setTime] = useState<Date | null>(null);
+  const [time, setTime] = useState<Date | null>(null);
   
   useEffect(() => {
     setTime(new Date());
     const timer = setInterval(() => setTime(new Date()), 1000);
     return () => clearInterval(timer);
-  },[]);
+  }, []);
   
   if (!time) return <div className="h-[160px] md:h-[200px]" />;
   
@@ -91,7 +91,7 @@ function MockWeatherWidget({ isDark }: { isDark: boolean }) {
       } catch(e) {}
     };
     fetchWeather();
-  },[]);
+  }, []);
 
   const getWeatherDetails = (code: number, isDay: number, precipitation: number, cloudCover: number) => {
     const day = isDay === 1;
@@ -154,14 +154,14 @@ function MockWeatherWidget({ isDark }: { isDark: boolean }) {
 }
 
 function MockHomeTaskProgress({ isDark }: { isDark: boolean }) {
-  const[isToggled, setIsToggled] = useState(false);
+  const [isToggled, setIsToggled] = useState(false);
   const [stats, setStats] = useState({ routinePct: 50, normalLeft: 4 });
 
   useEffect(() => {
     const handler = (e: any) => setStats(e.detail);
     window.addEventListener('mock-tasks-updated', handler);
     return () => window.removeEventListener('mock-tasks-updated', handler);
-  },[]);
+  }, []);
   
   const bgGlass = isDark ? 'rgba(0,0,0,0.3)' : 'rgba(255,255,255,0.2)';
   const borderGlass = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.4)';
@@ -245,7 +245,7 @@ function ExpandedMockTasksProgressWidget({ routinePct, normalLeft }: { routinePc
 
 export function MockHomeSandbox() {
   const [isDark, setIsDark] = useState(false);
-  const[timeOfDay, setTimeOfDay] = useState<'dawn'|'day'|'dusk'|'night'>('day');
+  const [timeOfDay, setTimeOfDay] = useState<'dawn'|'day'|'dusk'|'night'>('day');
 
   useEffect(() => {
     const isSystemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
@@ -261,7 +261,7 @@ export function MockHomeSandbox() {
     else if (hour >= 8 && hour < 17) setTimeOfDay('day');
     else if (hour >= 17 && hour < 20) setTimeOfDay('dusk');
     else setTimeOfDay('night');
-  },[]);
+  }, []);
 
   return (
     <div className="flex flex-col gap-5 w-full items-center">
@@ -280,12 +280,12 @@ export function MockHomeSandbox() {
 
       <div className="flex flex-row flex-wrap justify-center gap-2 md:gap-3 items-center z-20">
         <div className="flex items-center gap-1 bg-white dark:bg-[#1a1a1a] p-1.5 rounded-full border border-[#e0ddd5] dark:border-[#333] shadow-sm">
-          <button onClick={() => setIsDark(false)} className={`p-2 rounded-full transition-all ${!isDark ? 'bg-[#f7f5f0] dark:bg-[#252525] text-[#c2956e] dark:text-[#d1a784] shadow-sm' : 'text-[#888] md:hover:text-[#3d3b33] md:dark:hover:text-[#f0f0f0]'}`}><Sun size={14}/></button>
-          <button onClick={() => setIsDark(true)} className={`p-2 rounded-full transition-all ${isDark ? 'bg-[#f7f5f0] dark:bg-[#252525] text-[#c2956e] dark:text-[#d1a784] shadow-sm' : 'text-[#888] md:hover:text-[#3d3b33] md:dark:hover:text-[#f0f0f0]'}`}><Moon size={14}/></button>
+          <button onClick={() => setIsDark(false)} className={`p-2 rounded-full transition-all cursor-pointer ${!isDark ? 'bg-[#f7f5f0] dark:bg-[#252525] text-[#c2956e] dark:text-[#d1a784] shadow-sm' : 'text-[#888] md:hover:text-[#3d3b33] md:dark:hover:text-[#f0f0f0]'}`}><Sun size={14}/></button>
+          <button onClick={() => setIsDark(true)} className={`p-2 rounded-full transition-all cursor-pointer ${isDark ? 'bg-[#f7f5f0] dark:bg-[#252525] text-[#c2956e] dark:text-[#d1a784] shadow-sm' : 'text-[#888] md:hover:text-[#3d3b33] md:dark:hover:text-[#f0f0f0]'}`}><Moon size={14}/></button>
         </div>
         <div className="flex items-center gap-1 bg-white dark:bg-[#1a1a1a] p-1.5 rounded-full border border-[#e0ddd5] dark:border-[#333] shadow-sm">
           {(['dawn', 'day', 'dusk', 'night'] as const).map(t => (
-            <button key={t} onClick={() => setTimeOfDay(t)} className={`px-4 md:px-6 py-2 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all ${timeOfDay === t ? 'bg-[#f7f5f0] dark:bg-[#252525] text-[#c2956e] dark:text-[#d1a784] shadow-sm' : 'text-[#888] md:hover:text-[#3d3b33] md:dark:hover:text-[#f0f0f0]'}`}>
+            <button key={t} onClick={() => setTimeOfDay(t)} className={`px-4 md:px-6 py-2 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all cursor-pointer ${timeOfDay === t ? 'bg-[#f7f5f0] dark:bg-[#252525] text-[#c2956e] dark:text-[#d1a784] shadow-sm' : 'text-[#888] md:hover:text-[#3d3b33] md:dark:hover:text-[#f0f0f0]'}`}>
               {t}
             </button>
           ))}
@@ -296,8 +296,8 @@ export function MockHomeSandbox() {
 }
 
 export function MockTaskSandbox() {
-  const[tasks, setTasks] = useState<Task[]>(initialMockTasks);
-  const[stats, setStats] = useState({ routinePct: 50, normalLeft: 4 });
+  const [tasks, setTasks] = useState<Task[]>(initialMockTasks);
+  const [stats, setStats] = useState({ routinePct: 50, normalLeft: 4 });
   const [isRoutineEditMode, setIsRoutineEditMode] = useState(false);
   const [highlight, setHighlight] = useState(false);
 
@@ -329,7 +329,7 @@ export function MockTaskSandbox() {
           color: null,
           keep_alive: false,
           is_collapsed: false,
-          children:[]
+          children: []
         } as Task;
         return [...prev, newTask];
       });
@@ -430,7 +430,7 @@ export function MockTaskSandbox() {
       color: null,
       keep_alive: false,
       is_collapsed: false,
-      children:[]
+      children: []
     } as Task;
     
     setTasks([...tasks, newTask]);
@@ -438,7 +438,7 @@ export function MockTaskSandbox() {
 
   const map: Record<string, Task> = {};
   tasks.forEach(t => map[t.id] = { ...t, children: [] });
-  const roots: Task[] =[];
+  const roots: Task[] = [];
   tasks.forEach(t => {
     if (t.parent_id && map[t.parent_id]) map[t.parent_id].children!.push(map[t.id]);
     else roots.push(map[t.id]);
@@ -470,9 +470,9 @@ export function MockTaskSandbox() {
                    </div>
                    <div className="flex items-center gap-2">
                        {isRoutineEditMode && (
-                           <button onClick={() => onAdd('routine', null)} className="w-8 h-8 rounded-full bg-[#f7f5f0] dark:bg-[#252525] text-[#c2956e] dark:text-[#d1a784] flex items-center justify-center border border-[#e0ddd5] dark:border-[#333] md:hover:bg-[#c2956e]/10 transition-colors shadow-sm"><Plus size={16}/></button>
+                           <button onClick={() => onAdd('routine', null)} className="cursor-pointer w-8 h-8 rounded-full bg-[#f7f5f0] dark:bg-[#252525] text-[#c2956e] dark:text-[#d1a784] flex items-center justify-center border border-[#e0ddd5] dark:border-[#333] md:hover:bg-[#c2956e]/10 transition-colors shadow-sm"><Plus size={16}/></button>
                        )}
-                       <button onClick={() => setIsRoutineEditMode(!isRoutineEditMode)} className={`flex items-center justify-center gap-1.5 px-3 h-8 rounded-full text-[10px] font-[600] tracking-[0.08em] uppercase transition-all shadow-sm border ${isRoutineEditMode ? 'bg-[#c2956e] text-white border-[#c2956e]' : 'bg-[#f7f5f0] dark:bg-[#252525] text-[#c2956e] dark:text-[#d1a784] border-[#e0ddd5] dark:border-[#333]'}`}>
+                       <button onClick={() => setIsRoutineEditMode(!isRoutineEditMode)} className={`cursor-pointer flex items-center justify-center gap-1.5 px-3 h-8 rounded-full text-[10px] font-[600] tracking-[0.08em] uppercase transition-all shadow-sm border ${isRoutineEditMode ? 'bg-[#c2956e] text-white border-[#c2956e]' : 'bg-[#f7f5f0] dark:bg-[#252525] text-[#c2956e] dark:text-[#d1a784] border-[#e0ddd5] dark:border-[#333]'}`}>
                            {isRoutineEditMode ? 'Done' : 'Edit'}
                        </button>
                    </div>
@@ -494,7 +494,7 @@ export function MockTaskSandbox() {
                      <h2 className="text-[22px] md:text-[26px] text-[#3d3b33] dark:text-[#f0f0f0] font-serif font-medium tracking-tight leading-none">Tasks & Ideas</h2>
                      <p className="text-[10px] text-[#b0ad9a] dark:text-[#7a7a7a] mt-1.5 font-medium">One-off tasks and projects.</p>
                  </div>
-                 <button onClick={() => onAdd('normal', null)} className="w-8 h-8 rounded-full bg-[#f7f5f0] dark:bg-[#252525] text-[#c2956e] dark:text-[#d1a784] flex items-center justify-center border border-[#e0ddd5] dark:border-[#333] md:hover:bg-[#c2956e]/10 transition-colors shadow-sm"><Plus size={16}/></button>
+                 <button onClick={() => onAdd('normal', null)} className="cursor-pointer w-8 h-8 rounded-full bg-[#f7f5f0] dark:bg-[#252525] text-[#c2956e] dark:text-[#d1a784] flex items-center justify-center border border-[#e0ddd5] dark:border-[#333] md:hover:bg-[#c2956e]/10 transition-colors shadow-sm"><Plus size={16}/></button>
              </div>
           </div>
           <div className="flex-1 overflow-y-auto no-scrollbar p-4 md:p-5 flex flex-col gap-[2px]">
@@ -523,7 +523,7 @@ function MockEngineCard({ engine, tab, onUpdate, onRemove, isOnlyInstance }: any
       setLiveSeconds(engine.accumulatedSeconds);
     }
     return () => clearInterval(interval);
-  },[engine.isRunning, engine.startTime, engine.accumulatedSeconds]);
+  }, [engine.isRunning, engine.startTime, engine.accumulatedSeconds]);
 
   const handleStop = () => {
     const finalSeconds = engine.accumulatedSeconds + Math.floor((Date.now() - (engine.startTime || Date.now())) / 1000);
@@ -554,7 +554,7 @@ function MockEngineCard({ engine, tab, onUpdate, onRemove, isOnlyInstance }: any
       {!hideDelete && (
         <button 
           onClick={() => onRemove(engine.id)}
-          className="absolute top-5 right-6 opacity-100 lg:opacity-40 lg:group-hover:opacity-100 transition-opacity text-gray-400 lg:hover:text-red-500 dark:text-gray-500 lg:dark:hover:text-red-400"
+          className="cursor-pointer absolute top-5 right-6 opacity-100 lg:opacity-40 lg:group-hover:opacity-100 transition-opacity text-gray-400 lg:hover:text-red-500 dark:text-gray-500 lg:dark:hover:text-red-400"
         >
           <Trash2 size={18} />
         </button>
@@ -568,13 +568,13 @@ function MockEngineCard({ engine, tab, onUpdate, onRemove, isOnlyInstance }: any
         </div>
         <div className="flex items-center gap-3">
           {(engine.accumulatedSeconds > 0 || engine.isRunning) && (
-            <button onClick={handleStop} className="w-12 h-12 flex items-center justify-center bg-white/60 dark:bg-black/60 border border-white/80 dark:border-white/10 text-red-500 rounded-full md:hover:scale-105 active:scale-95 transition-all shadow-sm md:hover:bg-white md:dark:hover:bg-black">
+            <button onClick={handleStop} className="cursor-pointer w-12 h-12 flex items-center justify-center bg-white/60 dark:bg-black/60 border border-white/80 dark:border-white/10 text-red-500 rounded-full md:hover:scale-105 active:scale-95 transition-all shadow-sm md:hover:bg-white md:dark:hover:bg-black">
               <Square size={18} fill="currentColor" />
             </button>
           )}
           <button 
             onClick={engine.isRunning ? handleStop : handleStart}
-            className="w-14 h-14 flex items-center justify-center bg-[#3d3b33] dark:bg-[#f0f0f0] text-white dark:text-[#121212] rounded-full md:hover:scale-105 active:scale-95 transition-all shadow-lg md:hover:bg-black md:dark:hover:bg-white"
+            className="cursor-pointer w-14 h-14 flex items-center justify-center bg-[#3d3b33] dark:bg-[#f0f0f0] text-white dark:text-[#121212] rounded-full md:hover:scale-105 active:scale-95 transition-all shadow-lg md:hover:bg-black md:dark:hover:bg-white"
           >
             {engine.isRunning ? <Pause size={22} fill="currentColor" /> : <Play size={22} fill="currentColor" className="ml-1" />}
           </button>
@@ -611,7 +611,7 @@ function MockGlobalTimeWidget({ hasRunning }: { hasRunning: boolean }) {
     setTime(new Date());
     const t = setInterval(() => setTime(new Date()), 1000);
     return () => clearInterval(t);
-  },[]);
+  }, []);
   
   if (!time) return null;
   
@@ -629,8 +629,8 @@ function MockGlobalTimeWidget({ hasRunning }: { hasRunning: boolean }) {
 }
 
 export function MockTimeSandbox() {
-  const[highlight, setHighlight] = useState(false);
-  const[activeTab, setActiveTab] = useState<'timer' | 'stopwatch'>('stopwatch');
+  const [highlight, setHighlight] = useState(false);
+  const [activeTab, setActiveTab] = useState<'timer' | 'stopwatch'>('stopwatch');
   
   const [timers, setTimers] = useState<any[]>([
     { id: 'mock-1', title: 'Deep Work Block', targetMinutes: 25, accumulatedSeconds: 0, isRunning: false, startTime: null }
@@ -652,7 +652,7 @@ export function MockTimeSandbox() {
          startTime: null
        };
 
-       if (tab === 'timer') setTimers(prev =>[...prev, newInstance]);
+       if (tab === 'timer') setTimers(prev => [...prev, newInstance]);
        else setStopwatches(prev => [...prev, newInstance]);
        
        setActiveTab(tab);
@@ -669,7 +669,7 @@ export function MockTimeSandbox() {
     };
     window.addEventListener('sandbox-send-focus', listener);
     return () => window.removeEventListener('sandbox-send-focus', listener);
-  },[]);
+  }, []);
 
   const handleUpdate = (id: string, updates: any) => {
     if (activeTab === 'timer') setTimers(prev => prev.map(t => t.id === id ? { ...t, ...updates } : t));
@@ -692,11 +692,11 @@ export function MockTimeSandbox() {
   const handleRemove = (id: string) => {
     if (activeTab === 'timer') {
        setTimers(prev => prev.length === 1 
-         ?[{ id: `mock-${Date.now()}`, title: 'New Session', targetMinutes: 25, accumulatedSeconds: 0, isRunning: false, startTime: null }] 
+         ? [{ id: `mock-${Date.now()}`, title: 'New Session', targetMinutes: 25, accumulatedSeconds: 0, isRunning: false, startTime: null }] 
          : prev.filter(t => t.id !== id));
     } else {
        setStopwatches(prev => prev.length === 1 
-         ?[{ id: `mock-${Date.now()}`, title: 'New Session', accumulatedSeconds: 0, isRunning: false, startTime: null }] 
+         ? [{ id: `mock-${Date.now()}`, title: 'New Session', accumulatedSeconds: 0, isRunning: false, startTime: null }] 
          : prev.filter(s => s.id !== id));
     }
   };
@@ -733,7 +733,7 @@ export function MockTimeSandbox() {
             {(['stopwatch', 'timer'] as const).map(tab => (
               <button 
                 key={tab} onClick={() => setActiveTab(tab)}
-                className={`px-5 py-2 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all flex items-center gap-1.5 ${activeTab === tab ? 'bg-white dark:bg-[#2a2a2a] text-[#c2956e] dark:text-[#d1a784] shadow-sm' : 'text-[#888] dark:text-[#a0a0a0] md:hover:text-[#3d3b33] md:dark:hover:text-[#f0f0f0]'}`}
+                className={`cursor-pointer px-5 py-2 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all flex items-center gap-1.5 ${activeTab === tab ? 'bg-white dark:bg-[#2a2a2a] text-[#c2956e] dark:text-[#d1a784] shadow-sm' : 'text-[#888] dark:text-[#a0a0a0] md:hover:text-[#3d3b33] md:dark:hover:text-[#f0f0f0]'}`}
               >
                 {tab} {isAnyRunning(tab) && <span className="w-1.5 h-1.5 bg-[#c2956e] dark:bg-[#b0855f] rounded-full animate-ping"/>}
               </button>
@@ -767,14 +767,14 @@ export function MockCalendarSandbox() {
   const [events, setEvents] = useState<CalendarEvent[]>(generateMockEvents());
   const [targetScrollTime, setTargetScrollTime] = useState<string | null>(null);
   const [highlight, setHighlight] = useState(false);
-  const[isMobile, setIsMobile] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
   
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 1024);
     handleResize();
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
-  },[]);
+  }, []);
 
   useEffect(() => {
     const handleAddToCal = (e: any) => {
@@ -809,7 +809,7 @@ export function MockCalendarSandbox() {
 
     window.addEventListener('sandbox-add-calendar', handleAddToCal);
     return () => window.removeEventListener('sandbox-add-calendar', handleAddToCal);
-  },[]);
+  }, []);
 
   const EVENT_COLORS: Record<string, string> = {
     amber: 'bg-[#c2956e]/20 dark:bg-[#c2956e]/20 text-[#9e7653] dark:text-[#d1a784] border-[#c2956e]/30',
@@ -824,7 +824,7 @@ export function MockCalendarSandbox() {
   };
 
   return (
-    <div id="mock-calendar-sandbox" className={`flex flex-col lg:flex-row-reverse gap-6 md:gap-20 items-center w-full my-10 md:my-20 p-2 md:p-6 transition-all duration-500 rounded-[3rem] w-full max-lg:h-[72vh] max-lg:max-h-[550px] max-lg:min-h-[430px] ${highlight ? 'ring-4 ring-[#c2956e] bg-white/30 dark:bg-[#1a1a1a]/30' : ''}`}>
+    <div id="mock-calendar-sandbox" className={`flex flex-col lg:flex-row-reverse gap-6 md:gap-20 items-center w-full my-10 md:my-20 p-2 md:p-6 transition-all duration-500 rounded-[3rem] max-lg:h-[72vh] max-lg:max-h-[550px] max-lg:min-h-[430px] ${highlight ? 'ring-4 ring-[#c2956e] bg-white/30 dark:bg-[#1a1a1a]/30' : ''}`}>
       <div className="w-full lg:w-1/3 flex flex-col gap-2 md:gap-4 px-4 md:px-8 text-center lg:text-left shrink-0">
         <h3 className="text-3xl md:text-4xl font-serif text-[#3d3b33] dark:text-[#f0f0f0]">Your Days, Visualized</h3>
         <p className="text-[#888] dark:text-[#a0a0a0] leading-relaxed text-sm">
@@ -878,8 +878,8 @@ export function MockNotesSandbox() {
 }
 
 export function MockAnalyticsSandbox() {
-  const dailyMap = useMemo(() => generateMockDailyMap(),[]);
-  const rawSessions = useMemo(() => generateMockSessions(),[]);
+  const dailyMap = useMemo(() => generateMockDailyMap(), []);
+  const rawSessions = useMemo(() => generateMockSessions(), []);
   const [highlight, setHighlight] = useState(false);
 
   useEffect(() => {
@@ -927,20 +927,7 @@ export function MockAnalyticsSandbox() {
 const MarqueeRow = React.memo(({ prompts, speed = 0.5 }: { prompts: any[], speed?: number }) => {
   const scrollRef = useRef<HTMLDivElement>(null);
   const isHovered = useRef(false);
-  const touchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-
-  // Pause the auto-scroll momentarily during a manual button scroll
-  useEffect(() => {
-    const handleManualScrollStart = () => {
-      if (touchTimeoutRef.current) clearTimeout(touchTimeoutRef.current);
-      isHovered.current = true;
-      touchTimeoutRef.current = setTimeout(() => {
-        isHovered.current = false;
-      }, 800); // Resume auto-scrolling smoothly after 800ms
-    };
-    window.addEventListener('sandbox-manual-scroll', handleManualScrollStart);
-    return () => window.removeEventListener('sandbox-manual-scroll', handleManualScrollStart);
-  }, []);
+  const [pointerStart, setPointerStart] = useState({ x: 0, y: 0 });
 
   useEffect(() => {
     let animationFrameId: number;
@@ -973,33 +960,33 @@ const MarqueeRow = React.memo(({ prompts, speed = 0.5 }: { prompts: any[], speed
   return (
     <div 
       ref={scrollRef} 
-      // Added marquee-scroll-container class
       className="marquee-scroll-container flex w-full overflow-x-auto no-scrollbar gap-3 pl-4 pr-0 py-2"
-      onMouseEnter={() => {
-        if (touchTimeoutRef.current) clearTimeout(touchTimeoutRef.current);
-        isHovered.current = true;
-      }}
+      onMouseEnter={() => { isHovered.current = true; }}
       onMouseLeave={() => { isHovered.current = false; }}
-      onTouchStart={() => {
-        if (touchTimeoutRef.current) clearTimeout(touchTimeoutRef.current);
-        isHovered.current = true;
-      }}
-      onTouchEnd={() => {
-        touchTimeoutRef.current = setTimeout(() => {
-          isHovered.current = false;
-        }, 400);
-      }}
-      onTouchCancel={() => {
-        touchTimeoutRef.current = setTimeout(() => {
-          isHovered.current = false;
-        }, 400);
-      }}
+      onPointerDown={() => { isHovered.current = true; }}
+      onPointerUp={() => { isHovered.current = false; }}
+      onPointerCancel={() => { isHovered.current = false; }}
     >
       <div className="flex gap-4 w-max">
         {[...prompts, ...prompts].map((p, i) => (
            <button 
              key={i}
-             onClick={p.action}
+             onPointerDown={(e) => {
+               setPointerStart({ x: e.clientX, y: e.clientY });
+               isHovered.current = true;
+             }}
+             onPointerUp={(e) => {
+               const dx = Math.abs(e.clientX - pointerStart.x);
+               const dy = Math.abs(e.clientY - pointerStart.y);
+               // Tolerance increased slightly to bypass touch jiggles on sensitive screens
+               if (dx < 15 && dy < 15) {
+                 p.action();
+               }
+             }}
+             onClick={(e) => {
+               e.preventDefault(); 
+               p.action();
+             }}
              className={`flex items-center gap-3 px-5 py-3.5 rounded-2xl bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] transition-all shrink-0 cursor-pointer shadow-sm group select-none md:hover:-translate-y-0.5 ${p.border}`}
            >
              <div className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${p.bg}`}>
@@ -1049,15 +1036,6 @@ export function MockAiSandbox() {
     setRow2(shuffled.slice(6, 12));
   }, []);
 
-  // Handles manual control of horizontal scrolling targeting both rows smoothly
-  const handleManualScroll = (direction: 'left' | 'right') => {
-    window.dispatchEvent(new CustomEvent('sandbox-manual-scroll'));
-    const containers = document.querySelectorAll('.marquee-scroll-container');
-    containers.forEach(container => {
-      container.scrollBy({ left: direction === 'left' ? -250 : 250, behavior: 'smooth' });
-    });
-  };
-
   return (
     <div id="intelligence" className="w-full flex flex-col gap-6 md:gap-8 my-10 md:my-20">
       <div className="text-center max-w-2xl mx-auto px-4 w-full shrink-0 mb-6">
@@ -1077,16 +1055,6 @@ export function MockAiSandbox() {
              style={{ maskImage: 'linear-gradient(to right, transparent, black 10%, black 90%, transparent)', WebkitMaskImage: 'linear-gradient(to right, transparent, black 10%, black 90%, transparent)' }}>
            <MarqueeRow prompts={row1} speed={0.6} />
            <MarqueeRow prompts={row2} speed={0.4} />
-        </div>
-
-        {/* Manual Horizontal Scroll Controls for Mobile */}
-        <div className="flex md:hidden items-center justify-center gap-4 mt-2">
-            <button onClick={() => handleManualScroll('left')} className="p-3.5 rounded-full bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] shadow-sm text-[#888] active:scale-95 transition-transform" aria-label="Scroll left">
-                <ChevronLeft size={20} />
-            </button>
-            <button onClick={() => handleManualScroll('right')} className="p-3.5 rounded-full bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] shadow-sm text-[#888] active:scale-95 transition-transform" aria-label="Scroll right">
-                <ChevronRight size={20} />
-            </button>
         </div>
       </div>
     </div>

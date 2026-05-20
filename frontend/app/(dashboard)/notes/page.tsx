@@ -11,7 +11,7 @@ import { usePathname } from "next/navigation";
 
 type Tab = 'notes' | 'journal';
 
-const TABS: { id: Tab; label: string; icon: React.ElementType }[] =[
+const TABS: { id: Tab; label: string; icon: React.ElementType }[] = [
   { id: 'notes', label: 'Notes', icon: FileText },
   { id: 'journal', label: 'Journal', icon: BookOpen }
 ];
@@ -30,7 +30,7 @@ const syncOfflineData = async () => {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return;
   
-  let remaining =[];
+  let remaining = [];
   
   for (const item of queue) {
     try {
@@ -66,28 +66,28 @@ export default function NotesPage() {
   const pathname = usePathname();
   const { notesTab, setNotesTab, setMobileNoteOpen, showConfirmDialog, isEditorFullscreen, setEditorFullscreen } = useUiStore();
   
-  const[notes, setNotes] = useState<any[]>([]);
-  const[journals, setJournals] = useState<any[]>([]);
-  const[trash, setTrash] = useState<any[]>([]);
-  const[folders, setFolders] = useState<any[]>([]);
+  const [notes, setNotes] = useState<any[]>([]);
+  const [journals, setJournals] = useState<any[]>([]);
+  const [trash, setTrash] = useState<any[]>([]);
+  const [folders, setFolders] = useState<any[]>([]);
   
-  const[searchQuery, setSearchQuery] = useState("");
-  const[selectedId, setSelectedId] = useState<string | null>(null);
-  const[selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
-  const[editTitle, setEditTitle] = useState("");
-  const[noteToFocus, setNoteToFocus] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
+  const [editTitle, setEditTitle] = useState("");
+  const [noteToFocus, setNoteToFocus] = useState<string | null>(null);
   
-  const[loading, setLoading] = useState(true);
-  const[isListVisible, setIsListVisible] = useState(true);
-  const[isTrashOpen, setIsTrashOpen] = useState(false);
-  const[autoSelectPending, setAutoSelectPending] = useState(true);
-  const[isScrolled, setIsScrolled] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [isListVisible, setIsListVisible] = useState(true);
+  const [isTrashOpen, setIsTrashOpen] = useState(false);
+  const [autoSelectPending, setAutoSelectPending] = useState(true);
+  const [isScrolled, setIsScrolled] = useState(false);
 
-  const[showCalendar, setShowCalendar] = useState(false);
+  const [showCalendar, setShowCalendar] = useState(false);
   const [calMonth, setCalMonth] = useState(new Date());
 
-  const[isMoveModalOpen, setIsMoveModalOpen] = useState(false);
-  const[moveTargetFolderId, setMoveTargetFolderId] = useState<string | null>(null);
+  const [isMoveModalOpen, setIsMoveModalOpen] = useState(false);
+  const [moveTargetFolderId, setMoveTargetFolderId] = useState<string | null>(null);
 
   const desktopCalRef = useRef<HTMLDivElement>(null);
 
@@ -101,7 +101,7 @@ export default function NotesPage() {
       setShowCalendar(false);
       prevNotesTab.current = notesTab;
     }
-  },[notesTab]);
+  }, [notesTab]);
 
   const prevFolderId = useRef(selectedFolderId);
   useEffect(() => {
@@ -111,14 +111,14 @@ export default function NotesPage() {
       setAutoSelectPending(true);
       prevFolderId.current = selectedFolderId;
     }
-  },[selectedFolderId]);
+  }, [selectedFolderId]);
 
   // Guarantee we reset fullscreen configuration when leaving the Notes page
   useEffect(() => {
     return () => {
        setEditorFullscreen(false);
     };
-  },[setEditorFullscreen]);
+  }, [setEditorFullscreen]);
 
   // Reset View Event Listener (Nav tab tapped while already on Notes)
   useEffect(() => {
@@ -142,7 +142,7 @@ export default function NotesPage() {
     };
     window.addEventListener('chronoa-reset-tab', handleReset);
     return () => window.removeEventListener('chronoa-reset-tab', handleReset);
-  },[]);
+  }, []);
 
   // Global Escape Key Listener for Exiting Fullscreen & Navigating Back
   useEffect(() => {
@@ -192,7 +192,7 @@ export default function NotesPage() {
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  },[isEditorFullscreen, setEditorFullscreen, isMoveModalOpen, isTrashOpen, isListVisible, selectedFolderId, folders]);
+  }, [isEditorFullscreen, setEditorFullscreen, isMoveModalOpen, isTrashOpen, isListVisible, selectedFolderId, folders]);
 
   const handleTabChange = (id: Tab) => {
     setNotesTab(id);
@@ -213,13 +213,13 @@ export default function NotesPage() {
     if (cachedJournals) try { setJournals(JSON.parse(cachedJournals)); setLoading(false); } catch (e) {}
     if (cachedTrash) try { setTrash(JSON.parse(cachedTrash)); } catch (e) {}
     if (cachedFolders) try { setFolders(JSON.parse(cachedFolders)); } catch (e) {}
-  },[]);
+  }, []);
 
   const fetchData = useCallback(async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { setLoading(false); return; }
 
-    const[nData, jData, fData, tData, jTrashData] = await Promise.all([
+    const [nData, jData, fData, tData, jTrashData] = await Promise.all([
       supabase.from('notes').select('*').is('deleted_at', null).order('updated_at', { ascending: false }),
       supabase.from('journal_entries').select('*').is('deleted_at', null).order('entry_date', { ascending: false }),
       supabase.from('note_folders').select('*').eq('user_id', user.id).order('created_at', { ascending: true }),
@@ -227,13 +227,13 @@ export default function NotesPage() {
       supabase.from('journal_entries').select('*').not('deleted_at', 'is', null)
     ]);
 
-    const newNotes = nData.data ||[];
+    const newNotes = nData.data || [];
     setNotes(newNotes);
     
-    setFolders(fData.data ||[]);
+    setFolders(fData.data || []);
 
     const todayStr = getLocalYYYYMMDD(new Date());
-    let jList = jData.data ||[];
+    let jList = jData.data || [];
 
     const emptyJournals = jList.filter(j => {
       if (j.entry_date === todayStr) return false;
@@ -253,22 +253,22 @@ export default function NotesPage() {
     setJournals(jList);
 
     const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-    const validTrashNotes = (tData.data ||[]).filter(note => new Date(note.deleted_at) > thirtyDaysAgo).map(n => ({ ...n, isJournal: false }));
-    const validTrashJournals = (jTrashData.data ||[]).filter(j => new Date(j.deleted_at) > thirtyDaysAgo).map(j => ({ ...j, isJournal: true }));
+    const validTrashNotes = (tData.data || []).filter(note => new Date(note.deleted_at) > thirtyDaysAgo).map(n => ({ ...n, isJournal: false }));
+    const validTrashJournals = (jTrashData.data || []).filter(j => new Date(j.deleted_at) > thirtyDaysAgo).map(j => ({ ...j, isJournal: true }));
     
-    const combinedTrash =[...validTrashNotes, ...validTrashJournals].sort((a, b) => new Date(b.deleted_at).getTime() - new Date(a.deleted_at).getTime());
+    const combinedTrash = [...validTrashNotes, ...validTrashJournals].sort((a, b) => new Date(b.deleted_at).getTime() - new Date(a.deleted_at).getTime());
     
     setTrash(combinedTrash);
     setLoading(false);
     syncOfflineData();
-  },[]);
+  }, []);
 
   // Triggers an automatic re-fetch whenever the user physically navigates back to the Notes tab
   useEffect(() => {
     if (pathname === '/notes') {
       fetchData();
     }
-  },[pathname, fetchData]);
+  }, [pathname, fetchData]);
 
   useEffect(() => { 
     fetchData(); 
@@ -295,7 +295,7 @@ export default function NotesPage() {
       supabase.removeChannel(channel);
       window.removeEventListener('focus', handleFocus);
     };
-  },[fetchData]);
+  }, [fetchData]);
 
   useEffect(() => {
     if (!loading) {
@@ -304,7 +304,7 @@ export default function NotesPage() {
       localStorage.setItem('chronoa_cache_trash', JSON.stringify(trash));
       localStorage.setItem('chronoa_cache_folders', JSON.stringify(folders));
     }
-  },[notes, journals, trash, folders, loading]);
+  }, [notes, journals, trash, folders, loading]);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -316,7 +316,7 @@ export default function NotesPage() {
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  },[]);
+  }, []);
 
   useEffect(() => {
     if (selectedId) {
@@ -326,11 +326,11 @@ export default function NotesPage() {
     }
     // Reset scroll state when changing notes
     setIsScrolled(false);
-  },[selectedId, notesTab, notes, journals, trash, isTrashOpen]);
+  }, [selectedId, notesTab, notes, journals, trash, isTrashOpen]);
 
   useEffect(() => {
     setMobileNoteOpen(!isListVisible);
-  },[isListVisible, setMobileNoteOpen]);
+  }, [isListVisible, setMobileNoteOpen]);
 
   const handleSelectItem = (id: string, autoFocus: boolean = false) => {
     setSelectedId(id);
@@ -407,7 +407,7 @@ export default function NotesPage() {
       onConfirm: async () => {
         // Find all subfolders recursively to ensure we delete the whole tree
         const getDescendants = (id: string, all: any[]): string[] => {
-          let desc: string[] =[];
+          let desc: string[] = [];
           const children = all.filter(f => f.parent_id === id);
           for (const child of children) {
             desc.push(child.id);
@@ -416,7 +416,7 @@ export default function NotesPage() {
           return desc;
         };
         
-        const foldersToDelete =[folderId, ...getDescendants(folderId, folders)];
+        const foldersToDelete = [folderId, ...getDescendants(folderId, folders)];
         
         // Find all notes inside these folders
         const notesToDelete = notes.filter(n => n.folder_id && foldersToDelete.includes(n.folder_id)).map(n => n.id);
@@ -473,7 +473,7 @@ export default function NotesPage() {
     }
     const { data: { user } } = await supabase.auth.getUser();
     const newJournal = { entry_date: dateStr, content: "<p></p>" };
-    setJournals(prev =>[...prev, newJournal].sort((a, b) => new Date(b.entry_date).getTime() - new Date(a.entry_date).getTime()));
+    setJournals(prev => [...prev, newJournal].sort((a, b) => new Date(b.entry_date).getTime() - new Date(a.entry_date).getTime()));
     handleSelectItem(dateStr, true);
     setShowCalendar(false);
     
@@ -676,12 +676,12 @@ export default function NotesPage() {
       const plain = (item.content || "").replace(/<[^>]+>/g, ' ').toLowerCase();
       return title?.toLowerCase().includes(q) || plain.includes(q);
     });
-  },[notes, journals, trash, notesTab, searchQuery, isTrashOpen, selectedFolderId]);
+  }, [notes, journals, trash, notesTab, searchQuery, isTrashOpen, selectedFolderId]);
 
   const currentFolders = useMemo(() => {
-    if (notesTab !== 'notes' || isTrashOpen || searchQuery.trim()) return[];
+    if (notesTab !== 'notes' || isTrashOpen || searchQuery.trim()) return [];
     return folders.filter(f => f.parent_id === selectedFolderId).sort((a,b) => a.name.localeCompare(b.name));
-  },[folders, selectedFolderId, notesTab, isTrashOpen, searchQuery]);
+  }, [folders, selectedFolderId, notesTab, isTrashOpen, searchQuery]);
 
   useEffect(() => {
     if (autoSelectPending && !loading && !isTrashOpen) {
@@ -700,7 +700,7 @@ export default function NotesPage() {
       }
       setAutoSelectPending(false);
     }
-  },[autoSelectPending, loading, filteredItems, isTrashOpen, notesTab]);
+  }, [autoSelectPending, loading, filteredItems, isTrashOpen, notesTab]);
 
   const Snippet = ({ html, query }: { html: string, query: string }) => {
     const plain = (html || "").replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
@@ -728,13 +728,13 @@ export default function NotesPage() {
     if (isTrashOpen) return trash.find(t => (t.entry_date || t.id) === selectedId);
     if (notesTab === 'notes') return notes.find(n => n.id === selectedId);
     return journals.find(j => j.entry_date === selectedId);
-  },[selectedId, notesTab, notes, journals, trash, isTrashOpen]);
+  }, [selectedId, notesTab, notes, journals, trash, isTrashOpen]);
 
   const currentFolder = folders.find(f => f.id === selectedFolderId);
 
   const getFolderPath = (folderId: string | null) => {
-    if (!folderId) return[];
-    const path =[];
+    if (!folderId) return [];
+    const path = [];
     let curr = folders.find(f => f.id === folderId);
     while (curr) {
       path.unshift(curr);
@@ -745,7 +745,7 @@ export default function NotesPage() {
 
   const moveModalSubfolders = useMemo(() => {
     return folders.filter(f => f.parent_id === moveTargetFolderId).sort((a,b) => a.name.localeCompare(b.name));
-  },[folders, moveTargetFolderId]);
+  }, [folders, moveTargetFolderId]);
 
   const renderCalendar = (isMobilePopover = false) => {
     const year = calMonth.getFullYear();
@@ -753,7 +753,7 @@ export default function NotesPage() {
     const firstDay = new Date(year, month, 1).getDay();
     const daysInMonth = new Date(year, month + 1, 0).getDate();
     
-    const days =[];
+    const days = [];
     for (let i = 0; i < firstDay; i++) days.push(null);
     for (let i = 1; i <= daysInMonth; i++) days.push(new Date(year, month, i));
 
@@ -801,8 +801,12 @@ export default function NotesPage() {
         <div className="flex items-center gap-3 flex-1 min-w-0">
           {isMobile && (
             <button 
+              onPointerDown={(e) => { 
+                e.preventDefault(); 
+                setSelectedId(null); setIsListVisible(true); setNoteToFocus(null); 
+              }}
               onClick={() => { setSelectedId(null); setIsListVisible(true); setNoteToFocus(null); }} 
-              className="flex items-center justify-center p-2.5 bg-[#f7f5f0] dark:bg-[#1a1a1a] text-[#888] rounded-xl border border-[#e0ddd5] dark:border-[#333] hover:text-[#3d3b33] dark:hover:text-[#f0f0f0] transition-all shadow-sm shrink-0"
+              className="flex items-center justify-center p-2.5 bg-[#f7f5f0] dark:bg-[#1a1a1a] text-[#888] rounded-xl border border-[#e0ddd5] dark:border-[#333] md:hover:text-[#3d3b33] md:dark:hover:text-[#f0f0f0] transition-all shadow-sm shrink-0 cursor-pointer"
             >
               <ArrowLeft size={18} />
             </button>
@@ -835,22 +839,22 @@ export default function NotesPage() {
                data-tooltip-id="global-tooltip" 
                data-tooltip-content="Move Note" 
                onClick={() => { setMoveTargetFolderId(selectedItem?.folder_id || null); setIsMoveModalOpen(true); }} 
-               className="w-9 h-9 lg:w-10 lg:h-10 text-[#b0ad9a] hover:text-[#c2956e] hover:bg-[#c2956e]/10 dark:hover:bg-[#b0855f]/20 rounded-full transition-all flex items-center justify-center bg-transparent outline-none mr-1"
+               className="w-9 h-9 lg:w-10 lg:h-10 text-[#b0ad9a] md:hover:text-[#c2956e] md:hover:bg-[#c2956e]/10 md:dark:hover:bg-[#b0855f]/20 rounded-full transition-all flex items-center justify-center bg-transparent outline-none mr-1 cursor-pointer"
              >
                <FolderInput size={18} />
              </button>
           )}
 
           {!isTrashOpen ? (
-            <button data-tooltip-id="global-tooltip" data-tooltip-content="Move to Trash" onClick={() => moveToTrash(selectedItem?.entry_date || selectedItem?.id)} className="w-9 h-9 lg:w-10 lg:h-10 text-[#b0ad9a] hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-full transition-all flex items-center justify-center bg-transparent outline-none">
+            <button data-tooltip-id="global-tooltip" data-tooltip-content="Move to Trash" onClick={() => moveToTrash(selectedItem?.entry_date || selectedItem?.id)} className="w-9 h-9 lg:w-10 lg:h-10 text-[#b0ad9a] md:hover:text-red-500 md:hover:bg-red-50 md:dark:hover:bg-red-900/20 rounded-full transition-all flex items-center justify-center bg-transparent outline-none cursor-pointer">
               <Trash2 size={18} />
             </button>
           ) : (
             <>
-              <button data-tooltip-id="global-tooltip" data-tooltip-content="Restore" onClick={() => restoreNote(selectedItem)} className="w-9 h-9 lg:w-10 lg:h-10 text-[#7ca982] hover:bg-[#7ca982]/10 rounded-full transition-all flex items-center justify-center bg-transparent outline-none">
+              <button data-tooltip-id="global-tooltip" data-tooltip-content="Restore" onClick={() => restoreNote(selectedItem)} className="w-9 h-9 lg:w-10 lg:h-10 text-[#7ca982] md:hover:bg-[#7ca982]/10 rounded-full transition-all flex items-center justify-center bg-transparent outline-none cursor-pointer">
                 <RotateCcw size={18} />
               </button>
-              <button data-tooltip-id="global-tooltip" data-tooltip-content="Delete Permanently" onClick={() => permanentlyDelete(selectedItem)} className="w-9 h-9 lg:w-10 lg:h-10 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-full transition-all flex items-center justify-center bg-transparent outline-none">
+              <button data-tooltip-id="global-tooltip" data-tooltip-content="Delete Permanently" onClick={() => permanentlyDelete(selectedItem)} className="w-9 h-9 lg:w-10 lg:h-10 text-red-500 md:hover:bg-red-50 md:dark:hover:bg-red-900/20 rounded-full transition-all flex items-center justify-center bg-transparent outline-none cursor-pointer">
                 <Trash2 size={18} />
               </button>
             </>
@@ -885,10 +889,17 @@ export default function NotesPage() {
                 }}
               >
                 {isTrashOpen && (
-                  <button onClick={(e) => { 
-                    e.stopPropagation(); 
-                    setIsTrashOpen(false); setSelectedId(null); setNoteToFocus(null); setAutoSelectPending(true); setShowCalendar(false); 
-                  }} className="flex items-center justify-center p-2.5 md:p-3 bg-white dark:bg-[#1a1a1a] text-[#888] rounded-xl border border-[#e0ddd5] dark:border-[#333] hover:text-[#3d3b33] dark:hover:text-[#f0f0f0] transition-all shadow-sm mr-1 shrink-0">
+                  <button 
+                    onPointerDown={(e) => { 
+                      e.preventDefault(); e.stopPropagation(); 
+                      setIsTrashOpen(false); setSelectedId(null); setNoteToFocus(null); setAutoSelectPending(true); setShowCalendar(false); 
+                    }}
+                    onClick={(e) => { 
+                      e.stopPropagation(); 
+                      setIsTrashOpen(false); setSelectedId(null); setNoteToFocus(null); setAutoSelectPending(true); setShowCalendar(false); 
+                    }} 
+                    className="flex items-center justify-center p-2.5 md:p-3 bg-white dark:bg-[#1a1a1a] text-[#888] rounded-xl border border-[#e0ddd5] dark:border-[#333] md:hover:text-[#3d3b33] md:dark:hover:text-[#f0f0f0] transition-all shadow-sm mr-1 shrink-0 cursor-pointer"
+                  >
                     <ArrowLeft size={18} />
                   </button>
                 )}
@@ -906,11 +917,11 @@ export default function NotesPage() {
                     <button 
                       onClick={() => { setIsTrashOpen(true); setSelectedId(null); setNoteToFocus(null); setAutoSelectPending(true); setShowCalendar(false); }} 
                       data-tooltip-id="global-tooltip" data-tooltip-content="Open Trash"
-                      className="w-10 h-10 flex shrink-0 items-center justify-center rounded-full transition-all text-[#888] md:hover:text-red-400 bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] shadow-sm"
+                      className="w-10 h-10 flex shrink-0 items-center justify-center rounded-full transition-all text-[#888] md:hover:text-red-400 bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] shadow-sm cursor-pointer"
                     >
                       <Trash2 size={16} />
                     </button>
-                    <button onClick={createNote} data-tooltip-id="global-tooltip" data-tooltip-content="New Note" className="hidden lg:flex w-10 h-10 items-center justify-center bg-[#c2956e] text-white dark:bg-[#b0855f] rounded-full md:hover:scale-105 transition-all shadow-lg shrink-0">
+                    <button onClick={createNote} data-tooltip-id="global-tooltip" data-tooltip-content="New Note" className="hidden lg:flex w-10 h-10 items-center justify-center bg-[#c2956e] text-white dark:bg-[#b0855f] rounded-full md:hover:scale-105 transition-all shadow-lg shrink-0 cursor-pointer">
                       <Plus size={18} />
                     </button>
                   </>
@@ -921,11 +932,11 @@ export default function NotesPage() {
                     <button 
                       onClick={() => { setIsTrashOpen(true); setSelectedId(null); setNoteToFocus(null); setAutoSelectPending(true); setShowCalendar(false); }} 
                       data-tooltip-id="global-tooltip" data-tooltip-content="Open Trash"
-                      className="w-10 h-10 flex shrink-0 items-center justify-center rounded-full transition-all text-[#888] md:hover:text-red-400 bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] shadow-sm"
+                      className="w-10 h-10 flex shrink-0 items-center justify-center rounded-full transition-all text-[#888] md:hover:text-red-400 bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] shadow-sm cursor-pointer"
                     >
                       <Trash2 size={16} />
                     </button>
-                    <button onClick={() => setShowCalendar(!showCalendar)} data-tooltip-id="global-tooltip" data-tooltip-content="Calendar" className="desktop-cal-toggle hidden lg:flex w-10 h-10 items-center justify-center bg-[#c2956e] text-white dark:bg-[#b0855f] rounded-full md:hover:scale-105 transition-all shadow-lg">
+                    <button onClick={() => setShowCalendar(!showCalendar)} data-tooltip-id="global-tooltip" data-tooltip-content="Calendar" className="desktop-cal-toggle hidden lg:flex w-10 h-10 items-center justify-center bg-[#c2956e] text-white dark:bg-[#b0855f] rounded-full md:hover:scale-105 transition-all shadow-lg cursor-pointer">
                       {showCalendar ? <X size={16} /> : <CalendarDays size={16} />}
                     </button>
                     {showCalendar && (
@@ -940,7 +951,7 @@ export default function NotesPage() {
                   <button 
                     onClick={emptyTrash} 
                     data-tooltip-id="global-tooltip" data-tooltip-content={`Empty ${notesTab} Trash`}
-                    className="w-10 h-10 flex items-center justify-center rounded-full transition-all bg-red-50 dark:bg-red-900/10 text-red-500 hover:bg-red-500 hover:text-white shadow-sm shrink-0 border border-transparent md:border-red-100 dark:border-red-900/30"
+                    className="w-10 h-10 flex items-center justify-center rounded-full transition-all bg-red-50 dark:bg-red-900/10 text-red-500 hover:bg-red-500 hover:text-white shadow-sm shrink-0 border border-transparent md:border-red-100 dark:border-red-900/30 cursor-pointer"
                   >
                     <Trash2 size={16} />
                   </button>
@@ -962,7 +973,7 @@ export default function NotesPage() {
                 <div className="flex bg-[#ebe8e2]/50 dark:bg-[#1a1a1a] p-1.5 rounded-[1.25rem] border border-[#e0ddd5] dark:border-[#333] shadow-inner">
                   {TABS.map(({ id, label, icon: Icon }) => (
                     <button key={id} onClick={() => handleTabChange(id)}
-                      className={`flex-1 flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all ${notesTab === id ? 'bg-white dark:bg-[#2a2a2a] text-[#c2956e] dark:text-[#d1a784] shadow-sm' : 'text-[#888] md:hover:text-[#3d3b33] md:dark:hover:text-white'}`}>
+                      className={`flex-1 flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all cursor-pointer ${notesTab === id ? 'bg-white dark:bg-[#2a2a2a] text-[#c2956e] dark:text-[#d1a784] shadow-sm' : 'text-[#888] md:hover:text-[#3d3b33] md:dark:hover:text-white'}`}>
                       <Icon size={14} /> <span>{label}</span>
                     </button>
                   ))}
@@ -972,16 +983,16 @@ export default function NotesPage() {
                    <div className="flex items-center gap-2 mt-1 overflow-x-auto no-scrollbar pb-1">
                       <button 
                         onClick={() => setSelectedFolderId(currentFolder?.parent_id || null)}
-                        className="flex items-center justify-center p-2 bg-white dark:bg-[#1a1a1a] text-[#888] rounded-xl border border-[#e0ddd5] dark:border-[#333] hover:text-[#3d3b33] dark:hover:text-[#f0f0f0] transition-all shadow-sm shrink-0"
+                        className="flex items-center justify-center p-2 bg-white dark:bg-[#1a1a1a] text-[#888] rounded-xl border border-[#e0ddd5] dark:border-[#333] hover:text-[#3d3b33] dark:hover:text-[#f0f0f0] transition-all shadow-sm shrink-0 cursor-pointer"
                       >
                         <ArrowLeft size={16} />
                       </button>
                       <div className="flex items-center gap-1.5 text-[11px] font-medium text-[#888] whitespace-nowrap bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] px-3 py-2.5 rounded-xl shadow-sm flex-1 min-w-0">
-                         <button onClick={() => setSelectedFolderId(null)} className="hover:text-[#c2956e] transition-colors shrink-0">Library</button>
+                         <button onClick={() => setSelectedFolderId(null)} className="hover:text-[#c2956e] transition-colors shrink-0 cursor-pointer">Library</button>
                          {getFolderPath(selectedFolderId).map(f => (
                             <React.Fragment key={f.id}>
                               <ChevronRight size={14} className="text-[#b0ad9a] shrink-0" />
-                              <button onClick={() => setSelectedFolderId(f.id)} className={`hover:text-[#c2956e] transition-colors truncate max-w-[100px] md:max-w-[150px] shrink-0 ${selectedFolderId === f.id ? 'text-[#3d3b33] dark:text-white' : ''}`}>
+                              <button onClick={() => setSelectedFolderId(f.id)} className={`hover:text-[#c2956e] transition-colors truncate max-w-[100px] md:max-w-[150px] shrink-0 cursor-pointer ${selectedFolderId === f.id ? 'text-[#3d3b33] dark:text-white' : ''}`}>
                                 {f.name}
                               </button>
                             </React.Fragment>
@@ -1007,7 +1018,7 @@ export default function NotesPage() {
                       <span className="text-[10px] font-bold uppercase tracking-widest text-[#b0ad9a] dark:text-[#7a7a7a]">
                         {currentFolder ? 'Subfolders' : 'Folders'}
                       </span>
-                      <button onClick={createFolder} className="hidden md:flex text-[#b0ad9a] hover:text-[#c2956e] transition-colors p-1" data-tooltip-id="global-tooltip" data-tooltip-content="New Folder">
+                      <button onClick={createFolder} className="hidden md:flex text-[#b0ad9a] hover:text-[#c2956e] transition-colors p-1 cursor-pointer" data-tooltip-id="global-tooltip" data-tooltip-content="New Folder">
                         <Plus size={14} strokeWidth={2.5} />
                       </button>
                     </div>
@@ -1027,14 +1038,14 @@ export default function NotesPage() {
                         <div className="flex items-center gap-1 shrink-0 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity">
                           <button 
                             onClick={(e) => { e.stopPropagation(); renameFolder(folder); }} 
-                            className="p-1.5 text-[#b0ad9a] hover:text-[#c2956e] transition-colors"
+                            className="p-1.5 text-[#b0ad9a] md:hover:text-[#c2956e] transition-colors cursor-pointer"
                             data-tooltip-id="global-tooltip" data-tooltip-content="Rename Folder"
                           >
                             <Edit3 size={15} />
                           </button>
                           <button 
                             onClick={(e) => { e.stopPropagation(); deleteFolder(folder.id); }} 
-                            className="p-1.5 text-[#b0ad9a] hover:text-red-500 transition-colors"
+                            className="p-1.5 text-[#b0ad9a] md:hover:text-red-500 transition-colors cursor-pointer"
                             data-tooltip-id="global-tooltip" data-tooltip-content="Delete Folder"
                           >
                             <Trash2 size={15} />
@@ -1063,7 +1074,7 @@ export default function NotesPage() {
 
                       return (
                         <button key={id} onClick={() => handleSelectItem(id)} 
-                          className={`w-full text-left p-4 rounded-2xl transition-all duration-200 border relative group overflow-hidden ${
+                          className={`w-full text-left p-4 rounded-2xl transition-all duration-200 border relative group overflow-hidden cursor-pointer ${
                             isSelected 
                             ? 'bg-white dark:bg-[#1e1e1e] border-[#e0ddd5] dark:border-[#222] lg:border-[#c2956e]/40 lg:dark:border-[#b0855f]/50 shadow-sm lg:shadow-md lg:translate-x-1' 
                             : 'bg-[#fdfbf7] dark:bg-[#161616] border-[#f0ede8] dark:border-[#222] md:hover:border-[#c2956e]/20 md:dark:hover:border-[#b0855f]/20 md:hover:shadow-sm'
@@ -1105,7 +1116,7 @@ export default function NotesPage() {
           <div className="flex-1 flex flex-col w-full overflow-hidden relative">
             
             {/* MOBILE FIXED HEADER */}
-            <div className={`lg:hidden absolute top-0 left-0 right-0 z-50 px-4 sm:px-6 pt-[calc(0.75rem+max(1rem,env(safe-area-inset-top)))] pb-3 transition-all duration-300 ${
+            <div className={`lg:hidden absolute top-0 left-0 right-0 z-50 px-4 sm:px-6 pt-[calc(0.75rem+max(1rem,env(safe-area-inset-top)))] pb-3 ${
               isScrolled 
                 ? 'bg-white/80 dark:bg-[#121212]/80 backdrop-blur-xl border-b border-[#e0ddd5] dark:border-[#2a2a2a] shadow-sm' 
                 : 'bg-white dark:bg-[#121212] border-b border-transparent'
@@ -1164,17 +1175,17 @@ export default function NotesPage() {
           <div className="bg-[#f7f5f0] dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] rounded-[2.5rem] w-full max-w-md shadow-2xl flex flex-col overflow-hidden max-h-[85vh] animate-fade-up">
              <header className="px-6 py-6 border-b border-[#e0ddd5] dark:border-[#2a2a2a] flex justify-between items-center bg-white dark:bg-[#1e1e1e] shrink-0">
                 <h3 className="text-2xl font-serif text-[#3d3b33] dark:text-[#f0f0f0] font-medium tracking-tight">Move Note</h3>
-                <button onClick={() => setIsMoveModalOpen(false)} className="p-2 text-[#888] hover:text-[#3d3b33] dark:hover:text-white bg-[#f0ede8] dark:bg-[#252525] hover:bg-[#e0ddd5] dark:hover:bg-[#333] rounded-full transition-colors"><X size={18} /></button>
+                <button onClick={() => setIsMoveModalOpen(false)} className="p-2 text-[#888] hover:text-[#3d3b33] dark:hover:text-white bg-[#f0ede8] dark:bg-[#252525] hover:bg-[#e0ddd5] dark:hover:bg-[#333] rounded-full transition-colors cursor-pointer"><X size={18} /></button>
              </header>
              
              <div className="p-6 md:p-8 overflow-y-auto no-scrollbar flex-1 space-y-5 bg-[#f7f5f0] dark:bg-[#121212]">
                 {/* Breadcrumbs Path Navigation */}
                 <div className="flex flex-wrap items-center gap-1.5 text-sm font-medium text-[#888]">
-                   <button onClick={() => setMoveTargetFolderId(null)} className={`hover:text-[#c2956e] transition-colors ${moveTargetFolderId === null ? 'text-[#3d3b33] dark:text-white' : ''}`}>Library</button>
+                   <button onClick={() => setMoveTargetFolderId(null)} className={`hover:text-[#c2956e] transition-colors cursor-pointer ${moveTargetFolderId === null ? 'text-[#3d3b33] dark:text-white' : ''}`}>Library</button>
                    {getFolderPath(moveTargetFolderId).map(f => (
                       <React.Fragment key={f.id}>
                         <ChevronRight size={14} className="text-[#b0ad9a]" />
-                        <button onClick={() => setMoveTargetFolderId(f.id)} className={`hover:text-[#c2956e] transition-colors truncate max-w-[120px] ${moveTargetFolderId === f.id ? 'text-[#3d3b33] dark:text-white' : ''}`}>{f.name}</button>
+                        <button onClick={() => setMoveTargetFolderId(f.id)} className={`hover:text-[#c2956e] transition-colors truncate max-w-[120px] cursor-pointer ${moveTargetFolderId === f.id ? 'text-[#3d3b33] dark:text-white' : ''}`}>{f.name}</button>
                       </React.Fragment>
                    ))}
                 </div>
@@ -1195,13 +1206,13 @@ export default function NotesPage() {
              </div>
              
              <footer className="px-6 py-5 border-t border-[#e0ddd5] dark:border-[#2a2a2a] bg-white dark:bg-[#1e1e1e] flex justify-end gap-3 shrink-0">
-                <button onClick={() => setIsMoveModalOpen(false)} className="px-5 py-2.5 rounded-xl text-[11px] font-bold uppercase tracking-widest text-[#888] hover:text-[#3d3b33] dark:hover:text-white transition-colors">Cancel</button>
+                <button onClick={() => setIsMoveModalOpen(false)} className="px-5 py-2.5 rounded-xl text-[11px] font-bold uppercase tracking-widest text-[#888] hover:text-[#3d3b33] dark:hover:text-white transition-colors cursor-pointer">Cancel</button>
                 <button 
                    onClick={() => { 
                      moveToFolder(selectedId!, moveTargetFolderId); 
                      setIsMoveModalOpen(false); 
                    }} 
-                   className="px-6 py-2.5 rounded-xl text-[11px] font-bold uppercase tracking-widest text-white bg-[#c2956e] hover:bg-[#b0855f] transition-all shadow-md hover:shadow-lg hover:-translate-y-0.5"
+                   className="px-6 py-2.5 rounded-xl text-[11px] font-bold uppercase tracking-widest text-white bg-[#c2956e] hover:bg-[#b0855f] transition-all shadow-md hover:shadow-lg hover:-translate-y-0.5 cursor-pointer"
                 >
                    Move Here
                 </button>
@@ -1223,7 +1234,7 @@ export default function NotesPage() {
           {notesTab === 'notes' && (
              <button 
                onClick={createFolder}
-               className="relative z-50 w-12 h-12 bg-white dark:bg-[#252525] border border-[#e0ddd5] dark:border-[#333] text-[#888] rounded-full shadow-lg flex items-center justify-center active:scale-95 transition-all"
+               className="relative z-50 w-12 h-12 bg-white dark:bg-[#252525] border border-[#e0ddd5] dark:border-[#333] text-[#888] rounded-full shadow-lg flex items-center justify-center active:scale-95 transition-all cursor-pointer"
              >
                <FolderPlus size={20} />
              </button>
@@ -1233,7 +1244,7 @@ export default function NotesPage() {
                if (notesTab === 'notes') createNote();
                else setShowCalendar(!showCalendar);
             }}
-            className="mobile-cal-toggle relative z-50 w-14 h-14 bg-[#c2956e] text-white rounded-full shadow-xl flex items-center justify-center md:hover:scale-105 active:scale-95 transition-all"
+            className="mobile-cal-toggle relative z-50 w-14 h-14 bg-[#c2956e] text-white rounded-full shadow-xl flex items-center justify-center md:hover:scale-105 active:scale-95 transition-all cursor-pointer"
           >
             {notesTab === 'notes' ? <Plus size={24} strokeWidth={2.5} /> : (showCalendar ? <X size={22} /> : <CalendarDays size={22} />)}
           </button>
