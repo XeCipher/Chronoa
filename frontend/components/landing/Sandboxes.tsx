@@ -935,10 +935,18 @@ const MarqueeRow = React.memo(({ prompts, speed = 0.5 }: { prompts: any[], speed
   const isHovered = useRef(false);
   const isTouching = useRef(false);
   const scrollPos = useRef(0);
+  const [isDesktop, setIsDesktop] = useState(true);
+
+  useEffect(() => {
+    const handleResize = () => setIsDesktop(window.innerWidth >= 768);
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   useEffect(() => {
     const el = scrollRef.current;
-    if (!el) return;
+    if (!el || !isDesktop) return;
 
     let animationId: number;
     let lastTime = performance.now();
@@ -971,7 +979,7 @@ const MarqueeRow = React.memo(({ prompts, speed = 0.5 }: { prompts: any[], speed
 
     animationId = requestAnimationFrame(scroll);
     return () => cancelAnimationFrame(animationId);
-  }, [speed]);
+  }, [speed, prompts.length, isDesktop]);
 
   if (prompts.length === 0) return null;
 
