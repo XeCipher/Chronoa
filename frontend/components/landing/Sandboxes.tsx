@@ -929,46 +929,73 @@ export function MockAnalyticsSandbox() {
   );
 }
 
+// Clean, manual-scroll component with a delightful "peek" animation on mount
 const MarqueeRow = React.memo(({ prompts, speed = 0.5 }: { prompts: any[], speed?: number }) => {
-  const [isHovered, setIsHovered] = useState(false);
-  const [isTouch, setIsTouch] = useState(false);
-  
-  useEffect(() => {
-    setIsTouch(window.matchMedia('(hover: none)').matches || ('ontouchstart' in window) || navigator.maxTouchPoints > 0);
-  }, []);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const isHovered = useRef(false);
+  const isTouching = useRef(false);
+  const scrollPos = useRef(0);
 
-  const duration = 30 / speed; 
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+
+    let animationId: number;
+    let lastTime = performance.now();
+
+    const scroll = (time: number) => {
+      const delta = time - lastTime;
+      lastTime = time;
+
+      // Prevent huge jumps if tab goes inactive
+      if (delta < 100) { 
+        if (!isHovered.current && !isTouching.current) {
+          scrollPos.current += (speed * 60 / 1000) * delta;
+          
+          // We duplicated the array, so half of the total width is the exact loop point
+          const maxScroll = el.scrollWidth / 2;
+          
+          if (scrollPos.current >= maxScroll) {
+            scrollPos.current -= maxScroll;
+          }
+          
+          el.scrollLeft = scrollPos.current;
+        } else {
+          // Keep our tracker strictly synced when the user scrolls natively
+          scrollPos.current = el.scrollLeft;
+        }
+      }
+
+      animationId = requestAnimationFrame(scroll);
+    };
+
+    animationId = requestAnimationFrame(scroll);
+    return () => cancelAnimationFrame(animationId);
+  }, [speed]);
 
   if (prompts.length === 0) return null;
 
+  // Duplicate the prompts to create an infinitely looping array
+  const duplicatedPrompts = [...prompts, ...prompts];
+
   return (
     <div 
-      className={`flex w-full relative py-2 ${isTouch ? 'overflow-x-auto no-scrollbar' : 'overflow-hidden'}`}
-      onMouseEnter={() => { if (!isTouch) setIsHovered(true); }}
-      onMouseLeave={() => { if (!isTouch) setIsHovered(false); }}
+      ref={scrollRef}
+      className="flex w-full overflow-x-auto no-scrollbar py-2"
+      style={{ scrollBehavior: 'auto', WebkitOverflowScrolling: 'touch' }}
+      onMouseEnter={() => { isHovered.current = true; }}
+      onMouseLeave={() => { isHovered.current = false; }}
+      onTouchStart={() => { isTouching.current = true; }}
+      onTouchEnd={() => { isTouching.current = false; }}
     >
-      <style dangerouslySetInnerHTML={{__html: `
-        @keyframes marquee-infinite-scroll {
-          0% { transform: translateX(0); }
-          100% { transform: translateX(-50%); }
-        }
-        .animate-marquee-infinite {
-          animation: marquee-infinite-scroll linear infinite;
-        }
-      `}} />
-      <div 
-        className={`flex gap-4 w-max pl-4 ${isTouch ? '' : 'animate-marquee-infinite'}`} 
-        style={!isTouch ? { 
-          animationDuration: `${duration}s`, 
-          animationPlayState: isHovered ? 'paused' : 'running' 
-        } : undefined}
-      >
-        {[...prompts, ...prompts].map((p, i) => (
+      <div className="flex gap-4 w-max px-2">
+        {duplicatedPrompts.map((p, i) => (
            <button 
              key={i}
              onClick={(e) => {
                e.preventDefault(); 
                if (p.action) p.action();
+               else window.dispatchEvent(new CustomEvent('chronoa-ai-prompt', { detail: p.text }));
              }}
              className={`flex items-center gap-3 px-5 py-3.5 rounded-2xl bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] transition-all shrink-0 cursor-pointer shadow-sm group select-none md:hover:-translate-y-0.5 ${p.border}`}
            >

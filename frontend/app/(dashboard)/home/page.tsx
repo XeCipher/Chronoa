@@ -38,9 +38,10 @@ export default function HomePage() {
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
-      if (user?.user_metadata?.avatar_url) {
-        setUserAvatar(user.user_metadata.avatar_url);
-        localStorage.setItem('chronoa_avatar', user.user_metadata.avatar_url);
+      const avatarUrl = user?.user_metadata?.avatar_url || user?.user_metadata?.picture;
+      if (avatarUrl) {
+        setUserAvatar(avatarUrl);
+        localStorage.setItem('chronoa_avatar', avatarUrl);
       }
       if (user) {
         supabase.from('time_sessions')
@@ -64,7 +65,7 @@ export default function HomePage() {
           className="w-10 h-10 flex items-center justify-center rounded-full bg-white/30 dark:bg-black/40 backdrop-blur-md shadow-sm border border-white/40 dark:border-white/10 text-[#3d3b33] dark:text-white transition-all active:scale-95 p-0"
         >
           {userAvatar ? (
-            <img src={userAvatar} alt="Profile" className="w-full h-full object-cover rounded-full border-[1.5px] border-white/80 dark:border-[#444]" />
+            <img src={userAvatar} referrerPolicy="no-referrer" alt="Profile" className="w-full h-full object-cover rounded-full border-[1.5px] border-white/80 dark:border-[#444]" />
           ) : (
             <User size={18} strokeWidth={2.5} className="text-[#555] dark:text-[#b0ad9a]" />
           )}

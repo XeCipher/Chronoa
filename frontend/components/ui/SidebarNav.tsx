@@ -25,9 +25,10 @@ export default function SidebarNav() {
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
-      if (user?.user_metadata?.avatar_url) {
-        setUserAvatar(user.user_metadata.avatar_url);
-        localStorage.setItem('chronoa_avatar', user.user_metadata.avatar_url);
+      const avatarUrl = user?.user_metadata?.avatar_url || user?.user_metadata?.picture;
+      if (avatarUrl) {
+        setUserAvatar(avatarUrl);
+        localStorage.setItem('chronoa_avatar', avatarUrl);
       }
     });
   },[]);
@@ -188,7 +189,7 @@ export default function SidebarNav() {
             >
               <div className="w-[32px] h-[32px] flex items-center justify-center shrink-0">
                 {userAvatar ? (
-                  <img src={userAvatar} alt="Profile" className="w-[30px] h-[30px] rounded-full object-cover border-[2px] border-[#d4d0c8] dark:border-[#444] shadow-sm" />
+                  <img src={userAvatar} referrerPolicy="no-referrer" alt="Profile" className="w-[30px] h-[30px] rounded-full object-cover border-[2px] border-[#d4d0c8] dark:border-[#444] shadow-sm" />
                 ) : (
                   <User className="w-[22px] h-[22px] text-[#888] dark:text-[#a0a0a0]" />
                 )}

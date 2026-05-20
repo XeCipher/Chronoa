@@ -161,9 +161,10 @@ export default function SettingsPage() {
         setUserName(user.user_metadata?.full_name || "User");
         setUserEmail(user.email || "");
         
-        if (user.user_metadata?.avatar_url) {
-          setUserAvatar(user.user_metadata.avatar_url);
-          localStorage.setItem('chronoa_avatar', user.user_metadata.avatar_url);
+        const avatarUrl = user.user_metadata?.avatar_url || user.user_metadata?.picture;
+        if (avatarUrl) {
+          setUserAvatar(avatarUrl);
+          localStorage.setItem('chronoa_avatar', avatarUrl);
         }
 
         const { data: profile } = await supabase.from('profiles').select('routine_reset_hour, weather_city, disabled_hotkeys').eq('id', user.id).single();
@@ -954,7 +955,7 @@ export default function SettingsPage() {
           {/* Modern Profile Identity Header Card */}
           <div className="bg-white dark:bg-[#1a1a1a] border border-[#ebe8e2] dark:border-[#2a2a2a] rounded-[2.5rem] p-6 md:p-8 shadow-sm flex flex-col md:flex-row items-center gap-5 transition-all mb-6">
             {userAvatar ? (
-               <img src={userAvatar} alt="Avatar" className="w-20 h-20 md:w-24 md:h-24 rounded-full object-cover shadow-md border-2 border-[#f0ede8] dark:border-[#333]" />
+               <img src={userAvatar} referrerPolicy="no-referrer" alt="Avatar" className="w-20 h-20 md:w-24 md:h-24 rounded-full object-cover shadow-md border-2 border-[#f0ede8] dark:border-[#333]" />
             ) : (
                <div className="w-20 h-20 md:w-24 md:h-24 rounded-full bg-[#f0ede8] dark:bg-[#333] flex items-center justify-center shadow-md border-2 border-[#e0ddd5] dark:border-[#444]">
                   <User size={40} className="text-[#888]" />
