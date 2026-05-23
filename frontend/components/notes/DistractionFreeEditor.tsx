@@ -679,7 +679,12 @@ export default function DistractionFreeEditor({
 
       {/* Editor Content */}
       <div
-        className="relative w-full flex-1"
+        className="relative w-full flex-1 cursor-text"
+        onClick={() => {
+          if (editor && !editor.isFocused && isEditable) {
+            editor.commands.focus();
+          }
+        }}
         style={{ fontSize: `${(journalZoom / 100) * 1.05}rem`, fontFamily: "inherit" }}
         onContextMenu={(e) => {
           // Prevent native context menu from overlapping our custom selection tools on mobile

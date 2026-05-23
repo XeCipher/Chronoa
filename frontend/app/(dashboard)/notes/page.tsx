@@ -830,6 +830,12 @@ export default function NotesPage() {
                 value={editTitle} onChange={e => setEditTitle(e.target.value)} onBlur={updateNoteTitle} disabled={isTrashOpen}
                 placeholder="Title..."
                 spellCheck={false}
+                onTouchEnd={(e) => {
+                  // Force native focus on iOS immediately 
+                  if (document.activeElement !== e.currentTarget) {
+                    e.currentTarget.focus();
+                  }
+                }}
                 className="select-text text-2xl lg:text-4xl text-[#3d3b33] dark:text-white font-serif leading-tight bg-transparent outline-none w-full placeholder:text-[#e0ddd5] dark:placeholder:text-[#2a2a2a] transition-all truncate lg:whitespace-normal" 
               />
             )}
@@ -1125,6 +1131,7 @@ export default function NotesPage() {
 
       {/* MAIN CONTENT VIEW */}
       <main className={`
+        select-text
         flex-1 flex flex-col bg-white dark:bg-[#121212] transition-transform duration-500 ease-in-out z-40
         max-lg:fixed max-lg:inset-0
         lg:static lg:translate-x-0
@@ -1144,7 +1151,7 @@ export default function NotesPage() {
 
             <div 
               id="notes-scroll-container" 
-              className="flex-1 overflow-y-auto no-scrollbar w-full relative"
+              className="flex-1 overflow-y-auto no-scrollbar w-full relative select-text"
               onScroll={(e) => setIsScrolled(e.currentTarget.scrollTop > 10)}
             >
               {/* Spacer for absolute header on mobile */}
@@ -1193,24 +1200,43 @@ export default function NotesPage() {
           <div className="bg-[#f7f5f0] dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] rounded-[2.5rem] w-full max-w-md shadow-2xl flex flex-col overflow-hidden max-h-[85vh] animate-fade-up">
              <header className="px-6 py-6 border-b border-[#e0ddd5] dark:border-[#2a2a2a] flex justify-between items-center bg-white dark:bg-[#1e1e1e] shrink-0">
                 <h3 className="text-2xl font-serif text-[#3d3b33] dark:text-[#f0f0f0] font-medium tracking-tight">Move Note</h3>
-                <button onClick={() => setIsMoveModalOpen(false)} className="p-2 text-[#888] hover:text-[#3d3b33] dark:hover:text-white bg-[#f0ede8] dark:bg-[#252525] hover:bg-[#e0ddd5] dark:hover:bg-[#333] rounded-full transition-colors cursor-pointer"><X size={18} /></button>
+                <button 
+                  onPointerDown={(e) => { e.preventDefault(); e.stopPropagation(); setIsMoveModalOpen(false); }} 
+                  className="p-2 text-[#888] hover:text-[#3d3b33] dark:hover:text-white bg-[#f0ede8] dark:bg-[#252525] hover:bg-[#e0ddd5] dark:hover:bg-[#333] rounded-full transition-colors cursor-pointer"
+                >
+                  <X size={18} />
+                </button>
              </header>
              
              <div className="p-6 md:p-8 overflow-y-auto no-scrollbar flex-1 space-y-5 bg-[#f7f5f0] dark:bg-[#121212]">
                 {/* Breadcrumbs Path Navigation */}
                 <div className="flex flex-wrap items-center gap-1.5 text-sm font-medium text-[#888]">
-                   <button onClick={() => setMoveTargetFolderId(null)} className={`hover:text-[#c2956e] transition-colors cursor-pointer ${moveTargetFolderId === null ? 'text-[#3d3b33] dark:text-white' : ''}`}>Library</button>
+                   <button 
+                     onPointerDown={(e) => { e.preventDefault(); e.stopPropagation(); setMoveTargetFolderId(null); }} 
+                     className={`hover:text-[#c2956e] transition-colors cursor-pointer ${moveTargetFolderId === null ? 'text-[#3d3b33] dark:text-white' : ''}`}
+                   >
+                     Library
+                   </button>
                    {getFolderPath(moveTargetFolderId).map(f => (
                       <React.Fragment key={f.id}>
                         <ChevronRight size={14} className="text-[#b0ad9a]" />
-                        <button onClick={() => setMoveTargetFolderId(f.id)} className={`hover:text-[#c2956e] transition-colors truncate max-w-[120px] cursor-pointer ${moveTargetFolderId === f.id ? 'text-[#3d3b33] dark:text-white' : ''}`}>{f.name}</button>
+                        <button 
+                          onPointerDown={(e) => { e.preventDefault(); e.stopPropagation(); setMoveTargetFolderId(f.id); }} 
+                          className={`hover:text-[#c2956e] transition-colors truncate max-w-[120px] cursor-pointer ${moveTargetFolderId === f.id ? 'text-[#3d3b33] dark:text-white' : ''}`}
+                        >
+                          {f.name}
+                        </button>
                       </React.Fragment>
                    ))}
                 </div>
 
                 <div className="border border-[#e0ddd5] dark:border-[#333] rounded-2xl bg-white dark:bg-[#1a1a1a] overflow-hidden shadow-sm">
                    {moveModalSubfolders.length > 0 ? moveModalSubfolders.map(f => (
-                     <div key={f.id} onClick={() => setMoveTargetFolderId(f.id)} className="flex items-center gap-3 p-3.5 border-b border-[#e0ddd5] dark:border-[#333] last:border-b-0 hover:bg-[#fdfbf7] dark:hover:bg-[#2a2a2a] cursor-pointer transition-colors group">
+                     <div 
+                       key={f.id} 
+                       onPointerDown={(e) => { e.preventDefault(); e.stopPropagation(); setMoveTargetFolderId(f.id); }} 
+                       className="flex items-center gap-3 p-3.5 border-b border-[#e0ddd5] dark:border-[#333] last:border-b-0 hover:bg-[#fdfbf7] dark:hover:bg-[#2a2a2a] cursor-pointer transition-colors group"
+                     >
                         <div className="w-8 h-8 rounded-xl bg-[#c2956e]/10 text-[#c2956e] flex items-center justify-center shrink-0">
                           <Folder size={16} />
                         </div>
@@ -1224,9 +1250,16 @@ export default function NotesPage() {
              </div>
              
              <footer className="px-6 py-5 border-t border-[#e0ddd5] dark:border-[#2a2a2a] bg-white dark:bg-[#1e1e1e] flex justify-end gap-3 shrink-0">
-                <button onClick={() => setIsMoveModalOpen(false)} className="px-5 py-2.5 rounded-xl text-[11px] font-bold uppercase tracking-widest text-[#888] hover:text-[#3d3b33] dark:hover:text-white transition-colors cursor-pointer">Cancel</button>
                 <button 
-                   onClick={() => { 
+                  onPointerDown={(e) => { e.preventDefault(); e.stopPropagation(); setIsMoveModalOpen(false); }} 
+                  className="px-5 py-2.5 rounded-xl text-[11px] font-bold uppercase tracking-widest text-[#888] hover:text-[#3d3b33] dark:hover:text-white transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button 
+                   onPointerDown={(e) => { 
+                     e.preventDefault(); 
+                     e.stopPropagation(); 
                      moveToFolder(selectedId!, moveTargetFolderId); 
                      setIsMoveModalOpen(false); 
                    }} 
