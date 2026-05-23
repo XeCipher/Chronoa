@@ -1,3 +1,4 @@
+/* frontend/app/globals.css */
 @import "tailwindcss";
 @config "../tailwind.config.ts";
 
@@ -56,14 +57,16 @@ body {
 }
 
 /* Allow text selection where the user actually needs to type/edit */
-input, textarea, .chronoa-editor, .task-input-field {
-  -webkit-user-select: auto;
-  user-select: auto;
+/* Added !important to guarantee iOS Safari immediately transfers focus */
+input, textarea, .chronoa-editor, .task-input-field, [contenteditable="true"] {
+  -webkit-user-select: text !important;
+  user-select: text !important;
 }
 
 /* Enforce immediate click registration on touch interfaces, bypassing the 300ms delay */
-button, a, input, select, textarea, [role="button"] {
-  touch-action: manipulation;
+/* Include editor classes to bypass iOS 5-tap focus glitch */
+button, a, input, select, textarea, [role="button"], .chronoa-editor, [contenteditable="true"] {
+  touch-action: manipulation !important;
 }
 
 h1, h2, h3, h4 { font-family: var(--font-display); font-weight: 500; }

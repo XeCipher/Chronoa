@@ -68,6 +68,7 @@ export default function EventModal({ isOpen, onClose, onSave, onDelete, initialE
   const [recommendations, setRecommendations] = useState<any[]>([]);
   const[showRecommendations, setShowRecommendations] = useState(false);
   const titleContainerRef = useRef<HTMLDivElement>(null);
+  const titleTextareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     if (isOpen) {
@@ -88,6 +89,13 @@ export default function EventModal({ isOpen, onClose, onSave, onDelete, initialE
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   },[]);
+
+  useEffect(() => {
+    if (titleTextareaRef.current) {
+      titleTextareaRef.current.style.height = 'auto';
+      titleTextareaRef.current.style.height = `${titleTextareaRef.current.scrollHeight}px`;
+    }
+  }, [title, isOpen]);
 
   // Fetch intelligent recommendations based on past calendar events and completed tasks
   useEffect(() => {
@@ -216,7 +224,6 @@ export default function EventModal({ isOpen, onClose, onSave, onDelete, initialE
             meetingUrl !== (initialEvent.meeting_url || "") ||
             isAllDay !== initialEvent.is_all_day ||
             (!isReadOnly && color !== (initialEvent.color || "amber")); 
-            // Note: color change on readonly saves immediately, so no discard warning needed for that
         }
 
         if (hasChanges && !isReadOnly) {
@@ -327,7 +334,6 @@ export default function EventModal({ isOpen, onClose, onSave, onDelete, initialE
         setStartTime(newStart);
         setEndTime(newEnd);
       } else {
-        // Carry over the time of day from the original event onto the selected day in calendar
         newStart.setHours(recStart.getHours(), recStart.getMinutes(), recStart.getSeconds(), 0);
         const diff = recEnd.getTime() - recStart.getTime();
         const newEnd = new Date(newStart.getTime() + diff);
@@ -445,15 +451,17 @@ export default function EventModal({ isOpen, onClose, onSave, onDelete, initialE
         <div className="p-6 md:p-8 overflow-y-auto no-scrollbar space-y-5 flex-1 min-h-0 w-full relative">
           
           <div className="flex items-center justify-between gap-3 w-full relative" ref={titleContainerRef}>
-            <input 
+            <textarea 
+              ref={titleTextareaRef}
               autoFocus={!isReadOnly}
-              type="text" 
               placeholder="Event Title" 
               value={title} 
-              onChange={e => setTitle(e.target.value)}
+              rows={1}
+              onChange={e => setTitle(e.target.value.replace(/\n/g, ''))}
               onFocus={() => setShowRecommendations(true)}
               disabled={isReadOnly}
-              className={`flex-1 min-w-0 w-full text-2xl sm:text-3xl font-serif outline-none placeholder:text-[#c4c0b8] dark:placeholder:text-[#555] transition-colors ${isReadOnly ? 'bg-transparent text-[#3d3b33] dark:text-white cursor-default' : 'bg-transparent text-[#3d3b33] dark:text-white'}`}
+              className={`flex-1 min-w-0 w-full text-2xl sm:text-3xl font-serif outline-none resize-none no-scrollbar placeholder:text-[#c4c0b8] dark:placeholder:text-[#555] transition-colors ${isReadOnly ? 'bg-transparent text-[#3d3b33] dark:text-white cursor-default' : 'bg-transparent text-[#3d3b33] dark:text-white'}`}
+              style={{ maxHeight: '150px' }}
             />
             
             {showRecommendations && recommendations.length > 0 && (
@@ -564,7 +572,6 @@ export default function EventModal({ isOpen, onClose, onSave, onDelete, initialE
               />
             </div>
 
-            {/* Always allow color changing even for read-only events, to let users customize the calendar aesthetic */}
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 pt-1 w-full">
               <div className="flex items-center gap-2">
                  <Palette size={16} className="text-[#b0ad9a] ml-1 shrink-0" />

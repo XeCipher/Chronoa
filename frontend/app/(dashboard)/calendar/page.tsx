@@ -191,7 +191,10 @@ export default function CalendarPage() {
 
   const handleNext = () => {
     if (calendarView === 'month') setReferenceDate(addMonths(referenceDate, 1));
-    else if (calendarView === 'week') setReferenceDate(addDays(referenceDate, 7));
+    else if (calendarView === 'week') {
+      if (referenceDate.getDay() !== 0) setReferenceDate(addWeeks(startOfWeek(referenceDate), 1));
+      else setReferenceDate(addDays(referenceDate, 7));
+    }
     else if (calendarView === '2-day') setReferenceDate(addDays(referenceDate, 1));
     else setReferenceDate(addDays(referenceDate, 1));
   };
