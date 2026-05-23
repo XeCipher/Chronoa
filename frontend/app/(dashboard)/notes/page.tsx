@@ -1131,7 +1131,7 @@ export default function NotesPage() {
 
       {/* MAIN CONTENT VIEW */}
       <main className={`
-        select-text cursor-text
+        cursor-text
         flex-1 flex flex-col bg-white dark:bg-[#121212] transition-transform duration-500 ease-in-out z-40
         max-lg:fixed max-lg:inset-0
         lg:static lg:translate-x-0
@@ -1151,7 +1151,7 @@ export default function NotesPage() {
 
             <div 
               id="notes-scroll-container" 
-              className="flex-1 overflow-y-auto no-scrollbar w-full relative select-text flex flex-col cursor-text"
+              className="flex-1 overflow-y-auto no-scrollbar w-full relative flex flex-col cursor-text"
               onScroll={(e) => setIsScrolled(e.currentTarget.scrollTop > 10)}
               onClick={(e) => {
                  const target = e.target as HTMLElement;
@@ -1164,7 +1164,7 @@ export default function NotesPage() {
               {/* Spacer for absolute header on mobile */}
               <div className="lg:hidden w-full h-[calc(4.5rem+max(1rem,env(safe-area-inset-top)))] shrink-0 pointer-events-none" />
 
-              <div className="max-w-[1000px] mx-auto px-5 sm:px-6 lg:px-12 pt-2 lg:pt-10 pb-[calc(1.5rem+72px+env(safe-area-inset-bottom))] lg:pb-10 w-full flex-1 flex flex-col select-text">
+              <div className="max-w-[1000px] mx-auto px-5 sm:px-6 lg:px-12 pt-2 lg:pt-10 pb-[calc(1.5rem+72px+env(safe-area-inset-bottom))] lg:pb-10 w-full flex-1 flex flex-col">
                 
                 {/* DESKTOP SCROLLING HEADER (Scrolls naturally on laptops) */}
                 <div className="hidden lg:block mb-8 shrink-0">
@@ -1172,7 +1172,7 @@ export default function NotesPage() {
                 </div>
 
                 {/* Editor Content Area ensures the whole bottom space is the contenteditable target */}
-                <div className="relative min-h-[500px] flex-1 flex flex-col select-text">
+                <div className="relative flex-1 flex flex-col">
                   <DistractionFreeEditor
                     key={`${isTrashOpen ? 'trash' : notesTab}-${selectedId}`}
                     initialContent={selectedItem.content || '<p></p>'}

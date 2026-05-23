@@ -296,7 +296,7 @@ export default function DistractionFreeEditor({
         // Enforce the contenteditable node to stretch and fill all available height 
         // We moved pb-32 to the element itself to allow native clicks everywhere 
         class:
-          "chronoa-editor select-text focus:outline-none w-full flex-1 h-full min-h-[65vh] text-[#3d3b33] dark:text-[#e0e0e0] pb-32 md:pb-12 cursor-text",
+          "chronoa-editor select-text focus:outline-none w-full flex-1 h-full min-h-[70vh] text-[#3d3b33] dark:text-[#e0e0e0] pb-[40vh] md:pb-[30vh] cursor-text",
         spellcheck: "false",
         autocorrect: "off",
         autocomplete: "off",
@@ -357,7 +357,8 @@ export default function DistractionFreeEditor({
   useEffect(() => {
     const handleFocus = () => {
       if (editor && !editor.isFocused) {
-        editor.chain().focus('end').run();
+        editor.view.dom.focus();
+        editor.commands.focus('end');
       }
     };
     window.addEventListener('focus-editor', handleFocus);
@@ -692,8 +693,14 @@ export default function DistractionFreeEditor({
 
       {/* Editor Content Area ensures the whole bottom space is the contenteditable target */}
       <div
-        className="relative w-full flex-1 flex flex-col select-text cursor-text"
+        className="relative w-full flex-1 flex flex-col cursor-text"
         style={{ fontSize: `${(journalZoom / 100) * 1.05}rem`, fontFamily: "inherit" }}
+        onClick={() => {
+          if (editor && !editor.isFocused) {
+            editor.view.dom.focus();
+            editor.commands.focus('end');
+          }
+        }}
       >
         {editor.isEmpty && (
           <div className="absolute top-0 left-0 pointer-events-none text-[#c4c0b8] dark:text-[#666] opacity-70 italic w-full leading-[1.45]">
