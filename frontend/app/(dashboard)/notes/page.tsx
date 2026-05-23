@@ -307,6 +307,7 @@ export default function NotesPage() {
   }, [notes, journals, trash, folders, loading]);
 
   useEffect(() => {
+    if (!showCalendar) return;
     const handleClickOutside = (e: MouseEvent) => {
       const target = e.target as HTMLElement;
       if (target.closest('.chronoa-calendar-container') || target.closest('.desktop-cal-toggle') || target.closest('.mobile-cal-toggle')) {
@@ -316,7 +317,7 @@ export default function NotesPage() {
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
+  }, [showCalendar]);
 
   useEffect(() => {
     if (selectedId) {
@@ -827,7 +828,7 @@ export default function NotesPage() {
                 value={editTitle} onChange={e => setEditTitle(e.target.value)} onBlur={updateNoteTitle} disabled={isTrashOpen}
                 placeholder="Title..."
                 spellCheck={false}
-                className="text-2xl lg:text-4xl text-[#3d3b33] dark:text-white font-serif leading-tight bg-transparent outline-none w-full placeholder:text-[#e0ddd5] dark:placeholder:text-[#2a2a2a] transition-all truncate lg:whitespace-normal" 
+                className="select-text text-2xl lg:text-4xl text-[#3d3b33] dark:text-white font-serif leading-tight bg-transparent outline-none w-full placeholder:text-[#e0ddd5] dark:placeholder:text-[#2a2a2a] transition-all truncate lg:whitespace-normal" 
               />
             )}
           </div>

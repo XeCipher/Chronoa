@@ -221,15 +221,16 @@ export default function DistractionFreeEditor({
   useEffect(() => {
     const down = () => { isMouseDown.current = true; };
     const up = () => { isMouseDown.current = false; };
-    window.addEventListener('mousedown', down);
-    window.addEventListener('mouseup', up);
-    window.addEventListener('pointerdown', down);
-    window.addEventListener('pointerup', up);
+    // Made passive to ensure iOS safari focus event delegation isn't interrupted
+    window.addEventListener('pointerdown', down, { passive: true });
+    window.addEventListener('pointerup', up, { passive: true });
+    window.addEventListener('touchstart', down, { passive: true });
+    window.addEventListener('touchend', up, { passive: true });
     return () => {
-      window.removeEventListener('mousedown', down);
-      window.removeEventListener('mouseup', up);
       window.removeEventListener('pointerdown', down);
       window.removeEventListener('pointerup', up);
+      window.removeEventListener('touchstart', down);
+      window.removeEventListener('touchend', up);
     };
   }, []);
 
@@ -311,7 +312,7 @@ export default function DistractionFreeEditor({
     editorProps: {
       attributes: {
         class:
-          "chronoa-editor focus:outline-none w-full min-h-[150px] md:min-h-[300px] text-[#3d3b33] dark:text-[#e0e0e0]",
+          "chronoa-editor select-text focus:outline-none w-full min-h-[150px] md:min-h-[300px] text-[#3d3b33] dark:text-[#e0e0e0]",
         spellcheck: "false",
         autocorrect: "off",
         autocomplete: "off",
@@ -572,7 +573,7 @@ export default function DistractionFreeEditor({
   // ── UI Components ──────────────────────────────────────────────────────────
   const ToolbarButton = ({ onClick, isActive, title, children }: any) => (
     <button
-      onPointerDown={(e) => { e.preventDefault(); onClick(); }} // Replaced onMouseDown with onPointerDown
+      onPointerDown={(e) => { e.preventDefault(); onClick(); }} // Used to ensure focus isn't stolen
       data-tooltip-id="global-tooltip"
       data-tooltip-content={title}
       className={`flex items-center justify-center w-8 h-8 rounded-xl transition-all duration-150 shrink-0 cursor-pointer ${
@@ -590,7 +591,7 @@ export default function DistractionFreeEditor({
   const ZoomControl = ({ preventFocus = false }: { preventFocus?: boolean }) => {
     const bind = (fn: () => void) =>
       preventFocus
-        ? { onPointerDown: (e: React.MouseEvent) => { e.preventDefault(); fn(); } } // Replaced onMouseDown with onPointerDown
+        ? { onPointerDown: (e: React.MouseEvent) => { e.preventDefault(); fn(); } } 
         : { onClick: fn };
     return (
       <div className="flex items-center gap-1 bg-[#f7f5f0] dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#2a2a2a] px-2 py-1 rounded-xl shrink-0">
@@ -647,7 +648,7 @@ export default function DistractionFreeEditor({
         <div className="flex items-center gap-1.5">
           {isEditable && (
             <button
-              onPointerDown={(e) => { e.preventDefault(); insertTimestamp(); }} // Replaced onMouseDown with onPointerDown
+              onPointerDown={(e) => { e.preventDefault(); insertTimestamp(); }}
               className="cursor-pointer flex items-center justify-center w-[30px] h-[30px] rounded-xl bg-[#f7f5f0] dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#2a2a2a] text-[#888] hover:text-[#c2956e] shadow-sm transition-colors"
             >
               <Clock size={14} />
@@ -697,7 +698,7 @@ export default function DistractionFreeEditor({
               <ZoomControl preventFocus />
               {!isSandbox && (
                 <button
-                  onPointerDown={(e) => { e.preventDefault(); toggleEditorFullscreen(); }} // Replaced onMouseDown with onPointerDown
+                  onPointerDown={(e) => { e.preventDefault(); toggleEditorFullscreen(); }} 
                   className="cursor-pointer flex items-center justify-center w-[30px] h-[30px] md:w-8 md:h-8 rounded-xl bg-[#f7f5f0] dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#2a2a2a] text-[#888] hover:text-[#c2956e] dark:hover:text-[#d1a784] shadow-sm transition-colors shrink-0"
                   data-tooltip-id="global-tooltip"
                   data-tooltip-content={isEditorFullscreen ? "Exit Fullscreen" : "Fullscreen"}
@@ -716,7 +717,7 @@ export default function DistractionFreeEditor({
           <ZoomControl />
           {!isSandbox && (
             <button
-              onPointerDown={(e) => { e.preventDefault(); toggleEditorFullscreen(); }} // Replaced onMouseDown with onPointerDown
+              onPointerDown={(e) => { e.preventDefault(); toggleEditorFullscreen(); }} 
               className="cursor-pointer flex items-center justify-center w-[30px] h-[30px] md:w-8 md:h-8 rounded-xl bg-[#f7f5f0] dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#2a2a2a] text-[#888] hover:text-[#c2956e] dark:hover:text-[#d1a784] shadow-sm transition-colors shrink-0"
               data-tooltip-id="global-tooltip"
               data-tooltip-content={isEditorFullscreen ? "Exit Fullscreen" : "Fullscreen"}
