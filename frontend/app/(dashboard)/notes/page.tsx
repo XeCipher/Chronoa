@@ -1149,19 +1149,38 @@ export default function NotesPage() {
                {renderEditorHeader(true)}
             </div>
 
+            {/*
+              iOS Safari fix: on overflow:auto containers, the first tap on a child
+              contenteditable is consumed by the scroll container itself (a known WebKit quirk).
+              Having ANY onClick handler here registers this container as "interactive",
+              which causes iOS to treat the very first tap as a real click that propagates
+              to the contenteditable below. We deliberately skip any programmatic focus
+              calls on mobile — those interfere with iOS's native keyboard/cursor handling
+              and are the root cause of needing 4-5 taps. Desktop keeps its focus-editor
+              dispatch so clicking below the last line of text still places the cursor.
+            */}
             <div 
               id="notes-scroll-container" 
               className="flex-1 overflow-y-auto no-scrollbar w-full relative flex flex-col cursor-text"
               onScroll={(e) => setIsScrolled(e.currentTarget.scrollTop > 10)}
               onClick={(e) => {
-                 const target = e.target as HTMLElement;
-                 // Prevent dispatching if the user clicks a specific interactive element
-                 if (!target.closest('button') && !target.closest('a') && !target.closest('input') && !target.closest('.no-editor-focus')) {
-                    window.dispatchEvent(new CustomEvent('focus-editor'));
-                 }
+                const target = e.target as HTMLElement;
+                // On desktop only: if the user clicks in the whitespace below the editor content,
+                // dispatch an event so the editor can focus and position the cursor at end.
+                // On mobile we skip this entirely — iOS needs to handle contenteditable
+                // focus natively, and any programmatic call here creates the multi-tap loop.
+                if (
+                  window.innerWidth >= 1024 &&
+                  !target.closest('button') &&
+                  !target.closest('a') &&
+                  !target.closest('input') &&
+                  !target.closest('.no-editor-focus')
+                ) {
+                  window.dispatchEvent(new CustomEvent('focus-editor'));
+                }
               }}
             >
-              {/* Spacer for absolute header on mobile */}
+              {/* Spacer to clear the absolute mobile header */}
               <div className="lg:hidden w-full h-[calc(4.5rem+max(1rem,env(safe-area-inset-top)))] shrink-0 pointer-events-none" />
 
               <div className="max-w-[1000px] mx-auto px-5 sm:px-6 lg:px-12 pt-2 lg:pt-10 pb-[calc(1.5rem+72px+env(safe-area-inset-bottom))] lg:pb-10 w-full flex-1 flex flex-col">

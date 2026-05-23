@@ -238,8 +238,8 @@ export default function DistractionFreeEditor({
         const pos = state.selection.to;
         const coords = view.coordsAtPos(pos);
 
-        // Standardized buffer to prevent aggressive jumps
-        // Add ~100px (approx 4 lines) to the mobile buffer to account for taller keyboards
+        // Standardized buffer to prevent aggressive jumps.
+        // Add ~100px (approx 4 lines) to the mobile buffer to account for taller keyboards.
         const isMobile = window.innerWidth < 1024;
         const bottomBuffer = isMobile ? 240 : 120; 
         const topBuffer = 100; // Keeps cursor below the sticky toolbar
@@ -293,8 +293,8 @@ export default function DistractionFreeEditor({
     content: initialContent,
     editorProps: {
       attributes: {
-        // Enforce the contenteditable node to stretch and fill all available height 
-        // We moved pb-32 to the element itself to allow native clicks everywhere 
+        // Enforce the contenteditable node to stretch and fill all available height.
+        // We moved pb-32 to the element itself to allow native clicks everywhere.
         class:
           "chronoa-editor select-text focus:outline-none w-full flex-1 h-full min-h-[70vh] text-[#3d3b33] dark:text-[#e0e0e0] pb-[40vh] md:pb-[30vh] cursor-text",
         spellcheck: "false",
@@ -341,7 +341,8 @@ export default function DistractionFreeEditor({
     immediatelyRender: false,
   });
 
-  // Allows identical seamless updates from external/remote sources without disrupting the cursor when the user is actively typing
+  // Allows identical seamless updates from external/remote sources without
+  // disrupting the cursor when the user is actively typing.
   useEffect(() => {
     if (editor && initialContent !== undefined) {
       if (!editor.isFocused) {
@@ -353,13 +354,16 @@ export default function DistractionFreeEditor({
     }
   }, [initialContent, editor]);
 
-  // Handle explicit programatic focus calls dispatched from outer containers
+  // Handle explicit programmatic focus calls dispatched from outer containers.
+  // On iOS, we skip this entirely — calling editor.commands.focus() in response
+  // to a bubbled click event (rather than a direct tap on the contenteditable)
+  // interferes with iOS's native keyboard/cursor handling and causes the multi-tap bug.
+  // Desktop still benefits from this for the "click below last line" use case.
   useEffect(() => {
     const handleFocus = () => {
-      if (editor && !editor.isFocused) {
-        editor.view.dom.focus();
-        editor.commands.focus('end');
-      }
+      if (!editor || !editor.isFocused || window.innerWidth < 1024) return;
+      editor.view.dom.focus();
+      editor.commands.focus('end');
     };
     window.addEventListener('focus-editor', handleFocus);
     return () => window.removeEventListener('focus-editor', handleFocus);
@@ -390,7 +394,9 @@ export default function DistractionFreeEditor({
     };
   }, [editor]);
 
-  // ── Auto-Focus on Mount (Desktop) ──────────────────────────────────────────
+  // ── Auto-Focus on Mount (Desktop only) ────────────────────────────────────
+  // On mobile we skip this — iOS won't show the keyboard from a programmatic
+  // focus call triggered during mount, and attempting it causes jank.
   useEffect(() => {
     if (shouldFocusOnMount && editor && window.innerWidth >= 1024) {
       setTimeout(() => {
@@ -691,12 +697,29 @@ export default function DistractionFreeEditor({
         </div>
       )}
 
-      {/* Editor Content Area ensures the whole bottom space is the contenteditable target */}
+      {/*
+        Editor Content Area.
+        
+        On desktop: the onClick here handles "click below last line of text" by
+        calling focus('end'), which places the cursor at the very end. This is
+        useful when there's a lot of empty padding below the content.
+        
+        On mobile (iOS): we deliberately do NOT call any programmatic focus from
+        this onClick. iOS Safari requires the contenteditable element to receive
+        the native touch event directly — any programmatic editor.commands.focus()
+        or editor.view.dom.focus() call that fires as a result of a bubbled click
+        on a parent element bypasses the native touch-handling pipeline, which is
+        what caused the 4-5 tap requirement in the first place. The contenteditable
+        fills the full height via min-h-[70vh] + pb-[40vh], so tapping anywhere
+        in the visible area lands directly on it.
+      */}
       <div
         className="relative w-full flex-1 flex flex-col cursor-text"
         style={{ fontSize: `${(journalZoom / 100) * 1.05}rem`, fontFamily: "inherit" }}
         onClick={() => {
-          if (editor && !editor.isFocused) {
+          // Desktop only: focus and move cursor to end for clicks in the empty
+          // space below the last paragraph.
+          if (window.innerWidth >= 1024 && editor && !editor.isFocused) {
             editor.view.dom.focus();
             editor.commands.focus('end');
           }
