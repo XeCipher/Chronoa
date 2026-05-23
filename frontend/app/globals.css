@@ -61,6 +61,7 @@ body {
 input, textarea, .chronoa-editor, .task-input-field, [contenteditable="true"], .select-text {
   -webkit-user-select: text !important;
   user-select: text !important;
+  cursor: text;
 }
 
 /* Enforce immediate click registration on touch interfaces, bypassing the 300ms delay */

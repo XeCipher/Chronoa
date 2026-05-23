@@ -293,10 +293,10 @@ export default function DistractionFreeEditor({
     content: initialContent,
     editorProps: {
       attributes: {
-        // Enforce the contenteditable node to stretch and fill all available height (flex-1 h-full min-h-[65vh]).
-        // This ensures the tap hits the native input field directly anywhere in the editor container.
+        // Enforce the contenteditable node to stretch and fill all available height 
+        // We moved pb-32 to the element itself to allow native clicks everywhere 
         class:
-          "chronoa-editor select-text focus:outline-none w-full flex-1 h-full min-h-[65vh] text-[#3d3b33] dark:text-[#e0e0e0]",
+          "chronoa-editor select-text focus:outline-none w-full flex-1 h-full min-h-[65vh] text-[#3d3b33] dark:text-[#e0e0e0] pb-32 md:pb-12 cursor-text",
         spellcheck: "false",
         autocorrect: "off",
         autocomplete: "off",
@@ -353,6 +353,17 @@ export default function DistractionFreeEditor({
     }
   }, [initialContent, editor]);
 
+  // Handle explicit programatic focus calls dispatched from outer containers
+  useEffect(() => {
+    const handleFocus = () => {
+      if (editor && !editor.isFocused) {
+        editor.chain().focus('end').run();
+      }
+    };
+    window.addEventListener('focus-editor', handleFocus);
+    return () => window.removeEventListener('focus-editor', handleFocus);
+  }, [editor]);
+
   // ── VisualViewport Resize Listener ─────────────────────────────────────────
   useEffect(() => {
     const vv = window.visualViewport;
@@ -382,7 +393,7 @@ export default function DistractionFreeEditor({
   useEffect(() => {
     if (shouldFocusOnMount && editor && window.innerWidth >= 1024) {
       setTimeout(() => {
-        if (!editor.isFocused) editor.commands.focus("start");
+        if (!editor.isFocused) editor.commands.focus("end");
       }, 150);
     }
   }, [shouldFocusOnMount, editor]);
@@ -613,7 +624,7 @@ export default function DistractionFreeEditor({
         <>
           {/* Mobile Floating Bubble Menu */}
           <div
-            className="md:hidden flex items-center gap-2 px-3 py-2 border border-[#e0ddd5] dark:border-[#2a2a2a] bg-white/95 dark:bg-[#121212]/95 backdrop-blur-md shadow-xl rounded-2xl w-max max-w-[92vw] overflow-x-auto no-scrollbar transition-opacity duration-200"
+            className="md:hidden flex items-center gap-2 px-3 py-2 border border-[#e0ddd5] dark:border-[#2a2a2a] bg-white/95 dark:bg-[#121212]/95 backdrop-blur-md shadow-xl rounded-2xl w-max max-w-[92vw] overflow-x-auto no-scrollbar transition-opacity duration-200 no-editor-focus cursor-default"
             style={bubbleStyle}
           >
             <div className="flex items-center gap-0.5 overflow-x-auto no-scrollbar flex-1 min-w-0">
@@ -624,7 +635,7 @@ export default function DistractionFreeEditor({
           {/* Desktop Sticky Toolbar */}
           <div
             className={[
-              "hidden md:flex sticky top-2 lg:top-4 z-[60]",
+              "hidden md:flex sticky top-2 lg:top-4 z-[60] no-editor-focus cursor-default",
               "md:p-2 md:border md:border-[#e0ddd5] md:dark:border-[#2a2a2a] md:rounded-2xl",
               "md:bg-white/95 md:dark:bg-[#121212]/95 md:backdrop-blur-xl",
               "md:shadow-[0_4px_20px_0_rgba(0,0,0,0.05)] md:dark:shadow-[0_4px_20px_0_rgba(0,0,0,0.4)]",
@@ -664,7 +675,7 @@ export default function DistractionFreeEditor({
 
       {/* Desktop Read-only Toolbar */}
       {!isEditable && (
-        <div className="hidden md:flex justify-end items-center gap-2 sticky top-2 lg:top-4 z-[60] bg-white/90 dark:bg-[#121212]/90 backdrop-blur-md p-2 rounded-2xl shadow-sm border border-[#e0ddd5] dark:border-[#2a2a2a]">
+        <div className="hidden md:flex justify-end items-center gap-2 sticky top-2 lg:top-4 z-[60] bg-white/90 dark:bg-[#121212]/90 backdrop-blur-md p-2 rounded-2xl shadow-sm border border-[#e0ddd5] dark:border-[#2a2a2a] no-editor-focus cursor-default">
           <ZoomControl />
           {!isSandbox && (
             <button
@@ -681,7 +692,7 @@ export default function DistractionFreeEditor({
 
       {/* Editor Content Area ensures the whole bottom space is the contenteditable target */}
       <div
-        className="relative w-full flex-1 flex flex-col select-text"
+        className="relative w-full flex-1 flex flex-col select-text cursor-text"
         style={{ fontSize: `${(journalZoom / 100) * 1.05}rem`, fontFamily: "inherit" }}
       >
         {editor.isEmpty && (
@@ -689,7 +700,7 @@ export default function DistractionFreeEditor({
             {placeholder}
           </div>
         )}
-        <EditorContent editor={editor} className="mt-0 pb-32 md:pb-12 flex-1 flex flex-col h-full w-full" />
+        <EditorContent editor={editor} className="mt-0 flex-1 flex flex-col h-full w-full" />
       </div>
     </div>
   );

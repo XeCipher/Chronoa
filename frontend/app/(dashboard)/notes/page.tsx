@@ -797,7 +797,7 @@ export default function NotesPage() {
   };
 
   const renderEditorHeader = (isMobile: boolean = false) => (
-    <div className="flex flex-col gap-2 relative w-full">
+    <div className="flex flex-col gap-2 relative w-full no-editor-focus cursor-default">
       <div className="flex flex-row items-center justify-between gap-3 w-full">
         <div className="flex items-center gap-3 flex-1 min-w-0">
           {isMobile && (
@@ -1131,7 +1131,7 @@ export default function NotesPage() {
 
       {/* MAIN CONTENT VIEW */}
       <main className={`
-        select-text
+        select-text cursor-text
         flex-1 flex flex-col bg-white dark:bg-[#121212] transition-transform duration-500 ease-in-out z-40
         max-lg:fixed max-lg:inset-0
         lg:static lg:translate-x-0
@@ -1151,11 +1151,18 @@ export default function NotesPage() {
 
             <div 
               id="notes-scroll-container" 
-              className="flex-1 overflow-y-auto no-scrollbar w-full relative select-text flex flex-col"
+              className="flex-1 overflow-y-auto no-scrollbar w-full relative select-text flex flex-col cursor-text"
               onScroll={(e) => setIsScrolled(e.currentTarget.scrollTop > 10)}
+              onClick={(e) => {
+                 const target = e.target as HTMLElement;
+                 // Prevent dispatching if the user clicks a specific interactive element
+                 if (!target.closest('button') && !target.closest('a') && !target.closest('input') && !target.closest('.no-editor-focus')) {
+                    window.dispatchEvent(new CustomEvent('focus-editor'));
+                 }
+              }}
             >
               {/* Spacer for absolute header on mobile */}
-              <div className="lg:hidden w-full h-[calc(4.5rem+max(1rem,env(safe-area-inset-top)))] shrink-0" />
+              <div className="lg:hidden w-full h-[calc(4.5rem+max(1rem,env(safe-area-inset-top)))] shrink-0 pointer-events-none" />
 
               <div className="max-w-[1000px] mx-auto px-5 sm:px-6 lg:px-12 pt-2 lg:pt-10 pb-[calc(1.5rem+72px+env(safe-area-inset-bottom))] lg:pb-10 w-full flex-1 flex flex-col select-text">
                 
