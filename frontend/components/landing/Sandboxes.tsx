@@ -932,11 +932,28 @@ export function MockAnalyticsSandbox() {
 // Clean, manual-scroll component with a delightful "peek" animation on mount
 const MarqueeRow = React.memo(({ prompts, speed = 0.5 }: { prompts: any[], speed?: number }) => {
   const scrollRef = useRef<HTMLDivElement>(null);
+  const isHovered = useRef(false);
+  const isTouching = useRef(false);
   const scrollPos = useRef(0);
+  const [isTouchDevice, setIsTouchDevice] = useState(false);
+
+  useEffect(() => {
+    // Detect if the device relies primarily on touch (disables auto-scroll)
+    const checkTouch = () => {
+      setIsTouchDevice(
+        window.matchMedia('(hover: none)').matches || 
+        ('ontouchstart' in window) || 
+        navigator.maxTouchPoints > 0
+      );
+    };
+    checkTouch();
+    window.addEventListener('resize', checkTouch);
+    return () => window.removeEventListener('resize', checkTouch);
+  }, []);
 
   useEffect(() => {
     const el = scrollRef.current;
-    if (!el) return;
+    if (!el || isTouchDevice) return;
 
     let animationId: number;
     let lastTime = performance.now();
@@ -945,17 +962,23 @@ const MarqueeRow = React.memo(({ prompts, speed = 0.5 }: { prompts: any[], speed
       const delta = time - lastTime;
       lastTime = time;
 
+      // Prevent huge jumps if tab goes inactive
       if (delta < 100) { 
-        scrollPos.current += (speed * 60 / 1000) * delta;
-        
-        // We duplicated the array, so half of the total width is the exact loop point
-        const maxScroll = el.scrollWidth / 2;
-        
-        if (scrollPos.current >= maxScroll) {
-          scrollPos.current -= maxScroll;
+        if (!isHovered.current && !isTouching.current) {
+          scrollPos.current += (speed * 60 / 1000) * delta;
+          
+          // We duplicated the array, so half of the total width is the exact loop point
+          const maxScroll = el.scrollWidth / 2;
+          
+          if (scrollPos.current >= maxScroll) {
+            scrollPos.current -= maxScroll;
+          }
+          
+          el.scrollLeft = scrollPos.current;
+        } else {
+          // Keep our tracker strictly synced when the user scrolls natively
+          scrollPos.current = el.scrollLeft;
         }
-        
-        el.scrollLeft = scrollPos.current;
       }
 
       animationId = requestAnimationFrame(scroll);
@@ -963,7 +986,7 @@ const MarqueeRow = React.memo(({ prompts, speed = 0.5 }: { prompts: any[], speed
 
     animationId = requestAnimationFrame(scroll);
     return () => cancelAnimationFrame(animationId);
-  }, [speed, prompts.length]);
+  }, [speed, isTouchDevice]);
 
   if (prompts.length === 0) return null;
 
@@ -973,8 +996,12 @@ const MarqueeRow = React.memo(({ prompts, speed = 0.5 }: { prompts: any[], speed
   return (
     <div 
       ref={scrollRef}
-      className="flex w-full overflow-hidden py-2"
-      style={{ scrollBehavior: 'auto' }}
+      className="flex w-full overflow-x-auto no-scrollbar py-2"
+      style={{ scrollBehavior: 'auto', WebkitOverflowScrolling: 'touch' }}
+      onMouseEnter={() => { isHovered.current = true; }}
+      onMouseLeave={() => { isHovered.current = false; }}
+      onTouchStart={() => { isTouching.current = true; }}
+      onTouchEnd={() => { isTouching.current = false; }}
     >
       <div className="flex gap-4 w-max px-2 pointer-events-auto">
         {duplicatedPrompts.map((p, i) => (

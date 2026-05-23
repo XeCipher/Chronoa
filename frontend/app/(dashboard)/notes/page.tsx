@@ -797,15 +797,11 @@ export default function NotesPage() {
   };
 
   const renderEditorHeader = (isMobile: boolean = false) => (
-    <div className="flex flex-col gap-2 relative group w-full">
+    <div className="flex flex-col gap-2 relative w-full">
       <div className="flex flex-row items-center justify-between gap-3 w-full">
         <div className="flex items-center gap-3 flex-1 min-w-0">
           {isMobile && (
             <button 
-              onPointerDown={(e) => { 
-                e.preventDefault(); 
-                setSelectedId(null); setIsListVisible(true); setNoteToFocus(null); 
-              }}
               onClick={() => { setSelectedId(null); setIsListVisible(true); setNoteToFocus(null); }} 
               className="flex items-center justify-center p-2.5 bg-[#f7f5f0] dark:bg-[#1a1a1a] text-[#888] rounded-xl border border-[#e0ddd5] dark:border-[#333] md:hover:text-[#3d3b33] md:dark:hover:text-[#f0f0f0] transition-all shadow-sm shrink-0 cursor-pointer"
             >

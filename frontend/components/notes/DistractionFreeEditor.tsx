@@ -216,24 +216,6 @@ export default function DistractionFreeEditor({
     link: false,
   });
 
-  // Intercept raw mouse downs so we don't accidentally fight manual selection drags
-  const isMouseDown = useRef(false);
-  useEffect(() => {
-    const down = () => { isMouseDown.current = true; };
-    const up = () => { isMouseDown.current = false; };
-    // Made passive to ensure iOS safari focus event delegation isn't interrupted
-    window.addEventListener('pointerdown', down, { passive: true });
-    window.addEventListener('pointerup', up, { passive: true });
-    window.addEventListener('touchstart', down, { passive: true });
-    window.addEventListener('touchend', up, { passive: true });
-    return () => {
-      window.removeEventListener('pointerdown', down);
-      window.removeEventListener('pointerup', up);
-      window.removeEventListener('touchstart', down);
-      window.removeEventListener('touchend', up);
-    };
-  }, []);
-
   useEffect(() => {
     if (noteType === "journal") {
       setPlaceholder(PROMPTS[Math.floor(Math.random() * PROMPTS.length)]);
@@ -242,7 +224,7 @@ export default function DistractionFreeEditor({
 
   // ── Core Scroll Engine: Flawless Margin Management ─────────────────────────
   const ensureCursorVisible = useCallback((ed: ReturnType<typeof useEditor>) => {
-    if (!ed || isMouseDown.current) return;
+    if (!ed) return;
 
     // Use requestAnimationFrame to ensure the DOM has painted the new line/character
     requestAnimationFrame(() => {
@@ -332,7 +314,6 @@ export default function DistractionFreeEditor({
       });
     },
     onFocus: ({ editor: ed }) => {
-      if (isMouseDown.current) return;
       // Staggered checks to smoothly track the iOS/Android keyboard sliding animation
       ensureCursorVisibleRef.current(ed);
       setTimeout(() => ensureCursorVisibleRef.current(ed), 100);
@@ -445,33 +426,6 @@ export default function DistractionFreeEditor({
     };
   }, [isEditable]);
 
-  // ── Touch Swipe to Indent / Unindent ───────────────────────────────────────
-  const touchStart = useRef<{x: number, y: number} | null>(null);
-
-  const handleTouchStart = (e: React.TouchEvent) => {
-    if (!isEditable || !editor) return;
-    touchStart.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
-  };
-
-  const handleTouchEnd = (e: React.TouchEvent) => {
-    if (!isEditable || !editor || !touchStart.current) return;
-    const touchEnd = { x: e.changedTouches[0].clientX, y: e.changedTouches[0].clientY };
-    const dx = touchEnd.x - touchStart.current.x;
-    const dy = touchEnd.y - touchStart.current.y;
-
-    // Detect horizontal swipe with minimal vertical drift
-    if (Math.abs(dy) < 40 && Math.abs(dx) > 60) {
-      if (dx > 0) {
-        // Swipe Right -> Indent
-        editor.chain().focus().sinkListItem('listItem').run();
-      } else {
-        // Swipe Left -> Unindent
-        editor.chain().focus().liftListItem('listItem').run();
-      }
-    }
-    touchStart.current = null;
-  };
-
   // ── Mobile Bubble Menu Logic ───────────────────────────────────────────────
   useEffect(() => {
     if (!editor) return;
@@ -573,7 +527,7 @@ export default function DistractionFreeEditor({
   // ── UI Components ──────────────────────────────────────────────────────────
   const ToolbarButton = ({ onClick, isActive, title, children }: any) => (
     <button
-      onPointerDown={(e) => { e.preventDefault(); onClick(); }} // Used to ensure focus isn't stolen
+      onMouseDown={(e) => { e.preventDefault(); onClick(); }}
       data-tooltip-id="global-tooltip"
       data-tooltip-content={title}
       className={`flex items-center justify-center w-8 h-8 rounded-xl transition-all duration-150 shrink-0 cursor-pointer ${
@@ -591,7 +545,7 @@ export default function DistractionFreeEditor({
   const ZoomControl = ({ preventFocus = false }: { preventFocus?: boolean }) => {
     const bind = (fn: () => void) =>
       preventFocus
-        ? { onPointerDown: (e: React.MouseEvent) => { e.preventDefault(); fn(); } } 
+        ? { onMouseDown: (e: React.MouseEvent) => { e.preventDefault(); fn(); } } 
         : { onClick: fn };
     return (
       <div className="flex items-center gap-1 bg-[#f7f5f0] dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#2a2a2a] px-2 py-1 rounded-xl shrink-0">
@@ -630,11 +584,7 @@ export default function DistractionFreeEditor({
   );
 
   return (
-    <div 
-      className={`relative w-full flex flex-col gap-2 h-full ${isSandbox ? "md:gap-10" : "md:gap-4"}`}
-      onTouchStart={handleTouchStart}
-      onTouchEnd={handleTouchEnd}
-    >
+    <div className={`relative w-full flex flex-col gap-2 h-full ${isSandbox ? "md:gap-10" : "md:gap-4"}`}>
 
       {/* Mobile Top Bar */}
       <div className="md:hidden flex w-full justify-between items-center gap-1.5 z-10 mt-2 mb-0">
@@ -648,7 +598,7 @@ export default function DistractionFreeEditor({
         <div className="flex items-center gap-1.5">
           {isEditable && (
             <button
-              onPointerDown={(e) => { e.preventDefault(); insertTimestamp(); }}
+              onMouseDown={(e) => { e.preventDefault(); insertTimestamp(); }}
               className="cursor-pointer flex items-center justify-center w-[30px] h-[30px] rounded-xl bg-[#f7f5f0] dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#2a2a2a] text-[#888] hover:text-[#c2956e] shadow-sm transition-colors"
             >
               <Clock size={14} />
@@ -698,7 +648,7 @@ export default function DistractionFreeEditor({
               <ZoomControl preventFocus />
               {!isSandbox && (
                 <button
-                  onPointerDown={(e) => { e.preventDefault(); toggleEditorFullscreen(); }} 
+                  onMouseDown={(e) => { e.preventDefault(); toggleEditorFullscreen(); }} 
                   className="cursor-pointer flex items-center justify-center w-[30px] h-[30px] md:w-8 md:h-8 rounded-xl bg-[#f7f5f0] dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#2a2a2a] text-[#888] hover:text-[#c2956e] dark:hover:text-[#d1a784] shadow-sm transition-colors shrink-0"
                   data-tooltip-id="global-tooltip"
                   data-tooltip-content={isEditorFullscreen ? "Exit Fullscreen" : "Fullscreen"}
@@ -717,7 +667,7 @@ export default function DistractionFreeEditor({
           <ZoomControl />
           {!isSandbox && (
             <button
-              onPointerDown={(e) => { e.preventDefault(); toggleEditorFullscreen(); }} 
+              onMouseDown={(e) => { e.preventDefault(); toggleEditorFullscreen(); }} 
               className="cursor-pointer flex items-center justify-center w-[30px] h-[30px] md:w-8 md:h-8 rounded-xl bg-[#f7f5f0] dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#2a2a2a] text-[#888] hover:text-[#c2956e] dark:hover:text-[#d1a784] shadow-sm transition-colors shrink-0"
               data-tooltip-id="global-tooltip"
               data-tooltip-content={isEditorFullscreen ? "Exit Fullscreen" : "Fullscreen"}
