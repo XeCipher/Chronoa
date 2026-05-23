@@ -802,7 +802,13 @@ export default function NotesPage() {
         <div className="flex items-center gap-3 flex-1 min-w-0">
           {isMobile && (
             <button 
-              onClick={() => { setSelectedId(null); setIsListVisible(true); setNoteToFocus(null); }} 
+              onPointerDown={(e) => { 
+                e.preventDefault(); 
+                (document.activeElement as HTMLElement)?.blur(); 
+                setSelectedId(null); 
+                setIsListVisible(true); 
+                setNoteToFocus(null); 
+              }}
               className="flex items-center justify-center p-2.5 bg-[#f7f5f0] dark:bg-[#1a1a1a] text-[#888] rounded-xl border border-[#e0ddd5] dark:border-[#333] md:hover:text-[#3d3b33] md:dark:hover:text-[#f0f0f0] transition-all shadow-sm shrink-0 cursor-pointer"
             >
               <ArrowLeft size={18} />
@@ -812,7 +818,7 @@ export default function NotesPage() {
             {(!isTrashOpen && notesTab === 'journal') || selectedItem?.isJournal ? (
               <div 
                 className="space-y-0.5 cursor-pointer hover:opacity-80 transition-opacity"
-                onClick={() => document.getElementById('notes-scroll-container')?.scrollTo({ top: 0, behavior: 'smooth' })}
+                onPointerDown={(e) => { e.preventDefault(); document.getElementById('notes-scroll-container')?.scrollTo({ top: 0, behavior: 'smooth' }); }}
               >
                 <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-[#c2956e]">Daily Entry</p>
                 <h1 className="text-2xl lg:text-4xl text-[#3d3b33] dark:text-white font-serif leading-tight truncate lg:whitespace-normal">
@@ -835,7 +841,7 @@ export default function NotesPage() {
              <button 
                data-tooltip-id="global-tooltip" 
                data-tooltip-content="Move Note" 
-               onClick={() => { setMoveTargetFolderId(selectedItem?.folder_id || null); setIsMoveModalOpen(true); }} 
+               onPointerDown={(e) => { e.preventDefault(); (document.activeElement as HTMLElement)?.blur(); setMoveTargetFolderId(selectedItem?.folder_id || null); setIsMoveModalOpen(true); }}
                className="w-9 h-9 lg:w-10 lg:h-10 text-[#b0ad9a] md:hover:text-[#c2956e] md:hover:bg-[#c2956e]/10 md:dark:hover:bg-[#b0855f]/20 rounded-full transition-all flex items-center justify-center bg-transparent outline-none mr-1 cursor-pointer"
              >
                <FolderInput size={18} />
@@ -843,15 +849,30 @@ export default function NotesPage() {
           )}
 
           {!isTrashOpen ? (
-            <button data-tooltip-id="global-tooltip" data-tooltip-content="Move to Trash" onClick={() => moveToTrash(selectedItem?.entry_date || selectedItem?.id)} className="w-9 h-9 lg:w-10 lg:h-10 text-[#b0ad9a] md:hover:text-red-500 md:hover:bg-red-50 md:dark:hover:bg-red-900/20 rounded-full transition-all flex items-center justify-center bg-transparent outline-none cursor-pointer">
+            <button 
+              data-tooltip-id="global-tooltip" 
+              data-tooltip-content="Move to Trash" 
+              onPointerDown={(e) => { e.preventDefault(); (document.activeElement as HTMLElement)?.blur(); moveToTrash(selectedItem?.entry_date || selectedItem?.id); }} 
+              className="w-9 h-9 lg:w-10 lg:h-10 text-[#b0ad9a] md:hover:text-red-500 md:hover:bg-red-50 md:dark:hover:bg-red-900/20 rounded-full transition-all flex items-center justify-center bg-transparent outline-none cursor-pointer"
+            >
               <Trash2 size={18} />
             </button>
           ) : (
             <>
-              <button data-tooltip-id="global-tooltip" data-tooltip-content="Restore" onClick={() => restoreNote(selectedItem)} className="w-9 h-9 lg:w-10 lg:h-10 text-[#7ca982] md:hover:bg-[#7ca982]/10 rounded-full transition-all flex items-center justify-center bg-transparent outline-none cursor-pointer">
+              <button 
+                data-tooltip-id="global-tooltip" 
+                data-tooltip-content="Restore" 
+                onPointerDown={(e) => { e.preventDefault(); (document.activeElement as HTMLElement)?.blur(); restoreNote(selectedItem); }} 
+                className="w-9 h-9 lg:w-10 lg:h-10 text-[#7ca982] md:hover:bg-[#7ca982]/10 rounded-full transition-all flex items-center justify-center bg-transparent outline-none cursor-pointer"
+              >
                 <RotateCcw size={18} />
               </button>
-              <button data-tooltip-id="global-tooltip" data-tooltip-content="Delete Permanently" onClick={() => permanentlyDelete(selectedItem)} className="w-9 h-9 lg:w-10 lg:h-10 text-red-500 md:hover:bg-red-50 md:dark:hover:bg-red-900/20 rounded-full transition-all flex items-center justify-center bg-transparent outline-none cursor-pointer">
+              <button 
+                data-tooltip-id="global-tooltip" 
+                data-tooltip-content="Delete Permanently" 
+                onPointerDown={(e) => { e.preventDefault(); (document.activeElement as HTMLElement)?.blur(); permanentlyDelete(selectedItem); }} 
+                className="w-9 h-9 lg:w-10 lg:h-10 text-red-500 md:hover:bg-red-50 md:dark:hover:bg-red-900/20 rounded-full transition-all flex items-center justify-center bg-transparent outline-none cursor-pointer"
+              >
                 <Trash2 size={18} />
               </button>
             </>
