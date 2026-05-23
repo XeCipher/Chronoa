@@ -57,15 +57,15 @@ body {
 }
 
 /* Allow text selection where the user actually needs to type/edit */
-/* Added !important to guarantee iOS Safari immediately transfers focus */
-input, textarea, .chronoa-editor, .task-input-field, [contenteditable="true"] {
+/* Added .select-text to guarantee iOS Safari immediately transfers focus to the whole DOM tree */
+input, textarea, .chronoa-editor, .task-input-field, [contenteditable="true"], .select-text {
   -webkit-user-select: text !important;
   user-select: text !important;
 }
 
 /* Enforce immediate click registration on touch interfaces, bypassing the 300ms delay */
-/* Include editor classes to bypass iOS 5-tap focus glitch */
-button, a, input, select, textarea, [role="button"], .chronoa-editor, [contenteditable="true"] {
+/* Editor classes and text inputs are explicitly removed here to allow iOS to handle native text touch events cleanly */
+button, a, select, [role="button"] {
   touch-action: manipulation !important;
 }
 
@@ -84,8 +84,8 @@ h1, h2, h3, h4 { font-family: var(--font-display); font-weight: 500; }
   word-break: break-word;
   max-width: 100%;
   overflow-x: hidden;
-  -webkit-touch-callout: none;
-  -webkit-user-callout: none;
+  /* Re-enable native callouts so iOS can accurately position the cursor and magnifying glass */
+  -webkit-touch-callout: default !important;
 }
 
 .chronoa-editor h1 {

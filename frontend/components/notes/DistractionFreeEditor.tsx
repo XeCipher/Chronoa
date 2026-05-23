@@ -293,8 +293,10 @@ export default function DistractionFreeEditor({
     content: initialContent,
     editorProps: {
       attributes: {
+        // Enforce the contenteditable node to stretch and fill all available height (flex-1 h-full min-h-[65vh]).
+        // This ensures the tap hits the native input field directly anywhere in the editor container.
         class:
-          "chronoa-editor select-text focus:outline-none w-full min-h-[150px] md:min-h-[300px] text-[#3d3b33] dark:text-[#e0e0e0]",
+          "chronoa-editor select-text focus:outline-none w-full flex-1 h-full min-h-[65vh] text-[#3d3b33] dark:text-[#e0e0e0]",
         spellcheck: "false",
         autocorrect: "off",
         autocomplete: "off",
@@ -677,27 +679,17 @@ export default function DistractionFreeEditor({
         </div>
       )}
 
-      {/* Editor Content */}
+      {/* Editor Content Area ensures the whole bottom space is the contenteditable target */}
       <div
-        className="relative w-full flex-1 cursor-text"
-        onClick={() => {
-          if (editor && !editor.isFocused && isEditable) {
-            editor.commands.focus();
-          }
-        }}
+        className="relative w-full flex-1 flex flex-col select-text"
         style={{ fontSize: `${(journalZoom / 100) * 1.05}rem`, fontFamily: "inherit" }}
-        onContextMenu={(e) => {
-          // Prevent native context menu from overlapping our custom selection tools on mobile
-          if (window.innerWidth < 1024) e.preventDefault();
-        }}
       >
         {editor.isEmpty && (
           <div className="absolute top-0 left-0 pointer-events-none text-[#c4c0b8] dark:text-[#666] opacity-70 italic w-full leading-[1.45]">
             {placeholder}
           </div>
         )}
-        {/* pb-24 adds exactly 96px padding, allowing the last line to hover 3-4 lines safely above the mobile keyboard limit without huge dead space */}
-        <EditorContent editor={editor} className="mt-0 pb-32 md:pb-12" />
+        <EditorContent editor={editor} className="mt-0 pb-32 md:pb-12 flex-1 flex flex-col h-full w-full" />
       </div>
     </div>
   );

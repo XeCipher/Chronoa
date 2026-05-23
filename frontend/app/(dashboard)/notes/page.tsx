@@ -1151,21 +1151,21 @@ export default function NotesPage() {
 
             <div 
               id="notes-scroll-container" 
-              className="flex-1 overflow-y-auto no-scrollbar w-full relative select-text"
+              className="flex-1 overflow-y-auto no-scrollbar w-full relative select-text flex flex-col"
               onScroll={(e) => setIsScrolled(e.currentTarget.scrollTop > 10)}
             >
               {/* Spacer for absolute header on mobile */}
-              <div className="lg:hidden w-full h-[calc(4.5rem+max(1rem,env(safe-area-inset-top)))]" />
+              <div className="lg:hidden w-full h-[calc(4.5rem+max(1rem,env(safe-area-inset-top)))] shrink-0" />
 
-              <div className="max-w-[1000px] mx-auto px-5 sm:px-6 lg:px-12 pt-2 lg:pt-10 pb-[calc(1.5rem+72px+env(safe-area-inset-bottom))] lg:pb-10 w-full">
+              <div className="max-w-[1000px] mx-auto px-5 sm:px-6 lg:px-12 pt-2 lg:pt-10 pb-[calc(1.5rem+72px+env(safe-area-inset-bottom))] lg:pb-10 w-full flex-1 flex flex-col select-text">
                 
                 {/* DESKTOP SCROLLING HEADER (Scrolls naturally on laptops) */}
-                <div className="hidden lg:block mb-8">
+                <div className="hidden lg:block mb-8 shrink-0">
                   {renderEditorHeader(false)}
                 </div>
 
-                {/* Editor Content Area */}
-                <div className="relative min-h-[500px]">
+                {/* Editor Content Area ensures the whole bottom space is the contenteditable target */}
+                <div className="relative min-h-[500px] flex-1 flex flex-col select-text">
                   <DistractionFreeEditor
                     key={`${isTrashOpen ? 'trash' : notesTab}-${selectedId}`}
                     initialContent={selectedItem.content || '<p></p>'}
