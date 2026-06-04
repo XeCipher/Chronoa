@@ -4,7 +4,7 @@
 import { useState, useMemo, useRef, useEffect } from 'react';
 import { ResponsiveContainer, ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip } from 'recharts';
 import { useUiStore } from "@/store/uiStore";
-import { ChevronLeft, ChevronRight, Calendar as CalIcon, X, Target } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Calendar as CalIcon, X, Target, Timer, CheckCircle2 } from 'lucide-react';
 import { DailyRecord } from '@/app/(dashboard)/analytics/page';
 
 const getSaturday = (date: Date) => {
@@ -13,6 +13,34 @@ const getSaturday = (date: Date) => {
   const diff = 6 - day; 
   d.setDate(d.getDate() + diff);
   return d;
+};
+
+// Intelligently applies border radius only to the absolute highest segment visible for that day
+const CustomBarShape = (props: any) => {
+  const { fill, x, y, width, height, payload, dataKey } = props;
+  
+  if (typeof height !== 'number' || height <= 0 || width <= 0) return null;
+
+  // Locate the topmost active stack dynamically
+  let topStackKey = null;
+  for (let i = 4; i >= 0; i--) {
+    if (payload[`stack${i}`] > 0) {
+      topStackKey = `stack${i}`;
+      break;
+    }
+  }
+
+  const isTop = dataKey === topStackKey;
+  const r = isTop ? Math.min(6, height / 2, width / 2) : 0;
+  
+  const stackIdx = dataKey.replace('stack', '');
+  const actualColor = payload[`color${stackIdx}`] || fill;
+
+  const path = isTop 
+    ? `M${x},${y+height} L${x},${y+r} A${r},${r} 0 0,1 ${x+r},${y} L${x+width-r},${y} A${r},${r} 0 0,1 ${x+width},${y+r} L${x+width},${y+height} Z`
+    : `M${x},${y+height} L${x},${y} L${x+width},${y} L${x+width},${y+height} Z`;
+
+  return <path d={path} fill={actualColor} />;
 };
 
 export default function ProductivityChart({ dailyMap, isSandbox = false }: { dailyMap: Record<string, DailyRecord>, isSandbox?: boolean }) {
@@ -76,25 +104,93 @@ export default function ProductivityChart({ dailyMap, isSandbox = false }: { dai
     setShowCalendar(false);
   };
 
-  const chartData = useMemo(() => {
-    const data =[];
+  const { chartData, maxFocusScale, maxTasksScale } = useMemo(() => {
+    // 1. Get Top 4 categories to maintain color consistency across the week
+    const catTotals: Record<string, number> = {};
     for(let i=6; i>=0; i--) {
-      const d = new Date(endDate);
-      d.setDate(d.getDate() - i);
-      const ymd = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-      const record = dailyMap[ymd];
-      
-      data.push({
-        display: `${d.toLocaleDateString('en-US', { weekday: 'short' })} ${d.getDate()}`,
-        fullDate: d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-        tasks: record ? record.taskCount : 0,
-        focus: record ? record.focusMinutes : 0,
-        rawTasks: record ? record.tasks :[],
-        rawSessions: record ? record.sessions :[]
-      });
+        const d = new Date(endDate);
+        d.setDate(d.getDate() - i);
+        const ymd = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+        const record = dailyMap[ymd];
+        if (record && record.sessions) {
+            record.sessions.forEach((s: any) => {
+                const cat = s.title || "Deep Work";
+                const mins = s.duration_seconds / 60;
+                catTotals[cat] = (catTotals[cat] || 0) + mins;
+            });
+        }
     }
-    return data;
-  }, [dailyMap, endDate]);
+
+    const sortedCats = Object.entries(catTotals).sort((a, b) => b[1] - a[1]);
+    const topKeys = sortedCats.slice(0, 4).map(x => x[0]);
+    
+    const FOCUS_COLORS = ['#7ca982', '#6e90c2', '#a882c2', '#5b9ea0']; // Sage, Blue, Purple, Teal
+    const OTHERS_COLOR = isDark ? '#333333' : '#e0ddd5';
+    
+    const colorMap: Record<string, string> = {};
+    topKeys.forEach((k, idx) => { colorMap[k] = FOCUS_COLORS[idx % FOCUS_COLORS.length]; });
+
+    const data = [];
+    let maxFocus = 0;
+    let maxTasks = 0;
+
+    // 2. Iterate each day, sort mathematically ascending, and assign to Recharts generic Stacks
+    for(let i=6; i>=0; i--) {
+        const d = new Date(endDate);
+        d.setDate(d.getDate() - i);
+        const ymd = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+        const record = dailyMap[ymd];
+
+        const dayData: any = {
+            display: `${d.toLocaleDateString('en-US', { weekday: 'short' })} ${d.getDate()}`,
+            fullDate: d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+            tasks: record ? record.taskCount : 0,
+            focus: record ? record.focusMinutes : 0
+        };
+
+        if (dayData.focus > maxFocus) maxFocus = dayData.focus;
+        if (dayData.tasks > maxTasks) maxTasks = dayData.tasks;
+
+        // Populate baseline generic stacks to ensure Recharts doesn't crash on undefined values
+        [0, 1, 2, 3, 4].forEach(idx => dayData[`stack${idx}`] = 0);
+
+        const todayCats: Record<string, number> = {};
+        let todayOthers = 0;
+        
+        if (record && record.sessions) {
+            record.sessions.forEach((s: any) => {
+                const cat = s.title || "Deep Work";
+                const mins = s.duration_seconds / 60;
+                if (topKeys.includes(cat)) {
+                    todayCats[cat] = (todayCats[cat] || 0) + mins;
+                } else {
+                    todayOthers += mins;
+                }
+            });
+        }
+
+        const stackBlocks = Object.entries(todayCats).map(([name, val]) => ({ name, val, color: colorMap[name] }));
+        if (todayOthers > 0) stackBlocks.push({ name: 'Others', val: todayOthers, color: OTHERS_COLOR });
+        
+        // Ensure perfect ascending order per day (Smallest at bottom [stack0], Largest at top)
+        stackBlocks.sort((a, b) => a.val - b.val);
+
+        stackBlocks.forEach((block, idx) => {
+            dayData[`stack${idx}`] = block.val;
+            dayData[`color${idx}`] = block.color;
+        });
+
+        // Inject the strictly ordered meta-data for the custom tooltip
+        dayData.stackDetails = stackBlocks;
+        data.push(dayData);
+    }
+
+    // Proportional ratio mapping locking peak focus point securely relative to peak tasks point
+    const mFocusScale = maxFocus > 0 ? Math.ceil(maxFocus * 1.1) : 60;
+    const mTasksScale = maxTasks > 0 ? Math.ceil(maxTasks * 1.1) : 5;
+
+    return { chartData: data, maxFocusScale: mFocusScale, maxTasksScale: mTasksScale };
+  }, [dailyMap, endDate, isDark]);
 
   const isSelectedWeek = (d: Date) => {
     const chartStart = new Date(endDate);
@@ -108,24 +204,55 @@ export default function ProductivityChart({ dailyMap, isSandbox = false }: { dai
   const CustomTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
       const data = payload[0].payload;
+      
+      // Visually flip the order for the tooltip so Largest chunks appear first
+      const sortedFocus = [...(data.stackDetails || [])].reverse();
+
+      const totalMins = Math.floor(data.focus);
+      const totalH = Math.floor(totalMins / 60);
+      const totalM = totalMins % 60;
+      const totalTimeStr = totalH > 0 ? `${totalH}h ${totalM}m` : `${totalM}m`;
+
       return (
-        <div className="bg-white dark:bg-[#222] border border-[#e0ddd5] dark:border-[#444] p-4 rounded-2xl shadow-xl flex flex-col z-[100] min-w-[140px]">
+        <div className="bg-white dark:bg-[#222] border border-[#e0ddd5] dark:border-[#444] p-4 rounded-2xl shadow-xl flex flex-col z-[100] min-w-[200px]">
           <p className="text-[11px] font-bold text-[#3d3b33] dark:text-[#f0f0f0] mb-3 pb-2 border-b border-[#e0ddd5] dark:border-[#333]">{data.fullDate}</p>
-          <div className="flex justify-between items-center gap-4">
-            <div className="flex flex-col">
-              <span className="text-[9px] font-bold uppercase tracking-widest text-[#7ca982] mb-0.5">Tasks</span>
-              <span className="text-sm font-semibold text-[#3d3b33] dark:text-[#e0e0e0]">{data.tasks}</span>
+          <div className="flex flex-col gap-3">
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center justify-between mb-0.5">
+                <div className="flex items-center gap-1.5">
+                  <Timer size={12} className="text-[#888] dark:text-[#a0a0a0]" />
+                  <span className="text-[9px] font-bold uppercase tracking-widest text-[#888] dark:text-[#a0a0a0]">Focus Time</span>
+                </div>
+                <span className="text-[10px] font-bold text-[#3d3b33] dark:text-[#f0f0f0] bg-[#f0ede8] dark:bg-[#333] px-1.5 py-0.5 rounded-md shadow-sm">
+                  {totalTimeStr}
+                </span>
+              </div>
+              
+              {sortedFocus.length > 0 ? sortedFocus.map((p: any) => {
+                const mins = Math.floor(p.val);
+                const h = Math.floor(mins / 60);
+                const m = mins % 60;
+                const timeStr = h > 0 ? `${h}h ${m}m` : `${m}m`;
+                return (
+                  <div key={p.name} className="flex items-center justify-between gap-6 pl-1">
+                    <div className="flex items-center gap-2">
+                      <div className="w-2.5 h-2.5 rounded-full shadow-sm" style={{ backgroundColor: p.color }} />
+                      <span className="text-xs text-[#888] dark:text-[#a0a0a0] font-medium">{p.name}</span>
+                    </div>
+                    <span className="text-xs font-semibold text-[#3d3b33] dark:text-[#e0e0e0]">{timeStr}</span>
+                  </div>
+                );
+              }) : (
+                <span className="text-xs text-[#b0ad9a] dark:text-[#7a7a7a] italic pl-1">No focus sessions</span>
+              )}
             </div>
-            <div className="flex flex-col text-right">
-              <span className="text-[9px] font-bold uppercase tracking-widest text-[#c2956e] mb-0.5">Focus</span>
-              <span className="text-sm font-semibold text-[#3d3b33] dark:text-[#e0e0e0]">
-                {(() => {
-                  const focusMins = Math.floor(data.focus);
-                  const h = Math.floor(focusMins / 60);
-                  const m = focusMins % 60;
-                  return h > 0 ? `${h}h ${m}m` : `${m}m`;
-                })()}
-              </span>
+            
+            <div className="flex items-center justify-between gap-4 mt-1 pt-3 border-t border-[#e0ddd5] dark:border-[#333]">
+              <div className="flex items-center gap-1.5">
+                <CheckCircle2 size={12} className="text-[#c2956e] dark:text-[#b0855f]" />
+                <span className="text-[9px] font-bold uppercase tracking-widest text-[#c2956e] dark:text-[#b0855f]">Tasks Done</span>
+              </div>
+              <span className="text-sm font-semibold text-[#3d3b33] dark:text-[#e0e0e0]">{data.tasks || 0}</span>
             </div>
           </div>
         </div>
@@ -234,22 +361,67 @@ export default function ProductivityChart({ dailyMap, isSandbox = false }: { dai
 
       <div className="flex-1 w-full min-h-0">
         <ResponsiveContainer width="100%" height="100%">
-          <ComposedChart data={chartData} margin={{ top: 10, right: 0, left: -20, bottom: 20 }}>
-            <defs>
-              <linearGradient id="colorTasks" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor={isDark ? '#6a9a70' : '#7ca982'} stopOpacity={0.8}/>
-                <stop offset="95%" stopColor={isDark ? '#6a9a70' : '#7ca982'} stopOpacity={0.2}/>
-              </linearGradient>
-            </defs>
+          {/* Extended left margin width perfectly prevents timing cutoffs */}
+          <ComposedChart data={chartData} margin={{ top: 20, right: 10, left: 10, bottom: 20 }}>
             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDark ? '#333' : '#f0ede8'} />
             <XAxis dataKey="display" axisLine={false} tickLine={false} tick={<CustomXAxisTick />} dy={10} interval={0} />
-            <YAxis yAxisId="left" axisLine={false} tickLine={false} tick={{ fill: isDark ? '#7a7a7a' : '#b0ad9a', fontSize: 11 }} />
             
-            <YAxis yAxisId="right" orientation="right" hide={true} width={0} axisLine={false} tickLine={false} tick={false} />
+            {/* Left Y Axis mapped dynamically to the maximum limit of Focus Minutes */}
+            <YAxis 
+              yAxisId="left" 
+              domain={[0, maxFocusScale]}
+              axisLine={false} 
+              tickLine={false} 
+              width={55}
+              tick={{ fill: isDark ? '#7a7a7a' : '#b0ad9a', fontSize: 11 }} 
+              tickFormatter={(val) => {
+                if (val === 0) return '0m';
+                const h = Math.floor(val / 60);
+                const m = val % 60;
+                if (h > 0 && m === 0) return `${h}h`;
+                if (h > 0) return `${h}h ${m}m`;
+                return `${m}m`;
+              }}
+            />
+            
+            {/* Right Y Axis mathematically synchronized with the Left Y Axis based on absolute maximum Task limits */}
+            <YAxis 
+              yAxisId="right" 
+              domain={[0, maxTasksScale]}
+              orientation="right" 
+              hide={true} 
+              width={0} 
+              axisLine={false} 
+              tickLine={false} 
+              tick={false} 
+            />
             
             <RechartsTooltip content={<CustomTooltip />} cursor={{ fill: isDark ? '#2a2a2a' : '#f7f5f0' }} />
-            <Bar yAxisId="left" dataKey="tasks" name="Tasks Done" fill="url(#colorTasks)" radius={[6, 6, 0, 0]} maxBarSize={40} />
-            <Line yAxisId="right" type="monotone" dataKey="focus" name="Focus Time" stroke={isDark ? '#b0855f' : '#c2956e'} strokeWidth={4} dot={{ r: 4, strokeWidth: 2, fill: isDark ? '#1a1a1a' : '#fff' }} activeDot={{ r: 7 }} />
+            
+            {/* Dynamically build Focus Stacks */}
+            {[0, 1, 2, 3, 4].map((idx) => (
+              <Bar 
+                 key={`stack${idx}`} 
+                 yAxisId="left" 
+                 dataKey={`stack${idx}`} 
+                 stackId="focusStack"
+                 maxBarSize={40} 
+                 isAnimationActive={false}
+                 shape={(props: any) => <CustomBarShape {...props} />}
+              />
+            ))}
+            
+            {/* Tasks curve uses our signature Amber/Yellow color mapped safely to the Right Y Axis relative ratio */}
+            <Line 
+              yAxisId="right" 
+              type="monotone" 
+              dataKey="tasks" 
+              name="Tasks Done" 
+              stroke={isDark ? '#b0855f' : '#c2956e'} 
+              strokeWidth={4} 
+              dot={{ r: 4, strokeWidth: 2, fill: isDark ? '#1a1a1a' : '#fff' }} 
+              activeDot={{ r: 7 }} 
+            />
           </ComposedChart>
         </ResponsiveContainer>
       </div>
