@@ -40,6 +40,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const isApplyingRemote = useRef(false);
   const lastLocalStateStr = useRef<string>("");
   const previousStateForDiff = useRef<any>(null);
+  
+  // Track our own sync identifiers to completely eliminate self-echo typing race conditions
+  const myRecentSyncIds = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
@@ -131,7 +134,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
            if (rec.timer_state) {
               const remoteSyncId = rec.timer_state.sync_id;
               
-              if (remoteSyncId && remoteSyncId !== localSyncId.current) {
+              // We successfully drop our own echoes mapping logic to eradicate the typing lag
+              if (remoteSyncId && myRecentSyncIds.current.has(remoteSyncId)) {
+                 return;
+              } else if (remoteSyncId && remoteSyncId !== localSyncId.current) {
                  localSyncId.current = remoteSyncId;
                  isApplyingRemote.current = true;
                  
@@ -240,6 +246,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
         const newSyncId = generateSyncId();
         localSyncId.current = newSyncId;
+        
+        // Cache our own execution IDs to ignore them when they bounce back via WS
+        myRecentSyncIds.current.add(newSyncId);
+        if (myRecentSyncIds.current.size > 50) {
+           const arr = Array.from(myRecentSyncIds.current).slice(-20);
+           myRecentSyncIds.current = new Set(arr);
+        }
+
         const payload = { ...currentState, sync_id: newSyncId };
 
         const executeSave = async () => {

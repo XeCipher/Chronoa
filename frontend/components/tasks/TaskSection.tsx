@@ -55,6 +55,10 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
   const [now, setNow] = useState(Date.now());
   const sectionRef = useRef<HTMLDivElement>(null);
 
+  // Mutation lock blocks stale replica database responses from glitching the UI during typing/toggling
+  const lastMutateTime = useRef<number>(0);
+  const markMutated = () => { lastMutateTime.current = Date.now(); };
+
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
@@ -68,7 +72,12 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
 
   const isCollapsedMobile = type === 'routine' ? mobileRoutineCollapsed : false;
 
-  const fetchTasks = async () => {
+  const fetchTasks = async (isBackgroundSync = false) => {
+    // If user has done any action recently, skip the automated replica fetch to stop glitching
+    if (isBackgroundSync && Date.now() - lastMutateTime.current < 2500) {
+       return;
+    }
+    
     let { data } = await supabase
       .from("tasks")
       .select("*")
@@ -88,7 +97,7 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
       } catch (e) {}
     }
 
-    fetchTasks();
+    fetchTasks(false);
 
     const channelId = `rt_${type}_${Math.random().toString(36).substring(7)}`;
     let timeoutId: NodeJS.Timeout;
@@ -100,7 +109,7 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
         { event: "*", schema: "public", table: "tasks" },
         () => {
           clearTimeout(timeoutId);
-          timeoutId = setTimeout(() => fetchTasks(), 400);
+          timeoutId = setTimeout(() => fetchTasks(true), 400);
         }
       )
       .subscribe();
@@ -223,6 +232,7 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
   const progressPercent = totalTasksCount > 0 ? Math.round((totalCompletedCount / totalTasksCount) * 100) : 0;
 
   const onUpdate = async (id: string, updates: Partial<Task>) => {
+    markMutated();
     const isToggling = updates.hasOwnProperty("is_completed");
     const isDone = updates.is_completed;
     const completionTime = isDone ? new Date().toISOString() : null;
@@ -319,6 +329,7 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
   };
 
   const onAdd = async (parentId: string | null = null, relativeToTask?: Task) => {
+    markMutated();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
@@ -392,13 +403,14 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
     const error = results.find(r => r.error);
     if (error) {
       console.error("Failed adding task or shifting siblings", error);
-      fetchTasks();
+      fetchTasks(true);
     }
   };
 
   useEffect(() => { onAddRef.current = onAdd; }, [onAdd]);
 
   const onDelete = async (id: string, isPermanent: boolean = false) => {
+    markMutated();
     const idsToDelete =[id];
     const findChildren = (parentId: string) => {
       tasks
@@ -425,6 +437,7 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
   };
 
   const onRestore = async (id: string, mode: 'from_trash' | 'from_archive') => {
+    markMutated();
     const idsToUpdate = [id];
 
     const findChildren = (parentId: string) => {
@@ -456,6 +469,7 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
   };
 
   const onIndent = async (task: Task) => {
+    markMutated();
     const siblings = tasks
       .filter((t) => t.parent_id === task.parent_id)
       .sort((a, b) => a.position - b.position);
@@ -490,6 +504,7 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
   };
 
   const onUnindent = async (task: Task) => {
+    markMutated();
     if (!task.parent_id) return;
     const parent = tasks.find((t) => t.id === task.parent_id);
     if (!parent) return;
@@ -527,6 +542,7 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
   };
 
   const onMoveUp = async (task: Task) => {
+    markMutated();
     const visibleSiblings = tasks
       .filter((t) => 
         t.parent_id === task.parent_id &&
@@ -580,6 +596,7 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
   };
 
   const onMoveDown = async (task: Task) => {
+    markMutated();
     const visibleSiblings = tasks
       .filter((t) => 
         t.parent_id === task.parent_id &&
@@ -633,6 +650,7 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
   };
 
   const handleDragEnd = async (event: DragEndEvent) => {
+    markMutated();
     const { active, over } = event;
     if (!over || active.id === over.id) return;
 
