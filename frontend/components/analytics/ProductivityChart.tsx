@@ -19,6 +19,7 @@ const getSaturday = (date: Date) => {
 const CustomBarShape = (props: any) => {
   const { fill, x, y, width, height, payload, dataKey } = props;
   
+  // Guard clause against initial 0 heights during the entrance animation frames
   if (typeof height !== 'number' || height <= 0 || width <= 0) return null;
 
   // Locate the topmost active stack dynamically
@@ -124,7 +125,8 @@ export default function ProductivityChart({ dailyMap, isSandbox = false }: { dai
     const sortedCats = Object.entries(catTotals).sort((a, b) => b[1] - a[1]);
     const topKeys = sortedCats.slice(0, 4).map(x => x[0]);
     
-    const FOCUS_COLORS = ['#7ca982', '#6e90c2', '#a882c2', '#5b9ea0']; // Sage, Blue, Purple, Teal
+    // Updated beautiful aesthetic palette matching the app's core branding
+    const FOCUS_COLORS = ['#7ca982', '#6e90c2', '#a882c2', '#5b9ea0', '#c2956e'];
     const OTHERS_COLOR = isDark ? '#333333' : '#e0ddd5';
     
     const colorMap: Record<string, string> = {};
@@ -216,7 +218,19 @@ export default function ProductivityChart({ dailyMap, isSandbox = false }: { dai
       return (
         <div className="bg-white dark:bg-[#222] border border-[#e0ddd5] dark:border-[#444] p-4 rounded-2xl shadow-xl flex flex-col z-[100] min-w-[200px]">
           <p className="text-[11px] font-bold text-[#3d3b33] dark:text-[#f0f0f0] mb-3 pb-2 border-b border-[#e0ddd5] dark:border-[#333]">{data.fullDate}</p>
+          
           <div className="flex flex-col gap-3">
+            {/* Tasks Done placed elegantly above Focus Time */}
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-1.5">
+                <CheckCircle2 size={12} className="text-[#c2956e] dark:text-[#b0855f]" />
+                <span className="text-[9px] font-bold uppercase tracking-widest text-[#c2956e] dark:text-[#b0855f]">Tasks Done</span>
+              </div>
+              <span className="text-sm font-semibold text-[#3d3b33] dark:text-[#e0e0e0]">{data.tasks || 0}</span>
+            </div>
+
+            <div className="w-full h-px bg-[#e0ddd5] dark:bg-[#333]" />
+
             <div className="flex flex-col gap-2">
               <div className="flex items-center justify-between mb-0.5">
                 <div className="flex items-center gap-1.5">
@@ -245,14 +259,6 @@ export default function ProductivityChart({ dailyMap, isSandbox = false }: { dai
               }) : (
                 <span className="text-xs text-[#b0ad9a] dark:text-[#7a7a7a] italic pl-1">No focus sessions</span>
               )}
-            </div>
-            
-            <div className="flex items-center justify-between gap-4 mt-1 pt-3 border-t border-[#e0ddd5] dark:border-[#333]">
-              <div className="flex items-center gap-1.5">
-                <CheckCircle2 size={12} className="text-[#c2956e] dark:text-[#b0855f]" />
-                <span className="text-[9px] font-bold uppercase tracking-widest text-[#c2956e] dark:text-[#b0855f]">Tasks Done</span>
-              </div>
-              <span className="text-sm font-semibold text-[#3d3b33] dark:text-[#e0e0e0]">{data.tasks || 0}</span>
             </div>
           </div>
         </div>
@@ -406,7 +412,9 @@ export default function ProductivityChart({ dailyMap, isSandbox = false }: { dai
                  dataKey={`stack${idx}`} 
                  stackId="focusStack"
                  maxBarSize={40} 
-                 isAnimationActive={false}
+                 isAnimationActive={true}
+                 animationDuration={500}
+                 animationEasing="ease-out"
                  shape={(props: any) => <CustomBarShape {...props} />}
               />
             ))}
@@ -421,6 +429,9 @@ export default function ProductivityChart({ dailyMap, isSandbox = false }: { dai
               strokeWidth={4} 
               dot={{ r: 4, strokeWidth: 2, fill: isDark ? '#1a1a1a' : '#fff' }} 
               activeDot={{ r: 7 }} 
+              isAnimationActive={true}
+              animationDuration={1200}
+              animationEasing="ease-out"
             />
           </ComposedChart>
         </ResponsiveContainer>
