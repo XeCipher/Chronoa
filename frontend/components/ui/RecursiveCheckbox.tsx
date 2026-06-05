@@ -7,7 +7,7 @@ import { useRouter } from "next/navigation";
 import { Task } from "@/types/app.types";
 import { 
   Plus, Trash2, Check, Timer, Hourglass, ChevronRight, ChevronLeft, 
-  MoreVertical, ArrowUp, ArrowDown, ChevronDown, Infinity as InfinityIcon, 
+  MoreVertical, ArrowUp, ArrowDown, Infinity as InfinityIcon, 
   RotateCcw, Clock, GripVertical, CornerDownRight, CalendarDays
 } from "lucide-react";
 import { useUiStore } from "@/store/uiStore";
@@ -15,6 +15,7 @@ import { useTimerStore } from "@/store/timerStore";
 
 import { useSortable, SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { motion, AnimatePresence } from "framer-motion";
 
 interface Props {
   task: Task;
@@ -575,7 +576,12 @@ export default function RecursiveCheckbox({
              onPointerDown={(e) => e.stopPropagation()}
              className="shrink-0 -ml-1 text-[#b0ad9a] md:hover:text-[#c2956e] md:dark:hover:text-[#d1a784] transition-colors p-1"
            >
-              {isCollapsed ? <ChevronRight size={14} /> : <ChevronDown size={14} className="opacity-100 lg:opacity-40 lg:group-hover:opacity-100" />}
+              <ChevronRight 
+                size={14} 
+                className={`transition-transform duration-400 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+                  isCollapsed ? 'rotate-0 opacity-100' : 'rotate-90 opacity-100 lg:opacity-40 lg:group-hover:opacity-100'
+                }`} 
+              />
            </button>
         )}
 
@@ -723,17 +729,28 @@ export default function RecursiveCheckbox({
         </div>
       </div>
 
-      {!isFlatList && !isCollapsed && hasChildren && (
-        <div className="ml-[34px] mt-[1px] mb-[2px] pl-4 border-l border-[#ebe8e2] dark:border-[#2a2a2a] space-y-[1px]">
-          {viewMode === 'focus' && !isSandbox ? (
-            <SortableContext items={task.children!.map(c => c.id)} strategy={verticalListSortingStrategy}>
-              {renderChildren()}
-            </SortableContext>
-          ) : (
-            renderChildren()
-          )}
-        </div>
-      )}
+      <AnimatePresence>
+        {!isFlatList && !isCollapsed && hasChildren && (
+          <motion.div
+            key={`children-${task.id}`}
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1, transitionEnd: { overflow: "visible" } }}
+            exit={{ height: 0, opacity: 0, overflow: "hidden" }}
+            style={{ overflow: "hidden" }}
+            transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+          >
+            <div className="ml-[34px] mt-[1px] mb-[2px] pl-4 border-l border-[#ebe8e2] dark:border-[#2a2a2a] space-y-[1px]">
+              {viewMode === 'focus' && !isSandbox ? (
+                <SortableContext items={task.children!.map(c => c.id)} strategy={verticalListSortingStrategy}>
+                  {renderChildren()}
+                </SortableContext>
+              ) : (
+                renderChildren()
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {renderContextMenu()}
     </div>
