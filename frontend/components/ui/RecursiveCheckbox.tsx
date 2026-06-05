@@ -538,7 +538,7 @@ export default function RecursiveCheckbox({
           <div 
             {...attributes} 
             {...listeners} 
-            className={`cursor-grab active:cursor-grabbing text-[#c4c0b8] dark:text-[#555] lg:hover:text-[#c2956e] lg:dark:hover:text-[#b0855f] p-1 -ml-2 -mr-1 md:mr-1 transition-opacity touch-none ${isDragging ? 'opacity-100' : 'opacity-30 lg:opacity-0 lg:group-hover:opacity-100'}`}
+            className={`cursor-grab active:cursor-grabbing text-[#c4c0b8] dark:text-[#555] lg:hover:text-[#c2956e] lg:dark:hover:text-[#b0855f] p-2 md:p-1 -ml-3 md:-ml-2 -mr-1 md:mr-1 transition-opacity touch-none ${isDragging ? 'opacity-100' : 'opacity-30 lg:opacity-0 lg:group-hover:opacity-100'}`}
           >
             <GripVertical size={14} />
           </div>

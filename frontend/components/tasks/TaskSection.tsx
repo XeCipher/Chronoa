@@ -13,7 +13,8 @@ import {
   DndContext,
   closestCenter,
   KeyboardSensor,
-  PointerSensor,
+  MouseSensor,
+  TouchSensor,
   useSensor,
   useSensors,
   DragEndEvent,
@@ -44,7 +45,7 @@ function generateUUID() {
 export default function TaskSection({ type, title, viewMode = 'focus', searchQuery = '' }: Props) {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [isEditMode, setIsEditMode] = useState(false);
-  const[isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
   const [newTaskId, setNewTaskId] = useState<string | null>(null);
   
   const { 
@@ -60,9 +61,15 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
   const markMutated = () => { lastMutateTime.current = Date.now(); };
 
   const sensors = useSensors(
-    useSensor(PointerSensor, {
+    useSensor(MouseSensor, {
       activationConstraint: {
         distance: 5,
+      },
+    }),
+    useSensor(TouchSensor, {
+      activationConstraint: {
+        delay: 150, // Slight delay ensures touch scrolling is locked precisely during intentional drag
+        tolerance: 5,
       },
     }),
     useSensor(KeyboardSensor, {
@@ -154,6 +161,15 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
     window.addEventListener('chronoa-add-task', handleGlobalAdd);
     return () => window.removeEventListener('chronoa-add-task', handleGlobalAdd);
   }, [type]);
+
+  // Ensure body scroll lock clears even if component aggressively unmounts during drag
+  useEffect(() => {
+    return () => {
+      if (typeof window !== "undefined") {
+        document.body.style.overflow = "";
+      }
+    };
+  }, []);
 
   const delayMs = taskArchiveDelay <= 0 ? 1000 : taskArchiveDelay * 60 * 1000;
 
@@ -880,7 +896,27 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
 
       <div className="flex-1 overflow-y-auto no-scrollbar flex flex-col">
         {viewMode === "focus" ? (
-          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+          <DndContext 
+             sensors={sensors} 
+             collisionDetection={closestCenter} 
+             onDragStart={() => {
+               markMutated();
+               if (typeof window !== "undefined") {
+                 document.body.style.overflow = "hidden";
+               }
+             }}
+             onDragEnd={(e) => {
+               if (typeof window !== "undefined") {
+                 document.body.style.overflow = "";
+               }
+               handleDragEnd(e);
+             }}
+             onDragCancel={() => {
+               if (typeof window !== "undefined") {
+                 document.body.style.overflow = "";
+               }
+             }}
+          >
             {renderContent()}
           </DndContext>
         ) : (
