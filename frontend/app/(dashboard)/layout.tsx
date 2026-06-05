@@ -342,7 +342,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   return (
     <div className={`flex h-screen w-full overflow-hidden ${isHomePage ? 'bg-transparent' : 'bg-[#f7f5f0] dark:bg-[#121212]'}`}>
       <SidebarNav />
-      <main id="main-scroll-container" className="flex-1 h-full overflow-hidden relative min-w-0 pb-[calc(82px+env(safe-area-bottom))] md:pb-0 pt-[max(1rem,env(safe-area-top))] md:pt-0">
+      <main id="main-scroll-container" className="flex-1 h-full overflow-hidden relative min-w-0 pb-[calc(82px+env(safe-area-inset-bottom))] md:pb-0 pt-[max(1rem,env(safe-area-inset-top))] md:pt-0">
         {children}
       </main>
 
