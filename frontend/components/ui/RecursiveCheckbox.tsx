@@ -108,10 +108,10 @@ export default function RecursiveCheckbox({
     }
   }, [task.title]);
 
-  // Disable Draggable bindings entirely inside sandbox to prevent overlapping glitch
+  // Disable Draggable bindings entirely inside sandbox, archive views, or when NOT in Edit Mode
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ 
     id: task.id,
-    disabled: viewMode !== 'focus' || isSandbox 
+    disabled: viewMode !== 'focus' || isSandbox || !isEditMode
   });
   
   const sortableStyle = isSandbox ? {} : {
@@ -534,7 +534,7 @@ export default function RecursiveCheckbox({
         className={`group relative flex items-center gap-3 py-[7px] px-3 rounded-xl transition-all duration-150 ${activeColorStyle} ${isMenuOpen ? "z-10" : ""}`}
       >
         
-        {viewMode === 'focus' && !isSandbox && (
+        {viewMode === 'focus' && !isSandbox && isEditMode && (
           <div 
             {...attributes} 
             {...listeners} 
