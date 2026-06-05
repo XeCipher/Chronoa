@@ -92,7 +92,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         if (profile.theme) state.setTheme(profile.theme);
         if (profile.task_archive_delay !== null) state.setTaskArchiveDelay(profile.task_archive_delay);
         if (profile.routine_reset_hour !== null) state.setRoutineResetHour(profile.routine_reset_hour);
-        if (profile.journal_zoom !== null) state.setJournalZoom(profile.journal_zoom);
         if (profile.hotkeys_enabled !== null) state.setHotkeysEnabled(profile.hotkeys_enabled);
         if (profile.disabled_hotkeys) state.setDisabledHotkeys(profile.disabled_hotkeys);
         if (profile.move_completed_to_bottom !== null) state.setMoveCompletedToBottom(profile.move_completed_to_bottom);
@@ -123,7 +122,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
            if (rec.theme && rec.theme !== state.theme) state.setTheme(rec.theme);
            if (rec.task_archive_delay !== null && rec.task_archive_delay !== state.taskArchiveDelay) state.setTaskArchiveDelay(rec.task_archive_delay);
            if (rec.routine_reset_hour !== null && rec.routine_reset_hour !== state.routineResetHour) state.setRoutineResetHour(rec.routine_reset_hour);
-           if (rec.journal_zoom !== null && rec.journal_zoom !== state.journalZoom) state.setJournalZoom(rec.journal_zoom);
            if (rec.hotkeys_enabled !== null && rec.hotkeys_enabled !== state.hotkeysEnabled) state.setHotkeysEnabled(rec.hotkeys_enabled);
            if (rec.disabled_hotkeys && JSON.stringify(rec.disabled_hotkeys) !== JSON.stringify(state.disabledHotkeys)) state.setDisabledHotkeys(rec.disabled_hotkeys);
            if (rec.move_completed_to_bottom !== null && rec.move_completed_to_bottom !== state.moveCompletedToBottom) state.setMoveCompletedToBottom(rec.move_completed_to_bottom);
@@ -344,7 +342,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   return (
     <div className={`flex h-screen w-full overflow-hidden ${isHomePage ? 'bg-transparent' : 'bg-[#f7f5f0] dark:bg-[#121212]'}`}>
       <SidebarNav />
-      <main id="main-scroll-container" className="flex-1 h-full overflow-hidden relative min-w-0 pb-[calc(82px+env(safe-area-inset-bottom))] md:pb-0 pt-[max(1rem,env(safe-area-inset-top))] md:pt-0">
+      <main id="main-scroll-container" className="flex-1 h-full overflow-hidden relative min-w-0 pb-[calc(82px+env(safe-area-bottom))] md:pb-0 pt-[max(1rem,env(safe-area-top))] md:pt-0">
         {children}
       </main>
 
