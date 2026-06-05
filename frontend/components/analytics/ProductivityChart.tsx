@@ -35,7 +35,8 @@ const CustomBarShape = (props: any) => {
   const r = isTop ? Math.min(6, height / 2, width / 2) : 0;
   
   const stackIdx = dataKey.replace('stack', '');
-  const actualColor = payload[`color${stackIdx}`] || fill;
+  // Fallback to transparent safely prevents SVG from drawing default black when a stack is animating out to 0
+  const actualColor = payload[`color${stackIdx}`] || fill || 'transparent';
 
   const path = isTop 
     ? `M${x},${y+height} L${x},${y+r} A${r},${r} 0 0,1 ${x+r},${y} L${x+width-r},${y} A${r},${r} 0 0,1 ${x+width},${y+r} L${x+width},${y+height} Z`
@@ -54,7 +55,7 @@ export default function ProductivityChart({ dailyMap, isSandbox = false }: { dai
   
   const currentSaturday = getSaturday(today);
 
-  const[endDate, setEndDate] = useState<Date>(today);
+  const [endDate, setEndDate] = useState<Date>(today);
   const [showCalendar, setShowCalendar] = useState(false);
   const [calMonth, setCalMonth] = useState<Date>(new Date());
   const calRef = useRef<HTMLDivElement>(null);
@@ -154,7 +155,11 @@ export default function ProductivityChart({ dailyMap, isSandbox = false }: { dai
         if (dayData.tasks > maxTasks) maxTasks = dayData.tasks;
 
         // Populate baseline generic stacks to ensure Recharts doesn't crash on undefined values
-        [0, 1, 2, 3, 4].forEach(idx => dayData[`stack${idx}`] = 0);
+        // Set transparent defaults so animating to zero completely hides the SVG artifact
+        [0, 1, 2, 3, 4].forEach(idx => {
+            dayData[`stack${idx}`] = 0;
+            dayData[`color${idx}`] = 'transparent';
+        });
 
         const todayCats: Record<string, number> = {};
         let todayOthers = 0;
@@ -285,7 +290,7 @@ export default function ProductivityChart({ dailyMap, isSandbox = false }: { dai
     const firstDay = new Date(year, month, 1).getDay();
     const daysInMonth = new Date(year, month + 1, 0).getDate();
     
-    const days =[];
+    const days = [];
     for (let i = 0; i < firstDay; i++) days.push(null);
     for (let i = 1; i <= daysInMonth; i++) days.push(new Date(year, month, i));
 
@@ -412,6 +417,7 @@ export default function ProductivityChart({ dailyMap, isSandbox = false }: { dai
                  dataKey={`stack${idx}`} 
                  stackId="focusStack"
                  maxBarSize={40} 
+                 fill="transparent"
                  isAnimationActive={true}
                  animationDuration={500}
                  animationEasing="ease-out"

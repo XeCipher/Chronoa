@@ -3,6 +3,8 @@ import { Task, CalendarEvent } from "@/types/app.types";
 
 export const generateMockDailyMap = () => {
   const map: Record<string, any> = {};
+  const categories = ['Deep Work', 'Learning', 'Workout', 'Projects'];
+  
   for (let i = 365; i >= 0; i--) {
     // Fill all squares but keep some empty (15% completely zero)
     if (Math.random() > 0.85) continue;
@@ -30,14 +32,33 @@ export const generateMockDailyMap = () => {
     };
 
     const taskCount = Math.random() > 0.9 ? Math.floor(Math.random() * 5) + 4 : Math.floor(Math.random() * 3) + 1;
-    const focusMins = Math.random() > 0.8 ? Math.floor(Math.random() * 90) + 30 : Math.floor(Math.random() * 30);
+    
+    // Distribute focus time into multiple sessions to show beautiful stacked bars in the chart
+    let totalFocusMins = 0;
+    const sessions = [];
+    
+    // 80% chance of having focus time on active days
+    if (Math.random() > 0.2) {
+       const numSessions = Math.floor(Math.random() * 3) + 1; // 1 to 3 sessions per day
+       for (let s = 0; s < numSessions; s++) {
+         // Skew slightly towards Deep Work for a realistic distribution
+         const cat = Math.random() > 0.4 ? categories[0] : categories[Math.floor(Math.random() * categories.length)];
+         const mins = Math.floor(Math.random() * 45) + 15; // 15 to 60 mins each
+         totalFocusMins += mins;
+         sessions.push({
+           title: cat,
+           duration_seconds: mins * 60,
+           created_at: makeTaskDate()
+         });
+       }
+    }
 
     map[ymd] = {
       date: ymd,
       tasks: Array.from({ length: taskCount }).map(() => ({ title: 'Task', completed_at: makeTaskDate(), task_type: 'normal' })),
-      sessions: Array.from({ length: focusMins > 0 ? 1 : 0 }).map(() => ({ title: 'Focus', duration_seconds: focusMins * 60, created_at: makeTaskDate() })),
+      sessions: sessions,
       taskCount: taskCount,
-      focusMinutes: focusMins
+      focusMinutes: totalFocusMins
     };
   }
   return map;
