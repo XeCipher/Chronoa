@@ -214,7 +214,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           isCritical = true;
         } else {
           for (let i = 0; i < currentState.timers.length; i++) {
-            if (currentState.timers[i]?.isRunning !== prev.timers[i]?.isRunning || 
+            if (currentState.timers[i]?.id !== prev.timers[i]?.id ||
+                currentState.timers[i]?.title !== prev.timers[i]?.title ||
+                currentState.timers[i]?.targetMinutes !== prev.timers[i]?.targetMinutes ||
+                currentState.timers[i]?.isRunning !== prev.timers[i]?.isRunning || 
                 currentState.timers[i]?.accumulatedSeconds !== prev.timers[i]?.accumulatedSeconds) {
               isCritical = true;
               break;
@@ -222,7 +225,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           }
           if (!isCritical) {
             for (let i = 0; i < currentState.stopwatches.length; i++) {
-              if (currentState.stopwatches[i]?.isRunning !== prev.stopwatches[i]?.isRunning || 
+              if (currentState.stopwatches[i]?.id !== prev.stopwatches[i]?.id ||
+                  currentState.stopwatches[i]?.title !== prev.stopwatches[i]?.title ||
+                  currentState.stopwatches[i]?.isRunning !== prev.stopwatches[i]?.isRunning || 
                   currentState.stopwatches[i]?.accumulatedSeconds !== prev.stopwatches[i]?.accumulatedSeconds) {
                 isCritical = true;
                 break;
@@ -244,7 +249,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
         clearTimeout(timeoutId);
         if (isCritical) {
-          executeSave(); 
+          timeoutId = setTimeout(executeSave, 100); 
         } else {
           timeoutId = setTimeout(executeSave, 1000); 
         }
