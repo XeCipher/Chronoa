@@ -1131,7 +1131,7 @@ export default function NotesPage() {
 
       {/* MAIN CONTENT VIEW */}
       <main className={`
-        cursor-text
+        cursor-text select-text
         flex-1 flex flex-col bg-white dark:bg-[#121212] transition-transform duration-500 ease-in-out z-40
         max-lg:fixed max-lg:inset-0
         lg:static lg:translate-x-0
@@ -1154,6 +1154,11 @@ export default function NotesPage() {
               className="flex-1 overflow-y-auto no-scrollbar w-full relative flex flex-col cursor-text select-text"
               onScroll={(e) => setIsScrolled(e.currentTarget.scrollTop > 10)}
               onClick={(e) => {
+                const selection = window.getSelection();
+                if (selection && selection.toString().length > 0) {
+                  return;
+                }
+
                 const target = e.target as HTMLElement;
                 
                 // Fix for iOS "multiple taps to edit" issue:

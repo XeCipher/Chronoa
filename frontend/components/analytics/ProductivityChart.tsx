@@ -106,7 +106,7 @@ export default function ProductivityChart({ dailyMap, isSandbox = false }: { dai
     setShowCalendar(false);
   };
 
-  const { chartData, maxFocusScale, maxTasksScale } = useMemo(() => {
+  const { chartData, maxFocusScale, maxTasksScale, yTicks } = useMemo(() => {
     // 1. Get Top 4 categories to maintain color consistency across the week
     const catTotals: Record<string, number> = {};
     for(let i=6; i>=0; i--) {
@@ -134,8 +134,8 @@ export default function ProductivityChart({ dailyMap, isSandbox = false }: { dai
     topKeys.forEach((k, idx) => { colorMap[k] = FOCUS_COLORS[idx % FOCUS_COLORS.length]; });
 
     const data = [];
-    let maxFocus = 0;
-    let maxTasks = 0;
+    let currentMaxFocus = 0;
+    let currentMaxTasks = 0;
 
     // 2. Iterate each day, sort mathematically ascending, and assign to Recharts generic Stacks
     for(let i=6; i>=0; i--) {
@@ -151,8 +151,8 @@ export default function ProductivityChart({ dailyMap, isSandbox = false }: { dai
             focus: record ? record.focusMinutes : 0
         };
 
-        if (dayData.focus > maxFocus) maxFocus = dayData.focus;
-        if (dayData.tasks > maxTasks) maxTasks = dayData.tasks;
+        if (dayData.focus > currentMaxFocus) currentMaxFocus = dayData.focus;
+        if (dayData.tasks > currentMaxTasks) currentMaxTasks = dayData.tasks;
 
         // Populate baseline generic stacks to ensure Recharts doesn't crash on undefined values
         // Set transparent defaults so animating to zero completely hides the SVG artifact
@@ -193,10 +193,18 @@ export default function ProductivityChart({ dailyMap, isSandbox = false }: { dai
     }
 
     // Proportional ratio mapping locking peak focus point securely relative to peak tasks point
-    const mFocusScale = maxFocus > 0 ? Math.ceil(maxFocus * 1.1) : 60;
-    const mTasksScale = maxTasks > 0 ? Math.ceil(maxTasks * 1.1) : 5;
+    let mFocusScale = 60;
+    if (currentMaxFocus > 0) {
+      // Round up to nearest 60-minute interval so the ticks are always mathematically clean
+      mFocusScale = Math.max(60, Math.ceil((currentMaxFocus * 1.1) / 60) * 60);
+    }
+    
+    // Exactly 5 ticks generated mathematically to guarantee YAxis never stays blank
+    const ticks = [0, mFocusScale * 0.25, mFocusScale * 0.5, mFocusScale * 0.75, mFocusScale];
 
-    return { chartData: data, maxFocusScale: mFocusScale, maxTasksScale: mTasksScale };
+    const mTasksScale = currentMaxTasks > 0 ? Math.ceil(currentMaxTasks * 1.1) : 5;
+
+    return { chartData: data, maxFocusScale: mFocusScale, maxTasksScale: mTasksScale, yTicks: ticks };
   }, [dailyMap, endDate, isDark]);
 
   const isSelectedWeek = (d: Date) => {
@@ -372,18 +380,19 @@ export default function ProductivityChart({ dailyMap, isSandbox = false }: { dai
 
       <div className="flex-1 w-full min-h-0">
         <ResponsiveContainer width="100%" height="100%">
-          {/* Extended left margin width perfectly prevents timing cutoffs */}
           <ComposedChart data={chartData} margin={{ top: 20, right: 10, left: 10, bottom: 20 }}>
             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDark ? '#333' : '#f0ede8'} />
             <XAxis dataKey="display" axisLine={false} tickLine={false} tick={<CustomXAxisTick />} dy={10} interval={0} />
             
-            {/* Left Y Axis mapped dynamically to the maximum limit of Focus Minutes */}
             <YAxis 
               yAxisId="left" 
+              type="number"
               domain={[0, maxFocusScale]}
+              allowDataOverflow={true}
               axisLine={false} 
               tickLine={false} 
               width={55}
+              ticks={yTicks}
               tick={{ fill: isDark ? '#7a7a7a' : '#b0ad9a', fontSize: 11 }} 
               tickFormatter={(val) => {
                 if (val === 0) return '0m';
@@ -395,7 +404,6 @@ export default function ProductivityChart({ dailyMap, isSandbox = false }: { dai
               }}
             />
             
-            {/* Right Y Axis mathematically synchronized with the Left Y Axis based on absolute maximum Task limits */}
             <YAxis 
               yAxisId="right" 
               domain={[0, maxTasksScale]}
@@ -409,7 +417,6 @@ export default function ProductivityChart({ dailyMap, isSandbox = false }: { dai
             
             <RechartsTooltip content={<CustomTooltip />} cursor={{ fill: isDark ? '#2a2a2a' : '#f7f5f0' }} />
             
-            {/* Dynamically build Focus Stacks */}
             {[0, 1, 2, 3, 4].map((idx) => (
               <Bar 
                  key={`stack${idx}`} 
@@ -425,7 +432,6 @@ export default function ProductivityChart({ dailyMap, isSandbox = false }: { dai
               />
             ))}
             
-            {/* Tasks curve uses our signature Amber/Yellow color mapped safely to the Right Y Axis relative ratio */}
             <Line 
               yAxisId="right" 
               type="monotone" 

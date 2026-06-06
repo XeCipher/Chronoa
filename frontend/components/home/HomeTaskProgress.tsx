@@ -89,7 +89,23 @@ export default function HomeTaskProgress() {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks' }, fetchTasks)
       .subscribe();
 
-    return () => { supabase.removeChannel(channel); };
+    const handleFocusAndVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        fetchTasks();
+      }
+    };
+
+    window.addEventListener('focus', handleFocusAndVisibility);
+    window.addEventListener('visibilitychange', handleFocusAndVisibility);
+    // Interval ensures automated updates if laptop stays continually powered on
+    const intervalId = setInterval(fetchTasks, 5 * 60 * 1000);
+
+    return () => { 
+      supabase.removeChannel(channel); 
+      window.removeEventListener('focus', handleFocusAndVisibility);
+      window.removeEventListener('visibilitychange', handleFocusAndVisibility);
+      clearInterval(intervalId);
+    };
   },[showHomeTaskProgress]);
 
   if (!showHomeTaskProgress || loading) return null;

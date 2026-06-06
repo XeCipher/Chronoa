@@ -877,8 +877,11 @@ export function MockNotesSandbox() {
         </p>
       </div>
       <div 
-        className="mock-editor-container cursor-text w-full bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] rounded-[2.5rem] px-4 pt-2 pb-6 md:px-10 md:pt-4 md:pb-10 shadow-2xl flex-1 min-h-0 overflow-y-auto no-scrollbar relative md:h-auto md:max-h-[500px]"
+        className="mock-editor-container cursor-text select-text w-full bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] rounded-[2.5rem] px-4 pt-2 pb-6 md:px-10 md:pt-4 md:pb-10 shadow-2xl flex-1 min-h-0 overflow-y-auto no-scrollbar relative md:h-auto md:max-h-[500px]"
         onClick={(e) => {
+           const selection = window.getSelection();
+           if (selection && selection.toString().length > 0) return;
+
            const target = e.target as HTMLElement;
            if (!target.closest('button') && !target.closest('a') && !target.closest('input') && !target.closest('.no-editor-focus')) {
               window.dispatchEvent(new CustomEvent('focus-editor'));

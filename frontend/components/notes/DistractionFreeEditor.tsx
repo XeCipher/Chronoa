@@ -362,6 +362,12 @@ export default function DistractionFreeEditor({
   useEffect(() => {
     const handleFocus = () => {
       if (!editor || !editor.isFocused || window.innerWidth < 1024) return;
+      
+      const selection = window.getSelection();
+      if (selection && selection.toString().length > 0) {
+        return; // Do not jump to end if text is currently selected
+      }
+
       editor.view.dom.focus();
       editor.commands.focus('end');
     };
@@ -714,12 +720,15 @@ export default function DistractionFreeEditor({
         in the visible area lands directly on it.
       */}
       <div
-        className="relative w-full flex-1 flex flex-col cursor-text"
+        className="relative w-full flex-1 flex flex-col cursor-text select-text"
         style={{ fontSize: `${(journalZoom / 100) * 1.05}rem`, fontFamily: "inherit" }}
         onClick={() => {
           // Desktop only: focus and move cursor to end for clicks in the empty
           // space below the last paragraph.
           if (window.innerWidth >= 1024 && editor && !editor.isFocused) {
+            const selection = window.getSelection();
+            if (selection && selection.toString().length > 0) return;
+            
             editor.view.dom.focus();
             editor.commands.focus('end');
           }
