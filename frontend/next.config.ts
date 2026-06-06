@@ -1,3 +1,4 @@
+// frontend/next.config.ts
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
@@ -5,8 +6,7 @@ const nextConfig: NextConfig = {
   transpilePackages: [
     '@tiptap/react', 
     '@tiptap/starter-kit', 
-    '@tiptap/extension-bubble-menu',
-    'react-activity-calendar' // <-- ADD THIS LINE
+    '@tiptap/extension-bubble-menu'
   ],
 };
 

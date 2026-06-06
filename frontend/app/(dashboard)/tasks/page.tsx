@@ -11,7 +11,7 @@ import { Tooltip } from "react-tooltip";
 
 export default function TasksPage() {
   const { tasksView, setTasksView, archiveLayout, setArchiveLayout, archiveSort, setArchiveSort, showConfirmDialog } = useUiStore();
-  const[isTrashOpen, setIsTrashOpen] = useState(false);
+  const [isTrashOpen, setIsTrashOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
 
   const handleEmptyTrash = () => {
@@ -29,10 +29,11 @@ export default function TasksPage() {
   const handleClearHistory = () => {
     showConfirmDialog({
       title: "Clear History",
-      message: "Are you sure you want to permanently delete all archived tasks? This cannot be undone.",
+      message: "Are you sure you want to permanently delete all archived normal tasks? Your daily routines will remain untouched.",
       isDestructive: true,
       onConfirm: async () => {
-        await supabase.from('tasks').delete().eq('is_completed', true).is('deleted_at', null);
+        // Ensure 'routine' tasks are excluded to prevent permanent data loss
+        await supabase.from('tasks').delete().eq('is_completed', true).eq('task_type', 'normal').is('deleted_at', null);
         window.location.reload(); 
       }
     });
@@ -41,7 +42,7 @@ export default function TasksPage() {
   useEffect(() => {
     setTasksView('focus');
     setIsTrashOpen(false);
-  },[setTasksView]);
+  }, [setTasksView]);
 
   // Reset View Event Listener
   useEffect(() => {
@@ -74,7 +75,7 @@ export default function TasksPage() {
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  },[isTrashOpen, tasksView, setTasksView]);
+  }, [isTrashOpen, tasksView, setTasksView]);
 
   const currentViewMode = isTrashOpen ? 'trash' : tasksView;
 
@@ -196,7 +197,6 @@ export default function TasksPage() {
         <div id="tasks-scroll-container" className="flex-1 overflow-y-scroll overflow-x-hidden no-scrollbar px-4 md:px-8 lg:px-10 pt-2 md:pt-0 pb-8 md:pb-12 w-full min-h-0">
           <div className="flex flex-col lg:flex-row items-start gap-4 lg:gap-12 w-full">
             <div className="w-full lg:w-1/2 min-w-0 flex flex-col gap-4 lg:gap-8">
-              {/* Only show the Today Calendar Widget if we're in the default 'focus' view */}
               {currentViewMode === 'focus' && (
                 <TodayCalendarWidget variant="tasks" searchQuery={searchQuery} className="hidden lg:block" />
               )}

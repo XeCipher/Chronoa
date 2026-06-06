@@ -382,6 +382,7 @@ export function AiChatPanel() {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const recognitionRef = useRef<any>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const handleSendRef = useRef<((text: string) => void) | null>(null);
 
   const row1Prompts = useRef([...CRAZY_PROMPTS].sort(() => 0.5 - Math.random()).slice(0, 6));
   const row2Prompts = useRef([...CRAZY_PROMPTS].sort(() => 0.5 - Math.random()).slice(6, 12));
@@ -399,11 +400,19 @@ export function AiChatPanel() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isTyping]);
 
+  // Storing a mutable ref to the latest handleSend logic prevents the 
+  // infinite bind/unbind performance bug that was causing massive lag.
   useEffect(() => {
-    const handleEvent = (e: any) => handleSend(e.detail);
+    handleSendRef.current = handleSend;
+  });
+
+  useEffect(() => {
+    const handleEvent = (e: any) => {
+      if (handleSendRef.current) handleSendRef.current(e.detail);
+    };
     window.addEventListener('chronoa-ai-prompt', handleEvent);
     return () => window.removeEventListener('chronoa-ai-prompt', handleEvent);
-  });
+  }, []);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {

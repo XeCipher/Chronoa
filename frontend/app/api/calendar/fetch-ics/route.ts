@@ -1,3 +1,4 @@
+// frontend/app/api/calendar/fetch-ics/route.ts
 import { NextResponse } from 'next/server';
 
 export async function GET(request: Request) {
@@ -8,8 +9,8 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: 'URL is required' }, { status: 400 });
   }
 
-  // Convert webcal to https to allow node-fetch to resolve it correctly
-  url = url.replace(/^webcal:\/\//i, 'https://');
+  // Added (s)? to ensure Apple's webcals:// protocols are converted correctly
+  url = url.replace(/^webcal(s)?:\/\//i, 'https://');
 
   try {
     const response = await fetch(url, {
