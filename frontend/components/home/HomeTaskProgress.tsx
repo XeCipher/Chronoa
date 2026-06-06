@@ -9,26 +9,35 @@ import { CheckCircle2, ListTodo } from "lucide-react";
 export default function HomeTaskProgress() {
   const { showHomeTaskProgress } = useUiStore();
   
-  // Initialize safely to prevent Server/Client Hydration Mismatch
-  const [routinePct, setRoutinePct] = useState(0);
-  const [normalLeft, setNormalLeft] = useState(0);
-  const [loading, setLoading] = useState(true);
+  // Synchronously initialize state with localStorage to completely eliminate the mount flicker
+  const [routinePct, setRoutinePct] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const cached = localStorage.getItem('chronoa_cache_home_task_routine_pct');
+      return cached ? parseInt(cached, 10) : 0;
+    }
+    return 0;
+  });
+  
+  const[normalLeft, setNormalLeft] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const cached = localStorage.getItem('chronoa_cache_home_task_normal_left');
+      return cached ? parseInt(cached, 10) : 0;
+    }
+    return 0;
+  });
+  
+  const [loading, setLoading] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('chronoa_cache_home_task_routine_pct') === null;
+    }
+    return true;
+  });
   
   const [isExpanded, setIsExpanded] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
   const widgetRef = useRef<HTMLDivElement>(null);
   
   const showFull = isExpanded || isHovered;
-
-  useEffect(() => {
-    // Pull cached data only after the component has gracefully mounted
-    if (typeof window !== 'undefined') {
-      const cachedPct = localStorage.getItem('chronoa_cache_home_task_routine_pct');
-      const cachedLeft = localStorage.getItem('chronoa_cache_home_task_normal_left');
-      if (cachedPct) setRoutinePct(parseInt(cachedPct, 10));
-      if (cachedLeft) setNormalLeft(parseInt(cachedLeft, 10));
-    }
-  }, []);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent | TouchEvent) => {
@@ -42,7 +51,7 @@ export default function HomeTaskProgress() {
        document.removeEventListener("mousedown", handleClickOutside);
        document.removeEventListener("touchstart", handleClickOutside);
     };
-  }, []);
+  },[]);
 
   useEffect(() => {
     if (!showHomeTaskProgress) return;
@@ -97,7 +106,7 @@ export default function HomeTaskProgress() {
       window.removeEventListener('visibilitychange', handleFocusAndVisibility);
       clearInterval(intervalId);
     };
-  }, [showHomeTaskProgress]);
+  },[showHomeTaskProgress]);
 
   if (!showHomeTaskProgress || loading) return null;
 
