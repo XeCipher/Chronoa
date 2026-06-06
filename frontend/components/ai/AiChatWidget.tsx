@@ -63,7 +63,7 @@ const fetchUserContext = async () => {
   const todayStart = new Date();
   todayStart.setHours(0, 0, 0, 0);
 
-  const { data: tasks } = await supabase.from('tasks').select('id, title, is_completed, task_type, completed_at').eq('user_id', user.id).is('deleted_at', null).order('position', { ascending: true });
+  const { data: tasks } = await supabase.from('tasks').select('id, title, is_completed, task_type, completed_at').eq('user_id', user.id).is('deleted_at', null).order('position', { ascending: true }).limit(100);
   const { data: journals } = await supabase.from('journal_entries').select('entry_date, content').eq('user_id', user.id).order('entry_date', { ascending: false }).limit(3);
   const { data: events } = await supabase.from('calendar_events').select('id, title, start_time, end_time').eq('user_id', user.id).gte('start_time', new Date().toISOString()).order('start_time', { ascending: true }).limit(8);
   const { data: notes } = await supabase.from('notes').select('id, title').eq('user_id', user.id).is('deleted_at', null).order('updated_at', { ascending: false }).limit(8);
@@ -386,6 +386,13 @@ export function AiChatPanel() {
 
   const row1Prompts = useRef([...CRAZY_PROMPTS].sort(() => 0.5 - Math.random()).slice(0, 6));
   const row2Prompts = useRef([...CRAZY_PROMPTS].sort(() => 0.5 - Math.random()).slice(6, 12));
+
+  // Global Cleanup for Voice Recognition to prevent memory leaks
+  useEffect(() => {
+    return () => {
+      if (recognitionRef.current) recognitionRef.current.stop();
+    };
+  }, []);
 
   useEffect(() => {
     if (isAiChatOpen) {
