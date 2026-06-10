@@ -149,6 +149,11 @@ export const useTimerStore = create<TimerState>()(
         }
       }
     }),
-    { name: 'chronoa-multi-timer-v2' }
+    { 
+      name: 'chronoa-multi-timer-v2',
+      partialize: (state) => Object.fromEntries(
+        Object.entries(state).filter(([key]) => !['forceShowWidgets'].includes(key))
+      )
+    }
   )
 );

@@ -139,10 +139,10 @@ export default function HomePage() {
           </div>
         </div>
 
-        {isTouched && !isPinned && (
+        {(isTouched || forceShow) && !isPinned && (
           <button
             className="fixed inset-0 z-0 cursor-default outline-none pointer-events-auto"
-            onClick={(e) => { e.stopPropagation(); setIsTouched(false); }}
+            onClick={(e) => { e.stopPropagation(); setIsTouched(false); if (forceShow) setForceShow(false); }}
             tabIndex={-1}
           />
         )}

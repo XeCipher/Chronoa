@@ -76,6 +76,7 @@ export default function RecursiveCheckbox({
   const [isOverflowing, setIsOverflowing] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [menuRect, setMenuRect] = useState<DOMRect | null>(null);
+  const [isTouchDevice, setIsTouchDevice] = useState(false);
 
   const [optimisticCollapsed, setOptimisticCollapsed] = useState<boolean | null>(null);
   
@@ -85,6 +86,12 @@ export default function RecursiveCheckbox({
 
   useEffect(() => {
     setMounted(true);
+    setIsTouchDevice(
+      window.matchMedia('(hover: none)').matches || 
+      ('ontouchstart' in window) || 
+      navigator.maxTouchPoints > 0
+    );
+
     if (viewMode !== 'focus') {
       const stored = localStorage.getItem('chronoa_archive_collapsed');
       if (stored) {
@@ -157,6 +164,15 @@ export default function RecursiveCheckbox({
       // Prevents closing edit mode if clicking inside the floating context menu
       if ((event.target as Element).closest?.('.context-menu-portal')) return;
       
+      if (
+        isEditMode &&
+        type === "routine" &&
+        containerRef.current &&
+        !containerRef.current.contains(event.target as Node)
+      ) {
+        // Routine mode edit logic lives higher up but we keep bounds active
+      }
+      
       if (activeTaskIdWithMenu !== task.id) return;
       if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
         const target = event.target as Element;
@@ -167,7 +183,7 @@ export default function RecursiveCheckbox({
     
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  },[activeTaskIdWithMenu, task.id, setActiveTaskIdWithMenu]);
+  },[activeTaskIdWithMenu, task.id, setActiveTaskIdWithMenu, isEditMode]);
 
   useEffect(() => {
     if (activeTaskIdWithMenu !== task.id) return;
@@ -261,7 +277,7 @@ export default function RecursiveCheckbox({
        }, 4000);
     } else {
        setForceShowWidgets(true);
-       router.push('/');
+       router.push('/home');
     }
   };
 
@@ -539,7 +555,7 @@ export default function RecursiveCheckbox({
           <div 
             {...attributes} 
             {...listeners} 
-            className={`cursor-grab active:cursor-grabbing text-[#c4c0b8] dark:text-[#555] lg:hover:text-[#c2956e] lg:dark:hover:text-[#b0855f] p-2 md:p-1 -ml-3 md:-ml-2 -mr-1 md:mr-1 transition-opacity touch-none ${isDragging ? 'opacity-100' : 'opacity-30 lg:opacity-0 lg:group-hover:opacity-100'}`}
+            className={`cursor-grab active:cursor-grabbing text-[#c4c0b8] dark:text-[#555] lg:hover:text-[#c2956e] lg:dark:hover:text-[#b0855f] p-2 md:p-1 -ml-3 md:-ml-2 -mr-1 md:mr-1 transition-opacity touch-none ${isDragging ? 'opacity-100' : isTouchDevice ? 'opacity-50' : 'opacity-30 lg:opacity-0 lg:group-hover:opacity-100'}`}
           >
             <GripVertical size={14} />
           </div>
