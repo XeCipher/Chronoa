@@ -251,7 +251,7 @@ export default function ProductivityWidgets({ isVisible, isSandbox = false }: { 
 
   return (
     <div 
-      className="transition-all duration-400 ease-out md:duration-[1000ms] md:ease-[cubic-bezier(0.16,1,0.3,1)] will-change-[transform,opacity] w-full flex flex-col items-center"
+      className="transition-all duration-[800ms] md:duration-[1000ms] ease-[cubic-bezier(0.16,1,0.3,1)] will-change-[transform,opacity] w-full flex flex-col items-center"
       style={{ transform: isVisible ? 'translateY(0)' : 'translateY(130%)', opacity: isVisible ? 1 : 0 }}
     >
       <div className="flex justify-between items-center w-[24rem] max-w-[85vw] mb-4">
