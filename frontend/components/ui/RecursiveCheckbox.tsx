@@ -164,15 +164,6 @@ export default function RecursiveCheckbox({
       // Prevents closing edit mode if clicking inside the floating context menu
       if ((event.target as Element).closest?.('.context-menu-portal')) return;
       
-      if (
-        isEditMode &&
-        type === "routine" &&
-        containerRef.current &&
-        !containerRef.current.contains(event.target as Node)
-      ) {
-        // Routine mode edit logic lives higher up but we keep bounds active
-      }
-      
       if (activeTaskIdWithMenu !== task.id) return;
       if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
         const target = event.target as Element;
@@ -183,7 +174,7 @@ export default function RecursiveCheckbox({
     
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  },[activeTaskIdWithMenu, task.id, setActiveTaskIdWithMenu, isEditMode]);
+  },[activeTaskIdWithMenu, task.id, setActiveTaskIdWithMenu]);
 
   useEffect(() => {
     if (activeTaskIdWithMenu !== task.id) return;
