@@ -33,7 +33,7 @@ export default function TodayCalendarWidget({ variant, searchQuery = '', classNa
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
-  const[isModalOpen, setIsModalOpen] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const [defaultModalTitle, setDefaultModalTitle] = useState("");
   
   const { calendarWidgetCollapsed, setCalendarWidgetCollapsed } = useUiStore();
@@ -249,23 +249,48 @@ export default function TodayCalendarWidget({ variant, searchQuery = '', classNa
         await supabase.from('calendar_events').update({ ...upgradedEvent }).eq('id', updates.id);
         await generateRecurringEvents(upgradedEvent, newSeriesId);
       } else if (updateMode === 'this' || !updates.series_id) {
-        await supabase.from('calendar_events').update({ ...updates, series_id: null }).eq('id', updates.id);
+        // IMPORTANT: We no longer set series_id to null here, preserving the event's link to the series!
+        await supabase.from('calendar_events').update({ ...updates }).eq('id', updates.id);
       } else {
-        const currentStartTime = new Date(referenceEvent?.start_time || updates.start_time!);
-        await supabase.from('calendar_events').delete().eq('series_id', updates.series_id).gte('start_time', currentStartTime.toISOString());
-        
-        const newInstanceId = crypto.randomUUID();
-        const isNowStandalone = !updates.repeat_pattern || updates.repeat_pattern === 'none';
+        const timeChanged = 
+            new Date(updates.start_time!).getTime() !== new Date(referenceEvent!.start_time).getTime() ||
+            new Date(updates.end_time!).getTime() !== new Date(referenceEvent!.end_time).getTime() ||
+            updates.is_all_day !== referenceEvent!.is_all_day ||
+            updates.repeat_pattern !== referenceEvent!.repeat_pattern;
 
-        const updatedCurrent = { 
-          ...baseEvent, 
-          id: newInstanceId,
-          series_id: isNowStandalone ? null : updates.series_id 
-        } as CalendarEvent;
-        
-        await supabase.from('calendar_events').insert(updatedCurrent);
-        if (!isNowStandalone && updatedCurrent.series_id) {
-          await generateRecurringEvents(updatedCurrent, updates.series_id);
+        const currentStartTime = new Date(referenceEvent!.start_time);
+
+        if (timeChanged) {
+            await supabase.from('calendar_events').delete().eq('series_id', updates.series_id).gte('start_time', currentStartTime.toISOString());
+            
+            const newInstanceId = crypto.randomUUID();
+            const isNowStandalone = !updates.repeat_pattern || updates.repeat_pattern === 'none';
+
+            const updatedCurrent = { 
+              ...baseEvent, 
+              id: newInstanceId,
+              series_id: isNowStandalone ? null : updates.series_id 
+            } as CalendarEvent;
+            
+            await supabase.from('calendar_events').insert(updatedCurrent);
+            if (!isNowStandalone && updatedCurrent.series_id) {
+              await generateRecurringEvents(updatedCurrent, updates.series_id);
+            }
+        } else {
+            // Metadata update only: apply diff to future events
+            const diff: any = {};
+            if (updates.title !== referenceEvent!.title) diff.title = updates.title;
+            if (updates.description !== referenceEvent!.description) diff.description = updates.description;
+            if (updates.location !== referenceEvent!.location) diff.location = updates.location;
+            if (updates.meeting_url !== referenceEvent!.meeting_url) diff.meeting_url = updates.meeting_url;
+            if (updates.color !== referenceEvent!.color) diff.color = updates.color;
+
+            if (Object.keys(diff).length > 0) {
+                await supabase.from('calendar_events')
+                    .update(diff)
+                    .eq('series_id', updates.series_id)
+                    .gte('start_time', currentStartTime.toISOString());
+            }
         }
       }
     } else {

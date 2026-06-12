@@ -27,7 +27,7 @@ export default function CalendarPage() {
   const { calendarView, setCalendarView, showConfirmDialog } = useUiStore();
   
   const [referenceDate, setReferenceDate] = useState(startOfDay(new Date()));
-  const[events, setEvents] = useState<CalendarEvent[]>([]);
+  const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [syncErrors, setSyncErrors] = useState<string[]>([]);
   const [isSyncErrorModalOpen, setIsSyncErrorModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -41,10 +41,10 @@ export default function CalendarPage() {
   const [targetScrollTime, setTargetScrollTime] = useState<string | null>(null);
 
   // Used to cleanly inform the views to smoothly scroll down to the current time red-line
-  const[scrollToNowTrigger, setScrollToNowTrigger] = useState(0);
+  const [scrollToNowTrigger, setScrollToNowTrigger] = useState(0);
 
   // Date Picker States
-  const[isDatePickerOpen, setIsDatePickerOpen] = useState(false);
+  const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
   const [pickerMonth, setPickerMonth] = useState(startOfMonth(referenceDate));
   const datePickerRef = useRef<HTMLDivElement>(null);
   const titleRef = useRef<HTMLDivElement>(null);
@@ -53,7 +53,7 @@ export default function CalendarPage() {
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const [dragTimeRange, setDragTimeRange] = useState<{ start: Date, end: Date } | null>(null);
   const [defaultBaseDate, setDefaultBaseDate] = useState<Date | null>(null);
-  const[isMobile, setIsMobile] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 768);
@@ -240,7 +240,7 @@ export default function CalendarPage() {
   };
 
   const generateRecurringEvents = async (base: CalendarEvent, seriesId: string) => {
-    const instances: any[] =[];
+    const instances: any[] = [];
     let currentStart = new Date(base.start_time);
     let currentEnd = new Date(base.end_time);
     const limitDate = addYears(new Date(base.start_time), 1);
@@ -305,27 +305,60 @@ export default function CalendarPage() {
         
         await generateRecurringEvents(upgradedEvent, newSeriesId);
       } else if (updateMode === 'this' || !updates.series_id) {
-        setEvents(prev => prev.map(e => e.id === updates.id ? { ...e, ...updates, series_id: null } as CalendarEvent : e));
-        await supabase.from('calendar_events').update({ ...updates, series_id: null }).eq('id', updates.id);
+        // IMPORTANT: We no longer set series_id to null here, preserving the event's link to the series!
+        setEvents(prev => prev.map(e => e.id === updates.id ? { ...e, ...updates } as CalendarEvent : e));
+        await supabase.from('calendar_events').update({ ...updates }).eq('id', updates.id);
       } else {
-        const currentStartTime = new Date(referenceEvent?.start_time || updates.start_time!);
-        setEvents(prev => prev.filter(e => !(e.series_id === updates.series_id && new Date(e.start_time) >= currentStartTime)));
-        await supabase.from('calendar_events').delete().eq('series_id', updates.series_id).gte('start_time', currentStartTime.toISOString());
-        
-        const newInstanceId = crypto.randomUUID();
-        const isNowStandalone = !updates.repeat_pattern || updates.repeat_pattern === 'none';
+        const timeChanged = 
+            new Date(updates.start_time!).getTime() !== new Date(referenceEvent!.start_time).getTime() ||
+            new Date(updates.end_time!).getTime() !== new Date(referenceEvent!.end_time).getTime() ||
+            updates.is_all_day !== referenceEvent!.is_all_day ||
+            updates.repeat_pattern !== referenceEvent!.repeat_pattern;
 
-        const updatedCurrent = { 
-          ...baseEvent, 
-          id: newInstanceId,
-          series_id: isNowStandalone ? null : updates.series_id 
-        } as CalendarEvent;
-        
-        setEvents(prev => [...prev, updatedCurrent]);
-        await supabase.from('calendar_events').insert(updatedCurrent);
+        const currentStartTime = new Date(referenceEvent!.start_time);
 
-        if (!isNowStandalone && updatedCurrent.series_id) {
-          await generateRecurringEvents(updatedCurrent, updates.series_id);
+        if (timeChanged) {
+            // Structural change: delete future and regenerate
+            setEvents(prev => prev.filter(e => !(e.series_id === updates.series_id && new Date(e.start_time) >= currentStartTime)));
+            await supabase.from('calendar_events').delete().eq('series_id', updates.series_id).gte('start_time', currentStartTime.toISOString());
+            
+            const newInstanceId = crypto.randomUUID();
+            const isNowStandalone = !updates.repeat_pattern || updates.repeat_pattern === 'none';
+
+            const updatedCurrent = { 
+              ...baseEvent, 
+              id: newInstanceId,
+              series_id: isNowStandalone ? null : updates.series_id 
+            } as CalendarEvent;
+            
+            setEvents(prev => [...prev, updatedCurrent]);
+            await supabase.from('calendar_events').insert(updatedCurrent);
+
+            if (!isNowStandalone && updatedCurrent.series_id) {
+              await generateRecurringEvents(updatedCurrent, updates.series_id);
+            }
+        } else {
+            // Metadata update only: apply diff to future events
+            const diff: any = {};
+            if (updates.title !== referenceEvent!.title) diff.title = updates.title;
+            if (updates.description !== referenceEvent!.description) diff.description = updates.description;
+            if (updates.location !== referenceEvent!.location) diff.location = updates.location;
+            if (updates.meeting_url !== referenceEvent!.meeting_url) diff.meeting_url = updates.meeting_url;
+            if (updates.color !== referenceEvent!.color) diff.color = updates.color;
+
+            if (Object.keys(diff).length > 0) {
+                setEvents(prev => prev.map(e => {
+                   if (e.series_id === updates.series_id && new Date(e.start_time) >= currentStartTime) {
+                       return { ...e, ...diff };
+                   }
+                   return e;
+                }));
+
+                await supabase.from('calendar_events')
+                    .update(diff)
+                    .eq('series_id', updates.series_id)
+                    .gte('start_time', currentStartTime.toISOString());
+            }
         }
       }
     } else {
@@ -393,7 +426,7 @@ export default function CalendarPage() {
 
   const filteredEvents = searchQuery 
     ? events.filter(e => e.title.toLowerCase().includes(searchQuery.toLowerCase()))
-    :[];
+    : [];
 
   const displayTitle = () => {
     if (calendarView === 'month') return format(referenceDate, 'MMMM yyyy');
