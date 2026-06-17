@@ -68,7 +68,7 @@ export default function RecursiveCheckbox({
   const containerRef = useRef<HTMLDivElement>(null);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
-  const { taskArchiveDelay, activeTaskIdWithMenu, setActiveTaskIdWithMenu, disabledHotkeys } = useUiStore();
+  const { taskArchiveDelay, activeTaskIdWithMenu, setActiveTaskIdWithMenu, disabledHotkeys, moveCompletedToBottom } = useUiStore();
   const { addInstance, setTitle: setTimerTitle, setActiveTab, setForceShowWidgets } = useTimerStore();
 
   const [localTitle, setLocalTitle] = useState(task.title);
@@ -303,6 +303,27 @@ export default function RecursiveCheckbox({
       isCollapsed = localCollapsed;
   }
 
+  // Pre-calculate movement visibility rules to intelligently disable Context Menu buttons
+  const delayMs = taskArchiveDelay <= 0 ? 1000 : taskArchiveDelay * 60 * 1000;
+  const visibleSiblings = allTasks
+    .filter((t) => 
+      t.parent_id === task.parent_id &&
+      t.deleted_at === null &&
+      (!t.is_completed || isEditMode || taskArchiveDelay < 0 || (t.completed_at && (Date.now() - new Date(t.completed_at).getTime() < delayMs)))
+    )
+    .sort((a, b) => {
+      if (moveCompletedToBottom && !isEditMode) {
+        if (a.is_completed !== b.is_completed) return a.is_completed ? 1 : -1;
+      }
+      return a.position - b.position;
+    });
+
+  const visibleIndex = visibleSiblings.findIndex((t) => t.id === task.id);
+  const canIndent = visibleIndex > 0;
+  const canUnindent = !!task.parent_id;
+  const canMoveUp = visibleIndex > 0;
+  const canMoveDown = visibleIndex > -1 && visibleIndex < visibleSiblings.length - 1;
+
   const titleSize = depth === 0 ? "text-[15px]" : depth === 1 ? "text-[13.5px]" : "text-[12.5px]";
   const titleWeight = depth === 0 ? "font-[500]" : "font-[400]";
   const checkboxSize = depth === 0 ? "w-[18px] h-[18px]" : "w-[15px] h-[15px]";
@@ -479,11 +500,35 @@ export default function RecursiveCheckbox({
                  
                  <MenuDivider />
                  <div className="flex items-center justify-between px-1.5 py-1">
-                   <button onClick={(e) => { e.stopPropagation(); onMoveUp(task); setActiveTaskIdWithMenu(null); }} className="p-1.5 text-[#888] md:hover:text-[#3d3b33] md:dark:hover:text-white rounded-lg md:hover:bg-[#f0ede8] md:dark:hover:bg-[#2a2a2a] transition-colors"><ArrowUp size={16} /></button>
-                   <button onClick={(e) => { e.stopPropagation(); onMoveDown(task); setActiveTaskIdWithMenu(null); }} className="p-1.5 text-[#888] md:hover:text-[#3d3b33] md:dark:hover:text-white rounded-lg md:hover:bg-[#f0ede8] md:dark:hover:bg-[#2a2a2a] transition-colors"><ArrowDown size={16} /></button>
+                   <button 
+                     onClick={(e) => { e.stopPropagation(); if (canMoveUp) { onMoveUp(task); setActiveTaskIdWithMenu(null); } }} 
+                     disabled={!canMoveUp}
+                     className={`p-1.5 rounded-lg transition-colors ${canMoveUp ? 'text-[#888] md:hover:text-[#3d3b33] md:dark:hover:text-white md:hover:bg-[#f0ede8] md:dark:hover:bg-[#2a2a2a]' : 'text-[#d4d0c8] dark:text-[#555] opacity-50 cursor-not-allowed'}`}
+                   >
+                     <ArrowUp size={16} />
+                   </button>
+                   <button 
+                     onClick={(e) => { e.stopPropagation(); if (canMoveDown) { onMoveDown(task); setActiveTaskIdWithMenu(null); } }} 
+                     disabled={!canMoveDown}
+                     className={`p-1.5 rounded-lg transition-colors ${canMoveDown ? 'text-[#888] md:hover:text-[#3d3b33] md:dark:hover:text-white md:hover:bg-[#f0ede8] md:dark:hover:bg-[#2a2a2a]' : 'text-[#d4d0c8] dark:text-[#555] opacity-50 cursor-not-allowed'}`}
+                   >
+                     <ArrowDown size={16} />
+                   </button>
                    <div className="w-px h-4 bg-[#e0ddd5] dark:bg-[#444] mx-1 shrink-0" />
-                   <button onClick={(e) => { e.stopPropagation(); onUnindent(task); setActiveTaskIdWithMenu(null); }} className="p-1.5 text-[#888] md:hover:text-[#3d3b33] md:dark:hover:text-white rounded-lg md:hover:bg-[#f0ede8] md:dark:hover:bg-[#2a2a2a] transition-colors"><ChevronLeft size={16} /></button>
-                   <button onClick={(e) => { e.stopPropagation(); onIndent(task); setActiveTaskIdWithMenu(null); }} className="p-1.5 text-[#888] md:hover:text-[#3d3b33] md:dark:hover:text-white rounded-lg md:hover:bg-[#f0ede8] md:dark:hover:bg-[#2a2a2a] transition-colors"><ChevronRight size={16} /></button>
+                   <button 
+                     onClick={(e) => { e.stopPropagation(); if (canUnindent) { onUnindent(task); setActiveTaskIdWithMenu(null); } }} 
+                     disabled={!canUnindent}
+                     className={`p-1.5 rounded-lg transition-colors ${canUnindent ? 'text-[#888] md:hover:text-[#3d3b33] md:dark:hover:text-white md:hover:bg-[#f0ede8] md:dark:hover:bg-[#2a2a2a]' : 'text-[#d4d0c8] dark:text-[#555] opacity-50 cursor-not-allowed'}`}
+                   >
+                     <ChevronLeft size={16} />
+                   </button>
+                   <button 
+                     onClick={(e) => { e.stopPropagation(); if (canIndent) { onIndent(task); setActiveTaskIdWithMenu(null); } }} 
+                     disabled={!canIndent}
+                     className={`p-1.5 rounded-lg transition-colors ${canIndent ? 'text-[#888] md:hover:text-[#3d3b33] md:dark:hover:text-white md:hover:bg-[#f0ede8] md:dark:hover:bg-[#2a2a2a]' : 'text-[#d4d0c8] dark:text-[#555] opacity-50 cursor-not-allowed'}`}
+                   >
+                     <ChevronRight size={16} />
+                   </button>
                  </div>
                  
                  {showKeepAliveToggle && (
@@ -645,8 +690,8 @@ export default function RecursiveCheckbox({
                   return;
                 }
 
-                if (e.altKey && e.key === "ArrowUp" && !disabledHotkeys?.includes('up')) { e.preventDefault(); onMoveUp(task); return; }
-                if (e.altKey && e.key === "ArrowDown" && !disabledHotkeys?.includes('down')) { e.preventDefault(); onMoveDown(task); return; }
+                if (e.altKey && e.key === "ArrowUp" && !disabledHotkeys?.includes('up')) { e.preventDefault(); if (canMoveUp) onMoveUp(task); return; }
+                if (e.altKey && e.key === "ArrowDown" && !disabledHotkeys?.includes('down')) { e.preventDefault(); if (canMoveDown) onMoveDown(task); return; }
                 
                 if (e.key === "Enter") {
                   if (e.ctrlKey || e.metaKey) {
@@ -665,12 +710,15 @@ export default function RecursiveCheckbox({
                 
                 if (e.key === "Escape") { e.currentTarget.textContent = task.title; e.currentTarget.blur(); }
                 if (e.key === "Tab") {
-                  const isDisabled = e.shiftKey ? disabledHotkeys?.includes('unindent') : disabledHotkeys?.includes('indent');
-                  if (!isDisabled) {
+                  const isDisabledHotkey = e.shiftKey ? disabledHotkeys?.includes('unindent') : disabledHotkeys?.includes('indent');
+                  if (!isDisabledHotkey) {
                     e.preventDefault();
                     saveCurrentText();
-                    if (e.shiftKey) onUnindent(task);
-                    else onIndent(task);
+                    if (e.shiftKey) {
+                        if (canUnindent) onUnindent(task);
+                    } else {
+                        if (canIndent) onIndent(task);
+                    }
                   }
                 }
               }}

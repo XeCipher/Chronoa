@@ -486,14 +486,28 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
 
   const onIndent = async (task: Task) => {
     markMutated();
-    const siblings = tasks
-      .filter((t) => t.parent_id === task.parent_id)
-      .sort((a, b) => a.position - b.position);
-    const index = siblings.findIndex((t) => t.id === task.id);
+    
+    // We only indent based on VISIBLE siblings in the current context
+    // This perfectly prevents archived or deleted "ghost" tasks from becoming parents.
+    const visibleSiblings = tasks
+      .filter((t) => 
+        t.parent_id === task.parent_id &&
+        t.deleted_at === null &&
+        (!t.is_completed || isEditMode || taskArchiveDelay < 0 || (t.completed_at && (now - new Date(t.completed_at).getTime() < delayMs)))
+      )
+      .sort((a, b) => {
+        if (moveCompletedToBottom && !isEditMode) {
+          if (a.is_completed !== b.is_completed) return a.is_completed ? 1 : -1;
+        }
+        return a.position - b.position;
+      });
+
+    const index = visibleSiblings.findIndex((t) => t.id === task.id);
     
     if (index > 0) {
-      const previousSibling = siblings[index - 1];
+      const previousSibling = visibleSiblings[index - 1];
       const newParentId = previousSibling.id;
+      
       const newSiblings = tasks.filter((t) => t.parent_id === newParentId);
       const newPosition =
         newSiblings.length > 0
