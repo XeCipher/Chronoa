@@ -28,7 +28,7 @@ export interface AnalyticsData {
   journalBestStreak: number;
   dailyMap: Record<string, DailyRecord>;
   rawSessions: any[];
-  levelInfo: { level: number; rank: string; progress: number; xp: number };
+  levelInfo: { level: number; rank: string; progress: number; xp: number; nextRankXp: number; isMaxRank: boolean };
 }
 
 export const RANKS =[
@@ -203,10 +203,8 @@ export default function AnalyticsPage() {
         routineHistoryQuery
       ]);
 
-      // Explicitly type finalRhData so task_id is treated as optional, enabling the fallback to succeed cleanly without TS errors
       let finalRhData: { id: any; task_id?: any; task_title: any; completed_at: any; }[] | null = rhRes.data;
       if (rhRes.error) {
-        // Safe fallback if the task_id column hasn't been created on Supabase yet
         const fallbackRh = await supabase.from('routine_history').select('id, task_title, completed_at').eq('user_id', user.id);
         finalRhData = fallbackRh.data;
       }
@@ -350,14 +348,21 @@ export default function AnalyticsPage() {
 
     const xp = (globalCompletedTasks * 3) + (globalFocusMinutes * 1) + (totalJournals * 10);
     const level = Math.floor(Math.sqrt(xp / 50)) + 1;
-    const nextLevelXp = Math.pow(level, 2) * 50;
-    const prevLevelXp = Math.pow(level - 1, 2) * 50;
-    const progress = Math.min(100, Math.max(0, ((xp - prevLevelXp) / (nextLevelXp - prevLevelXp)) * 100));
     
-    const getRank = (lvl: number) => {
-      const rankObj = [...RANKS].reverse().find(r => lvl >= r.minLevel);
-      return rankObj ? rankObj.name : "Novice";
-    };
+    // Adjusted Rank Progress Logic
+    const currentRankObj = [...RANKS].reverse().find(r => level >= r.minLevel) || RANKS[0];
+    const currentRankIndex = RANKS.findIndex(r => r.name === currentRankObj.name);
+    const nextRankObj = RANKS[currentRankIndex + 1];
+
+    let rankProgress = 100;
+    let nextRankXp = currentRankObj.minXp;
+
+    if (nextRankObj) {
+      const xpIntoRank = xp - currentRankObj.minXp;
+      const rankXpRequirement = nextRankObj.minXp - currentRankObj.minXp;
+      rankProgress = Math.min(100, Math.max(0, (xpIntoRank / rankXpRequirement) * 100));
+      nextRankXp = nextRankObj.minXp;
+    }
 
     const getLocalYMD = (d: Date) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
     const dailyMap: Record<string, DailyRecord> = {};
@@ -424,7 +429,7 @@ export default function AnalyticsPage() {
       journalBestStreak: journalStreak.best,
       dailyMap, 
       rawSessions: mappedSessions,
-      levelInfo: { level, rank: getRank(level), progress, xp }
+      levelInfo: { level, rank: currentRankObj.name, progress: rankProgress, xp, nextRankXp, isMaxRank: !nextRankObj }
     };
   }, [rawTasks, rawSessions, rawJournals, loading, filterType, selectedTrackedIds]);
 
@@ -437,22 +442,30 @@ export default function AnalyticsPage() {
       if (!user) return;
 
       const { data: profile } = await supabase.from('profiles').select('last_celebrated_level').eq('id', user.id).single();
-      const lastCelebrated = profile?.last_celebrated_level || 0;
+      const lastCelebratedLevel = profile?.last_celebrated_level || 0;
       const currentLevel = data.levelInfo.level;
+      const currentRank = data.levelInfo.rank;
 
-      // Only trigger celebration if leveling up, and NOT for the base level 1 (Novice)
-      if (currentLevel > lastCelebrated) {
-        if (currentLevel > 1) {
-          setNewRankName(data.levelInfo.rank);
+      const getRankForLevel = (lvl: number) => {
+        const rankObj = [...RANKS].reverse().find(r => lvl >= r.minLevel);
+        return rankObj ? rankObj.name : "Novice";
+      };
+
+      const lastCelebratedRank = getRankForLevel(lastCelebratedLevel);
+
+      // Only trigger celebration if leveling up, AND the actual Rank has changed
+      if (currentLevel > lastCelebratedLevel) {
+        if (currentLevel > 1 && currentRank !== lastCelebratedRank) {
+          setNewRankName(currentRank);
           setShowRankUp(true);
         }
-        // Persist to DB so it never shows for this level again
+        // Always persist the celebrated level to DB to prevent repetitive checking
         await supabase.from('profiles').update({ last_celebrated_level: currentLevel }).eq('id', user.id);
       }
     };
 
     checkCelebration();
-  }, [data?.levelInfo.level, loading]);
+  }, [data?.levelInfo.level, data?.levelInfo.rank, loading]);
 
   if (loading && rawTasks.length === 0) {
     return (
@@ -474,7 +487,7 @@ export default function AnalyticsPage() {
            </div>
            <div className="relative z-10 flex flex-col items-center text-center animate-fade-up">
               <RankBadge rank={newRankName} className="w-48 h-48 md:w-64 md:h-64 mb-8 drop-shadow-2xl" />
-              <h2 className="text-4xl md:text-5xl font-serif text-[#3d3b33] dark:text-[#f0f0f0] mb-3 tracking-tight">Level Up!</h2>
+              <h2 className="text-4xl md:text-5xl font-serif text-[#3d3b33] dark:text-[#f0f0f0] mb-3 tracking-tight">Rank Up!</h2>
               <p className="text-xl md:text-2xl font-medium text-[#c2956e] dark:text-[#d1a784] mb-2">{newRankName}</p>
               <p className="text-sm md:text-base text-[#888] dark:text-[#a0a0a0] max-w-md mx-auto mb-10 italic">
                  "{RANK_MESSAGES[newRankName] || "You are ascending."}"
@@ -555,8 +568,10 @@ export default function AnalyticsPage() {
           
           <div className="flex-1 w-full mt-2 md:mt-0">
             <div className="flex justify-between items-end mb-2">
-              <span className="text-xs font-medium text-[#888] dark:text-[#aaa]">Experience</span>
-              <span className="text-[10px] font-bold tracking-widest text-[#3d3b33] dark:text-[#e0e0e0] uppercase">{data?.levelInfo.xp} / {Math.pow(data?.levelInfo.level || 1, 2) * 50} XP</span>
+              <span className="text-xs font-medium text-[#888] dark:text-[#aaa]">Rank Progress</span>
+              <span className="text-[10px] font-bold tracking-widest text-[#3d3b33] dark:text-[#e0e0e0] uppercase">
+                {data?.levelInfo.xp} {data?.levelInfo.isMaxRank ? 'XP' : `/ ${data?.levelInfo.nextRankXp} XP`}
+              </span>
             </div>
             <div className="w-full h-3 bg-[#f0ede8] dark:bg-[#2a2a2a] rounded-full overflow-hidden border border-black/5 dark:border-white/5">
               <div 
