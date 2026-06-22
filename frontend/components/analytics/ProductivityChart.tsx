@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useMemo, useRef, useEffect } from 'react';
-import { ResponsiveContainer, ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip } from 'recharts';
+import { ResponsiveContainer, ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ReferenceLine } from 'recharts';
 import { useUiStore } from "@/store/uiStore";
 import { ChevronLeft, ChevronRight, Calendar as CalIcon, X, Target, Timer, CheckCircle2 } from 'lucide-react';
 import { DailyRecord } from '@/app/(dashboard)/analytics/page';
@@ -106,7 +106,7 @@ export default function ProductivityChart({ dailyMap, isSandbox = false }: { dai
     setShowCalendar(false);
   };
 
-  const { chartData, maxFocusScale, maxTasksScale, yTicks } = useMemo(() => {
+  const { chartData, maxFocusScale, maxTasksScale, yTicks, averageFocus } = useMemo(() => {
     // 1. Get Top 4 categories to maintain color consistency across the week
     const catTotals: Record<string, number> = {};
     for(let i=6; i>=0; i--) {
@@ -136,6 +136,7 @@ export default function ProductivityChart({ dailyMap, isSandbox = false }: { dai
     const data = [];
     let currentMaxFocus = 0;
     let currentMaxTasks = 0;
+    let totalFocusForWeek = 0;
 
     // 2. Iterate each day, sort mathematically ascending, and assign to Recharts generic Stacks
     for(let i=6; i>=0; i--) {
@@ -153,6 +154,7 @@ export default function ProductivityChart({ dailyMap, isSandbox = false }: { dai
 
         if (dayData.focus > currentMaxFocus) currentMaxFocus = dayData.focus;
         if (dayData.tasks > currentMaxTasks) currentMaxTasks = dayData.tasks;
+        totalFocusForWeek += dayData.focus;
 
         // Populate baseline generic stacks to ensure Recharts doesn't crash on undefined values
         // Set transparent defaults so animating to zero completely hides the SVG artifact
@@ -198,13 +200,31 @@ export default function ProductivityChart({ dailyMap, isSandbox = false }: { dai
       // Round up to nearest 60-minute interval so the ticks are always mathematically clean
       mFocusScale = Math.max(60, Math.ceil((currentMaxFocus * 1.1) / 60) * 60);
     }
+
+    // Calculate absolute average minutes cleanly
+    const avgFocus = Math.round(totalFocusForWeek / 7);
     
-    // Exactly 5 ticks generated mathematically to guarantee YAxis never stays blank
-    const ticks = [0, mFocusScale * 0.25, mFocusScale * 0.5, mFocusScale * 0.75, mFocusScale];
+    // Exactly 5 ticks generated mathematically
+    let ticks = [0, mFocusScale * 0.25, mFocusScale * 0.5, mFocusScale * 0.75, mFocusScale];
+    
+    if (avgFocus > 0) {
+        // Protect the 0 and Max ticks, but hide any standard grid ticks that get too close to the average
+        ticks = ticks.filter(t => 
+           t === 0 || 
+           t === mFocusScale || 
+           Math.abs(t - avgFocus) > (mFocusScale * 0.12)
+        );
+        
+        // Prevent injecting the average tick if it perfectly overlaps 0 or the absolute Max boundary
+        if (Math.abs(0 - avgFocus) > (mFocusScale * 0.08) && Math.abs(mFocusScale - avgFocus) > (mFocusScale * 0.08)) {
+           ticks.push(avgFocus);
+        }
+        ticks.sort((a, b) => a - b);
+    }
 
     const mTasksScale = currentMaxTasks > 0 ? Math.ceil(currentMaxTasks * 1.1) : 5;
 
-    return { chartData: data, maxFocusScale: mFocusScale, maxTasksScale: mTasksScale, yTicks: ticks };
+    return { chartData: data, maxFocusScale: mFocusScale, maxTasksScale: mTasksScale, yTicks: ticks, averageFocus: avgFocus };
   }, [dailyMap, endDate, isDark]);
 
   const isSelectedWeek = (d: Date) => {
@@ -214,6 +234,14 @@ export default function ProductivityChart({ dailyMap, isSandbox = false }: { dai
     const chartEnd = new Date(endDate);
     chartEnd.setHours(23,59,59,999);
     return d >= chartStart && d <= chartEnd;
+  };
+
+  const formatMins = (val: number) => {
+    const h = Math.floor(val / 60);
+    const m = Math.floor(val % 60);
+    if (h > 0 && m === 0) return `${h}h`;
+    if (h > 0) return `${h}h ${m}m`;
+    return `${m}m`;
   };
 
   const CustomTooltip = ({ active, payload }: any) => {
@@ -288,6 +316,40 @@ export default function ProductivityChart({ dailyMap, isSandbox = false }: { dai
       <g transform={`translate(${x},${y})`}>
         <text x={0} y={0} dy={14} textAnchor="middle" fill={isDark ? '#7a7a7a' : '#b0ad9a'} fontSize={10} fontWeight={700} style={{ textTransform: 'uppercase', letterSpacing: '0.05em' }}>{weekday}</text>
         <text x={0} y={0} dy={28} textAnchor="middle" fill={isDark ? '#f0f0f0' : '#3d3b33'} fontSize={11} fontWeight={600}>{date}</text>
+      </g>
+    );
+  };
+
+  const CustomYAxisTick = ({ x, y, payload }: any) => {
+    const val = payload.value;
+    const isAvg = Math.abs(val - averageFocus) < 0.01 && averageFocus > 0;
+    
+    let text = '';
+    if (val === 0) text = '0m';
+    else {
+      const h = Math.floor(val / 60);
+      const m = Math.floor(val % 60);
+      if (h > 0 && m === 0) text = `${h}h`;
+      else if (h > 0) text = `${h}h ${m}m`;
+      else text = `${m}m`;
+    }
+
+    if (isAvg) text = `AVG ${text}`;
+
+    return (
+      <g transform={`translate(${x},${y})`}>
+        <text 
+          x={0} 
+          y={0} 
+          dx={-5}
+          dy={3}
+          textAnchor="end" 
+          fill={isAvg ? (isDark ? '#d1a784' : '#b0855f') : (isDark ? '#7a7a7a' : '#b0ad9a')} 
+          fontSize={isAvg ? 10 : 11}
+          fontWeight={isAvg ? 700 : 600}
+        >
+          {text}
+        </text>
       </g>
     );
   };
@@ -391,17 +453,10 @@ export default function ProductivityChart({ dailyMap, isSandbox = false }: { dai
               allowDataOverflow={true}
               axisLine={false} 
               tickLine={false} 
-              width={55}
+              width={65}
               ticks={yTicks}
-              tick={{ fill: isDark ? '#7a7a7a' : '#b0ad9a', fontSize: 11 }} 
-              tickFormatter={(val) => {
-                if (val === 0) return '0m';
-                const h = Math.floor(val / 60);
-                const m = val % 60;
-                if (h > 0 && m === 0) return `${h}h`;
-                if (h > 0) return `${h}h ${m}m`;
-                return `${m}m`;
-              }}
+              interval={0}
+              tick={(props: any) => <CustomYAxisTick {...props} />} 
             />
             
             <YAxis 
@@ -431,6 +486,17 @@ export default function ProductivityChart({ dailyMap, isSandbox = false }: { dai
                  shape={(props: any) => <CustomBarShape {...props} />}
               />
             ))}
+
+            {averageFocus > 0 && (
+              <ReferenceLine 
+                y={averageFocus} 
+                yAxisId="left" 
+                stroke={isDark ? '#d1a784' : '#b0855f'} 
+                strokeOpacity={0.6}
+                strokeDasharray="4 4" 
+                strokeWidth={1.5}
+              />
+            )}
             
             <Line 
               yAxisId="right" 
