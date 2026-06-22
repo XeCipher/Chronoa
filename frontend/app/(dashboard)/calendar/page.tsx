@@ -27,6 +27,11 @@ export default function CalendarPage() {
   const { calendarView, setCalendarView, showConfirmDialog } = useUiStore();
   
   const [referenceDate, setReferenceDate] = useState(startOfDay(new Date()));
+  const referenceDateRef = useRef(referenceDate);
+  useEffect(() => {
+    referenceDateRef.current = referenceDate;
+  }, [referenceDate]);
+
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [syncErrors, setSyncErrors] = useState<string[]>([]);
   const [isSyncErrorModalOpen, setIsSyncErrorModalOpen] = useState(false);
@@ -96,14 +101,35 @@ export default function CalendarPage() {
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement;
+      if (['INPUT', 'TEXTAREA'].includes(target.tagName) || target.isContentEditable) {
+        return;
+      }
+
       if (e.key === 'Escape') {
         if (isSearchOpen) setIsSearchOpen(false);
         if (isDatePickerOpen) setIsDatePickerOpen(false);
       }
+
+      if (calendarView === 'month' && !isModalOpen && !isSyncErrorModalOpen && !isSearchOpen && !isDatePickerOpen) {
+        if (e.key === 'ArrowLeft') {
+          e.preventDefault();
+          setReferenceDate(prev => addDays(prev, -1));
+        } else if (e.key === 'ArrowRight') {
+          e.preventDefault();
+          setReferenceDate(prev => addDays(prev, 1));
+        } else if (e.key === 'ArrowUp') {
+          e.preventDefault();
+          setReferenceDate(prev => addDays(prev, -7));
+        } else if (e.key === 'ArrowDown') {
+          e.preventDefault();
+          setReferenceDate(prev => addDays(prev, 7));
+        }
+      }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isSearchOpen, isDatePickerOpen]);
+  }, [isSearchOpen, isDatePickerOpen, calendarView, isModalOpen, isSyncErrorModalOpen]);
 
   // Load from cache instantly on mount
   useEffect(() => {
@@ -141,9 +167,9 @@ export default function CalendarPage() {
       });
     });
 
-    const start = new Date(referenceDate);
+    const start = new Date(referenceDateRef.current);
     start.setFullYear(start.getFullYear() - 1);
-    const end = new Date(referenceDate);
+    const end = new Date(referenceDateRef.current);
     end.setFullYear(end.getFullYear() + 2);
 
     const { data } = await supabase
@@ -161,23 +187,35 @@ export default function CalendarPage() {
     setIsLoading(false);
   };
 
+  const fetchEventsRef = useRef(fetchEvents);
   useEffect(() => {
-    fetchEvents();
+    fetchEventsRef.current = fetchEvents;
+  });
+
+  useEffect(() => {
+    fetchEventsRef.current();
     
     // 5-second recurring local refresh
     const intervalId = setInterval(() => {
-      fetchEvents();
+      fetchEventsRef.current();
     }, 5000);
 
     const channel = supabase.channel('calendar_changes')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'calendar_events' }, fetchEvents).subscribe();
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'calendar_events' }, () => fetchEventsRef.current()).subscribe();
       
     return () => { 
       clearInterval(intervalId);
       supabase.removeChannel(channel); 
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [referenceDate]);
+  }, []);
+
+  const [fetchedYear, setFetchedYear] = useState(referenceDate.getFullYear());
+  useEffect(() => {
+    if (referenceDate.getFullYear() !== fetchedYear) {
+      setFetchedYear(referenceDate.getFullYear());
+      fetchEventsRef.current();
+    }
+  }, [referenceDate, fetchedYear]);
 
   const handlePrev = () => {
     if (calendarView === 'month') setReferenceDate(subMonths(referenceDate, 1));
@@ -284,7 +322,7 @@ export default function CalendarPage() {
        if (updates.color && referenceEvent.source_id) {
          setEvents(prev => prev.map(e => e.source_id === referenceEvent.source_id ? { ...e, color: updates.color! } : e));
        }
-       setTimeout(() => { fetchEvents() }, 500);
+       setTimeout(() => { fetchEventsRef.current() }, 500);
        return;
     }
 
@@ -378,7 +416,7 @@ export default function CalendarPage() {
       }
     }
     // Update cache after save
-    setTimeout(() => { fetchEvents() }, 500);
+    setTimeout(() => { fetchEventsRef.current() }, 500);
   };
 
   const handleDeleteEvent = async (event: CalendarEvent, deleteMode: 'this' | 'future') => {
@@ -390,7 +428,7 @@ export default function CalendarPage() {
       setEvents(prev => prev.filter(e => !(e.series_id === event.series_id && new Date(e.start_time) >= currentStartTime)));
       await supabase.from('calendar_events').delete().eq('series_id', event.series_id).gte('start_time', currentStartTime.toISOString());
     }
-    setTimeout(() => { fetchEvents() }, 500);
+    setTimeout(() => { fetchEventsRef.current() }, 500);
   };
 
   const handleEventMove = (event: CalendarEvent, newStart: Date, newEnd: Date) => {

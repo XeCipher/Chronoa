@@ -903,10 +903,10 @@ export function AiChatPanel() {
           )}
           {cName === 'delete_event' && <p>Are you sure you want to delete <span className="font-medium text-[#3d3b33] dark:text-[#e0e0e0]">"{args.title}"</span>?</p>}
           {(cName === 'add_note' || cName === 'add_journal') && (
-             <p className="line-clamp-2">{args.content.replace(/<[^>]*>?/gm, '')}</p>
+             <p className="line-clamp-2">{args.content.replace(/<[^>]*>?/gm, '').replace(/&nbsp;/gi, ' ')}</p>
           )}
           {cName === 'append_to_note' && (
-             <><p><span className="font-medium text-[#3d3b33] dark:text-[#e0e0e0]">Note Title:</span> {args.title}</p><p className="line-clamp-2">{args.content.replace(/<[^>]*>?/gm, '')}</p></>
+             <><p><span className="font-medium text-[#3d3b33] dark:text-[#e0e0e0]">Note Title:</span> {args.title}</p><p className="line-clamp-2">{args.content.replace(/<[^>]*>?/gm, '').replace(/&nbsp;/gi, ' ')}</p></>
           )}
           {cName === 'start_focus_timer' && (
              <><p><span className="font-medium text-[#3d3b33] dark:text-[#e0e0e0]">Focusing on:</span> {args.title}</p><p><span className="font-medium text-[#3d3b33] dark:text-[#e0e0e0]">Duration:</span> {args.duration_minutes}m</p></>
