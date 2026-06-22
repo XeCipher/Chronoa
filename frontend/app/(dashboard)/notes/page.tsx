@@ -237,7 +237,7 @@ export default function NotesPage() {
 
     const emptyJournals = jList.filter(j => {
       if (j.entry_date === todayStr) return false;
-      const plain = (j.content || "").replace(/<[^>]+>/g, '').trim();
+      const plain = (j.content || "").replace(/<[^>]+>/g, '').replace(/&nbsp;/gi, '').trim();
       return plain === '';
     });
 
@@ -674,7 +674,7 @@ export default function NotesPage() {
     return list.filter(item => {
       const isJournal = isTrashOpen ? item.isJournal : notesTab === 'journal';
       const title = isJournal ? formatDateLabel(item.entry_date) : item.title;
-      const plain = (item.content || "").replace(/<[^>]+>/g, ' ').toLowerCase();
+      const plain = (item.content || "").replace(/<[^>]+>/g, ' ').replace(/&nbsp;/gi, ' ').toLowerCase();
       return title?.toLowerCase().includes(q) || plain.includes(q);
     });
   }, [notes, journals, trash, notesTab, searchQuery, isTrashOpen, selectedFolderId]);
@@ -704,7 +704,7 @@ export default function NotesPage() {
   }, [autoSelectPending, loading, filteredItems, isTrashOpen, notesTab]);
 
   const Snippet = ({ html, query }: { html: string, query: string }) => {
-    const plain = (html || "").replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+    const plain = (html || "").replace(/<[^>]+>/g, ' ').replace(/&nbsp;/gi, ' ').replace(/\s+/g, ' ').trim();
     if (!plain) return <span className="text-[#b0ad9a] dark:text-[#555] opacity-50 italic">No content.</span>;
     if (!query.trim()) return <span className="opacity-70">{plain.slice(0, 80)}</span>;
     const idx = plain.toLowerCase().indexOf(query.toLowerCase());
