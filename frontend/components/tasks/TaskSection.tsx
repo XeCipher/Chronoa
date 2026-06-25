@@ -351,13 +351,23 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
 
     if (type === 'routine' && mobileRoutineCollapsed) setMobileRoutineCollapsed(false);
 
+    // Identify all ancestors to un-complete them automatically
+    const ancestorsToUpdate: string[] = [];
     if (parentId) {
-      setTasks((prev) => prev.map((t) => t.id === parentId ? { ...t, is_collapsed: false } : t));
-      supabase.from("tasks").update({ is_collapsed: false }).eq("id", parentId).then();
+      let currentId: string | null = parentId;
+      while (currentId) {
+        const p = tasks.find((t) => t.id === currentId);
+        if (p) {
+          ancestorsToUpdate.push(p.id);
+          currentId = p.parent_id;
+        } else {
+          break;
+        }
+      }
     }
 
     let newPosition = 0;
-    let shiftUpdates: { id: string, updates: Partial<Task> }[] =[];
+    let shiftUpdates: { id: string, updates: Partial<Task> }[] = [];
 
     if (relativeToTask) {
       newPosition = relativeToTask.position + 1;
@@ -390,21 +400,30 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
       color: null,
       keep_alive: false,
       is_collapsed: false,
-      children:[]
+      children: []
     };
 
     flushSync(() => {
       setTasks((prev) => {
         const updatedList = prev.map(t => {
           const shift = shiftUpdates.find(s => s.id === t.id);
-          return shift ? { ...t, ...shift.updates } : t;
+          let nextT = shift ? { ...t, ...shift.updates } : t;
+          
+          if (t.id === parentId) {
+             // Parent explicitly un-collapses and un-completes
+             nextT = { ...nextT, is_collapsed: false, is_completed: false, completed_at: null };
+          } else if (ancestorsToUpdate.includes(t.id)) {
+             // Ancestors just un-complete
+             nextT = { ...nextT, is_completed: false, completed_at: null };
+          }
+          return nextT;
         });
         return [...updatedList, tempTask];
       });
       setNewTaskId(newId);
     });
 
-    const results = await Promise.all([
+    const promises: any[] = [
       supabase.from("tasks").insert({
         id: newId,
         user_id: user.id,
@@ -414,7 +433,25 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
         position: newPosition,
       }),
       ...shiftUpdates.map(u => supabase.from("tasks").update(u.updates).eq("id", u.id))
-    ]);
+    ];
+
+    if (parentId) {
+      promises.push(
+        supabase.from("tasks")
+          .update({ is_collapsed: false, is_completed: false, completed_at: null })
+          .eq("id", parentId)
+      );
+      const otherAncestors = ancestorsToUpdate.filter(id => id !== parentId);
+      if (otherAncestors.length > 0) {
+        promises.push(
+          supabase.from("tasks")
+            .update({ is_completed: false, completed_at: null })
+            .in("id", otherAncestors)
+        );
+      }
+    }
+
+    const results = await Promise.all(promises);
 
     const error = results.find(r => r.error);
     if (error) {
@@ -427,7 +464,7 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
 
   const onDelete = async (id: string, isPermanent: boolean = false) => {
     markMutated();
-    const idsToDelete =[id];
+    const idsToDelete = [id];
     const findChildren = (parentId: string) => {
       tasks
         .filter((t) => t.parent_id === parentId)
@@ -514,19 +551,39 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
           ? Math.max(...newSiblings.map((t) => t.position)) + 1
           : 0;
 
+      const ancestorsToUpdate: string[] = [];
+      if (!task.is_completed) {
+        let currentId: string | null = newParentId;
+        while (currentId) {
+          const p = tasks.find((t) => t.id === currentId);
+          if (p) {
+            ancestorsToUpdate.push(p.id);
+            currentId = p.parent_id;
+          } else break;
+        }
+      }
+
       setTasks((prev) =>
-        prev.map((t) =>
-          t.id === task.id
-            ? { ...t, parent_id: newParentId, position: newPosition }
-            : t
-        )
+        prev.map((t) => {
+          let updatedT = t;
+          if (t.id === task.id) {
+             updatedT = { ...updatedT, parent_id: newParentId, position: newPosition };
+          }
+          if (ancestorsToUpdate.includes(t.id)) {
+             updatedT = { ...updatedT, is_completed: false, completed_at: null, is_collapsed: false };
+          }
+          return updatedT;
+        })
       );
       
       try {
-        await supabase
-          .from("tasks")
-          .update({ parent_id: newParentId, position: newPosition })
-          .eq("id", task.id);
+        const promises = [
+          supabase.from("tasks").update({ parent_id: newParentId, position: newPosition }).eq("id", task.id)
+        ];
+        if (ancestorsToUpdate.length > 0) {
+          promises.push(supabase.from("tasks").update({ is_completed: false, completed_at: null, is_collapsed: false }).in("id", ancestorsToUpdate));
+        }
+        await Promise.all(promises);
       } catch (err) {
         console.error("Failed to indent task", err);
       }
@@ -543,7 +600,7 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
     const newSiblings = tasks.filter((t) => t.parent_id === newParentId);
     const newPosition = parent.position + 1;
 
-    const tasksToUpdate: { id: string; updates: Partial<Task> }[] =[
+    const tasksToUpdate: { id: string; updates: Partial<Task> }[] = [
       { id: task.id, updates: { parent_id: newParentId, position: newPosition } },
     ];
 
@@ -553,19 +610,37 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
       }
     });
 
+    const ancestorsToUpdate: string[] = [];
+    if (!task.is_completed && newParentId) {
+      let currentId: string | null = newParentId;
+      while (currentId) {
+        const p = tasks.find((t) => t.id === currentId);
+        if (p) {
+          ancestorsToUpdate.push(p.id);
+          currentId = p.parent_id;
+        } else break;
+      }
+    }
+
     setTasks((prev) =>
       prev.map((t) => {
         const update = tasksToUpdate.find((u) => u.id === t.id);
-        return update ? ({ ...t, ...update.updates } as Task) : t;
+        let updatedT = update ? ({ ...t, ...update.updates } as Task) : t;
+        if (ancestorsToUpdate.includes(t.id)) {
+           updatedT = { ...updatedT, is_completed: false, completed_at: null, is_collapsed: false };
+        }
+        return updatedT;
       })
     );
 
     try {
-      await Promise.all(
-        tasksToUpdate.map((update) =>
-          supabase.from("tasks").update(update.updates).eq("id", update.id)
-        )
+      const promises = tasksToUpdate.map((update) =>
+        supabase.from("tasks").update(update.updates).eq("id", update.id)
       );
+      if (ancestorsToUpdate.length > 0) {
+        promises.push(supabase.from("tasks").update({ is_completed: false, completed_at: null, is_collapsed: false }).in("id", ancestorsToUpdate));
+      }
+      await Promise.all(promises);
     } catch (err) {
       console.error("Failed to unindent task", err);
     }
@@ -597,8 +672,8 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
 
       const rawTaskIndex = rawSiblings.findIndex(t => t.id === task.id);
       
-      const newRawSiblings =[...rawSiblings];
-      const[removedTask] = newRawSiblings.splice(rawTaskIndex, 1);
+      const newRawSiblings = [...rawSiblings];
+      const [removedTask] = newRawSiblings.splice(rawTaskIndex, 1);
       
       const adjustedTargetIndex = newRawSiblings.findIndex(t => t.id === swapTarget.id);
       
@@ -652,7 +727,7 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
       const rawTaskIndex = rawSiblings.findIndex(t => t.id === task.id);
       
       const newRawSiblings = [...rawSiblings];
-      const[removedTask] = newRawSiblings.splice(rawTaskIndex, 1);
+      const [removedTask] = newRawSiblings.splice(rawTaskIndex, 1);
       
       const adjustedTargetIndex = newRawSiblings.findIndex(t => t.id === swapTarget.id);
       
