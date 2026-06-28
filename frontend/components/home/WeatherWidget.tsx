@@ -1,17 +1,18 @@
 // frontend/components/home/WeatherWidget.tsx
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
 import { Cloud, Sun, Moon, CloudSun, CloudMoon, CloudRain, CloudDrizzle, Snowflake, CloudLightning, Wind, MapPin } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 
 export default function WeatherWidget() {
   const router = useRouter();
+  const pathname = usePathname();
   const [weather, setWeather] = useState<any>(null);
   const [city, setCity] = useState("");
   const [isToggled, setIsToggled] = useState(false);
-  const[promptCount, setPromptCount] = useState(0);
+  const [promptCount, setPromptCount] = useState(0);
   const [isLoaded, setIsLoaded] = useState(false);
   const widgetRef = useRef<HTMLDivElement>(null);
 
@@ -27,12 +28,62 @@ export default function WeatherWidget() {
        document.removeEventListener("mousedown", handleClickOutside);
        document.removeEventListener("touchstart", handleClickOutside);
     };
-  },[]);
+  }, []);
 
+  const loadData = useCallback(async (isInitial = false) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('weather_lat, weather_lon, weather_city')
+      .eq('id', user.id)
+      .single();
+
+    if (profile?.weather_lat && profile?.weather_lon && profile?.weather_city) {
+      try {
+        const params = new URLSearchParams({
+          latitude: profile.weather_lat.toString(),
+          longitude: profile.weather_lon.toString(),
+          current: 'temperature_2m,weather_code,is_day,precipitation,cloud_cover',
+          timezone: 'auto',
+          forecast_days: '1'
+        });
+
+        // Appending a timestamp bypasses aggressive browser/Next.js fetch caches
+        const res = await fetch(`https://api.open-meteo.com/v1/forecast?${params.toString()}&_t=${Date.now()}`, { cache: 'no-store' });
+        const data = await res.json();
+
+        if (data?.current) {
+          setWeather(data.current);
+          setCity(profile.weather_city);
+          localStorage.setItem('chronoa_cache_weather', JSON.stringify(data.current));
+          localStorage.setItem('chronoa_cache_weather_city', profile.weather_city);
+        }
+      } catch (err) {
+        console.error("Weather Error:", err);
+      }
+    } else {
+      setWeather(null);
+      setCity("");
+      localStorage.removeItem('chronoa_cache_weather');
+      localStorage.removeItem('chronoa_cache_weather_city');
+      
+      if (isInitial) {
+        const count = parseInt(localStorage.getItem('chronoa_weather_prompt_count') || '0', 10);
+        if (count < 3) {
+          setPromptCount(count + 1);
+          localStorage.setItem('chronoa_weather_prompt_count', (count + 1).toString());
+        }
+      }
+    }
+    setIsLoaded(true);
+  }, []);
+
+  // Standard interval and initial mount effect
   useEffect(() => {
     const cached = localStorage.getItem('chronoa_cache_weather');
     const cachedCity = localStorage.getItem('chronoa_cache_weather_city');
-    let initialCheck = true;
     
     if (cached && cachedCity) {
       try {
@@ -42,60 +93,30 @@ export default function WeatherWidget() {
       } catch(e) {}
     }
 
-    const loadData = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('weather_lat, weather_lon, weather_city')
-        .eq('id', user.id)
-        .single();
-
-      if (profile?.weather_lat && profile?.weather_lon && profile?.weather_city) {
-        try {
-          const params = new URLSearchParams({
-            latitude: profile.weather_lat.toString(),
-            longitude: profile.weather_lon.toString(),
-            current: 'temperature_2m,weather_code,is_day,precipitation,cloud_cover',
-            timezone: 'auto',
-            forecast_days: '1'
-          });
-
-          const res = await fetch(`https://api.open-meteo.com/v1/forecast?${params.toString()}`, { cache: 'no-store' });
-          const data = await res.json();
-
-          if (data?.current) {
-            setWeather(data.current);
-            setCity(profile.weather_city);
-            localStorage.setItem('chronoa_cache_weather', JSON.stringify(data.current));
-            localStorage.setItem('chronoa_cache_weather_city', profile.weather_city);
-          }
-        } catch (err) {
-          console.error("Weather Error:", err);
-        }
-      } else {
-        setWeather(null);
-        setCity("");
-        localStorage.removeItem('chronoa_cache_weather');
-        localStorage.removeItem('chronoa_cache_weather_city');
-        
-        if (initialCheck) {
-          const count = parseInt(localStorage.getItem('chronoa_weather_prompt_count') || '0', 10);
-          if (count < 3) {
-            setPromptCount(count + 1);
-            localStorage.setItem('chronoa_weather_prompt_count', (count + 1).toString());
-          }
-        }
-      }
-      setIsLoaded(true);
-      initialCheck = false;
-    };
-
-    loadData();
-    const interval = setInterval(loadData, 20 * 60 * 1000); 
+    loadData(true);
+    const interval = setInterval(() => loadData(false), 20 * 60 * 1000); 
     return () => clearInterval(interval);
-  },[]);
+  }, [loadData]);
+
+  // Next.js Router specific effect to force updates when returning to the home page
+  useEffect(() => {
+    if (pathname === '/home' || pathname === '/') {
+      loadData(false);
+    }
+  }, [pathname, loadData]);
+
+  // OS Tab Focus specific effect (Switching back to the app from another window)
+  useEffect(() => {
+    const handleFocus = () => {
+      if (document.visibilityState === 'visible') loadData(false);
+    };
+    window.addEventListener('focus', handleFocus);
+    window.addEventListener('visibilitychange', handleFocus);
+    return () => {
+       window.removeEventListener('focus', handleFocus);
+       window.removeEventListener('visibilitychange', handleFocus);
+    }
+  }, [loadData]);
 
   const getWeatherDetails = (code: number, isDay: number, precipitation: number, cloudCover: number) => {
     const day = isDay === 1;

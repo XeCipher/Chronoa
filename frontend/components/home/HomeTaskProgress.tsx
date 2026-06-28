@@ -1,13 +1,15 @@
 // frontend/components/home/HomeTaskProgress.tsx
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
 import { useUiStore } from "@/store/uiStore";
 import { CheckCircle2, ListTodo } from "lucide-react";
+import { usePathname } from "next/navigation";
 
 export default function HomeTaskProgress() {
   const { showHomeTaskProgress } = useUiStore();
+  const pathname = usePathname();
   
   // Synchronously initialize state with localStorage to completely eliminate the mount flicker
   const [routinePct, setRoutinePct] = useState(() => {
@@ -18,7 +20,7 @@ export default function HomeTaskProgress() {
     return 0;
   });
   
-  const[normalLeft, setNormalLeft] = useState(() => {
+  const [normalLeft, setNormalLeft] = useState(() => {
     if (typeof window !== 'undefined') {
       const cached = localStorage.getItem('chronoa_cache_home_task_normal_left');
       return cached ? parseInt(cached, 10) : 0;
@@ -51,37 +53,38 @@ export default function HomeTaskProgress() {
        document.removeEventListener("mousedown", handleClickOutside);
        document.removeEventListener("touchstart", handleClickOutside);
     };
-  },[]);
+  }, []);
+
+  const fetchTasks = useCallback(async () => {
+    if (!showHomeTaskProgress) return;
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const { data } = await supabase.from('tasks')
+      .select('task_type, is_completed, deleted_at')
+      .eq('user_id', user.id)
+      .is('deleted_at', null);
+
+    if (data) {
+      const routines = data.filter(t => t.task_type === 'routine');
+      const normals = data.filter(t => t.task_type === 'normal' && !t.is_completed);
+      
+      const routineTotal = routines.length;
+      const routineDone = routines.filter(t => t.is_completed).length;
+      
+      const newPct = routineTotal === 0 ? 0 : Math.round((routineDone / routineTotal) * 100);
+      
+      setRoutinePct(newPct);
+      setNormalLeft(normals.length);
+      
+      localStorage.setItem('chronoa_cache_home_task_routine_pct', newPct.toString());
+      localStorage.setItem('chronoa_cache_home_task_normal_left', normals.length.toString());
+    }
+    setLoading(false);
+  }, [showHomeTaskProgress]);
 
   useEffect(() => {
     if (!showHomeTaskProgress) return;
-
-    const fetchTasks = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      const { data } = await supabase.from('tasks')
-        .select('task_type, is_completed, deleted_at')
-        .eq('user_id', user.id)
-        .is('deleted_at', null);
-
-      if (data) {
-        const routines = data.filter(t => t.task_type === 'routine');
-        const normals = data.filter(t => t.task_type === 'normal' && !t.is_completed);
-        
-        const routineTotal = routines.length;
-        const routineDone = routines.filter(t => t.is_completed).length;
-        
-        const newPct = routineTotal === 0 ? 0 : Math.round((routineDone / routineTotal) * 100);
-        
-        setRoutinePct(newPct);
-        setNormalLeft(normals.length);
-        
-        localStorage.setItem('chronoa_cache_home_task_routine_pct', newPct.toString());
-        localStorage.setItem('chronoa_cache_home_task_normal_left', normals.length.toString());
-      }
-      setLoading(false);
-    };
 
     fetchTasks();
 
@@ -106,7 +109,14 @@ export default function HomeTaskProgress() {
       window.removeEventListener('visibilitychange', handleFocusAndVisibility);
       clearInterval(intervalId);
     };
-  },[showHomeTaskProgress]);
+  }, [showHomeTaskProgress, fetchTasks]);
+
+  // Next.js Router specific effect to guarantee a data refresh on direct navigation to `/home`
+  useEffect(() => {
+    if (showHomeTaskProgress && pathname === '/home') {
+      fetchTasks();
+    }
+  }, [pathname, showHomeTaskProgress, fetchTasks]);
 
   if (!showHomeTaskProgress || loading) return null;
 
