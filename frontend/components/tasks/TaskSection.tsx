@@ -259,8 +259,6 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
         tasks
           .filter((t) => t.parent_id === parentId && t.deleted_at === null)
           .forEach((child) => {
-            const isVisibleInFocus = !child.is_completed || taskArchiveDelay < 0 || (child.completed_at && now - new Date(child.completed_at).getTime() < delayMs);
-
             if (isDone) {
               if (!child.is_completed) {
                 tasksToUpdate.push({
@@ -270,15 +268,14 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
               }
               addChildrenToUpdate(child.id);
             } else {
-              if (isVisibleInFocus) {
-                if (child.is_completed) {
-                  tasksToUpdate.push({
-                    id: child.id,
-                    updates: { is_completed: false, completed_at: null },
-                  });
-                }
-                addChildrenToUpdate(child.id);
+              // Unchecking a parent unchecks all children unconditionally so they correctly restore to the active workspace
+              if (child.is_completed) {
+                tasksToUpdate.push({
+                  id: child.id,
+                  updates: { is_completed: false, completed_at: null },
+                });
               }
+              addChildrenToUpdate(child.id);
             }
           });
       };
@@ -464,10 +461,13 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
 
   const onDelete = async (id: string, isPermanent: boolean = false) => {
     markMutated();
+    const taskToDelete = tasks.find(t => t.id === id);
+    const parentId = taskToDelete?.parent_id;
+
     const idsToDelete = [id];
-    const findChildren = (parentId: string) => {
+    const findChildren = (pId: string) => {
       tasks
-        .filter((t) => t.parent_id === parentId)
+        .filter((t) => t.parent_id === pId)
         .forEach((child) => {
           idsToDelete.push(child.id);
           findChildren(child.id);
@@ -475,16 +475,59 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
     };
     findChildren(id);
 
+    let tasksToUpdate: { id: string; updates: Partial<Task> }[] = [];
+    const completionTime = new Date().toISOString();
+
+    // Dynamically auto-complete parent if it had tasks and you just deleted the last pending one
+    if (parentId) {
+      const checkParentStatusAfterDelete = (currentParentId: string) => {
+        const parentTask = tasks.find((t) => t.id === currentParentId);
+        if (!parentTask || parentTask.is_completed) return;
+        
+        const shouldKeepAlive = keepParentTaskAlive || parentTask.keep_alive;
+        
+        const remainingSiblings = tasks.filter(
+          (t) => t.parent_id === currentParentId && !idsToDelete.includes(t.id) && t.deleted_at === null
+        );
+        
+        if (remainingSiblings.length > 0 && remainingSiblings.every(s => s.is_completed) && !shouldKeepAlive) {
+          tasksToUpdate.push({
+            id: currentParentId,
+            updates: { is_completed: true, completed_at: completionTime },
+          });
+          if (parentTask.parent_id) {
+             checkParentStatusAfterDelete(parentTask.parent_id);
+          }
+        }
+      };
+      checkParentStatusAfterDelete(parentId);
+    }
+
     if (isPermanent) {
-      setTasks((prev) => prev.filter((t) => !idsToDelete.includes(t.id)));
+      setTasks((prev) => prev
+        .filter((t) => !idsToDelete.includes(t.id))
+        .map(t => {
+           const u = tasksToUpdate.find(x => x.id === t.id);
+           return u ? { ...t, ...u.updates } : t;
+        })
+      );
       try {
-        await supabase.from("tasks").delete().in("id", idsToDelete);
+        const promises: any[] = [ supabase.from("tasks").delete().in("id", idsToDelete) ];
+        tasksToUpdate.forEach(u => promises.push(supabase.from("tasks").update(u.updates).eq("id", u.id)));
+        await Promise.all(promises);
       } catch (err) { console.error("Failed to delete tasks permanently", err); }
     } else {
       const deletedTime = new Date().toISOString();
-      setTasks((prev) => prev.map((t) => idsToDelete.includes(t.id) ? { ...t, deleted_at: deletedTime } : t));
+      setTasks((prev) => prev.map((t) => {
+         if (idsToDelete.includes(t.id)) return { ...t, deleted_at: deletedTime };
+         const u = tasksToUpdate.find(x => x.id === t.id);
+         if (u) return { ...t, ...u.updates };
+         return t;
+      }));
       try {
-        await supabase.from("tasks").update({ deleted_at: deletedTime }).in("id", idsToDelete);
+        const promises: any[] = [ supabase.from("tasks").update({ deleted_at: deletedTime }).in("id", idsToDelete) ];
+        tasksToUpdate.forEach(u => promises.push(supabase.from("tasks").update(u.updates).eq("id", u.id)));
+        await Promise.all(promises);
       } catch (err) { console.error("Failed to move tasks to trash", err); }
     }
   };
@@ -524,8 +567,6 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
   const onIndent = async (task: Task) => {
     markMutated();
     
-    // We only indent based on VISIBLE siblings in the current context
-    // This perfectly prevents archived or deleted "ghost" tasks from becoming parents.
     const visibleSiblings = tasks
       .filter((t) => 
         t.parent_id === task.parent_id &&
