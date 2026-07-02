@@ -292,6 +292,11 @@ export default function DistractionFreeEditor({
     ],
     content: initialContent,
     editorProps: {
+      clipboardTextSerializer: (slice) => {
+        // Prevents default double newlines (\n\n) between paragraphs when copying
+        // plain text, ensuring the copied text precisely matches the UI spacing.
+        return slice.content.textBetween(0, slice.content.size, '\n');
+      },
       attributes: {
         // Enforce the contenteditable node to stretch and fill all available height.
         // We moved pb-32 to the element itself to allow native clicks everywhere.
