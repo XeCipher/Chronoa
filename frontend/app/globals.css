@@ -111,7 +111,7 @@ h1, h2, h3, h4 { font-family: var(--font-display); font-weight: 500; }
 .dark .chronoa-editor h2 { color: #d0d0d0 !important; }
 
 .chronoa-editor p {
-  margin-bottom: 0.5rem !important;
+  margin-bottom: 0 !important; /* Removed paragraph spacing as requested */
   line-height: 1.45 !important;
 }
 
