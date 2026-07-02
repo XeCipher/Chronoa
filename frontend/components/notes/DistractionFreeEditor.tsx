@@ -176,51 +176,6 @@ const CollapsePlugin = Extension.create({
   }
 });
 
-// NEW: Smart Enter Extension - Maps enter to <br> instead of <p> for better copy/pasting.
-const SmartEnterPlugin = Extension.create({
-  name: 'smartEnter',
-  addKeyboardShortcuts() {
-    return {
-      Enter: ({ editor }) => {
-        const { state } = editor;
-        const { selection } = state;
-        const { $from } = selection;
-
-        // Don't interfere with lists behaving normally
-        let isInsideList = false;
-        for (let d = $from.depth; d > 0; d--) {
-          if ($from.node(d).type.name === 'listItem') {
-            isInsideList = true;
-            break;
-          }
-        }
-
-        if (isInsideList) return false;
-        
-        // Ensure this logic only intercepts inside standard paragraphs
-        if ($from.parent.type.name !== 'paragraph') return false;
-
-        // If text is highlighted, delete it first to emulate normal standard text replacement
-        if (!selection.empty) {
-          return editor.chain().deleteSelection().setHardBreak().run();
-        }
-
-        // If user hits Enter twice, split the block intentionally
-        const nodeBefore = $from.nodeBefore;
-        if (nodeBefore && nodeBefore.type.name === 'hardBreak') {
-          return editor.chain()
-            .deleteRange({ from: $from.pos - 1, to: $from.pos })
-            .splitBlock()
-            .run();
-        } else {
-          // Default logic: single Enter = seamless <br> that copies and pastes without gaps
-          return editor.commands.setHardBreak();
-        }
-      }
-    }
-  }
-});
-
 export default function DistractionFreeEditor({
   initialContent,
   isEditable = true,
@@ -325,7 +280,6 @@ export default function DistractionFreeEditor({
       CollapsePlugin,
       Underline,
       MergeListsPlugin,
-      SmartEnterPlugin,
       Link.configure({
         openOnClick: true,
         autolink: true,
