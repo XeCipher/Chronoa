@@ -216,6 +216,21 @@ export default function DistractionFreeEditor({
     link: false,
   });
 
+  // Track pointer interaction to prevent scroll-jacking during selections or mouse holds
+  const isPointerDownRef = useRef(false);
+  const lastTypeTimeRef = useRef(0);
+
+  useEffect(() => {
+    const handlePointerDown = () => { isPointerDownRef.current = true; };
+    const handlePointerUp = () => { isPointerDownRef.current = false; };
+    window.addEventListener('pointerdown', handlePointerDown);
+    window.addEventListener('pointerup', handlePointerUp);
+    return () => {
+      window.removeEventListener('pointerdown', handlePointerDown);
+      window.removeEventListener('pointerup', handlePointerUp);
+    };
+  }, []);
+
   useEffect(() => {
     if (noteType === "journal") {
       setPlaceholder(PROMPTS[Math.floor(Math.random() * PROMPTS.length)]);
@@ -225,6 +240,18 @@ export default function DistractionFreeEditor({
   // ── Core Scroll Engine: Flawless Margin Management ─────────────────────────
   const ensureCursorVisible = useCallback((ed: ReturnType<typeof useEditor>) => {
     if (!ed) return;
+
+    // Do not interfere if the user is actively interacting with the pointer (mouse/touch hold)
+    if (isPointerDownRef.current) return;
+
+    // Do not interfere if the user has selected text (drag-selecting)
+    const selection = window.getSelection();
+    if (selection && !selection.isCollapsed && selection.toString().trim().length > 0) return;
+
+    // On desktop, only enforce the bottom buffer if actively typing (within the last 1 second)
+    if (window.innerWidth >= 1024) {
+       if (Date.now() - lastTypeTimeRef.current > 1000) return;
+    }
 
     // Use requestAnimationFrame to ensure the DOM has painted the new line/character
     requestAnimationFrame(() => {
@@ -332,6 +359,7 @@ export default function DistractionFreeEditor({
     },
     onUpdate: ({ editor: ed }) => {
       if (!isEditable) return;
+      lastTypeTimeRef.current = Date.now();
 
       setSaveStatus("Saving...");
       if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
@@ -366,14 +394,16 @@ export default function DistractionFreeEditor({
   // Desktop still benefits from this for the "click below last line" use case.
   useEffect(() => {
     const handleFocus = () => {
-      if (!editor || !editor.isFocused || window.innerWidth < 1024) return;
+      if (!editor || window.innerWidth < 1024) return;
       
       const selection = window.getSelection();
       if (selection && selection.toString().length > 0) {
         return; // Do not jump to end if text is currently selected
       }
 
-      editor.view.dom.focus();
+      if (!editor.isFocused) {
+        editor.view.dom.focus();
+      }
       editor.commands.focus('end');
     };
     window.addEventListener('focus-editor', handleFocus);
@@ -727,15 +757,21 @@ export default function DistractionFreeEditor({
       <div
         className="relative w-full flex-1 flex flex-col cursor-text select-text"
         style={{ fontSize: `${(journalZoom / 100) * 1.05}rem`, fontFamily: "inherit" }}
-        onClick={() => {
-          // Desktop only: focus and move cursor to end for clicks in the empty
-          // space below the last paragraph.
-          if (window.innerWidth >= 1024 && editor && !editor.isFocused) {
+        onClick={(e) => {
+          if (window.innerWidth >= 1024 && editor) {
             const selection = window.getSelection();
             if (selection && selection.toString().length > 0) return;
             
-            editor.view.dom.focus();
-            editor.commands.focus('end');
+            const target = e.target as HTMLElement;
+            // Let native behavior handle clicks directly on text nodes or their block containers
+            if (target.closest('p, h1, h2, h3, li, ul, ol, a, strong, em')) {
+              return;
+            }
+
+            if (!editor.isFocused) {
+              editor.view.dom.focus();
+              editor.commands.focus('end');
+            }
           }
         }}
       >
