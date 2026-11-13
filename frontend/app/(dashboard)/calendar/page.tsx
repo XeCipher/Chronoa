@@ -6,7 +6,22 @@ import { supabase } from "@/lib/supabase";
 import { CalendarEvent } from "@/types/app.types";
 import { useUiStore } from "@/store/uiStore";
 import { CalendarDays, ChevronLeft, ChevronRight, Plus, Search, AlertCircle } from "lucide-react";
-import { format, addMonths, subMonths, addDays, startOfDay, endOfDay, startOfWeek, endOfWeek, addWeeks, addYears, subYears, isSameDay, startOfMonth, isToday } from "date-fns";
+import {
+  format,
+  addMonths,
+  subMonths,
+  addDays,
+  startOfDay,
+  endOfDay,
+  startOfWeek,
+  endOfWeek,
+  addWeeks,
+  addYears,
+  subYears,
+  isSameDay,
+  startOfMonth,
+  isToday,
+} from "date-fns";
 
 import MonthView from "@/components/calendar/MonthView";
 import WeekView from "@/components/calendar/WeekView";
@@ -15,17 +30,17 @@ import EventModal from "@/components/calendar/EventModal";
 import { syncExternalCalendars } from "@/lib/icsParser";
 
 const EVENT_COLORS: Record<string, string> = {
-  amber: 'bg-[#c2956e]/20 dark:bg-[#c2956e]/20 text-[#9e7653] dark:text-[#d1a784] border-[#c2956e]/30',
-  blue: 'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800',
-  purple: 'bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-800',
-  rose: 'bg-rose-100 dark:bg-rose-900/40 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-800',
-  emerald: 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800',
-  sage: 'bg-[#7ca982]/20 dark:bg-[#7ca982]/20 text-[#5a8060] dark:text-[#8cbd92] border-[#7ca982]/30',
+  amber: "bg-[#c2956e]/20 dark:bg-[#c2956e]/20 text-[#9e7653] dark:text-[#d1a784] border-[#c2956e]/30",
+  blue: "bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800",
+  purple: "bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-800",
+  rose: "bg-rose-100 dark:bg-rose-900/40 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-800",
+  emerald: "bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800",
+  sage: "bg-[#7ca982]/20 dark:bg-[#7ca982]/20 text-[#5a8060] dark:text-[#8cbd92] border-[#7ca982]/30",
 };
 
 export default function CalendarPage() {
   const { calendarView, setCalendarView, showConfirmDialog } = useUiStore();
-  
+
   const [referenceDate, setReferenceDate] = useState(startOfDay(new Date()));
   const referenceDateRef = useRef(referenceDate);
   useEffect(() => {
@@ -45,7 +60,6 @@ export default function CalendarPage() {
   const desktopSearchRef = useRef<HTMLDivElement>(null);
   const [targetScrollTime, setTargetScrollTime] = useState<string | null>(null);
 
-  // Used to cleanly inform the views to smoothly scroll down to the current time red-line
   const [scrollToNowTrigger, setScrollToNowTrigger] = useState(0);
 
   // Date Picker States
@@ -56,18 +70,17 @@ export default function CalendarPage() {
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
-  const [dragTimeRange, setDragTimeRange] = useState<{ start: Date, end: Date } | null>(null);
+  const [dragTimeRange, setDragTimeRange] = useState<{ start: Date; end: Date } | null>(null);
   const [defaultBaseDate, setDefaultBaseDate] = useState<Date | null>(null);
   const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 768);
     handleResize();
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  },[]);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
-  // Debounce search input
   useEffect(() => {
     const timeout = setTimeout(() => setSearchQuery(searchInput), 300);
     return () => clearTimeout(timeout);
@@ -89,41 +102,43 @@ export default function CalendarPage() {
       }
       if (
         isDatePickerOpen &&
-        datePickerRef.current && !datePickerRef.current.contains(target) &&
-        titleRef.current && !titleRef.current.contains(target)
+        datePickerRef.current &&
+        !datePickerRef.current.contains(target) &&
+        titleRef.current &&
+        !titleRef.current.contains(target)
       ) {
         setIsDatePickerOpen(false);
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  },[isSearchOpen, isDatePickerOpen]);
+  }, [isSearchOpen, isDatePickerOpen]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement;
-      if (['INPUT', 'TEXTAREA'].includes(target.tagName) || target.isContentEditable) {
+      if (["INPUT", "TEXTAREA"].includes(target.tagName) || target.isContentEditable) {
         return;
       }
 
-      if (e.key === 'Escape') {
+      if (e.key === "Escape") {
         if (isSearchOpen) setIsSearchOpen(false);
         if (isDatePickerOpen) setIsDatePickerOpen(false);
       }
 
-      if (calendarView === 'month' && !isModalOpen && !isSyncErrorModalOpen && !isSearchOpen && !isDatePickerOpen) {
-        if (e.key === 'ArrowLeft') {
+      if (calendarView === "month" && !isModalOpen && !isSyncErrorModalOpen && !isSearchOpen && !isDatePickerOpen) {
+        if (e.key === "ArrowLeft") {
           e.preventDefault();
-          setReferenceDate(prev => addDays(prev, -1));
-        } else if (e.key === 'ArrowRight') {
+          setReferenceDate((prev) => addDays(prev, -1));
+        } else if (e.key === "ArrowRight") {
           e.preventDefault();
-          setReferenceDate(prev => addDays(prev, 1));
-        } else if (e.key === 'ArrowUp') {
+          setReferenceDate((prev) => addDays(prev, 1));
+        } else if (e.key === "ArrowUp") {
           e.preventDefault();
-          setReferenceDate(prev => addDays(prev, -7));
-        } else if (e.key === 'ArrowDown') {
+          setReferenceDate((prev) => addDays(prev, -7));
+        } else if (e.key === "ArrowDown") {
           e.preventDefault();
-          setReferenceDate(prev => addDays(prev, 7));
+          setReferenceDate((prev) => addDays(prev, 7));
         }
       }
     };
@@ -131,58 +146,73 @@ export default function CalendarPage() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isSearchOpen, isDatePickerOpen, calendarView, isModalOpen, isSyncErrorModalOpen]);
 
-  // Load from cache instantly on mount
   useEffect(() => {
-    const cached = localStorage.getItem('chronoa_cache_calendar_main');
+    const cached = localStorage.getItem("chronoa_cache_calendar_main");
     if (cached) {
       try {
         setEvents(JSON.parse(cached));
         setIsLoading(false);
-      } catch(e) {}
+      } catch (e) {}
     }
-  },[]);
+  }, []);
+
+  const updateEventsIfChanged = (validData: CalendarEvent[]) => {
+    const serialized = JSON.stringify(validData);
+    setEvents((prev) => {
+      if (JSON.stringify(prev) === serialized) return prev;
+      localStorage.setItem("chronoa_cache_calendar_main", serialized);
+      return validData;
+    });
+  };
 
   const fetchEvents = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
     if (!user) return;
-    
-    // Determine inactive sources to filter out
-    const { data: sourcesData } = await supabase.from('calendar_sources').select('id, is_active').eq('user_id', user.id);
-    const inactiveSourceIds = sourcesData?.filter(s => s.is_active === false).map(s => s.id) ||[];
-    
-    // Trigger background sync for external calendars (Throttled inside the function)
-    syncExternalCalendars(user.id).then((errors) => {
-      if (errors && errors.length > 0) {
-        setSyncErrors(errors);
-      } else {
-        setSyncErrors([]);
-      }
-      
-      supabase.from('calendar_events').select('*').eq('user_id', user.id).then(({ data }) => {
-        if (data) {
-           const validData = (data as CalendarEvent[]).filter(e => !e.source_id || !inactiveSourceIds.includes(e.source_id));
-           setEvents(validData);
-           localStorage.setItem('chronoa_cache_calendar_main', JSON.stringify(validData));
-        }
-      });
-    });
+
+    const { data: sourcesData } = await supabase.from("calendar_sources").select("id, is_active").eq("user_id", user.id);
+    const inactiveSourceIds = sourcesData?.filter((s) => s.is_active === false).map((s) => s.id) || [];
 
     const start = new Date(referenceDateRef.current);
     start.setFullYear(start.getFullYear() - 1);
     const end = new Date(referenceDateRef.current);
     end.setFullYear(end.getFullYear() + 2);
 
+    syncExternalCalendars(user.id).then((errors) => {
+      setSyncErrors((prev) => {
+        const next = errors && errors.length > 0 ? errors : [];
+        return JSON.stringify(prev) === JSON.stringify(next) ? prev : next;
+      });
+
+      supabase
+        .from("calendar_events")
+        .select("*")
+        .eq("user_id", user.id)
+        .gte("start_time", start.toISOString())
+        .lte("start_time", end.toISOString())
+        .then(({ data }) => {
+          if (data) {
+            const validData = (data as CalendarEvent[]).filter(
+              (e) => !e.source_id || !inactiveSourceIds.includes(e.source_id)
+            );
+            updateEventsIfChanged(validData);
+          }
+        });
+    });
+
     const { data } = await supabase
-      .from('calendar_events')
-      .select('*')
-      .eq('user_id', user.id)
-      .gte('start_time', start.toISOString())
-      .lte('start_time', end.toISOString());
+      .from("calendar_events")
+      .select("*")
+      .eq("user_id", user.id)
+      .gte("start_time", start.toISOString())
+      .lte("start_time", end.toISOString());
 
     if (data) {
-      const validData = (data as CalendarEvent[]).filter(e => !e.source_id || !inactiveSourceIds.includes(e.source_id));
-      setEvents(validData);
-      localStorage.setItem('chronoa_cache_calendar_main', JSON.stringify(validData));
+      const validData = (data as CalendarEvent[]).filter(
+        (e) => !e.source_id || !inactiveSourceIds.includes(e.source_id)
+      );
+      updateEventsIfChanged(validData);
     }
     setIsLoading(false);
   };
@@ -194,18 +224,19 @@ export default function CalendarPage() {
 
   useEffect(() => {
     fetchEventsRef.current();
-    
-    // 5-second recurring local refresh
+
     const intervalId = setInterval(() => {
       fetchEventsRef.current();
     }, 5000);
 
-    const channel = supabase.channel('calendar_changes')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'calendar_events' }, () => fetchEventsRef.current()).subscribe();
-      
-    return () => { 
+    const channel = supabase
+      .channel("calendar_changes")
+      .on("postgres_changes", { event: "*", schema: "public", table: "calendar_events" }, () => fetchEventsRef.current())
+      .subscribe();
+
+    return () => {
       clearInterval(intervalId);
-      supabase.removeChannel(channel); 
+      supabase.removeChannel(channel);
     };
   }, []);
 
@@ -218,22 +249,20 @@ export default function CalendarPage() {
   }, [referenceDate, fetchedYear]);
 
   const handlePrev = () => {
-    if (calendarView === 'month') setReferenceDate(subMonths(referenceDate, 1));
-    else if (calendarView === 'week') {
+    if (calendarView === "month") setReferenceDate(subMonths(referenceDate, 1));
+    else if (calendarView === "week") {
       if (referenceDate.getDay() !== 0) setReferenceDate(startOfWeek(referenceDate));
       else setReferenceDate(addDays(referenceDate, -7));
-    }
-    else if (calendarView === '2-day') setReferenceDate(addDays(referenceDate, -1));
+    } else if (calendarView === "2-day") setReferenceDate(addDays(referenceDate, -1));
     else setReferenceDate(addDays(referenceDate, -1));
   };
 
   const handleNext = () => {
-    if (calendarView === 'month') setReferenceDate(addMonths(referenceDate, 1));
-    else if (calendarView === 'week') {
+    if (calendarView === "month") setReferenceDate(addMonths(referenceDate, 1));
+    else if (calendarView === "week") {
       if (referenceDate.getDay() !== 0) setReferenceDate(addWeeks(startOfWeek(referenceDate), 1));
       else setReferenceDate(addDays(referenceDate, 7));
-    }
-    else if (calendarView === '2-day') setReferenceDate(addDays(referenceDate, 1));
+    } else if (calendarView === "2-day") setReferenceDate(addDays(referenceDate, 1));
     else setReferenceDate(addDays(referenceDate, 1));
   };
 
@@ -244,13 +273,13 @@ export default function CalendarPage() {
 
   const getDefaultAddDate = () => {
     const now = new Date();
-    if (calendarView === 'month') {
+    if (calendarView === "month") {
       return isSameDay(referenceDate, now) ? now : referenceDate;
-    } else if (calendarView === 'week') {
+    } else if (calendarView === "week") {
       const end = addDays(referenceDate, 6);
       if (now >= startOfDay(referenceDate) && now <= endOfDay(end)) return now;
       return referenceDate;
-    } else if (calendarView === '2-day') {
+    } else if (calendarView === "2-day") {
       const end = addDays(referenceDate, 1);
       if (now >= startOfDay(referenceDate) && now <= endOfDay(end)) return now;
       return referenceDate;
@@ -282,160 +311,215 @@ export default function CalendarPage() {
     let currentStart = new Date(base.start_time);
     let currentEnd = new Date(base.end_time);
     const limitDate = addYears(new Date(base.start_time), 1);
-    
+
     while (currentStart < limitDate) {
-      if (base.repeat_pattern === 'daily') {
+      if (base.repeat_pattern === "daily") {
         currentStart = addDays(currentStart, 1);
         currentEnd = addDays(currentEnd, 1);
-        instances.push({ ...base, id: crypto.randomUUID(), series_id: seriesId, start_time: currentStart.toISOString(), end_time: currentEnd.toISOString() });
-      } else if (base.repeat_pattern === 'weekly') {
+        instances.push({
+          ...base,
+          id: crypto.randomUUID(),
+          series_id: seriesId,
+          start_time: currentStart.toISOString(),
+          end_time: currentEnd.toISOString(),
+        });
+      } else if (base.repeat_pattern === "weekly") {
         currentStart = addWeeks(currentStart, 1);
         currentEnd = addWeeks(currentEnd, 1);
-        instances.push({ ...base, id: crypto.randomUUID(), series_id: seriesId, start_time: currentStart.toISOString(), end_time: currentEnd.toISOString() });
-      } else if (base.repeat_pattern === 'monthly') {
+        instances.push({
+          ...base,
+          id: crypto.randomUUID(),
+          series_id: seriesId,
+          start_time: currentStart.toISOString(),
+          end_time: currentEnd.toISOString(),
+        });
+      } else if (base.repeat_pattern === "monthly") {
         currentStart = addMonths(currentStart, 1);
         currentEnd = addMonths(currentEnd, 1);
-        instances.push({ ...base, id: crypto.randomUUID(), series_id: seriesId, start_time: currentStart.toISOString(), end_time: currentEnd.toISOString() });
-      } else if (base.repeat_pattern === 'yearly') {
+        instances.push({
+          ...base,
+          id: crypto.randomUUID(),
+          series_id: seriesId,
+          start_time: currentStart.toISOString(),
+          end_time: currentEnd.toISOString(),
+        });
+      } else if (base.repeat_pattern === "yearly") {
         currentStart = addYears(currentStart, 1);
         currentEnd = addYears(currentEnd, 1);
-        instances.push({ ...base, id: crypto.randomUUID(), series_id: seriesId, start_time: currentStart.toISOString(), end_time: currentEnd.toISOString() });
-      } else if (base.repeat_pattern?.startsWith('custom:')) {
+        instances.push({
+          ...base,
+          id: crypto.randomUUID(),
+          series_id: seriesId,
+          start_time: currentStart.toISOString(),
+          end_time: currentEnd.toISOString(),
+        });
+      } else if (base.repeat_pattern?.startsWith("custom:")) {
         currentStart = addDays(currentStart, 1);
         currentEnd = addDays(currentEnd, 1);
-        const activeDays = base.repeat_pattern.split(':')[1].split(',').map(Number);
+        const activeDays = base.repeat_pattern.split(":")[1].split(",").map(Number);
         if (activeDays.includes(currentStart.getDay())) {
-          instances.push({ ...base, id: crypto.randomUUID(), series_id: seriesId, start_time: currentStart.toISOString(), end_time: currentEnd.toISOString() });
+          instances.push({
+            ...base,
+            id: crypto.randomUUID(),
+            series_id: seriesId,
+            start_time: currentStart.toISOString(),
+            end_time: currentEnd.toISOString(),
+          });
         }
       } else break;
     }
 
-    setEvents(prev => [...prev, ...instances]);
-    await supabase.from('calendar_events').insert(instances);
+    setEvents((prev) => [...prev, ...instances]);
+    await supabase.from("calendar_events").insert(instances);
   };
 
-  const handleSaveEvent = async (updates: Partial<CalendarEvent>, updateMode: 'this' | 'future', originalEventObj?: CalendarEvent | null) => {
+  const handleSaveEvent = async (
+    updates: Partial<CalendarEvent>,
+    updateMode: "this" | "future",
+    originalEventObj?: CalendarEvent | null
+  ) => {
     const referenceEvent = originalEventObj || selectedEvent;
-    
+
     if (referenceEvent?.is_readonly) {
-       // Optimistically update the UI for all read-only events from this source to instantly show color change
-       if (updates.color && referenceEvent.source_id) {
-         setEvents(prev => prev.map(e => e.source_id === referenceEvent.source_id ? { ...e, color: updates.color! } : e));
-       }
-       setTimeout(() => { fetchEventsRef.current() }, 500);
-       return;
+      if (updates.color && referenceEvent.source_id) {
+        setEvents((prev) =>
+          prev.map((e) => (e.source_id === referenceEvent.source_id ? { ...e, color: updates.color! } : e))
+        );
+      }
+      setTimeout(() => {
+        fetchEventsRef.current();
+      }, 500);
+      return;
     }
 
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
     if (!user) return;
 
     const baseEvent = { ...updates, user_id: user.id };
 
     if (updates.id) {
-      const isUpgradingToSeries = !referenceEvent?.series_id && updates.repeat_pattern && updates.repeat_pattern !== 'none';
+      const isUpgradingToSeries = !referenceEvent?.series_id && updates.repeat_pattern && updates.repeat_pattern !== "none";
 
       if (isUpgradingToSeries) {
         const newSeriesId = crypto.randomUUID();
         const upgradedEvent = { ...baseEvent, series_id: newSeriesId } as CalendarEvent;
-        
-        setEvents(prev => prev.map(e => e.id === updates.id ? { ...upgradedEvent } : e));
-        await supabase.from('calendar_events').update({ ...upgradedEvent }).eq('id', updates.id);
-        
+
+        setEvents((prev) => prev.map((e) => (e.id === updates.id ? { ...upgradedEvent } : e)));
+        await supabase.from("calendar_events").update({ ...upgradedEvent }).eq("id", updates.id);
+
         await generateRecurringEvents(upgradedEvent, newSeriesId);
-      } else if (updateMode === 'this' || !updates.series_id) {
-        // IMPORTANT: We no longer set series_id to null here, preserving the event's link to the series!
-        setEvents(prev => prev.map(e => e.id === updates.id ? { ...e, ...updates } as CalendarEvent : e));
-        await supabase.from('calendar_events').update({ ...updates }).eq('id', updates.id);
+      } else if (updateMode === "this" || !updates.series_id) {
+        setEvents((prev) => prev.map((e) => (e.id === updates.id ? ({ ...e, ...updates } as CalendarEvent) : e)));
+        await supabase.from("calendar_events").update({ ...updates }).eq("id", updates.id);
       } else {
-        const timeChanged = 
-            new Date(updates.start_time!).getTime() !== new Date(referenceEvent!.start_time).getTime() ||
-            new Date(updates.end_time!).getTime() !== new Date(referenceEvent!.end_time).getTime() ||
-            updates.is_all_day !== referenceEvent!.is_all_day ||
-            updates.repeat_pattern !== referenceEvent!.repeat_pattern;
+        const timeChanged =
+          new Date(updates.start_time!).getTime() !== new Date(referenceEvent!.start_time).getTime() ||
+          new Date(updates.end_time!).getTime() !== new Date(referenceEvent!.end_time).getTime() ||
+          updates.is_all_day !== referenceEvent!.is_all_day ||
+          updates.repeat_pattern !== referenceEvent!.repeat_pattern;
 
         const currentStartTime = new Date(referenceEvent!.start_time);
 
         if (timeChanged) {
-            // Structural change: delete future and regenerate
-            setEvents(prev => prev.filter(e => !(e.series_id === updates.series_id && new Date(e.start_time) >= currentStartTime)));
-            await supabase.from('calendar_events').delete().eq('series_id', updates.series_id).gte('start_time', currentStartTime.toISOString());
-            
-            const newInstanceId = crypto.randomUUID();
-            const isNowStandalone = !updates.repeat_pattern || updates.repeat_pattern === 'none';
+          setEvents((prev) =>
+            prev.filter((e) => !(e.series_id === updates.series_id && new Date(e.start_time) >= currentStartTime))
+          );
+          await supabase
+            .from("calendar_events")
+            .delete()
+            .eq("series_id", updates.series_id)
+            .gte("start_time", currentStartTime.toISOString());
 
-            const updatedCurrent = { 
-              ...baseEvent, 
-              id: newInstanceId,
-              series_id: isNowStandalone ? null : updates.series_id 
-            } as CalendarEvent;
-            
-            setEvents(prev => [...prev, updatedCurrent]);
-            await supabase.from('calendar_events').insert(updatedCurrent);
+          const newInstanceId = crypto.randomUUID();
+          const isNowStandalone = !updates.repeat_pattern || updates.repeat_pattern === "none";
 
-            if (!isNowStandalone && updatedCurrent.series_id) {
-              await generateRecurringEvents(updatedCurrent, updates.series_id);
-            }
+          const updatedCurrent = {
+            ...baseEvent,
+            id: newInstanceId,
+            series_id: isNowStandalone ? null : updates.series_id,
+          } as CalendarEvent;
+
+          setEvents((prev) => [...prev, updatedCurrent]);
+          await supabase.from("calendar_events").insert(updatedCurrent);
+
+          if (!isNowStandalone && updatedCurrent.series_id) {
+            await generateRecurringEvents(updatedCurrent, updates.series_id);
+          }
         } else {
-            // Metadata update only: apply diff to future events
-            const diff: any = {};
-            if (updates.title !== referenceEvent!.title) diff.title = updates.title;
-            if (updates.description !== referenceEvent!.description) diff.description = updates.description;
-            if (updates.location !== referenceEvent!.location) diff.location = updates.location;
-            if (updates.meeting_url !== referenceEvent!.meeting_url) diff.meeting_url = updates.meeting_url;
-            if (updates.color !== referenceEvent!.color) diff.color = updates.color;
+          const diff: any = {};
+          if (updates.title !== referenceEvent!.title) diff.title = updates.title;
+          if (updates.description !== referenceEvent!.description) diff.description = updates.description;
+          if (updates.location !== referenceEvent!.location) diff.location = updates.location;
+          if (updates.meeting_url !== referenceEvent!.meeting_url) diff.meeting_url = updates.meeting_url;
+          if (updates.color !== referenceEvent!.color) diff.color = updates.color;
 
-            if (Object.keys(diff).length > 0) {
-                setEvents(prev => prev.map(e => {
-                   if (e.series_id === updates.series_id && new Date(e.start_time) >= currentStartTime) {
-                       return { ...e, ...diff };
-                   }
-                   return e;
-                }));
+          if (Object.keys(diff).length > 0) {
+            setEvents((prev) =>
+              prev.map((e) => {
+                if (e.series_id === updates.series_id && new Date(e.start_time) >= currentStartTime) {
+                  return { ...e, ...diff };
+                }
+                return e;
+              })
+            );
 
-                await supabase.from('calendar_events')
-                    .update(diff)
-                    .eq('series_id', updates.series_id)
-                    .gte('start_time', currentStartTime.toISOString());
-            }
+            await supabase
+              .from("calendar_events")
+              .update(diff)
+              .eq("series_id", updates.series_id)
+              .gte("start_time", currentStartTime.toISOString());
+          }
         }
       }
     } else {
-      if (updates.repeat_pattern && updates.repeat_pattern !== 'none') {
+      if (updates.repeat_pattern && updates.repeat_pattern !== "none") {
         const seriesId = crypto.randomUUID();
         const firstInstanceId = crypto.randomUUID();
         const firstInstance = { ...baseEvent, id: firstInstanceId, series_id: seriesId } as CalendarEvent;
-        
-        setEvents(prev => [...prev, firstInstance]);
-        await supabase.from('calendar_events').insert(firstInstance);
+
+        setEvents((prev) => [...prev, firstInstance]);
+        await supabase.from("calendar_events").insert(firstInstance);
         await generateRecurringEvents(firstInstance, seriesId);
       } else {
         const tempId = crypto.randomUUID();
         const newEvent = { ...baseEvent, id: tempId } as CalendarEvent;
-        setEvents(prev => [...prev, newEvent]);
-        await supabase.from('calendar_events').insert(newEvent);
+        setEvents((prev) => [...prev, newEvent]);
+        await supabase.from("calendar_events").insert(newEvent);
       }
     }
-    // Update cache after save
-    setTimeout(() => { fetchEventsRef.current() }, 500);
+    setTimeout(() => {
+      fetchEventsRef.current();
+    }, 500);
   };
 
-  const handleDeleteEvent = async (event: CalendarEvent, deleteMode: 'this' | 'future') => {
-    if (deleteMode === 'this' || !event.series_id) {
-      setEvents(prev => prev.filter(e => e.id !== event.id));
-      await supabase.from('calendar_events').delete().eq('id', event.id);
+  const handleDeleteEvent = async (event: CalendarEvent, deleteMode: "this" | "future") => {
+    if (deleteMode === "this" || !event.series_id) {
+      setEvents((prev) => prev.filter((e) => e.id !== event.id));
+      await supabase.from("calendar_events").delete().eq("id", event.id);
     } else {
       const currentStartTime = new Date(event.start_time);
-      setEvents(prev => prev.filter(e => !(e.series_id === event.series_id && new Date(e.start_time) >= currentStartTime)));
-      await supabase.from('calendar_events').delete().eq('series_id', event.series_id).gte('start_time', currentStartTime.toISOString());
+      setEvents((prev) =>
+        prev.filter((e) => !(e.series_id === event.series_id && new Date(e.start_time) >= currentStartTime))
+      );
+      await supabase
+        .from("calendar_events")
+        .delete()
+        .eq("series_id", event.series_id)
+        .gte("start_time", currentStartTime.toISOString());
     }
-    setTimeout(() => { fetchEventsRef.current() }, 500);
+    setTimeout(() => {
+      fetchEventsRef.current();
+    }, 500);
   };
 
-  const handleEventMove = (event: CalendarEvent, newStart: Date, newEnd: Date) => {
-    const updates = {
+  const handleEventMove = (event: CalendarEvent, newStart: Date, newEnd: Date, newIsAllDay?: boolean) => {
+    const updates: Partial<CalendarEvent> = {
       ...event,
       start_time: newStart.toISOString(),
-      end_time: newEnd.toISOString()
+      end_time: newEnd.toISOString(),
+      ...(newIsAllDay !== undefined ? { is_all_day: newIsAllDay } : {}),
     };
 
     if (event.series_id) {
@@ -446,74 +530,109 @@ export default function CalendarPage() {
         cancelText: "Cancel",
         secondaryAction: {
           text: "Only This Event",
-          onClick: () => handleSaveEvent(updates, 'this', event)
+          onClick: () => handleSaveEvent(updates, "this", event),
         },
-        onConfirm: () => handleSaveEvent(updates, 'future', event)
+        onConfirm: () => handleSaveEvent(updates, "future", event),
       });
     } else {
-      handleSaveEvent(updates, 'this', event);
+      handleSaveEvent(updates, "this", event);
     }
   };
 
   const handleSearchResultClick = (e: CalendarEvent) => {
     setReferenceDate(new Date(e.start_time));
-    setCalendarView('day');
+    setCalendarView("day");
     setTargetScrollTime(e.start_time);
     setIsSearchOpen(false);
   };
 
-  const filteredEvents = searchQuery 
-    ? events.filter(e => e.title.toLowerCase().includes(searchQuery.toLowerCase()))
+  const filteredEvents = searchQuery
+    ? events.filter((e) => e.title.toLowerCase().includes(searchQuery.toLowerCase()))
     : [];
 
   const displayTitle = () => {
-    if (calendarView === 'month') return format(referenceDate, 'MMMM yyyy');
-    if (calendarView === 'week') return `${format(referenceDate, 'MMM d')} - ${format(addDays(referenceDate, 6), 'MMM d, yyyy')}`;
-    if (calendarView === '2-day') return `${format(referenceDate, 'MMM d')} - ${format(addDays(referenceDate, 1), 'MMM d, yyyy')}`;
-    return format(referenceDate, 'MMMM d, yyyy');
+    if (calendarView === "month") return format(referenceDate, "MMMM yyyy");
+    if (calendarView === "week")
+      return `${format(referenceDate, "MMM d")} - ${format(addDays(referenceDate, 6), "MMM d, yyyy")}`;
+    if (calendarView === "2-day")
+      return `${format(referenceDate, "MMM d")} - ${format(addDays(referenceDate, 1), "MMM d, yyyy")}`;
+    return format(referenceDate, "MMMM d, yyyy");
   };
 
   const escapeRegExp = (string: string) => {
-    return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    return string.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   };
 
   const renderHighlightedText = (text: string) => {
     if (!searchQuery) return text;
-    const parts = text.split(new RegExp(`(${escapeRegExp(searchQuery)})`, 'gi'));
+    const parts = text.split(new RegExp(`(${escapeRegExp(searchQuery)})`, "gi"));
     return parts.map((part, i) =>
       part.toLowerCase() === searchQuery.toLowerCase() ? (
-        <span key={i} className="bg-[#c2956e]/40 dark:bg-[#b0855f]/50 text-[#3d3b33] dark:text-white rounded-[4px] px-[2px] font-bold">{part}</span>
-      ) : part
+        <span
+          key={i}
+          className="bg-[#c2956e]/40 dark:bg-[#b0855f]/50 text-[#3d3b33] dark:text-white rounded-[4px] px-[2px] font-bold"
+        >
+          {part}
+        </span>
+      ) : (
+        part
+      )
     );
   };
 
   const renderDatePicker = () => {
-    if (calendarView === 'month') {
+    if (calendarView === "month") {
       return (
-        <div ref={datePickerRef} className="absolute top-[calc(100%+8px)] left-0 w-[240px] bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] rounded-[1.5rem] shadow-xl z-[200] p-4 animate-fade-up cursor-default" onClick={e => e.stopPropagation()}>
+        <div
+          ref={datePickerRef}
+          className="absolute top-[calc(100%+8px)] left-0 w-[240px] bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] rounded-[1.5rem] shadow-xl z-[200] p-4 animate-fade-up cursor-default"
+          onClick={(e) => e.stopPropagation()}
+        >
           <div className="flex justify-between items-center mb-4">
-            <button onClick={(e) => { e.stopPropagation(); setReferenceDate(subYears(referenceDate, 1)); }} className="p-1.5 text-[#888] bg-[#f7f5f0] dark:bg-[#252525] rounded-lg hover:text-[#c2956e] transition-colors"><ChevronLeft size={16}/></button>
-            <span className="text-sm font-bold text-[#3d3b33] dark:text-[#f0f0f0] uppercase tracking-widest">{format(referenceDate, 'yyyy')}</span>
-            <button onClick={(e) => { e.stopPropagation(); setReferenceDate(addYears(referenceDate, 1)); }} className="p-1.5 text-[#888] bg-[#f7f5f0] dark:bg-[#252525] rounded-lg hover:text-[#c2956e] transition-colors"><ChevronRight size={16}/></button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setReferenceDate(subYears(referenceDate, 1));
+              }}
+              className="p-1.5 text-[#888] bg-[#f7f5f0] dark:bg-[#252525] rounded-lg hover:text-[#c2956e] transition-colors"
+            >
+              <ChevronLeft size={16} />
+            </button>
+            <span className="text-sm font-bold text-[#3d3b33] dark:text-[#f0f0f0] uppercase tracking-widest">
+              {format(referenceDate, "yyyy")}
+            </span>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setReferenceDate(addYears(referenceDate, 1));
+              }}
+              className="p-1.5 text-[#888] bg-[#f7f5f0] dark:bg-[#252525] rounded-lg hover:text-[#c2956e] transition-colors"
+            >
+              <ChevronRight size={16} />
+            </button>
           </div>
           <div className="grid grid-cols-3 gap-2">
-            {['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'].map((m, i) => {
+            {["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"].map((m, i) => {
               const isSelected = referenceDate.getMonth() === i;
               return (
-                <button 
-                  key={m} 
-                  onClick={(e) => { 
+                <button
+                  key={m}
+                  onClick={(e) => {
                     e.stopPropagation();
-                    const d = new Date(referenceDate); 
-                    d.setMonth(i); 
-                    setReferenceDate(d); 
-                    setIsDatePickerOpen(false); 
+                    const d = new Date(referenceDate);
+                    d.setMonth(i);
+                    setReferenceDate(d);
+                    setIsDatePickerOpen(false);
                   }}
-                  className={`py-2 rounded-lg text-xs font-bold uppercase tracking-widest transition-colors ${isSelected ? 'bg-[#c2956e] text-white shadow-md' : 'hover:bg-[#f0ede8] dark:hover:bg-[#333] text-[#3d3b33] dark:text-[#f0f0f0]'}`}
+                  className={`py-2 rounded-lg text-xs font-bold uppercase tracking-widest transition-colors ${
+                    isSelected
+                      ? "bg-[#c2956e] text-white shadow-md"
+                      : "hover:bg-[#f0ede8] dark:hover:bg-[#333] text-[#3d3b33] dark:text-[#f0f0f0]"
+                  }`}
                 >
                   {m}
                 </button>
-              )
+              );
             })}
           </div>
         </div>
@@ -524,17 +643,17 @@ export default function CalendarPage() {
     const month = pickerMonth.getMonth();
     const firstDay = new Date(year, month, 1).getDay();
     const daysInMonth = new Date(year, month + 1, 0).getDate();
-    
+
     const gridDays = (Array.from({ length: firstDay }, () => null) as (Date | null)[]).concat(
-        Array.from({ length: daysInMonth }, (_, i) => new Date(year, month, i + 1))
+      Array.from({ length: daysInMonth }, (_, i) => new Date(year, month, i + 1))
     );
 
     const isSelectedFn = (d: Date) => {
-      if (calendarView === 'week') {
+      if (calendarView === "week") {
         const start = startOfWeek(referenceDate);
         const end = endOfWeek(referenceDate);
         return d >= start && d <= end;
-      } else if (calendarView === '2-day') {
+      } else if (calendarView === "2-day") {
         const end = addDays(referenceDate, 1);
         return d >= startOfDay(referenceDate) && d <= endOfDay(end);
       } else {
@@ -543,101 +662,152 @@ export default function CalendarPage() {
     };
 
     return (
-        <div ref={datePickerRef} className="absolute top-[calc(100%+8px)] left-0 w-[280px] bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] rounded-[1.5rem] shadow-xl z-[200] p-4 animate-fade-up cursor-default" onClick={e => e.stopPropagation()}>
-           <div className="flex justify-between items-center mb-4">
-              <button onClick={(e) => { e.stopPropagation(); setPickerMonth(subMonths(pickerMonth, 1)); }} className="p-1.5 text-[#888] bg-[#f7f5f0] dark:bg-[#252525] rounded-lg hover:text-[#c2956e] transition-colors"><ChevronLeft size={16}/></button>
-              <span className="text-sm font-bold text-[#3d3b33] dark:text-[#f0f0f0] uppercase tracking-widest">{format(pickerMonth, 'MMM yyyy')}</span>
-              <button onClick={(e) => { e.stopPropagation(); setPickerMonth(addMonths(pickerMonth, 1)); }} className="p-1.5 text-[#888] bg-[#f7f5f0] dark:bg-[#252525] rounded-lg hover:text-[#c2956e] transition-colors"><ChevronRight size={16}/></button>
-           </div>
-           <div className="grid grid-cols-7 gap-1 text-center mb-2">
-              {['S','M','T','W','T','F','S'].map((d, i) => <span key={i} className="text-[9px] font-bold text-[#b0ad9a]">{d}</span>)}
-           </div>
-           <div className="grid grid-cols-7 gap-1">
-              {gridDays.map((d, i) => {
-                 if (!d) return <div key={i} />;
-                 const isSelected = isSelectedFn(d);
-                 const isTodayDate = isToday(d);
-                 return (
-                    <button 
-                       key={i} 
-                       onClick={(e) => { 
-                         e.stopPropagation(); 
-                         if (calendarView === 'week') setReferenceDate(startOfWeek(d));
-                         else setReferenceDate(d); 
-                         setIsDatePickerOpen(false); 
-                       }}
-                       className={`h-8 rounded-lg text-xs font-medium transition-colors ${isSelected ? 'bg-[#c2956e] text-white shadow-md' : isTodayDate ? 'text-[#c2956e] font-bold bg-[#c2956e]/10' : 'hover:bg-[#f0ede8] dark:hover:bg-[#333] text-[#3d3b33] dark:text-white'}`}
-                    >
-                       {format(d, 'd')}
-                    </button>
-                 );
-              })}
-           </div>
+      <div
+        ref={datePickerRef}
+        className="absolute top-[calc(100%+8px)] left-0 w-[280px] bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] rounded-[1.5rem] shadow-xl z-[200] p-4 animate-fade-up cursor-default"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex justify-between items-center mb-4">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setPickerMonth(subMonths(pickerMonth, 1));
+            }}
+            className="p-1.5 text-[#888] bg-[#f7f5f0] dark:bg-[#252525] rounded-lg hover:text-[#c2956e] transition-colors"
+          >
+            <ChevronLeft size={16} />
+          </button>
+          <span className="text-sm font-bold text-[#3d3b33] dark:text-[#f0f0f0] uppercase tracking-widest">
+            {format(pickerMonth, "MMM yyyy")}
+          </span>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setPickerMonth(addMonths(pickerMonth, 1));
+            }}
+            className="p-1.5 text-[#888] bg-[#f7f5f0] dark:bg-[#252525] rounded-lg hover:text-[#c2956e] transition-colors"
+          >
+            <ChevronRight size={16} />
+          </button>
         </div>
+        <div className="grid grid-cols-7 gap-1 text-center mb-2">
+          {["S", "M", "T", "W", "T", "F", "S"].map((d, i) => (
+            <span key={i} className="text-[9px] font-bold text-[#b0ad9a]">
+              {d}
+            </span>
+          ))}
+        </div>
+        <div className="grid grid-cols-7 gap-1">
+          {gridDays.map((d, i) => {
+            if (!d) return <div key={i} />;
+            const isSelected = isSelectedFn(d);
+            const isTodayDate = isToday(d);
+            return (
+              <button
+                key={i}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (calendarView === "week") setReferenceDate(startOfWeek(d));
+                  else setReferenceDate(d);
+                  setIsDatePickerOpen(false);
+                }}
+                className={`h-8 rounded-lg text-xs font-medium transition-colors ${
+                  isSelected
+                    ? "bg-[#c2956e] text-white shadow-md"
+                    : isTodayDate
+                    ? "text-[#c2956e] font-bold bg-[#c2956e]/10"
+                    : "hover:bg-[#f0ede8] dark:hover:bg-[#333] text-[#3d3b33] dark:text-white"
+                }`}
+              >
+                {format(d, "d")}
+              </button>
+            );
+          })}
+        </div>
+      </div>
     );
   };
 
   const isCurrentDateToday = isSameDay(referenceDate, new Date());
 
   return (
-    <div className={`absolute inset-0 flex flex-col pt-[max(1.5rem,calc(1rem+env(safe-area-inset-top)))] md:pt-[max(3.5rem,calc(2.5rem+env(safe-area-inset-top)))] px-4 md:p-8 lg:p-10 min-w-0 bg-[#f7f5f0] dark:bg-[#121212] overflow-hidden ${calendarView === 'month' ? 'pb-0 md:pb-8' : 'pb-[calc(6.125rem+env(safe-area-inset-bottom))] md:pb-8'}`}>
-      
+    <div
+      className={`absolute inset-0 flex flex-col pt-[max(1.5rem,calc(1rem+env(safe-area-inset-top)))] md:pt-[max(3.5rem,calc(2.5rem+env(safe-area-inset-top)))] px-4 md:p-8 lg:p-10 min-w-0 bg-[#f7f5f0] dark:bg-[#121212] overflow-hidden ${
+        calendarView === "month" ? "pb-0 md:pb-8" : "pb-[calc(6.125rem+env(safe-area-inset-bottom))] md:pb-8"
+      }`}
+    >
       <div className="flex-1 flex flex-col relative z-10 min-w-0 min-h-0 max-w-full w-full h-full">
         <header className="mb-6 lg:mb-8 flex flex-col lg:flex-row lg:items-center justify-between gap-4 shrink-0 relative z-50">
-          
           <div className="flex items-center justify-between w-full lg:w-auto relative">
-            <div 
+            <div
               ref={titleRef}
-              onClick={() => setIsDatePickerOpen(!isDatePickerOpen)}
+              onClick={() => {
+                if (!isDatePickerOpen) setPickerMonth(startOfMonth(referenceDate));
+                setIsDatePickerOpen(!isDatePickerOpen);
+              }}
               className="flex items-center gap-2.5 text-[#3d3b33] dark:text-[#f0f0f0] min-w-0 pr-2 cursor-pointer hover:opacity-80 transition-opacity"
             >
               <CalendarDays size={24} className="text-[#c2956e] shrink-0" />
               <div className="flex flex-col min-w-0">
-                <h1 className="text-2xl lg:text-4xl font-serif font-medium tracking-tight leading-normal truncate pb-0.5 select-none">{displayTitle()}</h1>
+                <h1 className="text-2xl lg:text-4xl font-serif font-medium tracking-tight leading-normal truncate pb-0.5 select-none">
+                  {displayTitle()}
+                </h1>
               </div>
             </div>
-            
+
             {isDatePickerOpen && renderDatePicker()}
 
             <div className="lg:hidden relative shrink-0 flex items-center gap-2" ref={mobileSearchRef}>
               {syncErrors.length > 0 && (
-                <button 
+                <button
                   onClick={() => setIsSyncErrorModalOpen(true)}
                   className="flex items-center justify-center w-10 h-10 rounded-full bg-red-50 dark:bg-red-900/10 text-red-500 border border-red-100 dark:border-red-900/30 shadow-sm shrink-0"
                 >
                   <AlertCircle size={16} />
                 </button>
               )}
-              <button 
-                  onClick={() => setIsSearchOpen(!isSearchOpen)}
-                  className={`w-10 h-10 flex items-center justify-center rounded-full transition-colors shadow-sm border ${isSearchOpen ? 'bg-[#c2956e] text-white border-[#c2956e]' : 'bg-white dark:bg-[#1a1a1a] text-[#888] hover:text-[#c2956e] border-[#e0ddd5] dark:border-[#333]'}`}
-                >
-                  <Search size={16} />
+              <button
+                onClick={() => setIsSearchOpen(!isSearchOpen)}
+                className={`w-10 h-10 flex items-center justify-center rounded-full transition-colors shadow-sm border ${
+                  isSearchOpen
+                    ? "bg-[#c2956e] text-white border-[#c2956e]"
+                    : "bg-white dark:bg-[#1a1a1a] text-[#888] hover:text-[#c2956e] border-[#e0ddd5] dark:border-[#333]"
+                }`}
+              >
+                <Search size={16} />
               </button>
 
               {isSearchOpen && (
                 <div className="absolute top-[calc(100%+8px)] right-0 w-[280px] bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] rounded-[1.5rem] shadow-xl z-[100] p-4 animate-fade-up">
                   <div className="relative w-full mb-3">
                     <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-[#b0ad9a]" size={16} />
-                    <input 
+                    <input
                       autoFocus
-                      value={searchInput} 
-                      onChange={e => setSearchInput(e.target.value)} 
-                      placeholder="Search events..." spellCheck={false}
-                      className="w-full bg-[#f7f5f0] dark:bg-[#252525] border border-[#e0ddd5] dark:border-[#444] rounded-xl pl-11 pr-4 py-3 outline-none focus:border-[#c2956e] text-sm text-[#3d3b33] dark:text-[#f0f0f0] transition-all shadow-sm" 
+                      value={searchInput}
+                      onChange={(e) => setSearchInput(e.target.value)}
+                      placeholder="Search events..."
+                      spellCheck={false}
+                      className="w-full bg-[#f7f5f0] dark:bg-[#252525] border border-[#e0ddd5] dark:border-[#444] rounded-xl pl-11 pr-4 py-3 outline-none focus:border-[#c2956e] text-sm text-[#3d3b33] dark:text-[#f0f0f0] transition-all shadow-sm"
                     />
                   </div>
                   <div className="max-h-[300px] overflow-y-auto no-scrollbar space-y-1">
                     {searchQuery ? (
-                      filteredEvents.length > 0 ? filteredEvents.map(e => (
-                        <div 
-                          key={e.id} onClick={() => handleSearchResultClick(e)}
-                          className="p-3 rounded-xl hover:bg-[#f7f5f0] dark:hover:bg-[#222] cursor-pointer transition-colors border border-transparent hover:border-[#e0ddd5] dark:hover:border-[#333]"
-                        >
-                          <div className="text-sm font-semibold truncate text-[#3d3b33] dark:text-white">{renderHighlightedText(e.title)}</div>
-                          <div className="text-[10px] text-[#b0ad9a] mt-1">{format(new Date(e.start_time), 'MMM d, yyyy • h:mm a')}</div>
-                        </div>
-                      )) : (
+                      filteredEvents.length > 0 ? (
+                        filteredEvents.map((e) => (
+                          <div
+                            key={e.id}
+                            onClick={() => handleSearchResultClick(e)}
+                            className="p-3 rounded-xl hover:bg-[#f7f5f0] dark:hover:bg-[#222] cursor-pointer transition-colors border border-transparent hover:border-[#e0ddd5] dark:hover:border-[#333]"
+                          >
+                            <div className="text-sm font-semibold truncate text-[#3d3b33] dark:text-white">
+                              {renderHighlightedText(e.title)}
+                            </div>
+                            <div className="text-[10px] text-[#b0ad9a] mt-1">
+                              {format(new Date(e.start_time), "MMM d, yyyy • h:mm a")}
+                            </div>
+                          </div>
+                        ))
+                      ) : (
                         <div className="text-center py-4 text-xs italic text-[#b0ad9a]">No events found.</div>
                       )
                     ) : (
@@ -651,7 +821,7 @@ export default function CalendarPage() {
 
           <div className="flex flex-col lg:flex-row items-center gap-2 lg:gap-3 w-full lg:w-auto shrink-0">
             {syncErrors.length > 0 && (
-              <button 
+              <button
                 onClick={() => setIsSyncErrorModalOpen(true)}
                 className="hidden lg:flex items-center justify-center w-10 h-10 rounded-full bg-red-50 dark:bg-red-900/10 text-red-500 border border-red-100 dark:border-red-900/30 shadow-sm shrink-0"
               >
@@ -659,9 +829,13 @@ export default function CalendarPage() {
               </button>
             )}
             <div className="hidden lg:block relative shrink-0 h-10" ref={desktopSearchRef}>
-              <button 
+              <button
                 onClick={() => setIsSearchOpen(!isSearchOpen)}
-                className={`h-full aspect-square rounded-full border transition-colors shadow-sm flex items-center justify-center ${isSearchOpen ? 'bg-[#c2956e] border-[#c2956e] text-white' : 'bg-white dark:bg-[#1a1a1a] border-[#e0ddd5] dark:border-[#333] text-[#888] hover:text-[#c2956e]'}`}
+                className={`h-full aspect-square rounded-full border transition-colors shadow-sm flex items-center justify-center ${
+                  isSearchOpen
+                    ? "bg-[#c2956e] border-[#c2956e] text-white"
+                    : "bg-white dark:bg-[#1a1a1a] border-[#e0ddd5] dark:border-[#333] text-[#888] hover:text-[#c2956e]"
+                }`}
               >
                 <Search size={16} />
               </button>
@@ -669,25 +843,33 @@ export default function CalendarPage() {
                 <div className="absolute top-[calc(100%+8px)] right-0 w-[300px] bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] rounded-[1.5rem] shadow-xl z-[100] p-4 animate-fade-up">
                   <div className="relative w-full mb-3">
                     <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-[#b0ad9a]" size={16} />
-                    <input 
+                    <input
                       autoFocus
-                      value={searchInput} 
-                      onChange={e => setSearchInput(e.target.value)} 
-                      placeholder="Search events..." spellCheck={false}
-                      className="w-full bg-[#f7f5f0] dark:bg-[#252525] border border-[#e0ddd5] dark:border-[#444] rounded-xl pl-11 pr-4 py-3 outline-none focus:border-[#c2956e] text-sm text-[#3d3b33] dark:text-[#f0f0f0] transition-all shadow-sm" 
+                      value={searchInput}
+                      onChange={(e) => setSearchInput(e.target.value)}
+                      placeholder="Search events..."
+                      spellCheck={false}
+                      className="w-full bg-[#f7f5f0] dark:bg-[#252525] border border-[#e0ddd5] dark:border-[#444] rounded-xl pl-11 pr-4 py-3 outline-none focus:border-[#c2956e] text-sm text-[#3d3b33] dark:text-[#f0f0f0] transition-all shadow-sm"
                     />
                   </div>
                   <div className="max-h-[300px] overflow-y-auto no-scrollbar space-y-1">
                     {searchQuery ? (
-                      filteredEvents.length > 0 ? filteredEvents.map(e => (
-                        <div 
-                          key={e.id} onClick={() => handleSearchResultClick(e)}
-                          className="p-3 rounded-xl hover:bg-[#f7f5f0] dark:hover:bg-[#222] cursor-pointer transition-colors border border-transparent hover:border-[#e0ddd5] dark:hover:border-[#333]"
-                        >
-                          <div className="text-sm font-semibold truncate text-[#3d3b33] dark:text-white">{renderHighlightedText(e.title)}</div>
-                          <div className="text-[10px] text-[#b0ad9a] mt-1">{format(new Date(e.start_time), 'MMM d, yyyy • h:mm a')}</div>
-                        </div>
-                      )) : (
+                      filteredEvents.length > 0 ? (
+                        filteredEvents.map((e) => (
+                          <div
+                            key={e.id}
+                            onClick={() => handleSearchResultClick(e)}
+                            className="p-3 rounded-xl hover:bg-[#f7f5f0] dark:hover:bg-[#222] cursor-pointer transition-colors border border-transparent hover:border-[#e0ddd5] dark:hover:border-[#333]"
+                          >
+                            <div className="text-sm font-semibold truncate text-[#3d3b33] dark:text-white">
+                              {renderHighlightedText(e.title)}
+                            </div>
+                            <div className="text-[10px] text-[#b0ad9a] mt-1">
+                              {format(new Date(e.start_time), "MMM d, yyyy • h:mm a")}
+                            </div>
+                          </div>
+                        ))
+                      ) : (
                         <div className="text-center py-4 text-xs italic text-[#b0ad9a]">No events found.</div>
                       )
                     ) : (
@@ -700,51 +882,113 @@ export default function CalendarPage() {
 
             <div className="flex w-full lg:w-auto gap-2 lg:gap-3 h-10 lg:h-10">
               <div className="flex items-center bg-white dark:bg-[#1a1a1a] rounded-full p-0.5 border border-[#e0ddd5] dark:border-[#333] shadow-sm w-full lg:w-auto h-full">
-                <button onClick={handlePrev} className="flex-1 lg:flex-none px-3 text-[#888] hover:text-[#3d3b33] dark:hover:text-white transition-colors h-full flex items-center justify-center rounded-l-full"><ChevronLeft size={16} className="lg:w-[18px] lg:h-[18px]" /></button>
-                <button onClick={handleToday} className={`flex-1 lg:flex-none px-2 lg:px-4 text-[10px] lg:text-[11px] font-bold uppercase tracking-widest transition-colors h-full flex items-center justify-center ${isCurrentDateToday ? 'text-[#c2956e] dark:text-[#b0855f]' : 'text-[#3d3b33] dark:text-[#f0f0f0] hover:text-[#c2956e]'}`}>Today</button>
-                <button onClick={handleNext} className="flex-1 lg:flex-none px-3 text-[#888] hover:text-[#3d3b33] dark:hover:text-white transition-colors h-full flex items-center justify-center rounded-r-full"><ChevronRight size={16} className="lg:w-[18px] lg:h-[18px]" /></button>
+                <button
+                  onClick={handlePrev}
+                  className="flex-1 lg:flex-none px-3 text-[#888] hover:text-[#3d3b33] dark:hover:text-white transition-colors h-full flex items-center justify-center rounded-l-full"
+                >
+                  <ChevronLeft size={16} className="lg:w-[18px] lg:h-[18px]" />
+                </button>
+                <button
+                  onClick={handleToday}
+                  className={`flex-1 lg:flex-none px-2 lg:px-4 text-[10px] lg:text-[11px] font-bold uppercase tracking-widest transition-colors h-full flex items-center justify-center ${
+                    isCurrentDateToday ? "text-[#c2956e] dark:text-[#b0855f]" : "text-[#3d3b33] dark:text-[#f0f0f0] hover:text-[#c2956e]"
+                  }`}
+                >
+                  Today
+                </button>
+                <button
+                  onClick={handleNext}
+                  className="flex-1 lg:flex-none px-3 text-[#888] hover:text-[#3d3b33] dark:hover:text-white transition-colors h-full flex items-center justify-center rounded-r-full"
+                >
+                  <ChevronRight size={16} className="lg:w-[18px] lg:h-[18px]" />
+                </button>
               </div>
 
               <div className="flex bg-[#ebe8e2]/50 dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] shadow-inner p-1 rounded-full w-full lg:w-auto h-full">
-                {(['day', '2-day', 'week', 'month'] as const).map(v => (
-                  <button 
-                    key={v} onClick={() => setCalendarView(v)}
-                    className={`flex-1 lg:flex-none px-2 lg:px-4 rounded-full text-[9px] lg:text-[10px] font-bold uppercase tracking-widest transition-all h-full flex items-center justify-center ${v === 'week' ? 'hidden md:flex' : 'flex'} ${calendarView === v ? 'bg-white dark:bg-[#2a2a2a] text-[#c2956e] dark:text-[#d1a784] shadow-sm' : 'text-[#888] dark:text-[#7a7a7a] lg:hover:text-[#3d3b33] lg:dark:hover:text-white'}`}
+                {(["day", "2-day", "week", "month"] as const).map((v) => (
+                  <button
+                    key={v}
+                    onClick={() => setCalendarView(v)}
+                    className={`flex-1 lg:flex-none px-2 lg:px-4 rounded-full text-[9px] lg:text-[10px] font-bold uppercase tracking-widest transition-all h-full flex items-center justify-center ${
+                      v === "week" ? "hidden md:flex" : "flex"
+                    } ${
+                      calendarView === v
+                        ? "bg-white dark:bg-[#2a2a2a] text-[#c2956e] dark:text-[#d1a784] shadow-sm"
+                        : "text-[#888] dark:text-[#7a7a7a] lg:hover:text-[#3d3b33] lg:dark:hover:text-white"
+                    }`}
                   >
-                    {v === '2-day' ? '2D' : v}
+                    {v === "2-day" ? "2D" : v}
                   </button>
                 ))}
               </div>
-              
-              <button onClick={() => openAddModal()} className="hidden md:flex h-10 aspect-square items-center justify-center bg-[#c2956e] dark:bg-[#b0855f] text-white rounded-full lg:hover:scale-105 transition-all shadow-lg shrink-0">
+
+              <button
+                onClick={() => openAddModal()}
+                className="hidden md:flex h-10 aspect-square items-center justify-center bg-[#c2956e] dark:bg-[#b0855f] text-white rounded-full lg:hover:scale-105 transition-all shadow-lg shrink-0"
+              >
                 <Plus size={18} strokeWidth={2.5} />
               </button>
             </div>
-            
           </div>
         </header>
 
         <div className="flex-1 min-h-0 w-full flex flex-col relative z-10">
-          {calendarView === 'month' && (
-            <MonthView 
-              currentDate={referenceDate} 
+          {calendarView === "month" && (
+            <MonthView
+              currentDate={referenceDate}
               events={events}
-              onEventClick={openEditModal} 
+              onEventClick={openEditModal}
               onDayClick={(d) => setReferenceDate(d)}
+              onEventMove={handleEventMove}
               eventColors={EVENT_COLORS}
               selectedDate={referenceDate}
               isMobile={isMobile}
               openAddModal={openAddModal}
             />
           )}
-          {calendarView === 'week' && <WeekView targetScrollTime={targetScrollTime} currentDate={referenceDate} events={events} onEventClick={openEditModal} onTimeRangeSelected={openAddModal} onEventMove={handleEventMove} eventColors={EVENT_COLORS} daysCount={7} scrollToNowTrigger={scrollToNowTrigger} />}
-          {calendarView === '2-day' && <WeekView targetScrollTime={targetScrollTime} currentDate={referenceDate} events={events} onEventClick={openEditModal} onTimeRangeSelected={openAddModal} onEventMove={handleEventMove} eventColors={EVENT_COLORS} daysCount={2} scrollToNowTrigger={scrollToNowTrigger} />}
-          {calendarView === 'day' && <DayView targetScrollTime={targetScrollTime} currentDate={referenceDate} events={events} onEventClick={openEditModal} onTimeRangeSelected={openAddModal} onEventMove={handleEventMove} eventColors={EVENT_COLORS} scrollToNowTrigger={scrollToNowTrigger} />}
+          {calendarView === "week" && (
+            <WeekView
+              targetScrollTime={targetScrollTime}
+              currentDate={referenceDate}
+              events={events}
+              onEventClick={openEditModal}
+              onTimeRangeSelected={openAddModal}
+              onEventMove={handleEventMove}
+              eventColors={EVENT_COLORS}
+              daysCount={7}
+              scrollToNowTrigger={scrollToNowTrigger}
+            />
+          )}
+          {calendarView === "2-day" && (
+            <WeekView
+              targetScrollTime={targetScrollTime}
+              currentDate={referenceDate}
+              events={events}
+              onEventClick={openEditModal}
+              onTimeRangeSelected={openAddModal}
+              onEventMove={handleEventMove}
+              eventColors={EVENT_COLORS}
+              daysCount={2}
+              scrollToNowTrigger={scrollToNowTrigger}
+            />
+          )}
+          {calendarView === "day" && (
+            <DayView
+              targetScrollTime={targetScrollTime}
+              currentDate={referenceDate}
+              events={events}
+              onEventClick={openEditModal}
+              onTimeRangeSelected={openAddModal}
+              onEventMove={handleEventMove}
+              eventColors={EVENT_COLORS}
+              scrollToNowTrigger={scrollToNowTrigger}
+            />
+          )}
         </div>
       </div>
 
       {isMobile && (
-        <button 
+        <button
           onClick={() => openAddModal()}
           className="fixed bottom-[calc(110px+env(safe-area-inset-bottom))] right-6 z-50 w-14 h-14 bg-[#c2956e] text-white rounded-full shadow-xl flex items-center justify-center active:scale-95 transition-all"
         >
@@ -752,34 +996,37 @@ export default function CalendarPage() {
         </button>
       )}
 
-      <EventModal 
-        isOpen={isModalOpen} 
-        onClose={() => setIsModalOpen(false)} 
-        onSave={handleSaveEvent} 
+      <EventModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onSave={handleSaveEvent}
         onDelete={handleDeleteEvent}
-        initialEvent={selectedEvent} 
+        initialEvent={selectedEvent}
         dragTimeRange={dragTimeRange}
         defaultBaseDate={defaultBaseDate}
       />
 
-      {/* Sync Error Persistent Modal */}
       {isSyncErrorModalOpen && (
         <div className="fixed inset-0 z-[600] flex items-center justify-center px-4 bg-black/40 dark:bg-black/60 backdrop-blur-sm animate-fade-in">
           <div className="bg-[#f7f5f0] dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] rounded-[2rem] p-8 max-w-sm w-full shadow-2xl animate-fade-up flex flex-col items-center text-center">
-             <div className="w-14 h-14 rounded-full flex items-center justify-center mb-5 bg-[#d45b5b]/10 text-[#d45b5b] dark:bg-[#d45b5b]/20 dark:text-[#e07a7a]">
-               <AlertCircle size={28} />
-             </div>
-             <h3 className="text-2xl font-serif text-[#3d3b33] dark:text-[#f0f0f0] mb-2 leading-tight">Sync Issues</h3>
-             <p className="text-[13px] text-[#888] dark:text-[#7a7a7a] mb-8 leading-relaxed">
-               Could not fetch latest events from: <span className="font-semibold text-[#3d3b33] dark:text-[#e0e0e0]">{syncErrors.join(', ')}</span>. Please check if the source URLs are still valid in Settings.
-             </p>
-             <button onClick={() => setIsSyncErrorModalOpen(false)} className="w-full px-6 py-3.5 bg-white dark:bg-[#252525] border border-[#e0ddd5] dark:border-[#333] text-[#3d3b33] dark:text-white rounded-xl text-[11px] font-bold uppercase tracking-widest shadow-sm transition-colors hover:bg-gray-50 dark:hover:bg-[#333]">
-               Understood
-             </button>
+            <div className="w-14 h-14 rounded-full flex items-center justify-center mb-5 bg-[#d45b5b]/10 text-[#d45b5b] dark:bg-[#d45b5b]/20 dark:text-[#e07a7a]">
+              <AlertCircle size={28} />
+            </div>
+            <h3 className="text-2xl font-serif text-[#3d3b33] dark:text-[#f0f0f0] mb-2 leading-tight">Sync Issues</h3>
+            <p className="text-[13px] text-[#888] dark:text-[#7a7a7a] mb-8 leading-relaxed">
+              Could not fetch latest events from:{" "}
+              <span className="font-semibold text-[#3d3b33] dark:text-[#e0e0e0]">{syncErrors.join(", ")}</span>. Please check if
+              the source URLs are still valid in Settings.
+            </p>
+            <button
+              onClick={() => setIsSyncErrorModalOpen(false)}
+              className="w-full px-6 py-3.5 bg-white dark:bg-[#252525] border border-[#e0ddd5] dark:border-[#333] text-[#3d3b33] dark:text-white rounded-xl text-[11px] font-bold uppercase tracking-widest shadow-sm transition-colors hover:bg-gray-50 dark:hover:bg-[#333]"
+            >
+              Understood
+            </button>
           </div>
         </div>
       )}
-
     </div>
   );
 }

@@ -29,36 +29,44 @@ import {
 interface Props {
   type: "routine" | "normal";
   title: string;
-  viewMode?: 'focus' | 'archive' | 'trash';
+  viewMode?: "focus" | "archive" | "trash";
   searchQuery?: string;
 }
 
 function generateUUID() {
-  if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID();
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-    const r = Math.random() * 16 | 0;
-    const v = c === 'x' ? r : (r & 0x3 | 0x8);
+  if (typeof crypto !== "undefined" && crypto.randomUUID) return crypto.randomUUID();
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (c) {
+    const r = (Math.random() * 16) | 0;
+    const v = c === "x" ? r : (r & 0x3) | 0x8;
     return v.toString(16);
   });
 }
 
-export default function TaskSection({ type, title, viewMode = 'focus', searchQuery = '' }: Props) {
+export default function TaskSection({ type, title, viewMode = "focus", searchQuery = "" }: Props) {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [isEditMode, setIsEditMode] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [newTaskId, setNewTaskId] = useState<string | null>(null);
-  
-  const { 
-    taskArchiveDelay, moveCompletedToBottom, keepParentTaskAlive, addTaskAtTop, archiveLayout, archiveSort,
-    mobileRoutineCollapsed, setMobileRoutineCollapsed
+
+  const {
+    taskArchiveDelay,
+    moveCompletedToBottom,
+    keepParentTaskAlive,
+    addTaskAtTop,
+    archiveLayout,
+    archiveSort,
+    mobileRoutineCollapsed,
+    setMobileRoutineCollapsed,
   } = useUiStore();
-  
+
   const [now, setNow] = useState(Date.now());
   const sectionRef = useRef<HTMLDivElement>(null);
 
   // Mutation lock blocks stale replica database responses from glitching the UI during typing/toggling
   const lastMutateTime = useRef<number>(0);
-  const markMutated = () => { lastMutateTime.current = Date.now(); };
+  const markMutated = () => {
+    lastMutateTime.current = Date.now();
+  };
 
   const sensors = useSensors(
     useSensor(MouseSensor, {
@@ -68,7 +76,7 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
     }),
     useSensor(TouchSensor, {
       activationConstraint: {
-        delay: 150, // Slight delay ensures touch scrolling is locked precisely during intentional drag
+        delay: 150,
         tolerance: 5,
       },
     }),
@@ -77,21 +85,23 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
     })
   );
 
-  const isCollapsedMobile = type === 'routine' ? mobileRoutineCollapsed : false;
+  const isCollapsedMobile = type === "routine" ? mobileRoutineCollapsed : false;
+  const delayMs = taskArchiveDelay <= 0 ? 1000 : taskArchiveDelay * 60 * 1000;
 
   const fetchTasks = async (isBackgroundSync = false) => {
-    // If user has done any action recently, skip the automated replica fetch to stop glitching
     if (isBackgroundSync && Date.now() - lastMutateTime.current < 2500) {
-       return;
+      return;
     }
-    
-    let { data } = await supabase
+
+    const { data } = await supabase
       .from("tasks")
       .select("*")
       .eq("task_type", type)
       .order("position", { ascending: true });
 
-    if (data) setTasks(data);
+    if (data) {
+      setTasks((prev) => (JSON.stringify(prev) === JSON.stringify(data) ? prev : data));
+    }
     setIsLoading(false);
   };
 
@@ -111,24 +121,38 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
 
     const channel = supabase
       .channel(channelId)
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "tasks" },
-        () => {
-          clearTimeout(timeoutId);
-          timeoutId = setTimeout(() => fetchTasks(true), 400);
-        }
-      )
+      .on("postgres_changes", { event: "*", schema: "public", table: "tasks" }, () => {
+        clearTimeout(timeoutId);
+        timeoutId = setTimeout(() => fetchTasks(true), 400);
+      })
       .subscribe();
-
-    const timer = setInterval(() => setNow(Date.now()), 1000);
 
     return () => {
       supabase.removeChannel(channel);
-      clearInterval(timer);
       clearTimeout(timeoutId);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [type]);
+
+  // Only tick the 1s clock while there is at least one completed task waiting to vanish
+  const hasPendingAutoArchive = useMemo(() => {
+    if (viewMode !== "focus" || isEditMode || taskArchiveDelay < 0) return false;
+    const current = Date.now();
+    return tasks.some(
+      (t) =>
+        t.deleted_at === null &&
+        t.is_completed &&
+        t.completed_at &&
+        current - new Date(t.completed_at).getTime() < delayMs + 2000
+    );
+  }, [tasks, viewMode, isEditMode, taskArchiveDelay, delayMs]);
+
+  useEffect(() => {
+    if (!hasPendingAutoArchive) return;
+    setNow(Date.now());
+    const timer = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(timer);
+  }, [hasPendingAutoArchive]);
 
   useEffect(() => {
     if (!isLoading) {
@@ -138,31 +162,27 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
-      if ((e.target as Element).closest?.('.context-menu-portal')) return;
-      
-      if (
-        isEditMode &&
-        type === "routine" &&
-        sectionRef.current &&
-        !sectionRef.current.contains(e.target as Node)
-      ) {
+      if ((e.target as Element).closest?.(".context-menu-portal")) return;
+
+      if (isEditMode && type === "routine" && sectionRef.current && !sectionRef.current.contains(e.target as Node)) {
         setIsEditMode(false);
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  },[isEditMode, type]);
+  }, [isEditMode, type]);
 
-  const onAddRef = useRef<(parentId: string | null, relativeToTask?: Task) => Promise<void>>(() => Promise.resolve());
+  const onAddRef = useRef<(parentId: string | null, relativeToTask?: Task) => Promise<void>>(() =>
+    Promise.resolve()
+  );
 
   useEffect(() => {
-    if (type !== 'normal') return;
+    if (type !== "normal") return;
     const handleGlobalAdd = () => onAddRef.current(null);
-    window.addEventListener('chronoa-add-task', handleGlobalAdd);
-    return () => window.removeEventListener('chronoa-add-task', handleGlobalAdd);
+    window.addEventListener("chronoa-add-task", handleGlobalAdd);
+    return () => window.removeEventListener("chronoa-add-task", handleGlobalAdd);
   }, [type]);
 
-  // Ensure body scroll lock clears even if component aggressively unmounts during drag
   useEffect(() => {
     return () => {
       if (typeof window !== "undefined") {
@@ -171,13 +191,11 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
     };
   }, []);
 
-  const delayMs = taskArchiveDelay <= 0 ? 1000 : taskArchiveDelay * 60 * 1000;
-
   const displayTasks = useMemo(() => {
     const map: Record<string, Task> = {};
     tasks.forEach((t) => (map[t.id] = { ...t, children: [] }));
-    const roots: Task[] =[];
-    
+    const roots: Task[] = [];
+
     tasks.forEach((t) => {
       if (t.parent_id && map[t.parent_id]) {
         map[t.parent_id].children!.push(map[t.id]);
@@ -188,61 +206,81 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
 
     const matchesSearch = (t: Task) => !searchQuery || t.title.toLowerCase().includes(searchQuery.toLowerCase());
 
-    const isFlatList = viewMode === 'trash' || (viewMode === 'archive' && archiveLayout === 'list');
+    const isFlatList = viewMode === "trash" || (viewMode === "archive" && archiveLayout === "list");
     if (isFlatList) {
-       let list = tasks.filter(t => {
-          const modeMatch = viewMode === 'trash' ? t.deleted_at !== null : (t.deleted_at === null && t.is_completed);
-          return modeMatch && matchesSearch(t);
-       });
+      const list = tasks.filter((t) => {
+        const modeMatch = viewMode === "trash" ? t.deleted_at !== null : t.deleted_at === null && t.is_completed;
+        return modeMatch && matchesSearch(t);
+      });
 
-       list.sort((a, b) => {
-          const timeA = new Date(viewMode === 'trash' ? a.deleted_at! : a.completed_at!).getTime();
-          const timeB = new Date(viewMode === 'trash' ? b.deleted_at! : b.completed_at!).getTime();
-          return viewMode === 'trash' || archiveSort === 'newest' ? timeB - timeA : timeA - timeB;
-       });
-       return list;
+      list.sort((a, b) => {
+        const timeA = new Date(viewMode === "trash" ? a.deleted_at! : a.completed_at!).getTime();
+        const timeB = new Date(viewMode === "trash" ? b.deleted_at! : b.completed_at!).getTime();
+        return viewMode === "trash" || archiveSort === "newest" ? timeB - timeA : timeA - timeB;
+      });
+      return list;
     }
 
-    const prune = (node: Task): boolean => {
-      if (node.children) node.children = node.children.filter(c => prune(c));
-      
+    // Prune first strictly by viewMode visibility so sibling branches stay intact
+    const pruneByMode = (node: Task): boolean => {
+      if (node.children) node.children = node.children.filter((c) => pruneByMode(c));
+
       const hasVisibleChildren = (node.children && node.children.length > 0) || false;
-      
-      const selfMatchesMode = viewMode === 'archive' 
-          ? (node.deleted_at === null && node.is_completed)
-          : (node.deleted_at === null && (!node.is_completed || isEditMode || taskArchiveDelay < 0 || (node.completed_at && now - new Date(node.completed_at).getTime() < delayMs)));
 
-      return Boolean((selfMatchesMode && matchesSearch(node)) || hasVisibleChildren);
+      const selfMatchesMode =
+        viewMode === "archive"
+          ? node.deleted_at === null && node.is_completed
+          : node.deleted_at === null &&
+            (!node.is_completed ||
+              isEditMode ||
+              taskArchiveDelay < 0 ||
+              (node.completed_at && now - new Date(node.completed_at).getTime() < delayMs));
+
+      return Boolean(selfMatchesMode || hasVisibleChildren);
     };
 
-    const tree = roots.filter(r => prune(r));
-    
+    // When searching, retain the complete parent tree (including siblings) whenever any node matches
+    const hasSearchMatchInTree = (node: Task): boolean => {
+      if (matchesSearch(node)) return true;
+      return Boolean(node.children && node.children.some((c) => hasSearchMatchInTree(c)));
+    };
+
+    const tree = roots.filter((r) => {
+      if (!pruneByMode(r)) return false;
+      return !searchQuery.trim() || hasSearchMatchInTree(r);
+    });
+
     const sort = (nodes: Task[]) => {
-       nodes.sort((a, b) => {
-          if (viewMode === 'archive') {
-             const timeA = new Date(a.completed_at || a.created_at).getTime();
-             const timeB = new Date(b.completed_at || b.created_at).getTime();
-             return archiveSort === 'newest' ? timeB - timeA : timeA - timeB;
-          }
-          if (moveCompletedToBottom && !isEditMode) {
-             if (a.is_completed !== b.is_completed) return a.is_completed ? 1 : -1;
-          }
-          return a.position - b.position;
-       });
-       nodes.forEach(n => { if(n.children) sort(n.children); });
-       return nodes;
+      nodes.sort((a, b) => {
+        if (viewMode === "archive") {
+          const timeA = new Date(a.completed_at || a.created_at).getTime();
+          const timeB = new Date(b.completed_at || b.created_at).getTime();
+          return archiveSort === "newest" ? timeB - timeA : timeA - timeB;
+        }
+        if (moveCompletedToBottom && !isEditMode) {
+          if (a.is_completed !== b.is_completed) return a.is_completed ? 1 : -1;
+        }
+        return a.position - b.position;
+      });
+      nodes.forEach((n) => {
+        if (n.children) sort(n.children);
+      });
+      return nodes;
     };
-    
+
     return sort(tree);
-  },[tasks, viewMode, archiveLayout, archiveSort, searchQuery, isEditMode, now, delayMs, taskArchiveDelay, moveCompletedToBottom]);
+  }, [tasks, viewMode, archiveLayout, archiveSort, searchQuery, isEditMode, now, delayMs, taskArchiveDelay, moveCompletedToBottom]);
 
-  const flattenedVisibleTasks: Task[] =[];
+  const flattenedVisibleTasks: Task[] = [];
   const gatherVisible = (nodes: Task[]) => {
-    nodes.forEach(n => { flattenedVisibleTasks.push(n); if (n.children) gatherVisible(n.children); });
+    nodes.forEach((n) => {
+      flattenedVisibleTasks.push(n);
+      if (n.children) gatherVisible(n.children);
+    });
   };
-  if (viewMode === 'focus') gatherVisible(displayTasks);
+  if (viewMode === "focus") gatherVisible(displayTasks);
 
-  const baseTasksForProgress = type === 'routine' ? tasks.filter(t => t.deleted_at === null) : flattenedVisibleTasks;
+  const baseTasksForProgress = type === "routine" ? tasks.filter((t) => t.deleted_at === null) : flattenedVisibleTasks;
   const totalTasksCount = baseTasksForProgress.length;
   const totalCompletedCount = baseTasksForProgress.filter((t) => t.is_completed).length;
   const progressPercent = totalTasksCount > 0 ? Math.round((totalCompletedCount / totalTasksCount) * 100) : 0;
@@ -252,7 +290,7 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
     const isToggling = updates.hasOwnProperty("is_completed");
     const isDone = updates.is_completed;
     const completionTime = isDone ? new Date().toISOString() : null;
-    let tasksToUpdate: { id: string; updates: Partial<Task> }[] =[];
+    const tasksToUpdate: { id: string; updates: Partial<Task> }[] = [];
 
     if (isToggling) {
       const addChildrenToUpdate = (parentId: string) => {
@@ -268,7 +306,6 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
               }
               addChildrenToUpdate(child.id);
             } else {
-              // Unchecking a parent unchecks all children unconditionally so they correctly restore to the active workspace
               if (child.is_completed) {
                 tasksToUpdate.push({
                   id: child.id,
@@ -291,11 +328,11 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
         const siblings = tasks.filter(
           (t) => t.parent_id === currentTask.parent_id && t.id !== taskId && t.deleted_at === null
         );
-        
+
         const allSiblingsChecked = siblings.every((s) => {
-          const pendingUpdate = tasksToUpdate.find(u => u.id === s.id);
+          const pendingUpdate = tasksToUpdate.find((u) => u.id === s.id);
           if (pendingUpdate && pendingUpdate.updates.is_completed !== undefined) {
-             return pendingUpdate.updates.is_completed;
+            return pendingUpdate.updates.is_completed;
           }
           return s.is_completed;
         });
@@ -307,7 +344,7 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
           });
           checkParentStatus(currentTask.parent_id, true);
         } else if (!status) {
-          if (!tasksToUpdate.some(u => u.id === currentTask.parent_id)) {
+          if (!tasksToUpdate.some((u) => u.id === currentTask.parent_id)) {
             tasksToUpdate.push({
               id: currentTask.parent_id,
               updates: { is_completed: false, completed_at: null },
@@ -316,7 +353,7 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
           }
         }
       };
-      
+
       checkParentStatus(id, !!isDone);
       updates.completed_at = completionTime;
     }
@@ -332,23 +369,57 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
     try {
       await Promise.all([
         supabase.from("tasks").update(updates).eq("id", id),
-        ...tasksToUpdate.map((bulk) =>
-          supabase.from("tasks").update(bulk.updates).eq("id", bulk.id)
-        ),
+        ...tasksToUpdate.map((bulk) => supabase.from("tasks").update(bulk.updates).eq("id", bulk.id)),
       ]);
     } catch (err) {
       console.error("Failed to sync updates to database", err);
     }
   };
 
+  const onToggleCollapseAll = async (task: Task, collapsed: boolean) => {
+    markMutated();
+    const idsToUpdate: string[] = [task.id];
+
+    const collectNestedParents = (node: Task) => {
+      if (!node.children) return;
+      node.children.forEach((child) => {
+        if (child.children && child.children.length > 0) {
+          idsToUpdate.push(child.id);
+          collectNestedParents(child);
+        }
+      });
+    };
+    collectNestedParents(task);
+
+    if (viewMode === "focus") {
+      setTasks((prev) =>
+        prev.map((t) => (idsToUpdate.includes(t.id) ? { ...t, is_collapsed: collapsed } : t))
+      );
+      try {
+        await supabase.from("tasks").update({ is_collapsed: collapsed }).in("id", idsToUpdate);
+      } catch (err) {
+        console.error("Failed to toggle collapse all", err);
+      }
+    } else {
+      const stored = localStorage.getItem("chronoa_archive_collapsed");
+      const parsed = stored ? JSON.parse(stored) : {};
+      idsToUpdate.forEach((id) => {
+        parsed[id] = collapsed;
+      });
+      localStorage.setItem("chronoa_archive_collapsed", JSON.stringify(parsed));
+      window.dispatchEvent(new CustomEvent("chronoa-archive-collapse-sync", { detail: parsed }));
+    }
+  };
+
   const onAdd = async (parentId: string | null = null, relativeToTask?: Task) => {
     markMutated();
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
     if (!user) return;
 
-    if (type === 'routine' && mobileRoutineCollapsed) setMobileRoutineCollapsed(false);
+    if (type === "routine" && mobileRoutineCollapsed) setMobileRoutineCollapsed(false);
 
-    // Identify all ancestors to un-complete them automatically
     const ancestorsToUpdate: string[] = [];
     if (parentId) {
       let currentId: string | null = parentId;
@@ -364,13 +435,13 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
     }
 
     let newPosition = 0;
-    let shiftUpdates: { id: string, updates: Partial<Task> }[] = [];
+    const shiftUpdates: { id: string; updates: Partial<Task> }[] = [];
 
     if (relativeToTask) {
       newPosition = relativeToTask.position + 1;
       tasks
-        .filter(t => t.parent_id === parentId && t.position >= newPosition)
-        .forEach(t => shiftUpdates.push({ id: t.id, updates: { position: t.position + 1 } }));
+        .filter((t) => t.parent_id === parentId && t.position >= newPosition)
+        .forEach((t) => shiftUpdates.push({ id: t.id, updates: { position: t.position + 1 } }));
     } else {
       const siblings = tasks.filter((t) => t.parent_id === parentId);
       if (siblings.length > 0) {
@@ -386,7 +457,7 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
     const tempTask: Task = {
       id: newId,
       user_id: user.id,
-      title: "New Item", 
+      title: "New Item",
       task_type: type,
       parent_id: parentId,
       position: newPosition,
@@ -397,21 +468,19 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
       color: null,
       keep_alive: false,
       is_collapsed: false,
-      children: []
+      children: [],
     };
 
     flushSync(() => {
       setTasks((prev) => {
-        const updatedList = prev.map(t => {
-          const shift = shiftUpdates.find(s => s.id === t.id);
+        const updatedList = prev.map((t) => {
+          const shift = shiftUpdates.find((s) => s.id === t.id);
           let nextT = shift ? { ...t, ...shift.updates } : t;
-          
+
           if (t.id === parentId) {
-             // Parent explicitly un-collapses and un-completes
-             nextT = { ...nextT, is_collapsed: false, is_completed: false, completed_at: null };
+            nextT = { ...nextT, is_collapsed: false, is_completed: false, completed_at: null };
           } else if (ancestorsToUpdate.includes(t.id)) {
-             // Ancestors just un-complete
-             nextT = { ...nextT, is_completed: false, completed_at: null };
+            nextT = { ...nextT, is_completed: false, completed_at: null };
           }
           return nextT;
         });
@@ -429,39 +498,40 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
         parent_id: parentId,
         position: newPosition,
       }),
-      ...shiftUpdates.map(u => supabase.from("tasks").update(u.updates).eq("id", u.id))
+      ...shiftUpdates.map((u) => supabase.from("tasks").update(u.updates).eq("id", u.id)),
     ];
 
     if (parentId) {
       promises.push(
-        supabase.from("tasks")
+        supabase
+          .from("tasks")
           .update({ is_collapsed: false, is_completed: false, completed_at: null })
           .eq("id", parentId)
       );
-      const otherAncestors = ancestorsToUpdate.filter(id => id !== parentId);
+      const otherAncestors = ancestorsToUpdate.filter((id) => id !== parentId);
       if (otherAncestors.length > 0) {
         promises.push(
-          supabase.from("tasks")
-            .update({ is_completed: false, completed_at: null })
-            .in("id", otherAncestors)
+          supabase.from("tasks").update({ is_completed: false, completed_at: null }).in("id", otherAncestors)
         );
       }
     }
 
     const results = await Promise.all(promises);
 
-    const error = results.find(r => r.error);
+    const error = results.find((r) => r.error);
     if (error) {
       console.error("Failed adding task or shifting siblings", error);
       fetchTasks(true);
     }
   };
 
-  useEffect(() => { onAddRef.current = onAdd; }, [onAdd]);
+  useEffect(() => {
+    onAddRef.current = onAdd;
+  }, [onAdd]);
 
   const onDelete = async (id: string, isPermanent: boolean = false) => {
     markMutated();
-    const taskToDelete = tasks.find(t => t.id === id);
+    const taskToDelete = tasks.find((t) => t.id === id);
     const parentId = taskToDelete?.parent_id;
 
     const idsToDelete = [id];
@@ -475,28 +545,27 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
     };
     findChildren(id);
 
-    let tasksToUpdate: { id: string; updates: Partial<Task> }[] = [];
+    const tasksToUpdate: { id: string; updates: Partial<Task> }[] = [];
     const completionTime = new Date().toISOString();
 
-    // Dynamically auto-complete parent if it had tasks and you just deleted the last pending one
     if (parentId) {
       const checkParentStatusAfterDelete = (currentParentId: string) => {
         const parentTask = tasks.find((t) => t.id === currentParentId);
         if (!parentTask || parentTask.is_completed) return;
-        
+
         const shouldKeepAlive = keepParentTaskAlive || parentTask.keep_alive;
-        
+
         const remainingSiblings = tasks.filter(
           (t) => t.parent_id === currentParentId && !idsToDelete.includes(t.id) && t.deleted_at === null
         );
-        
-        if (remainingSiblings.length > 0 && remainingSiblings.every(s => s.is_completed) && !shouldKeepAlive) {
+
+        if (remainingSiblings.length > 0 && remainingSiblings.every((s) => s.is_completed) && !shouldKeepAlive) {
           tasksToUpdate.push({
             id: currentParentId,
             updates: { is_completed: true, completed_at: completionTime },
           });
           if (parentTask.parent_id) {
-             checkParentStatusAfterDelete(parentTask.parent_id);
+            checkParentStatusAfterDelete(parentTask.parent_id);
           }
         }
       };
@@ -504,74 +573,89 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
     }
 
     if (isPermanent) {
-      setTasks((prev) => prev
-        .filter((t) => !idsToDelete.includes(t.id))
-        .map(t => {
-           const u = tasksToUpdate.find(x => x.id === t.id);
-           return u ? { ...t, ...u.updates } : t;
+      setTasks((prev) =>
+        prev
+          .filter((t) => !idsToDelete.includes(t.id))
+          .map((t) => {
+            const u = tasksToUpdate.find((x) => x.id === t.id);
+            return u ? { ...t, ...u.updates } : t;
+          })
+      );
+      try {
+        const promises: any[] = [supabase.from("tasks").delete().in("id", idsToDelete)];
+        tasksToUpdate.forEach((u) => promises.push(supabase.from("tasks").update(u.updates).eq("id", u.id)));
+        await Promise.all(promises);
+      } catch (err) {
+        console.error("Failed to delete tasks permanently", err);
+      }
+    } else {
+      const deletedTime = new Date().toISOString();
+      setTasks((prev) =>
+        prev.map((t) => {
+          if (idsToDelete.includes(t.id)) return { ...t, deleted_at: deletedTime };
+          const u = tasksToUpdate.find((x) => x.id === t.id);
+          if (u) return { ...t, ...u.updates };
+          return t;
         })
       );
       try {
-        const promises: any[] = [ supabase.from("tasks").delete().in("id", idsToDelete) ];
-        tasksToUpdate.forEach(u => promises.push(supabase.from("tasks").update(u.updates).eq("id", u.id)));
+        const promises: any[] = [supabase.from("tasks").update({ deleted_at: deletedTime }).in("id", idsToDelete)];
+        tasksToUpdate.forEach((u) => promises.push(supabase.from("tasks").update(u.updates).eq("id", u.id)));
         await Promise.all(promises);
-      } catch (err) { console.error("Failed to delete tasks permanently", err); }
-    } else {
-      const deletedTime = new Date().toISOString();
-      setTasks((prev) => prev.map((t) => {
-         if (idsToDelete.includes(t.id)) return { ...t, deleted_at: deletedTime };
-         const u = tasksToUpdate.find(x => x.id === t.id);
-         if (u) return { ...t, ...u.updates };
-         return t;
-      }));
-      try {
-        const promises: any[] = [ supabase.from("tasks").update({ deleted_at: deletedTime }).in("id", idsToDelete) ];
-        tasksToUpdate.forEach(u => promises.push(supabase.from("tasks").update(u.updates).eq("id", u.id)));
-        await Promise.all(promises);
-      } catch (err) { console.error("Failed to move tasks to trash", err); }
+      } catch (err) {
+        console.error("Failed to move tasks to trash", err);
+      }
     }
   };
 
-  const onRestore = async (id: string, mode: 'from_trash' | 'from_archive') => {
+  const onRestore = async (id: string, mode: "from_trash" | "from_archive") => {
     markMutated();
     const idsToUpdate = [id];
 
     const findChildren = (parentId: string) => {
-      tasks.filter(t => t.parent_id === parentId).forEach(child => {
-        if (!idsToUpdate.includes(child.id)) {
-           idsToUpdate.push(child.id);
-        }
-        findChildren(child.id);
-      });
+      tasks
+        .filter((t) => t.parent_id === parentId)
+        .forEach((child) => {
+          if (!idsToUpdate.includes(child.id)) {
+            idsToUpdate.push(child.id);
+          }
+          findChildren(child.id);
+        });
     };
     findChildren(id);
 
-    let current = tasks.find(t => t.id === id);
+    let current = tasks.find((t) => t.id === id);
     while (current && current.parent_id) {
-       const parent = tasks.find(t => t.id === current!.parent_id);
-       if (parent) {
-          if (!idsToUpdate.includes(parent.id)) idsToUpdate.push(parent.id);
-          current = parent;
-       } else break;
+      const parent = tasks.find((t) => t.id === current!.parent_id);
+      if (parent) {
+        if (!idsToUpdate.includes(parent.id)) idsToUpdate.push(parent.id);
+        current = parent;
+      } else break;
     }
 
-    if (mode === 'from_trash') {
-       setTasks(prev => prev.map(t => idsToUpdate.includes(t.id) ? { ...t, deleted_at: null } : t));
-       await supabase.from('tasks').update({ deleted_at: null }).in('id', idsToUpdate);
-    } else if (mode === 'from_archive') {
-       setTasks(prev => prev.map(t => idsToUpdate.includes(t.id) ? { ...t, is_completed: false, completed_at: null } : t));
-       await supabase.from('tasks').update({ is_completed: false, completed_at: null }).in('id', idsToUpdate);
+    if (mode === "from_trash") {
+      setTasks((prev) => prev.map((t) => (idsToUpdate.includes(t.id) ? { ...t, deleted_at: null } : t)));
+      await supabase.from("tasks").update({ deleted_at: null }).in("id", idsToUpdate);
+    } else if (mode === "from_archive") {
+      setTasks((prev) =>
+        prev.map((t) => (idsToUpdate.includes(t.id) ? { ...t, is_completed: false, completed_at: null } : t))
+      );
+      await supabase.from("tasks").update({ is_completed: false, completed_at: null }).in("id", idsToUpdate);
     }
   };
 
   const onIndent = async (task: Task) => {
     markMutated();
-    
+
     const visibleSiblings = tasks
-      .filter((t) => 
-        t.parent_id === task.parent_id &&
-        t.deleted_at === null &&
-        (!t.is_completed || isEditMode || taskArchiveDelay < 0 || (t.completed_at && (now - new Date(t.completed_at).getTime() < delayMs)))
+      .filter(
+        (t) =>
+          t.parent_id === task.parent_id &&
+          t.deleted_at === null &&
+          (!t.is_completed ||
+            isEditMode ||
+            taskArchiveDelay < 0 ||
+            (t.completed_at && now - new Date(t.completed_at).getTime() < delayMs))
       )
       .sort((a, b) => {
         if (moveCompletedToBottom && !isEditMode) {
@@ -581,16 +665,13 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
       });
 
     const index = visibleSiblings.findIndex((t) => t.id === task.id);
-    
+
     if (index > 0) {
       const previousSibling = visibleSiblings[index - 1];
       const newParentId = previousSibling.id;
-      
+
       const newSiblings = tasks.filter((t) => t.parent_id === newParentId);
-      const newPosition =
-        newSiblings.length > 0
-          ? Math.max(...newSiblings.map((t) => t.position)) + 1
-          : 0;
+      const newPosition = newSiblings.length > 0 ? Math.max(...newSiblings.map((t) => t.position)) + 1 : 0;
 
       const ancestorsToUpdate: string[] = [];
       if (!task.is_completed) {
@@ -608,21 +689,26 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
         prev.map((t) => {
           let updatedT = t;
           if (t.id === task.id) {
-             updatedT = { ...updatedT, parent_id: newParentId, position: newPosition };
+            updatedT = { ...updatedT, parent_id: newParentId, position: newPosition };
           }
           if (ancestorsToUpdate.includes(t.id)) {
-             updatedT = { ...updatedT, is_completed: false, completed_at: null, is_collapsed: false };
+            updatedT = { ...updatedT, is_completed: false, completed_at: null, is_collapsed: false };
           }
           return updatedT;
         })
       );
-      
+
       try {
         const promises = [
-          supabase.from("tasks").update({ parent_id: newParentId, position: newPosition }).eq("id", task.id)
+          supabase.from("tasks").update({ parent_id: newParentId, position: newPosition }).eq("id", task.id),
         ];
         if (ancestorsToUpdate.length > 0) {
-          promises.push(supabase.from("tasks").update({ is_completed: false, completed_at: null, is_collapsed: false }).in("id", ancestorsToUpdate));
+          promises.push(
+            supabase
+              .from("tasks")
+              .update({ is_completed: false, completed_at: null, is_collapsed: false })
+              .in("id", ancestorsToUpdate)
+          );
         }
         await Promise.all(promises);
       } catch (err) {
@@ -668,7 +754,7 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
         const update = tasksToUpdate.find((u) => u.id === t.id);
         let updatedT = update ? ({ ...t, ...update.updates } as Task) : t;
         if (ancestorsToUpdate.includes(t.id)) {
-           updatedT = { ...updatedT, is_completed: false, completed_at: null, is_collapsed: false };
+          updatedT = { ...updatedT, is_completed: false, completed_at: null, is_collapsed: false };
         }
         return updatedT;
       })
@@ -679,7 +765,12 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
         supabase.from("tasks").update(update.updates).eq("id", update.id)
       );
       if (ancestorsToUpdate.length > 0) {
-        promises.push(supabase.from("tasks").update({ is_completed: false, completed_at: null, is_collapsed: false }).in("id", ancestorsToUpdate));
+        promises.push(
+          supabase
+            .from("tasks")
+            .update({ is_completed: false, completed_at: null, is_collapsed: false })
+            .in("id", ancestorsToUpdate)
+        );
       }
       await Promise.all(promises);
     } catch (err) {
@@ -690,10 +781,14 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
   const onMoveUp = async (task: Task) => {
     markMutated();
     const visibleSiblings = tasks
-      .filter((t) => 
-        t.parent_id === task.parent_id &&
-        t.deleted_at === null &&
-        (!t.is_completed || isEditMode || taskArchiveDelay < 0 || (t.completed_at && (now - new Date(t.completed_at).getTime() < delayMs)))
+      .filter(
+        (t) =>
+          t.parent_id === task.parent_id &&
+          t.deleted_at === null &&
+          (!t.is_completed ||
+            isEditMode ||
+            taskArchiveDelay < 0 ||
+            (t.completed_at && now - new Date(t.completed_at).getTime() < delayMs))
       )
       .sort((a, b) => {
         if (moveCompletedToBottom && !isEditMode) {
@@ -703,21 +798,19 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
       });
 
     const visibleIndex = visibleSiblings.findIndex((t) => t.id === task.id);
-    
+
     if (visibleIndex > 0) {
       const swapTarget = visibleSiblings[visibleIndex - 1];
 
-      const rawSiblings = tasks
-        .filter(t => t.parent_id === task.parent_id)
-        .sort((a, b) => a.position - b.position);
+      const rawSiblings = tasks.filter((t) => t.parent_id === task.parent_id).sort((a, b) => a.position - b.position);
 
-      const rawTaskIndex = rawSiblings.findIndex(t => t.id === task.id);
-      
+      const rawTaskIndex = rawSiblings.findIndex((t) => t.id === task.id);
+
       const newRawSiblings = [...rawSiblings];
       const [removedTask] = newRawSiblings.splice(rawTaskIndex, 1);
-      
-      const adjustedTargetIndex = newRawSiblings.findIndex(t => t.id === swapTarget.id);
-      
+
+      const adjustedTargetIndex = newRawSiblings.findIndex((t) => t.id === swapTarget.id);
+
       newRawSiblings.splice(adjustedTargetIndex, 0, removedTask);
 
       const tasksToUpdate = newRawSiblings.map((t, i) => ({ id: t.id, updates: { position: i } }));
@@ -744,10 +837,14 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
   const onMoveDown = async (task: Task) => {
     markMutated();
     const visibleSiblings = tasks
-      .filter((t) => 
-        t.parent_id === task.parent_id &&
-        t.deleted_at === null &&
-        (!t.is_completed || isEditMode || taskArchiveDelay < 0 || (t.completed_at && (now - new Date(t.completed_at).getTime() < delayMs)))
+      .filter(
+        (t) =>
+          t.parent_id === task.parent_id &&
+          t.deleted_at === null &&
+          (!t.is_completed ||
+            isEditMode ||
+            taskArchiveDelay < 0 ||
+            (t.completed_at && now - new Date(t.completed_at).getTime() < delayMs))
       )
       .sort((a, b) => {
         if (moveCompletedToBottom && !isEditMode) {
@@ -757,21 +854,19 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
       });
 
     const visibleIndex = visibleSiblings.findIndex((t) => t.id === task.id);
-    
+
     if (visibleIndex > -1 && visibleIndex < visibleSiblings.length - 1) {
       const swapTarget = visibleSiblings[visibleIndex + 1];
 
-      const rawSiblings = tasks
-        .filter(t => t.parent_id === task.parent_id)
-        .sort((a, b) => a.position - b.position);
+      const rawSiblings = tasks.filter((t) => t.parent_id === task.parent_id).sort((a, b) => a.position - b.position);
 
-      const rawTaskIndex = rawSiblings.findIndex(t => t.id === task.id);
-      
+      const rawTaskIndex = rawSiblings.findIndex((t) => t.id === task.id);
+
       const newRawSiblings = [...rawSiblings];
       const [removedTask] = newRawSiblings.splice(rawTaskIndex, 1);
-      
-      const adjustedTargetIndex = newRawSiblings.findIndex(t => t.id === swapTarget.id);
-      
+
+      const adjustedTargetIndex = newRawSiblings.findIndex((t) => t.id === swapTarget.id);
+
       newRawSiblings.splice(adjustedTargetIndex + 1, 0, removedTask);
 
       const tasksToUpdate = newRawSiblings.map((t, i) => ({ id: t.id, updates: { position: i } }));
@@ -804,9 +899,7 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
     const overTask = tasks.find((t) => t.id === over.id);
 
     if (activeTask && overTask && activeTask.parent_id === overTask.parent_id) {
-      const siblings = tasks
-        .filter((t) => t.parent_id === activeTask.parent_id)
-        .sort((a, b) => a.position - b.position);
+      const siblings = tasks.filter((t) => t.parent_id === activeTask.parent_id).sort((a, b) => a.position - b.position);
 
       const oldIndex = siblings.findIndex((t) => t.id === active.id);
       const newIndex = siblings.findIndex((t) => t.id === over.id);
@@ -825,9 +918,7 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
       );
 
       try {
-        await Promise.all(
-          tasksToUpdate.map((u) => supabase.from("tasks").update(u.updates).eq("id", u.id))
-        );
+        await Promise.all(tasksToUpdate.map((u) => supabase.from("tasks").update(u.updates).eq("id", u.id)));
       } catch (err) {
         console.error("Failed to reorder tasks", err);
       }
@@ -835,22 +926,26 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
   };
 
   const toggleMobileCollapse = () => {
-    if (type === 'routine') setMobileRoutineCollapsed(!mobileRoutineCollapsed);
+    if (type === "routine") setMobileRoutineCollapsed(!mobileRoutineCollapsed);
   };
 
   const getEmptyMessage = () => {
-    if (viewMode === 'archive') return 'No Completed Records';
-    if (viewMode === 'trash') return 'Trash is Empty';
-    if (type === 'routine') {
-      if (tasks.length === 0) return 'Add habits or daily tasks to start tracking your routine.';
+    if (viewMode === "archive") return "No Completed Records";
+    if (viewMode === "trash") return "Trash is Empty";
+    if (type === "routine") {
+      if (tasks.length === 0) return "Add habits or daily tasks to start tracking your routine.";
       return "You're doing great!";
     }
-    return 'Clear Space';
+    return "Clear Space";
   };
 
   const renderContent = () => {
     return (
-      <div className={`px-3 md:px-5 pt-4 md:pt-5 pb-3 md:pb-4 min-h-[60px] flex-1 flex flex-col ${isCollapsedMobile ? 'hidden md:flex' : 'flex'}`}>
+      <div
+        className={`px-3 md:px-5 pt-4 md:pt-5 pb-3 md:pb-4 min-h-[60px] flex-1 flex flex-col ${
+          isCollapsedMobile ? "hidden md:flex" : "flex"
+        }`}
+      >
         {isLoading && tasks.length === 0 ? (
           <div className="space-y-3 py-2 px-3">
             {[...Array(3)].map((_, i) => (
@@ -862,9 +957,7 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
           </div>
         ) : displayTasks.length === 0 ? (
           <div className="flex flex-col flex-1 items-center justify-center py-10 gap-2 px-4 text-center">
-            <span className="text-2xl opacity-20 dark:opacity-10 select-none text-[#3d3b33] dark:text-white">
-              ✦
-            </span>
+            <span className="text-2xl opacity-20 dark:opacity-10 select-none text-[#3d3b33] dark:text-white">✦</span>
             <p className="text-[12px] text-[#c4c0b8] dark:text-[#555] tracking-wide uppercase font-bold leading-relaxed">
               {getEmptyMessage()}
             </p>
@@ -889,6 +982,7 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
                     onUnindent={onUnindent}
                     onMoveUp={onMoveUp}
                     onMoveDown={onMoveDown}
+                    onToggleCollapseAll={onToggleCollapseAll}
                     depth={0}
                     newTaskId={newTaskId}
                     setNewTaskId={setNewTaskId}
@@ -904,7 +998,7 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
                   isEditMode={type === "normal" ? true : isEditMode}
                   viewMode={viewMode}
                   allTasks={tasks}
-                  isFlatList={viewMode === 'trash' || (viewMode === 'archive' && archiveLayout === 'list')}
+                  isFlatList={viewMode === "trash" || (viewMode === "archive" && archiveLayout === "list")}
                   onUpdate={onUpdate}
                   onDelete={onDelete}
                   onRestore={onRestore}
@@ -913,6 +1007,7 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
                   onUnindent={onUnindent}
                   onMoveUp={onMoveUp}
                   onMoveDown={onMoveDown}
+                  onToggleCollapseAll={onToggleCollapseAll}
                   depth={0}
                   newTaskId={newTaskId}
                   setNewTaskId={setNewTaskId}
@@ -933,20 +1028,20 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
     >
       <div className="px-5 md:px-8 pt-6 md:pt-8 pb-4 md:pb-5 border-b border-[#f0ede8] dark:border-[#2a2a2a] shrink-0">
         <div className="flex flex-col gap-2">
-          
           <div className="flex items-center justify-between gap-4 w-full">
             <div className="flex items-center gap-2">
-              <h2 
+              <h2
                 className="text-[22px] md:text-[26px] text-[#3d3b33] dark:text-[#f0f0f0] leading-none font-medium font-serif tracking-tight cursor-pointer hover:opacity-80 transition-opacity"
-                onClick={() => document.getElementById('tasks-scroll-container')?.scrollTo({ top: 0, behavior: 'smooth' })}
+                onClick={() => document.getElementById("tasks-scroll-container")?.scrollTo({ top: 0, behavior: "smooth" })}
               >
                 {title}
               </h2>
-              {type === 'routine' && (
-                <button 
+              {type === "routine" && (
+                <button
                   onClick={toggleMobileCollapse}
                   className="md:hidden p-1.5 -ml-1 text-[#b0ad9a] dark:text-[#7a7a7a] active:bg-gray-100 dark:active:bg-[#333] rounded-lg transition-colors"
-                  data-tooltip-id="task-tooltip" data-tooltip-content={isCollapsedMobile ? "Expand" : "Collapse"}
+                  data-tooltip-id="task-tooltip"
+                  data-tooltip-content={isCollapsedMobile ? "Expand" : "Collapse"}
                 >
                   {isCollapsedMobile ? <ChevronDown size={20} /> : <ChevronUp size={20} />}
                 </button>
@@ -959,17 +1054,19 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
                   <button
                     onClick={() => onAdd(null)}
                     className="flex w-8 h-8 md:w-9 md:h-9 items-center justify-center bg-[#f7f5f0] dark:bg-[#252525] text-[#c2956e] dark:text-[#d1a784] rounded-full hover:bg-[#c2956e]/10 dark:hover:bg-[#b0855f]/20 transition-all shadow-sm border border-[#e0ddd5] dark:border-[#333]"
-                    data-tooltip-id="task-tooltip" data-tooltip-content="Add Task"
+                    data-tooltip-id="task-tooltip"
+                    data-tooltip-content="Add Task"
                   >
                     <Plus size={18} strokeWidth={2.5} />
                   </button>
                 )}
-                
+
                 {type === "routine" && isEditMode && (
                   <button
                     onClick={() => onAdd(null)}
                     className="flex w-8 h-8 md:w-9 md:h-9 items-center justify-center bg-[#f7f5f0] dark:bg-[#252525] text-[#c2956e] dark:text-[#d1a784] rounded-full hover:bg-[#c2956e]/10 dark:hover:bg-[#b0855f]/20 transition-all shadow-sm border border-[#e0ddd5] dark:border-[#333]"
-                    data-tooltip-id="task-tooltip" data-tooltip-content="Add Routine Item"
+                    data-tooltip-id="task-tooltip"
+                    data-tooltip-content="Add Routine Item"
                   >
                     <Plus size={18} strokeWidth={2.5} />
                   </button>
@@ -992,12 +1089,12 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
                   >
                     {isEditMode ? (
                       <>
-                        <CheckCircle2 size={14} className="md:w-[15px] md:h-[15px]" /> 
+                        <CheckCircle2 size={14} className="md:w-[15px] md:h-[15px]" />
                         <span className="hidden sm:inline">Done</span>
                       </>
                     ) : (
                       <>
-                        <Edit3 size={14} className="md:w-[15px] md:h-[15px]" /> 
+                        <Edit3 size={14} className="md:w-[15px] md:h-[15px]" />
                         <span className="hidden sm:inline">Edit</span>
                       </>
                     )}
@@ -1015,37 +1112,34 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
                   style={{ width: `${progressPercent}%` }}
                 />
               </div>
-              <span className="text-[11px] text-[#b0ad9a] dark:text-[#7a7a7a] tracking-wide">
-                {progressPercent}%
-              </span>
+              <span className="text-[11px] text-[#b0ad9a] dark:text-[#7a7a7a] tracking-wide">{progressPercent}%</span>
             </div>
           )}
-          
         </div>
       </div>
 
       <div className="flex-1 overflow-y-auto no-scrollbar flex flex-col">
         {viewMode === "focus" ? (
-          <DndContext 
-             sensors={sensors} 
-             collisionDetection={closestCenter} 
-             onDragStart={() => {
-               markMutated();
-               if (typeof window !== "undefined") {
-                 document.body.style.overflow = "hidden";
-               }
-             }}
-             onDragEnd={(e) => {
-               if (typeof window !== "undefined") {
-                 document.body.style.overflow = "";
-               }
-               handleDragEnd(e);
-             }}
-             onDragCancel={() => {
-               if (typeof window !== "undefined") {
-                 document.body.style.overflow = "";
-               }
-             }}
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragStart={() => {
+              markMutated();
+              if (typeof window !== "undefined") {
+                document.body.style.overflow = "hidden";
+              }
+            }}
+            onDragEnd={(e) => {
+              if (typeof window !== "undefined") {
+                document.body.style.overflow = "";
+              }
+              handleDragEnd(e);
+            }}
+            onDragCancel={() => {
+              if (typeof window !== "undefined") {
+                document.body.style.overflow = "";
+              }
+            }}
           >
             {renderContent()}
           </DndContext>
@@ -1053,7 +1147,6 @@ export default function TaskSection({ type, title, viewMode = 'focus', searchQue
           renderContent()
         )}
       </div>
-
     </div>
   );
 }

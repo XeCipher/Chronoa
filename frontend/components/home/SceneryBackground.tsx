@@ -13,7 +13,7 @@ export default function SceneryBackground() {
   }, []);
 
   const getTimeOfDay = () => {
-    if (hour === null) return "day"; 
+    if (hour === null) return "day";
     if (hour >= 5 && hour < 8) return "dawn";
     if (hour >= 8 && hour < 17) return "day";
     if (hour >= 17 && hour < 20) return "dusk";
@@ -22,60 +22,78 @@ export default function SceneryBackground() {
 
   const time = getTimeOfDay();
 
-  // Refined palettes: Beautiful, soft, elegant pastels for light mode that aren't overwhelmingly bright
-  const palettes = {
-    dawn: {
-      bg: "bg-[#fdfbf7] dark:bg-[#1a1210]",
-      orb1: "bg-[#ffcba6] dark:bg-[#8a4e40]", 
-      orb2: "bg-[#ffa68f] dark:bg-[#8a5a44]", 
-      orb3: "bg-[#d6aef2] dark:bg-[#6c4f7a]", 
-    },
-    day: {
-      bg: "bg-[#f7f5f0] dark:bg-[#0f1115]",
-      orb1: "bg-[#d4b3ff] dark:bg-[#2d3b5c]", 
-      orb2: "bg-[#9bc7f5] dark:bg-[#1e2e42]", 
-      orb3: "bg-[#a1e3b3] dark:bg-[#253828]", 
-    },
-    dusk: {
-      bg: "bg-[#f8f5f2] dark:bg-[#1a1012]",
-      orb1: "bg-[#ff8a90] dark:bg-[#7a3b4c]", 
-      orb2: "bg-[#f5b0db] dark:bg-[#7a4b6c]", 
-      orb3: "bg-[#de9c64] dark:bg-[#7d4628]", 
-    },
-    night: {
-      bg: "bg-[#f2f4f8] dark:bg-[#050810]",
-      orb1: "bg-[#9eb4db] dark:bg-[#1f2b45]", 
-      orb2: "bg-[#b9c6e3] dark:bg-[#111926]", 
-      orb3: "bg-[#8da8cf] dark:bg-[#172033]", 
-    },
+  const bgClasses = {
+    dawn: "bg-[#fdfbf7] dark:bg-[#1a1210]",
+    day: "bg-[#f7f5f0] dark:bg-[#0f1115]",
+    dusk: "bg-[#f8f5f2] dark:bg-[#1a1012]",
+    night: "bg-[#f2f4f8] dark:bg-[#050810]",
   };
 
-  const currentPalette = palettes[time];
-
   return (
-    <div className={`fixed inset-0 -z-50 overflow-hidden transition-colors duration-[3000ms] ${currentPalette.bg}`}>
-      
-      <style dangerouslySetInnerHTML={{__html: `
-        @keyframes float1 { 0%, 100% { transform: translate(0px, 0px) scale(1); opacity: 0.7; } 33% { transform: translate(50px, -50px) scale(1.1); opacity: 0.9; } 66% { transform: translate(-30px, 20px) scale(0.9); opacity: 0.6; } }
-        @keyframes float2 { 0%, 100% { transform: translate(0px, 0px) scale(1); opacity: 0.7; } 33% { transform: translate(-50px, 50px) scale(1.2); opacity: 0.5; } 66% { transform: translate(40px, -30px) scale(0.8); opacity: 0.9; } }
-        @keyframes float3 { 0%, 100% { transform: translate(0px, 0px) scale(1); opacity: 0.5; } 33% { transform: translate(30px, 40px) scale(0.9); opacity: 0.8; } 66% { transform: translate(-40px, -40px) scale(1.15); opacity: 0.4; } }
-        .orb-1 { animation: float1 18s ease-in-out infinite; }
-        .orb-2 { animation: float2 22s ease-in-out infinite; }
-        .orb-3 { animation: float3 25s ease-in-out infinite; }
-      `}} />
+    <div className={`fixed inset-0 -z-50 overflow-hidden transition-colors duration-[2000ms] ${bgClasses[time]}`}>
+      <style
+        dangerouslySetInnerHTML={{
+          __html: `
+            @keyframes float1 {
+              0%, 100% { transform: translate3d(0px, 0px, 0) scale(1); }
+              33% { transform: translate3d(50px, -50px, 0) scale(1.08); }
+              66% { transform: translate3d(-30px, 20px, 0) scale(0.94); }
+            }
+            @keyframes float2 {
+              0%, 100% { transform: translate3d(0px, 0px, 0) scale(1); }
+              33% { transform: translate3d(-50px, 50px, 0) scale(1.12); }
+              66% { transform: translate3d(40px, -30px, 0) scale(0.9); }
+            }
+            @keyframes float3 {
+              0%, 100% { transform: translate3d(0px, 0px, 0) scale(1); }
+              33% { transform: translate3d(30px, 40px, 0) scale(0.92); }
+              66% { transform: translate3d(-40px, -40px, 0) scale(1.1); }
+            }
+            .orb-1 { animation: float1 18s ease-in-out infinite; will-change: transform; backface-visibility: hidden; }
+            .orb-2 { animation: float2 22s ease-in-out infinite; will-change: transform; backface-visibility: hidden; }
+            .orb-3 { animation: float3 25s ease-in-out infinite; will-change: transform; backface-visibility: hidden; }
 
-      <div className="absolute inset-0 w-full h-full opacity-80 dark:opacity-100">
-        <div className={`orb-1 absolute top-[-10%] right-[-10%] w-[80vw] h-[80vw] md:w-[50vw] md:h-[50vw] rounded-full mix-blend-multiply dark:mix-blend-screen filter blur-[100px] md:blur-[140px] transition-colors duration-[3000ms] ${currentPalette.orb1}`} />
-        <div className={`orb-2 absolute bottom-[-20%] left-[-10%] w-[90vw] h-[90vw] md:w-[60vw] md:h-[60vw] rounded-full mix-blend-multiply dark:mix-blend-screen filter blur-[100px] md:blur-[140px] transition-colors duration-[3000ms] ${currentPalette.orb2}`} />
-        <div className={`orb-3 absolute top-[20%] left-[20%] w-[75vw] h-[75vw] md:w-[45vw] md:h-[45vw] rounded-full mix-blend-multiply dark:mix-blend-screen filter blur-[100px] md:blur-[140px] transition-colors duration-[3000ms] ${currentPalette.orb3}`} />
-      </div>
+            .scenery-orb-dawn-1 { background: radial-gradient(circle, rgba(255,203,166,0.58) 0%, rgba(255,203,166,0.22) 45%, transparent 72%); }
+            .scenery-orb-dawn-2 { background: radial-gradient(circle, rgba(255,166,143,0.55) 0%, rgba(255,166,143,0.2) 45%, transparent 72%); }
+            .scenery-orb-dawn-3 { background: radial-gradient(circle, rgba(214,174,242,0.5) 0%, rgba(214,174,242,0.18) 45%, transparent 72%); }
+            .dark .scenery-orb-dawn-1 { background: radial-gradient(circle, rgba(138,78,64,0.58) 0%, rgba(138,78,64,0.22) 45%, transparent 72%); }
+            .dark .scenery-orb-dawn-2 { background: radial-gradient(circle, rgba(138,90,68,0.55) 0%, rgba(138,90,68,0.2) 45%, transparent 72%); }
+            .dark .scenery-orb-dawn-3 { background: radial-gradient(circle, rgba(108,79,122,0.5) 0%, rgba(108,79,122,0.18) 45%, transparent 72%); }
 
-      {/* Subtle texture for realism */}
-      <div className="absolute inset-0 opacity-[0.03] dark:opacity-[0.06] pointer-events-none mix-blend-overlay">
-        <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%">
-          <filter id="noiseFilter"><feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="3" stitchTiles="stitch"/></filter>
-          <rect width="100%" height="100%" filter="url(#noiseFilter)"/>
-        </svg>
+            .scenery-orb-day-1 { background: radial-gradient(circle, rgba(212,179,255,0.52) 0%, rgba(212,179,255,0.2) 45%, transparent 72%); }
+            .scenery-orb-day-2 { background: radial-gradient(circle, rgba(155,199,245,0.55) 0%, rgba(155,199,245,0.2) 45%, transparent 72%); }
+            .scenery-orb-day-3 { background: radial-gradient(circle, rgba(161,227,179,0.5) 0%, rgba(161,227,179,0.18) 45%, transparent 72%); }
+            .dark .scenery-orb-day-1 { background: radial-gradient(circle, rgba(45,59,92,0.62) 0%, rgba(45,59,92,0.24) 45%, transparent 72%); }
+            .dark .scenery-orb-day-2 { background: radial-gradient(circle, rgba(30,46,66,0.62) 0%, rgba(30,46,66,0.24) 45%, transparent 72%); }
+            .dark .scenery-orb-day-3 { background: radial-gradient(circle, rgba(37,56,40,0.58) 0%, rgba(37,56,40,0.22) 45%, transparent 72%); }
+
+            .scenery-orb-dusk-1 { background: radial-gradient(circle, rgba(255,138,144,0.52) 0%, rgba(255,138,144,0.2) 45%, transparent 72%); }
+            .scenery-orb-dusk-2 { background: radial-gradient(circle, rgba(245,176,219,0.5) 0%, rgba(245,176,219,0.18) 45%, transparent 72%); }
+            .scenery-orb-dusk-3 { background: radial-gradient(circle, rgba(222,156,100,0.5) 0%, rgba(222,156,100,0.18) 45%, transparent 72%); }
+            .dark .scenery-orb-dusk-1 { background: radial-gradient(circle, rgba(122,59,76,0.6) 0%, rgba(122,59,76,0.24) 45%, transparent 72%); }
+            .dark .scenery-orb-dusk-2 { background: radial-gradient(circle, rgba(122,75,108,0.58) 0%, rgba(122,75,108,0.22) 45%, transparent 72%); }
+            .dark .scenery-orb-dusk-3 { background: radial-gradient(circle, rgba(125,70,40,0.55) 0%, rgba(125,70,40,0.2) 45%, transparent 72%); }
+
+            .scenery-orb-night-1 { background: radial-gradient(circle, rgba(158,180,219,0.55) 0%, rgba(158,180,219,0.2) 45%, transparent 72%); }
+            .scenery-orb-night-2 { background: radial-gradient(circle, rgba(185,198,227,0.5) 0%, rgba(185,198,227,0.18) 45%, transparent 72%); }
+            .scenery-orb-night-3 { background: radial-gradient(circle, rgba(141,168,207,0.48) 0%, rgba(141,168,207,0.16) 45%, transparent 72%); }
+            .dark .scenery-orb-night-1 { background: radial-gradient(circle, rgba(31,43,69,0.65) 0%, rgba(31,43,69,0.25) 45%, transparent 72%); }
+            .dark .scenery-orb-night-2 { background: radial-gradient(circle, rgba(17,25,38,0.65) 0%, rgba(17,25,38,0.25) 45%, transparent 72%); }
+            .dark .scenery-orb-night-3 { background: radial-gradient(circle, rgba(23,32,51,0.6) 0%, rgba(23,32,51,0.22) 45%, transparent 72%); }
+          `,
+        }}
+      />
+
+      <div className="absolute inset-0 w-full h-full pointer-events-none">
+        <div
+          className={`orb-1 absolute top-[-20%] right-[-15%] w-[95vw] h-[95vw] md:w-[65vw] md:h-[65vw] rounded-full transition-colors duration-[2000ms] scenery-orb-${time}-1`}
+        />
+        <div
+          className={`orb-2 absolute bottom-[-30%] left-[-15%] w-[105vw] h-[105vw] md:w-[75vw] md:h-[75vw] rounded-full transition-colors duration-[2000ms] scenery-orb-${time}-2`}
+        />
+        <div
+          className={`orb-3 absolute top-[10%] left-[10%] w-[90vw] h-[90vw] md:w-[60vw] md:h-[60vw] rounded-full transition-colors duration-[2000ms] scenery-orb-${time}-3`}
+        />
       </div>
     </div>
   );
