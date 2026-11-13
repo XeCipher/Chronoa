@@ -13,10 +13,10 @@ export default function DashboardTemplate({ children }: { children: React.ReactN
 
   return (
     <motion.div
-      initial={hasMountedDashboard ? { opacity: 0.92 } : false}
+      initial={hasMountedDashboard ? { opacity: 0 } : false}
       animate={{ opacity: 1 }}
       transition={{
-        duration: 0.22,
+        duration: 0.48,
         ease: [0.22, 1, 0.36, 1],
       }}
       className="w-full h-full"

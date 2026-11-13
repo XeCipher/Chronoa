@@ -43,7 +43,8 @@ function EngineCard({ engine, tab }: { engine: EngineInstance; tab: "timer" | "s
   const [liveSeconds, setLiveSeconds] = useState(engine.accumulatedSeconds);
   const [nowMs, setNowMs] = useState<number | null>(null);
   const [minInput, setMinInput] = useState(String(engine.targetMinutes || 25));
-  const isEditingMinsRef = useRef(false);
+  const [isEditingMins, setIsEditingMins] = useState(false);
+  const minInputRef = useRef<HTMLInputElement>(null);
 
   const list = tab === "timer" ? store.timers : store.stopwatches;
   const isOnlyInstance = list.length === 1;
@@ -53,12 +54,19 @@ function EngineCard({ engine, tab }: { engine: EngineInstance; tab: "timer" | "s
     !engine.isRunning &&
     (tab === "stopwatch" || engine.targetMinutes === 25);
   const hideDelete = isOnlyInstance && isUntouched;
+  const canEditTimer = tab === "timer" && !engine.isRunning && engine.accumulatedSeconds === 0;
 
   useEffect(() => {
-    if (!isEditingMinsRef.current && engine.targetMinutes !== undefined) {
+    if (!isEditingMins && engine.targetMinutes !== undefined) {
       setMinInput(String(engine.targetMinutes));
     }
-  }, [engine.targetMinutes]);
+  }, [engine.targetMinutes, isEditingMins]);
+
+  useEffect(() => {
+    if (!canEditTimer && isEditingMins) {
+      setIsEditingMins(false);
+    }
+  }, [canEditTimer, isEditingMins]);
 
   useEffect(() => {
     setNowMs(Date.now());
@@ -187,6 +195,14 @@ function EngineCard({ engine, tab }: { engine: EngineInstance; tab: "timer" | "s
 
   const statusText = getStatusText();
 
+  const commitMinInput = () => {
+    setIsEditingMins(false);
+    const parsed = parseInt(minInput, 10);
+    const valid = !isNaN(parsed) && parsed >= 1 ? parsed : engine.targetMinutes || 1;
+    setMinInput(String(valid));
+    store.setTargetMinutes(engine.id, valid);
+  };
+
   return (
     <div className="relative shrink-0 w-[24rem] max-w-[85vw] bg-white/20 dark:bg-black/30 backdrop-blur-3xl border border-white/40 dark:border-white/10 rounded-[2.5rem] p-6 shadow-[0_20px_50px_-10px_rgba(0,0,0,0.15)] flex flex-col gap-5 transition-colors snap-center group">
       {!hideDelete && (
@@ -203,7 +219,71 @@ function EngineCard({ engine, tab }: { engine: EngineInstance; tab: "timer" | "s
       <div className="flex items-center justify-between px-2 pt-2">
         <div className="flex flex-col">
           <div className="text-[3.5rem] sm:text-[4rem] leading-none text-[#3d3b33] dark:text-[#f0f0f0] font-mono tracking-tighter font-light drop-shadow-sm transition-colors">
-            {formatTime(currentDisplaySeconds)}
+            {canEditTimer ? (
+              <div
+                data-tooltip-id="global-tooltip"
+                data-tooltip-content={isEditingMins ? undefined : "Click to set minutes"}
+                className={`relative inline-flex items-baseline border-b-2 pb-0.5 transition-colors ${
+                  isEditingMins
+                    ? "border-[#c2956e] dark:border-[#b0855f]"
+                    : "border-dashed border-[#3d3b33]/20 dark:border-white/20 hover:border-[#c2956e] dark:hover:border-[#b0855f]"
+                }`}
+              >
+                {!isEditingMins && (
+                  <span key="display" className="pointer-events-none select-none">
+                    {formatTime(currentDisplaySeconds)}
+                  </span>
+                )}
+                <input
+                  key="timer-min-input"
+                  ref={minInputRef}
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  maxLength={4}
+                  autoComplete="off"
+                  aria-label="Timer minutes"
+                  placeholder="0"
+                  value={minInput}
+                  onFocus={(e) => {
+                    const currentMins = String(engine.targetMinutes || 25);
+                    setMinInput(currentMins);
+                    setIsEditingMins(true);
+                    const el = e.currentTarget;
+                    requestAnimationFrame(() => el.select());
+                  }}
+                  onChange={(e) => {
+                    const raw = e.target.value.replace(/[^0-9]/g, "");
+                    setMinInput(raw);
+                    const parsed = parseInt(raw, 10);
+                    if (!isNaN(parsed) && parsed >= 1) {
+                      store.setTargetMinutes(engine.id, parsed);
+                    }
+                  }}
+                  onBlur={commitMinInput}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      e.currentTarget.blur();
+                    } else if (e.key === "Escape") {
+                      e.preventDefault();
+                      setMinInput(String(engine.targetMinutes || 25));
+                      setIsEditingMins(false);
+                      e.currentTarget.blur();
+                    }
+                  }}
+                  style={isEditingMins ? { width: `calc(${Math.max(minInput.length, 1)}ch + 2px)` } : undefined}
+                  className={
+                    isEditingMins
+                      ? "bg-transparent outline-none text-[#3d3b33] dark:text-[#f0f0f0] font-mono tracking-tighter font-light p-0 m-0 caret-[#c2956e] placeholder:text-[#3d3b33]/30 dark:placeholder:text-white/30"
+                      : "absolute inset-0 w-full h-full opacity-0 cursor-text"
+                  }
+                />
+                {isEditingMins && <span className="opacity-40 select-none pointer-events-none">:00</span>}
+              </div>
+            ) : (
+              <span>{formatTime(currentDisplaySeconds)}</span>
+            )}
           </div>
           <div className="h-4 mt-1">
             {statusText && (
@@ -253,36 +333,6 @@ function EngineCard({ engine, tab }: { engine: EngineInstance; tab: "timer" | "s
           className="flex-1 bg-white/40 dark:bg-black/40 border border-transparent rounded-2xl px-5 py-3 text-sm font-medium text-[#3d3b33] dark:text-white outline-none focus:bg-white/70 dark:focus:bg-black/60 focus:border-white dark:focus:border-white/20 transition-all placeholder:text-[#888] dark:placeholder:text-[#aaa] placeholder:font-normal shadow-inner shadow-black/5"
           placeholder="What are you focusing on?"
         />
-        {tab === "timer" && (
-          <input
-            type="number"
-            min="1"
-            value={minInput}
-            onFocus={() => {
-              isEditingMinsRef.current = true;
-            }}
-            onChange={(e) => {
-              const raw = e.target.value;
-              setMinInput(raw);
-              const parsed = parseInt(raw, 10);
-              if (!isNaN(parsed) && parsed >= 1) {
-                store.setTargetMinutes(engine.id, parsed);
-              }
-            }}
-            onBlur={() => {
-              isEditingMinsRef.current = false;
-              const parsed = parseInt(minInput, 10);
-              const valid = !isNaN(parsed) && parsed >= 1 ? parsed : engine.targetMinutes || 1;
-              setMinInput(String(valid));
-              store.setTargetMinutes(engine.id, valid);
-            }}
-            disabled={engine.isRunning || engine.accumulatedSeconds > 0}
-            className={`w-20 bg-white/40 dark:bg-black/40 border border-transparent rounded-2xl px-2 py-3 text-center text-sm font-bold text-[#3d3b33] dark:text-white outline-none focus:bg-white/70 dark:focus:bg-black/60 focus:border-white dark:focus:border-white/20 transition-all shadow-inner shadow-black/5 ${
-              engine.isRunning || engine.accumulatedSeconds > 0 ? "opacity-40 cursor-not-allowed select-none" : ""
-            }`}
-            placeholder="Min"
-          />
-        )}
       </div>
     </div>
   );

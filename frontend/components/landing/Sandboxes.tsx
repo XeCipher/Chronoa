@@ -44,59 +44,65 @@ function MockLandingScenery({ WTime, isDark }: { WTime: string; isDark: boolean 
   const WPalettes: Record<string, any> = {
     dawn: {
       bg: isDark ? "#1a1210" : "#fdfbf7",
-      orb1: isDark ? "rgba(138,78,64,0.58)" : "rgba(255,203,166,0.58)",
-      orb2: isDark ? "rgba(138,90,68,0.55)" : "rgba(255,166,143,0.55)",
-      orb3: isDark ? "rgba(108,79,122,0.5)" : "rgba(214,174,242,0.5)",
+      orb1: isDark ? "#8a4e40" : "#ffcba6",
+      orb2: isDark ? "#8a5a44" : "#ffa68f",
+      orb3: isDark ? "#6c4f7a" : "#d6aef2",
     },
     day: {
       bg: isDark ? "#0f1115" : "#f7f5f0",
-      orb1: isDark ? "rgba(45,59,92,0.62)" : "rgba(212,179,255,0.52)",
-      orb2: isDark ? "rgba(30,46,66,0.62)" : "rgba(155,199,245,0.55)",
-      orb3: isDark ? "rgba(37,56,40,0.58)" : "rgba(161,227,179,0.5)",
+      orb1: isDark ? "#2d3b5c" : "#d4b3ff",
+      orb2: isDark ? "#1e2e42" : "#9bc7f5",
+      orb3: isDark ? "#253828" : "#a1e3b3",
     },
     dusk: {
       bg: isDark ? "#1a1012" : "#f8f5f2",
-      orb1: isDark ? "rgba(122,59,76,0.6)" : "rgba(255,138,144,0.52)",
-      orb2: isDark ? "rgba(122,75,108,0.58)" : "rgba(245,176,219,0.5)",
-      orb3: isDark ? "rgba(125,70,40,0.55)" : "rgba(222,156,100,0.5)",
+      orb1: isDark ? "#7a3b4c" : "#ff8a90",
+      orb2: isDark ? "#7a4b6c" : "#f5b0db",
+      orb3: isDark ? "#7d4628" : "#de9c64",
     },
     night: {
       bg: isDark ? "#050810" : "#f2f4f8",
-      orb1: isDark ? "rgba(31,43,69,0.65)" : "rgba(158,180,219,0.55)",
-      orb2: isDark ? "rgba(17,25,38,0.65)" : "rgba(185,198,227,0.5)",
-      orb3: isDark ? "rgba(23,32,51,0.6)" : "rgba(141,168,207,0.48)",
+      orb1: isDark ? "#1f2b45" : "#9eb4db",
+      orb2: isDark ? "#111926" : "#b9c6e3",
+      orb3: isDark ? "#172033" : "#8da8cf",
     },
   };
   const current = WPalettes[WTime];
   return (
     <div
-      className="absolute inset-0 -z-50 overflow-hidden transition-colors duration-[2000ms] rounded-[2.5rem]"
+      className="absolute inset-0 -z-50 overflow-hidden transition-colors duration-[3000ms] rounded-[2.5rem]"
       style={{ backgroundColor: current.bg }}
     >
       <style
         dangerouslySetInnerHTML={{
           __html: `
-        @keyframes mockFloat1 { 0%, 100% { transform: translate3d(0px, 0px, 0) scale(1); } 33% { transform: translate3d(50px, -50px, 0) scale(1.08); } 66% { transform: translate3d(-30px, 20px, 0) scale(0.94); } }
-        @keyframes mockFloat2 { 0%, 100% { transform: translate3d(0px, 0px, 0) scale(1); } 33% { transform: translate3d(-50px, 50px, 0) scale(1.12); } 66% { transform: translate3d(40px, -30px, 0) scale(0.9); } }
-        @keyframes mockFloat3 { 0%, 100% { transform: translate3d(0px, 0px, 0) scale(1); } 33% { transform: translate3d(30px, 40px, 0) scale(0.92); } 66% { transform: translate3d(-40px, -40px, 0) scale(1.1); } }
-        .mock-orb-1 { animation: mockFloat1 18s ease-in-out infinite; will-change: transform; backface-visibility: hidden; }
-        .mock-orb-2 { animation: mockFloat2 22s ease-in-out infinite; will-change: transform; backface-visibility: hidden; }
-        .mock-orb-3 { animation: mockFloat3 25s ease-in-out infinite; will-change: transform; backface-visibility: hidden; }
+        @keyframes mockFloat1 { 0%, 100% { transform: translate(0px, 0px) scale(1); opacity: 0.7; } 33% { transform: translate(50px, -50px) scale(1.1); opacity: 0.9; } 66% { transform: translate(-30px, 20px) scale(0.9); opacity: 0.6; } }
+        @keyframes mockFloat2 { 0%, 100% { transform: translate(0px, 0px) scale(1); opacity: 0.7; } 33% { transform: translate(-50px, 50px) scale(1.2); opacity: 0.5; } 66% { transform: translate(40px, -30px) scale(0.8); opacity: 0.9; } }
+        @keyframes mockFloat3 { 0%, 100% { transform: translate(0px, 0px) scale(1); opacity: 0.5; } 33% { transform: translate(30px, 40px) scale(0.9); opacity: 0.8; } 66% { transform: translate(-40px, -40px) scale(1.15); opacity: 0.4; } }
+        .mock-orb-1 { animation: mockFloat1 18s ease-in-out infinite; }
+        .mock-orb-2 { animation: mockFloat2 22s ease-in-out infinite; }
+        .mock-orb-3 { animation: mockFloat3 25s ease-in-out infinite; }
       `,
         }}
       />
-      <div className="absolute inset-0 w-full h-full pointer-events-none">
+      <div className="absolute inset-0 w-full h-full" style={{ opacity: isDark ? 1 : 0.8 }}>
         <div
-          className="mock-orb-1 absolute top-[-20%] right-[-15%] w-[95vw] h-[95vw] md:w-[65vw] md:h-[65vw] rounded-full transition-colors duration-[2000ms]"
-          style={{ background: `radial-gradient(circle, ${current.orb1} 0%, transparent 70%)` }}
+          className={`mock-orb-1 absolute top-[-10%] right-[-10%] w-[80vw] h-[80vw] md:w-[50vw] md:h-[50vw] rounded-full filter blur-[100px] md:blur-[140px] transition-colors duration-[3000ms] ${
+            isDark ? "mix-blend-screen" : "mix-blend-multiply"
+          }`}
+          style={{ backgroundColor: current.orb1 }}
         />
         <div
-          className="mock-orb-2 absolute bottom-[-30%] left-[-15%] w-[105vw] h-[105vw] md:w-[75vw] md:h-[75vw] rounded-full transition-colors duration-[2000ms]"
-          style={{ background: `radial-gradient(circle, ${current.orb2} 0%, transparent 70%)` }}
+          className={`mock-orb-2 absolute bottom-[-20%] left-[-10%] w-[90vw] h-[90vw] md:w-[60vw] md:h-[60vw] rounded-full filter blur-[100px] md:blur-[140px] transition-colors duration-[3000ms] ${
+            isDark ? "mix-blend-screen" : "mix-blend-multiply"
+          }`}
+          style={{ backgroundColor: current.orb2 }}
         />
         <div
-          className="mock-orb-3 absolute top-[10%] left-[10%] w-[90vw] h-[90vw] md:w-[60vw] md:h-[60vw] rounded-full transition-colors duration-[2000ms]"
-          style={{ background: `radial-gradient(circle, ${current.orb3} 0%, transparent 70%)` }}
+          className={`mock-orb-3 absolute top-[20%] left-[20%] w-[75vw] h-[75vw] md:w-[45vw] md:h-[45vw] rounded-full filter blur-[100px] md:blur-[140px] transition-colors duration-[3000ms] ${
+            isDark ? "mix-blend-screen" : "mix-blend-multiply"
+          }`}
+          style={{ backgroundColor: current.orb3 }}
         />
       </div>
     </div>
@@ -787,13 +793,21 @@ function MockEngineCard({ engine, tab, onUpdate, onRemove, isOnlyInstance }: any
   const [liveSeconds, setLiveSeconds] = useState(engine.accumulatedSeconds);
   const [nowMs, setNowMs] = useState<number | null>(null);
   const [minInput, setMinInput] = useState(String(engine.targetMinutes || 25));
-  const isEditingMinsRef = useRef(false);
+  const [isEditingMins, setIsEditingMins] = useState(false);
+
+  const canEditTimer = tab === "timer" && !engine.isRunning && engine.accumulatedSeconds === 0;
 
   useEffect(() => {
-    if (!isEditingMinsRef.current && engine.targetMinutes !== undefined) {
+    if (!isEditingMins && engine.targetMinutes !== undefined) {
       setMinInput(String(engine.targetMinutes));
     }
-  }, [engine.targetMinutes]);
+  }, [engine.targetMinutes, isEditingMins]);
+
+  useEffect(() => {
+    if (!canEditTimer && isEditingMins) {
+      setIsEditingMins(false);
+    }
+  }, [canEditTimer, isEditingMins]);
 
   useEffect(() => {
     setNowMs(Date.now());
@@ -866,6 +880,14 @@ function MockEngineCard({ engine, tab, onUpdate, onRemove, isOnlyInstance }: any
 
   const statusText = getStatusText();
 
+  const commitMinInput = () => {
+    setIsEditingMins(false);
+    const parsed = parseInt(minInput, 10);
+    const valid = !isNaN(parsed) && parsed >= 1 ? parsed : engine.targetMinutes || 1;
+    setMinInput(String(valid));
+    onUpdate(engine.id, { targetMinutes: valid });
+  };
+
   const isUntouched =
     engine.title === "New Session" &&
     engine.accumulatedSeconds === 0 &&
@@ -887,7 +909,68 @@ function MockEngineCard({ engine, tab, onUpdate, onRemove, isOnlyInstance }: any
       <div className="flex items-center justify-between px-2 pt-2">
         <div className="flex flex-col">
           <div className="text-[3.5rem] sm:text-[4rem] leading-none text-[#3d3b33] dark:text-[#f0f0f0] font-mono tracking-tighter font-light drop-shadow-sm transition-colors">
-            {formatTime(currentDisplaySeconds)}
+            {canEditTimer ? (
+              <div
+                className={`relative inline-flex items-baseline border-b-2 pb-0.5 transition-colors ${
+                  isEditingMins
+                    ? "border-[#c2956e] dark:border-[#b0855f]"
+                    : "border-dashed border-[#3d3b33]/20 dark:border-white/20 hover:border-[#c2956e] dark:hover:border-[#b0855f]"
+                }`}
+              >
+                {!isEditingMins && (
+                  <span key="display" className="pointer-events-none select-none">
+                    {formatTime(currentDisplaySeconds)}
+                  </span>
+                )}
+                <input
+                  key="timer-min-input"
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  maxLength={4}
+                  autoComplete="off"
+                  aria-label="Timer minutes"
+                  placeholder="0"
+                  value={minInput}
+                  onFocus={(e) => {
+                    const currentMins = String(engine.targetMinutes || 25);
+                    setMinInput(currentMins);
+                    setIsEditingMins(true);
+                    const el = e.currentTarget;
+                    requestAnimationFrame(() => el.select());
+                  }}
+                  onChange={(e) => {
+                    const raw = e.target.value.replace(/[^0-9]/g, "");
+                    setMinInput(raw);
+                    const parsed = parseInt(raw, 10);
+                    if (!isNaN(parsed) && parsed >= 1) {
+                      onUpdate(engine.id, { targetMinutes: parsed });
+                    }
+                  }}
+                  onBlur={commitMinInput}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      e.currentTarget.blur();
+                    } else if (e.key === "Escape") {
+                      e.preventDefault();
+                      setMinInput(String(engine.targetMinutes || 25));
+                      setIsEditingMins(false);
+                      e.currentTarget.blur();
+                    }
+                  }}
+                  style={isEditingMins ? { width: `calc(${Math.max(minInput.length, 1)}ch + 2px)` } : undefined}
+                  className={
+                    isEditingMins
+                      ? "bg-transparent outline-none text-[#3d3b33] dark:text-[#f0f0f0] font-mono tracking-tighter font-light p-0 m-0 caret-[#c2956e] placeholder:text-[#3d3b33]/30 dark:placeholder:text-white/30"
+                      : "absolute inset-0 w-full h-full opacity-0 cursor-text"
+                  }
+                />
+                {isEditingMins && <span className="opacity-40 select-none pointer-events-none">:00</span>}
+              </div>
+            ) : (
+              <span>{formatTime(currentDisplaySeconds)}</span>
+            )}
           </div>
           <div className="h-4 mt-1">
             {statusText && (
@@ -923,36 +1006,6 @@ function MockEngineCard({ engine, tab, onUpdate, onRemove, isOnlyInstance }: any
           className="flex-1 bg-white/40 dark:bg-black/40 border border-transparent rounded-2xl px-5 py-3 text-sm font-medium text-[#3d3b33] dark:text-white outline-none focus:bg-white/70 dark:focus:bg-black/60 focus:border-white dark:focus:border-white/20 transition-all placeholder:text-[#888] dark:placeholder:text-[#aaa] placeholder:font-normal shadow-inner shadow-black/5"
           placeholder="What are you focusing on?"
         />
-        {tab === "timer" && (
-          <input
-            type="number"
-            min="1"
-            value={minInput}
-            onFocus={() => {
-              isEditingMinsRef.current = true;
-            }}
-            onChange={(e) => {
-              const raw = e.target.value;
-              setMinInput(raw);
-              const parsed = parseInt(raw, 10);
-              if (!isNaN(parsed) && parsed >= 1) {
-                onUpdate(engine.id, { targetMinutes: parsed });
-              }
-            }}
-            onBlur={() => {
-              isEditingMinsRef.current = false;
-              const parsed = parseInt(minInput, 10);
-              const valid = !isNaN(parsed) && parsed >= 1 ? parsed : engine.targetMinutes || 1;
-              setMinInput(String(valid));
-              onUpdate(engine.id, { targetMinutes: valid });
-            }}
-            disabled={engine.isRunning || engine.accumulatedSeconds > 0}
-            className={`w-20 bg-white/40 dark:bg-black/40 border border-transparent rounded-2xl px-2 py-3 text-center text-sm font-bold text-[#3d3b33] dark:text-white outline-none focus:bg-white/70 dark:focus:bg-black/60 focus:border-white dark:focus:border-white/20 transition-all shadow-inner shadow-black/5 ${
-              engine.isRunning || engine.accumulatedSeconds > 0 ? "opacity-40 cursor-not-allowed select-none" : ""
-            }`}
-            placeholder="Min"
-          />
-        )}
       </div>
     </div>
   );
