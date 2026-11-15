@@ -1,45 +1,15 @@
 // frontend/components/ui/GlobalTimeWidget.tsx
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { usePathname } from "next/navigation";
 import { useTimerStore, EngineInstance } from "@/store/timerStore";
 import { supabase } from "@/lib/supabase";
+import { playTimerEndSound } from "@/lib/timerSound";
 import { Play, Pause, Square, Trash2, Plus, History } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useUiStore } from "@/store/uiStore";
 import { AiButton } from "@/components/ai/AiChatWidget";
-
-const playChime = () => {
-  try {
-    const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
-    if (!AudioContextClass) return;
-
-    const ctx = new AudioContextClass();
-
-    const playSine = (freq: number, duration: number, vol: number, delay: number = 0) => {
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.type = "sine";
-      osc.frequency.value = freq;
-
-      gain.gain.setValueAtTime(0, ctx.currentTime + delay);
-      gain.gain.linearRampToValueAtTime(vol, ctx.currentTime + delay + 0.1);
-      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + delay + duration);
-
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.start(ctx.currentTime + delay);
-      osc.stop(ctx.currentTime + delay + duration);
-    };
-
-    playSine(523.25, 4, 0.4, 0);
-    playSine(1046.5, 3, 0.15, 0.05);
-    playSine(1569.75, 2, 0.05, 0.1);
-  } catch (e) {
-    console.error("Audio API not supported", e);
-  }
-};
 
 function MiniEngineCard({ engine, tab }: { engine: EngineInstance; tab: "timer" | "stopwatch" }) {
   const store = useTimerStore();
@@ -47,6 +17,11 @@ function MiniEngineCard({ engine, tab }: { engine: EngineInstance; tab: "timer" 
   const [nowMs, setNowMs] = useState<number | null>(null);
   const [minInput, setMinInput] = useState(String(engine.targetMinutes || 25));
   const [isEditingMins, setIsEditingMins] = useState(false);
+
+  const isMountedRef = useRef(true);
+  const hasTriggeredCompleteRef = useRef(false);
+  const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const autoSavePendingSecsRef = useRef<number | null>(null);
 
   const list = tab === "timer" ? store.timers : store.stopwatches;
   const isOnlyInstance = list.length === 1;
@@ -80,80 +55,121 @@ function MiniEngineCard({ engine, tab }: { engine: EngineInstance; tab: "timer" 
   useEffect(() => {
     let interval: NodeJS.Timeout;
     if (engine.isRunning && engine.startTime) {
-      interval = setInterval(() => {
+      const sync = () => {
         const elapsed = Math.floor((Date.now() - engine.startTime!) / 1000);
         setLiveSeconds(engine.accumulatedSeconds + elapsed);
-      }, 500);
+      };
+      sync();
+      interval = setInterval(sync, 500);
     } else {
       setLiveSeconds(engine.accumulatedSeconds);
     }
     return () => clearInterval(interval);
   }, [engine.isRunning, engine.startTime, engine.accumulatedSeconds]);
 
-  const handleStopAndSave = async (forceSaveSeconds?: number) => {
-    const currentList = useTimerStore.getState()[tab === "timer" ? "timers" : "stopwatches"];
-    const currentEngine = currentList.find((e) => e.id === engine.id);
-    if (!currentEngine) return;
+  const handleStopAndSave = useCallback(
+    async (forceSaveSeconds?: number) => {
+      if (autoSaveTimeoutRef.current) {
+        clearTimeout(autoSaveTimeoutRef.current);
+        autoSaveTimeoutRef.current = null;
+      }
+      autoSavePendingSecsRef.current = null;
 
-    store.pause(tab, engine.id);
-    const finalSeconds =
-      forceSaveSeconds ??
-      (currentEngine.isRunning && currentEngine.startTime
-        ? currentEngine.accumulatedSeconds + Math.floor((Date.now() - currentEngine.startTime) / 1000)
-        : currentEngine.accumulatedSeconds);
+      const currentList = useTimerStore.getState()[tab === "timer" ? "timers" : "stopwatches"];
+      const currentEngine = currentList.find((e) => e.id === engine.id);
+      if (!currentEngine) return;
 
-    store.removeInstance(tab, engine.id);
+      store.pause(tab, engine.id);
+      const finalSeconds =
+        forceSaveSeconds ??
+        (currentEngine.isRunning && currentEngine.startTime
+          ? currentEngine.accumulatedSeconds + Math.floor((Date.now() - currentEngine.startTime) / 1000)
+          : currentEngine.accumulatedSeconds);
 
-    if (finalSeconds > 10) {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      await supabase.from("time_sessions").insert({
-        user_id: user?.id,
-        session_type: tab,
-        title: currentEngine.title || "Focus Session",
-        duration_seconds: finalSeconds,
-      });
-    }
-  };
+      store.removeInstance(tab, engine.id);
+
+      if (finalSeconds > 10) {
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+        if (!user) return;
+        await supabase.from("time_sessions").insert({
+          user_id: user.id,
+          session_type: tab,
+          title: currentEngine.title || "Focus Session",
+          duration_seconds: finalSeconds,
+        });
+      }
+    },
+    [engine.id, store, tab]
+  );
+
+  const handleStopAndSaveRef = useRef(handleStopAndSave);
+  useEffect(() => {
+    handleStopAndSaveRef.current = handleStopAndSave;
+  }, [handleStopAndSave]);
 
   useEffect(() => {
-    let timeout: NodeJS.Timeout;
-    let isCancelled = false;
-
-    if (tab === "timer" && engine.targetMinutes && engine.isRunning) {
-      const targetSecs = engine.targetMinutes * 60;
-      if (liveSeconds >= targetSecs) {
-        const performAutoStop = async () => {
-          await new Promise((resolve) => setTimeout(resolve, Math.random() * 500));
-          if (isCancelled) return;
-
-          const currentList = useTimerStore.getState()[tab === "timer" ? "timers" : "stopwatches"];
-          const currentEng = currentList.find((e) => e.id === engine.id);
-
-          if (currentEng && currentEng.isRunning) {
-            store.pause(tab, engine.id);
-            playChime();
-            if (typeof Notification !== "undefined" && Notification.permission === "granted") {
-              new Notification("Chronoa", {
-                body: `Timer complete: ${engine.title || "Timer"}`,
-                icon: "/apple-icon.png",
-              });
-            }
-            timeout = setTimeout(() => {
-              if (!isCancelled) handleStopAndSave(targetSecs);
-            }, 2000);
-          }
-        };
-        performAutoStop();
-      }
-    }
+    isMountedRef.current = true;
     return () => {
-      isCancelled = true;
-      clearTimeout(timeout);
+      isMountedRef.current = false;
+      if (autoSaveTimeoutRef.current) {
+        clearTimeout(autoSaveTimeoutRef.current);
+        autoSaveTimeoutRef.current = null;
+      }
+      if (autoSavePendingSecsRef.current !== null) {
+        const pendingSecs = autoSavePendingSecsRef.current;
+        autoSavePendingSecsRef.current = null;
+        handleStopAndSaveRef.current(pendingSecs);
+      }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [liveSeconds, engine.isRunning, engine.targetMinutes, tab]);
+  }, []);
+
+  useEffect(() => {
+    if (tab !== "timer" || !engine.targetMinutes) return;
+
+    const targetSecs = engine.targetMinutes * 60;
+    if (liveSeconds < targetSecs) {
+      hasTriggeredCompleteRef.current = false;
+      return;
+    }
+
+    if (engine.isRunning && !hasTriggeredCompleteRef.current) {
+      hasTriggeredCompleteRef.current = true;
+
+      const performAutoStop = async () => {
+        await new Promise((resolve) => setTimeout(resolve, Math.random() * 350));
+        if (!isMountedRef.current) return;
+
+        const currentEng = useTimerStore.getState().timers.find((e) => e.id === engine.id);
+        if (!currentEng || !currentEng.isRunning) return;
+
+        const lockKey = `chronoa_timer_done_${engine.id}_${targetSecs}`;
+        const prevLock = Number(localStorage.getItem(lockKey) || "0");
+        if (Date.now() - prevLock < 10000) return;
+        localStorage.setItem(lockKey, String(Date.now()));
+
+        store.pause("timer", engine.id);
+        playTimerEndSound();
+
+        if (typeof Notification !== "undefined" && Notification.permission === "granted") {
+          new Notification("Chronoa", {
+            body: `Timer complete: ${currentEng.title || "Timer"}`,
+            icon: "/apple-icon.png",
+          });
+        }
+
+        autoSavePendingSecsRef.current = targetSecs;
+        autoSaveTimeoutRef.current = setTimeout(() => {
+          autoSavePendingSecsRef.current = null;
+          autoSaveTimeoutRef.current = null;
+          handleStopAndSaveRef.current(targetSecs);
+        }, 2000);
+      };
+
+      performAutoStop();
+    }
+  }, [liveSeconds, engine.isRunning, engine.targetMinutes, engine.id, tab, store]);
 
   const formatTime = (totalSeconds: number) => {
     const h = Math.floor(totalSeconds / 3600);
@@ -209,7 +225,14 @@ function MiniEngineCard({ engine, tab }: { engine: EngineInstance; tab: "timer" 
     <div className="bg-[#f7f5f0]/50 dark:bg-[#222]/50 border border-[#e0ddd5] dark:border-[#444] rounded-[1.5rem] p-5 flex flex-col gap-3 group relative transition-colors hover:border-[#c2956e]/50 dark:hover:border-[#b0855f]/50 shadow-sm shrink-0">
       {!hideDelete && (
         <button
-          onClick={() => store.removeInstance(tab, engine.id)}
+          onClick={() => {
+            if (autoSaveTimeoutRef.current) {
+              clearTimeout(autoSaveTimeoutRef.current);
+              autoSaveTimeoutRef.current = null;
+            }
+            autoSavePendingSecsRef.current = null;
+            store.removeInstance(tab, engine.id);
+          }}
           className="absolute top-4 right-4 text-[#b0ad9a] lg:hover:text-red-500 opacity-100 lg:opacity-40 lg:group-hover:opacity-100 transition-opacity"
         >
           <Trash2 size={16} />

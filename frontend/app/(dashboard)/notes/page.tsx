@@ -34,6 +34,8 @@ const TABS: { id: Tab; label: string; icon: React.ElementType }[] = [
   { id: "journal", label: "Journal", icon: BookOpen },
 ];
 
+const escapeRegExp = (str: string) => str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
 const getLocalYYYYMMDD = (date: Date) => {
   const y = date.getFullYear();
   const m = String(date.getMonth() + 1).padStart(2, "0");
@@ -41,52 +43,105 @@ const getLocalYYYYMMDD = (date: Date) => {
   return `${y}-${m}-${d}`;
 };
 
+let offlineSyncPromise: Promise<void> | null = null;
+
 const syncOfflineData = async () => {
   if (!navigator.onLine) return;
-  const queue = JSON.parse(localStorage.getItem("chronoa_offline_queue") || "[]");
-  if (queue.length === 0) return;
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return;
+  if (offlineSyncPromise) return offlineSyncPromise;
 
-  const remaining = [];
-
-  for (const item of queue) {
+  offlineSyncPromise = (async () => {
     try {
-      if (item.type === "notes") {
-        const payload: any = { content: item.content, updated_at: item.updated_at };
-        if (item.title !== undefined) payload.title = item.title;
-        if (item.folder_id !== undefined) payload.folder_id = item.folder_id;
-        await supabase.from("notes").update(payload).eq("id", item.id);
-      } else {
-        const { data, error } = await supabase
-          .from("journal_entries")
-          .update({ content: item.content, updated_at: item.updated_at })
-          .eq("entry_date", item.id)
-          .eq("user_id", user.id)
-          .select();
+      const queue = JSON.parse(localStorage.getItem("chronoa_offline_queue") || "[]");
+      if (queue.length === 0) return;
 
-        if (!error && data && data.length === 0) {
-          await supabase.from("journal_entries").insert({
-            user_id: user.id,
-            entry_date: item.id,
-            content: item.content,
-            updated_at: item.updated_at,
-          });
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const syncedItems = new Map<string, string>();
+
+      for (const item of queue) {
+        try {
+          if (item.type === "notes") {
+            const payload: any = { content: item.content, updated_at: item.updated_at };
+            if (item.title !== undefined) payload.title = item.title;
+            if (item.folder_id !== undefined) payload.folder_id = item.folder_id;
+            const { error } = await supabase
+              .from("notes")
+              .update(payload)
+              .eq("id", item.id)
+              .eq("user_id", user.id);
+
+            if (!error) {
+              syncedItems.set(`${item.type}:${item.id}`, item.updated_at);
+            }
+          } else {
+            const { data, error } = await supabase
+              .from("journal_entries")
+              .update({ content: item.content, updated_at: item.updated_at })
+              .eq("entry_date", item.id)
+              .eq("user_id", user.id)
+              .select();
+
+            if (!error && data && data.length === 0) {
+              const { error: insertError } = await supabase.from("journal_entries").insert({
+                user_id: user.id,
+                entry_date: item.id,
+                content: item.content,
+                updated_at: item.updated_at,
+              });
+              if (!insertError) {
+                syncedItems.set(`${item.type}:${item.id}`, item.updated_at);
+              }
+            } else if (!error) {
+              syncedItems.set(`${item.type}:${item.id}`, item.updated_at);
+            }
+          }
+        } catch (e) {
+          // Leave failed items in queue for the next retry
         }
       }
-    } catch (e) {
-      remaining.push(item);
+
+      const latestQueue = JSON.parse(localStorage.getItem("chronoa_offline_queue") || "[]");
+      const remaining = latestQueue.filter((q: any) => {
+        const syncedAt = syncedItems.get(`${q.type}:${q.id}`);
+        return !syncedAt || q.updated_at !== syncedAt;
+      });
+      localStorage.setItem("chronoa_offline_queue", JSON.stringify(remaining));
+    } finally {
+      offlineSyncPromise = null;
     }
-  }
-  localStorage.setItem("chronoa_offline_queue", JSON.stringify(remaining));
+  })();
+
+  return offlineSyncPromise;
 };
 
 export default function NotesPage() {
   const pathname = usePathname();
-  const { notesTab, setNotesTab, setMobileNoteOpen, showConfirmDialog, isEditorFullscreen, setEditorFullscreen } =
-    useUiStore();
+  const {
+    notesTab,
+    setNotesTab,
+    setMobileNoteOpen,
+    showConfirmDialog,
+    isEditorFullscreen,
+    setEditorFullscreen,
+    notesFolderId,
+    setNotesFolderId,
+    notesSelectedId,
+    setNotesSelectedId,
+    journalSelectedId,
+    setJournalSelectedId,
+    notesListVisible,
+    setNotesListVisible,
+    journalListVisible,
+    setJournalListVisible,
+    notesTrashOpen,
+    setNotesTrashOpen,
+    notesLibraryScrollTop,
+    setNotesLibraryScrollTop,
+    resetNotesWorkspace,
+  } = useUiStore();
 
   const [notes, setNotes] = useState<any[]>([]);
   const [journals, setJournals] = useState<any[]>([]);
@@ -94,15 +149,50 @@ export default function NotesPage() {
   const [folders, setFolders] = useState<any[]>([]);
 
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState("");
   const [noteToFocus, setNoteToFocus] = useState<string | null>(null);
 
+  const [trashSelectedId, setTrashSelectedId] = useState<string | null>(null);
+  const [trashListVisible, setTrashListVisible] = useState(true);
+
+  const selectedFolderId = notesFolderId;
+  const setSelectedFolderId = setNotesFolderId;
+  const isTrashOpen = notesTrashOpen;
+  const setIsTrashOpen = setNotesTrashOpen;
+
+  const selectedId = isTrashOpen
+    ? trashSelectedId
+    : notesTab === "notes"
+    ? notesSelectedId
+    : journalSelectedId;
+
+  const setSelectedId = useCallback(
+    (id: string | null) => {
+      if (isTrashOpen) setTrashSelectedId(id);
+      else if (notesTab === "notes") setNotesSelectedId(id);
+      else setJournalSelectedId(id);
+    },
+    [isTrashOpen, notesTab, setNotesSelectedId, setJournalSelectedId]
+  );
+
+  const isListVisible = isTrashOpen
+    ? trashListVisible
+    : notesTab === "notes"
+    ? notesListVisible
+    : journalListVisible;
+
+  const setIsListVisible = useCallback(
+    (val: boolean) => {
+      if (isTrashOpen) setTrashListVisible(val);
+      else if (notesTab === "notes") setNotesListVisible(val);
+      else setJournalListVisible(val);
+    },
+    [isTrashOpen, notesTab, setNotesListVisible, setJournalListVisible]
+  );
+
   const [loading, setLoading] = useState(true);
-  const [isListVisible, setIsListVisible] = useState(true);
-  const [isTrashOpen, setIsTrashOpen] = useState(false);
-  const [autoSelectPending, setAutoSelectPending] = useState(true);
+  const [hasFetchedServer, setHasFetchedServer] = useState(false);
+  const [autoSelectPending, setAutoSelectPending] = useState(() => !selectedId && !isTrashOpen);
   const [isScrolled, setIsScrolled] = useState(false);
 
   const [showCalendar, setShowCalendar] = useState(false);
@@ -114,28 +204,35 @@ export default function NotesPage() {
   const desktopCalRef = useRef<HTMLDivElement>(null);
   const lastFetchRef = useRef<number>(0);
   const prevPathnameRef = useRef<string | null>(null);
+  const libScrollTopRef = useRef<number>(notesLibraryScrollTop);
+  const hasRestoredLibScrollRef = useRef(false);
 
   const prevNotesTab = useRef(notesTab);
   useEffect(() => {
     if (prevNotesTab.current !== notesTab) {
-      setSelectedId(null);
+      prevNotesTab.current = notesTab;
+      setTrashSelectedId(null);
       setNoteToFocus(null);
       setSearchQuery("");
-      setAutoSelectPending(true);
       setShowCalendar(false);
-      prevNotesTab.current = notesTab;
+      const targetSelectedId = notesTab === "notes" ? notesSelectedId : journalSelectedId;
+      setAutoSelectPending(!targetSelectedId && !isTrashOpen);
     }
-  }, [notesTab]);
+  }, [notesTab, notesSelectedId, journalSelectedId, isTrashOpen]);
 
   const prevFolderId = useRef(selectedFolderId);
   useEffect(() => {
     if (prevFolderId.current !== selectedFolderId) {
-      setSelectedId(null);
-      setNoteToFocus(null);
-      setAutoSelectPending(true);
       prevFolderId.current = selectedFolderId;
+      setNotesSelectedId(null);
+      setNoteToFocus(null);
+      if (typeof window !== "undefined" && window.innerWidth < 1024) {
+        setNotesListVisible(true);
+      } else {
+        setAutoSelectPending(true);
+      }
     }
-  }, [selectedFolderId]);
+  }, [selectedFolderId, setNotesSelectedId, setNotesListVisible]);
 
   useEffect(() => {
     return () => {
@@ -143,28 +240,50 @@ export default function NotesPage() {
     };
   }, [setEditorFullscreen]);
 
+  // Restore and persist Library sidebar scroll position across tab switches
+  useEffect(() => {
+    if (!loading && !hasRestoredLibScrollRef.current) {
+      hasRestoredLibScrollRef.current = true;
+      const el = document.getElementById("notes-library-scroll-container");
+      if (el && notesLibraryScrollTop > 0) {
+        requestAnimationFrame(() => {
+          el.scrollTop = notesLibraryScrollTop;
+        });
+      }
+    }
+  }, [loading, notesLibraryScrollTop]);
+
+  useEffect(() => {
+    return () => {
+      setNotesLibraryScrollTop(libScrollTopRef.current);
+    };
+  }, [setNotesLibraryScrollTop]);
+
   // Reset View Event Listener (Nav tab tapped while already on Notes)
   useEffect(() => {
     const handleReset = (e: any) => {
       if (e.detail === "/notes") {
-        setIsTrashOpen(false);
-        setSelectedFolderId(null);
-        setSelectedId(null);
+        libScrollTopRef.current = 0;
+        resetNotesWorkspace();
+        setTrashSelectedId(null);
+        setTrashListVisible(true);
         setNoteToFocus(null);
 
         if (typeof window !== "undefined" && window.innerWidth < 1024) {
-          setIsListVisible(true);
+          setNotesListVisible(true);
+          setJournalListVisible(true);
         } else {
           setAutoSelectPending(true);
         }
 
         setShowCalendar(false);
         setSearchQuery("");
+        document.getElementById("notes-library-scroll-container")?.scrollTo({ top: 0, behavior: "smooth" });
       }
     };
     window.addEventListener("chronoa-reset-tab", handleReset);
     return () => window.removeEventListener("chronoa-reset-tab", handleReset);
-  }, []);
+  }, [resetNotesWorkspace, setNotesListVisible, setJournalListVisible]);
 
   // Global Escape Key Listener for Exiting Fullscreen & Navigating Back
   useEffect(() => {
@@ -187,9 +306,11 @@ export default function NotesPage() {
 
         if (isTrashOpen) {
           setIsTrashOpen(false);
-          setSelectedId(null);
+          setTrashSelectedId(null);
+          setTrashListVisible(true);
           setNoteToFocus(null);
-          setAutoSelectPending(true);
+          const targetId = notesTab === "notes" ? notesSelectedId : journalSelectedId;
+          setAutoSelectPending(!targetId);
           setShowCalendar(false);
           return;
         }
@@ -210,14 +331,30 @@ export default function NotesPage() {
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isEditorFullscreen, setEditorFullscreen, isMoveModalOpen, isTrashOpen, isListVisible, selectedFolderId, folders]);
+  }, [
+    isEditorFullscreen,
+    setEditorFullscreen,
+    isMoveModalOpen,
+    isTrashOpen,
+    setIsTrashOpen,
+    isListVisible,
+    setIsListVisible,
+    selectedFolderId,
+    setSelectedFolderId,
+    folders,
+    notesTab,
+    notesSelectedId,
+    journalSelectedId,
+    setSelectedId,
+  ]);
 
   const handleTabChange = (id: Tab) => {
     setNotesTab(id);
-    setSelectedId(null);
+    setTrashSelectedId(null);
     setNoteToFocus(null);
     setSearchQuery("");
-    setAutoSelectPending(true);
+    const targetId = id === "notes" ? notesSelectedId : journalSelectedId;
+    setAutoSelectPending(!targetId && !isTrashOpen);
     setShowCalendar(false);
   };
 
@@ -227,30 +364,36 @@ export default function NotesPage() {
     const cachedTrash = localStorage.getItem("chronoa_cache_trash");
     const cachedFolders = localStorage.getItem("chronoa_cache_folders");
 
-    if (cachedNotes)
+    if (cachedNotes) {
       try {
         setNotes(JSON.parse(cachedNotes));
         setLoading(false);
       } catch (e) {}
-    if (cachedJournals)
+    }
+    if (cachedJournals) {
       try {
         setJournals(JSON.parse(cachedJournals));
         setLoading(false);
       } catch (e) {}
-    if (cachedTrash)
+    }
+    if (cachedTrash) {
       try {
         setTrash(JSON.parse(cachedTrash));
       } catch (e) {}
-    if (cachedFolders)
+    }
+    if (cachedFolders) {
       try {
         setFolders(JSON.parse(cachedFolders));
       } catch (e) {}
+    }
   }, []);
 
   const fetchData = useCallback(async (force = false) => {
     const now = Date.now();
     if (!force && now - lastFetchRef.current < 1500) return;
     lastFetchRef.current = now;
+
+    await syncOfflineData();
 
     const {
       data: { user },
@@ -268,7 +411,24 @@ export default function NotesPage() {
       supabase.from("journal_entries").select("*").not("deleted_at", "is", null),
     ]);
 
-    const newNotes = nData.data || [];
+    const remainingQueue = JSON.parse(localStorage.getItem("chronoa_offline_queue") || "[]");
+
+    let newNotes = nData.data || [];
+    const pendingNoteItems = remainingQueue.filter((q: any) => q.type === "notes");
+    if (pendingNoteItems.length > 0) {
+      newNotes = newNotes.map((n: any) => {
+        const pending = pendingNoteItems.find((p: any) => p.id === n.id);
+        return pending
+          ? {
+              ...n,
+              content: pending.content,
+              updated_at: pending.updated_at,
+              ...(pending.title !== undefined ? { title: pending.title } : {}),
+              ...(pending.folder_id !== undefined ? { folder_id: pending.folder_id } : {}),
+            }
+          : n;
+      });
+    }
     setNotes((prev) => (JSON.stringify(prev) === JSON.stringify(newNotes) ? prev : newNotes));
 
     const newFolders = fData.data || [];
@@ -279,6 +439,7 @@ export default function NotesPage() {
 
     const emptyJournals = jList.filter((j) => {
       if (j.entry_date === todayStr) return false;
+      if (remainingQueue.some((q: any) => q.type === "journal" && q.id === j.entry_date)) return false;
       const plain = (j.content || "").replace(/<[^>]+>/g, "").replace(/&nbsp;/gi, "").trim();
       return plain === "";
     });
@@ -287,6 +448,18 @@ export default function NotesPage() {
       const emptyDates = emptyJournals.map((j) => j.entry_date);
       await supabase.from("journal_entries").delete().in("entry_date", emptyDates).eq("user_id", user.id);
       jList = jList.filter((j) => !emptyJournals.includes(j));
+    }
+
+    const pendingJournalItems = remainingQueue.filter((q: any) => q.type === "journal");
+    if (pendingJournalItems.length > 0) {
+      pendingJournalItems.forEach((p: any) => {
+        const idx = jList.findIndex((j: any) => j.entry_date === p.id);
+        if (idx >= 0) {
+          jList[idx] = { ...jList[idx], content: p.content, updated_at: p.updated_at };
+        } else {
+          jList.unshift({ entry_date: p.id, content: p.content, updated_at: p.updated_at });
+        }
+      });
     }
 
     if (!jList.some((j) => j.entry_date === todayStr)) {
@@ -308,7 +481,7 @@ export default function NotesPage() {
 
     setTrash((prev) => (JSON.stringify(prev) === JSON.stringify(combinedTrash) ? prev : combinedTrash));
     setLoading(false);
-    syncOfflineData();
+    setHasFetchedServer(true);
   }, []);
 
   useEffect(() => {
@@ -387,6 +560,12 @@ export default function NotesPage() {
   useEffect(() => {
     setMobileNoteOpen(!isListVisible);
   }, [isListVisible, setMobileNoteOpen]);
+
+  useEffect(() => {
+    return () => {
+      setMobileNoteOpen(false);
+    };
+  }, [setMobileNoteOpen]);
 
   const handleSelectItem = (id: string, autoFocus: boolean = false) => {
     setSelectedId(id);
@@ -525,7 +704,11 @@ export default function NotesPage() {
 
     const { data } = await supabase.from("notes").insert(payload).select().single();
     if (data) {
-      setNotes([data, ...notes]);
+      setNotes((prev) => {
+        const next = [data, ...prev];
+        localStorage.setItem("chronoa_cache_notes", JSON.stringify(next));
+        return next;
+      });
       handleSelectItem(data.id, true);
     }
   };
@@ -543,9 +726,13 @@ export default function NotesPage() {
       data: { user },
     } = await supabase.auth.getUser();
     const newJournal = { entry_date: dateStr, content: "<p></p>" };
-    setJournals((prev) =>
-      [...prev, newJournal].sort((a, b) => new Date(b.entry_date).getTime() - new Date(a.entry_date).getTime())
-    );
+    setJournals((prev) => {
+      const next = [...prev, newJournal].sort(
+        (a, b) => new Date(b.entry_date).getTime() - new Date(a.entry_date).getTime()
+      );
+      localStorage.setItem("chronoa_cache_journals", JSON.stringify(next));
+      return next;
+    });
     handleSelectItem(dateStr, true);
     setShowCalendar(false);
 
@@ -570,8 +757,12 @@ export default function NotesPage() {
   const updateNoteTitle = async () => {
     if (!selectedId || notesTab !== "notes" || isTrashOpen) return;
     const t = editTitle.trim() || "Untitled";
-    setNotes((prev) => prev.map((n) => (n.id === selectedId ? { ...n, title: t } : n)));
     const updatedNow = new Date().toISOString();
+    setNotes((prev) => {
+      const next = prev.map((n) => (n.id === selectedId ? { ...n, title: t, updated_at: updatedNow } : n));
+      localStorage.setItem("chronoa_cache_notes", JSON.stringify(next));
+      return next;
+    });
 
     const queue = JSON.parse(localStorage.getItem("chronoa_offline_queue") || "[]");
     const itemIndex = queue.findIndex((q: any) => q.id === selectedId && q.type === "notes");
@@ -590,9 +781,13 @@ export default function NotesPage() {
   const moveToFolder = async (id: string, folderId: string | null) => {
     if (!id || isTrashOpen || notesTab !== "notes") return;
     const cleanFolderId = folderId === "" ? null : folderId;
-
-    setNotes((prev) => prev.map((n) => (n.id === id ? { ...n, folder_id: cleanFolderId } : n)));
     const updatedNow = new Date().toISOString();
+
+    setNotes((prev) => {
+      const next = prev.map((n) => (n.id === id ? { ...n, folder_id: cleanFolderId, updated_at: updatedNow } : n));
+      localStorage.setItem("chronoa_cache_notes", JSON.stringify(next));
+      return next;
+    });
 
     const queue = JSON.parse(localStorage.getItem("chronoa_offline_queue") || "[]");
     const itemIndex = queue.findIndex((q: any) => q.id === id && q.type === "notes");
@@ -616,20 +811,30 @@ export default function NotesPage() {
     syncOfflineData();
   };
 
-  const saveContent = async (html: string, id: string) => {
+  const saveContent = async (html: string, id: string, explicitType?: "notes" | "journal") => {
     if (!id || isTrashOpen) return;
+    const targetType: "notes" | "journal" = explicitType || (notesTab === "journal" ? "journal" : "notes");
     const updatedNow = new Date().toISOString();
 
-    if (notesTab === "notes")
-      setNotes((prev) => prev.map((n) => (n.id === id ? { ...n, content: html, updated_at: updatedNow } : n)));
-    else if (notesTab === "journal")
-      setJournals((prev) => prev.map((j) => (j.entry_date === id ? { ...j, content: html, updated_at: updatedNow } : j)));
+    if (targetType === "notes") {
+      setNotes((prev) => {
+        const next = prev.map((n) => (n.id === id ? { ...n, content: html, updated_at: updatedNow } : n));
+        localStorage.setItem("chronoa_cache_notes", JSON.stringify(next));
+        return next;
+      });
+    } else {
+      setJournals((prev) => {
+        const next = prev.map((j) => (j.entry_date === id ? { ...j, content: html, updated_at: updatedNow } : j));
+        localStorage.setItem("chronoa_cache_journals", JSON.stringify(next));
+        return next;
+      });
+    }
 
     const queue = JSON.parse(localStorage.getItem("chronoa_offline_queue") || "[]");
-    const itemIndex = queue.findIndex((q: any) => q.id === id && q.type === notesTab);
-    const payload: any = { type: notesTab, id, content: html, updated_at: updatedNow };
+    const itemIndex = queue.findIndex((q: any) => q.id === id && q.type === targetType);
+    const payload: any = { type: targetType, id, content: html, updated_at: updatedNow };
 
-    if (notesTab === "notes") {
+    if (targetType === "notes") {
       const currNote = notes.find((n) => n.id === id);
       if (currNote) {
         payload.title = currNote.title;
@@ -657,42 +862,56 @@ export default function NotesPage() {
   const moveToTrash = async (id: string) => {
     const nextId = getNextId(id);
     const deleted_at = new Date().toISOString();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
     if (notesTab === "journal") {
       const journal = journals.find((j) => j.entry_date === id);
       setJournals((prev) => prev.filter((j) => j.entry_date !== id));
-      setTrash([{ ...journal, deleted_at, isJournal: true }, ...trash]);
+      setTrash((prev) => [{ ...journal, deleted_at, isJournal: true }, ...prev]);
       setSelectedId(nextId);
       if (!nextId) setIsListVisible(true);
-      if (navigator.onLine) await supabase.from("journal_entries").update({ deleted_at }).eq("entry_date", id);
+      if (navigator.onLine && user) {
+        await supabase.from("journal_entries").update({ deleted_at }).eq("entry_date", id).eq("user_id", user.id);
+      }
     } else {
       const note = notes.find((n) => n.id === id);
       setNotes((prev) => prev.filter((n) => n.id !== id));
-      setTrash([{ ...note, deleted_at, isJournal: false }, ...trash]);
+      setTrash((prev) => [{ ...note, deleted_at, isJournal: false }, ...prev]);
       setSelectedId(nextId);
       if (!nextId) setIsListVisible(true);
-      if (navigator.onLine) await supabase.from("notes").update({ deleted_at }).eq("id", id);
+      if (navigator.onLine) {
+        await supabase.from("notes").update({ deleted_at }).eq("id", id);
+      }
     }
   };
 
   const restoreNote = async (item: any) => {
     const id = item.entry_date || item.id;
     setTrash((prev) => prev.filter((t) => (t.entry_date || t.id) !== id));
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
     if (item.isJournal) {
-      setJournals(
-        [{ ...item, deleted_at: null }, ...journals].sort(
+      setJournals((prev) =>
+        [{ ...item, deleted_at: null }, ...prev].sort(
           (a, b) => new Date(b.entry_date).getTime() - new Date(a.entry_date).getTime()
         )
       );
-      if (navigator.onLine) await supabase.from("journal_entries").update({ deleted_at: null }).eq("entry_date", id);
+      if (navigator.onLine && user) {
+        await supabase.from("journal_entries").update({ deleted_at: null }).eq("entry_date", id).eq("user_id", user.id);
+      }
     } else {
-      setNotes(
-        [{ ...item, deleted_at: null }, ...notes].sort(
+      setNotes((prev) =>
+        [{ ...item, deleted_at: null }, ...prev].sort(
           (a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
         )
       );
-      if (navigator.onLine) await supabase.from("notes").update({ deleted_at: null }).eq("id", id);
+      if (navigator.onLine) {
+        await supabase.from("notes").update({ deleted_at: null }).eq("id", id);
+      }
     }
     setSelectedId(null);
     setIsListVisible(true);
@@ -706,12 +925,18 @@ export default function NotesPage() {
       onConfirm: async () => {
         const id = item.entry_date || item.id;
         const nextId = getNextId(id);
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
 
         setTrash((prev) => prev.filter((t) => (t.entry_date || t.id) !== id));
 
         if (navigator.onLine) {
-          if (item.isJournal) await supabase.from("journal_entries").delete().eq("entry_date", id);
-          else await supabase.from("notes").delete().eq("id", id);
+          if (item.isJournal && user) {
+            await supabase.from("journal_entries").delete().eq("entry_date", id).eq("user_id", user.id);
+          } else {
+            await supabase.from("notes").delete().eq("id", id);
+          }
         }
 
         setSelectedId(nextId);
@@ -726,12 +951,20 @@ export default function NotesPage() {
       message: `Permanently delete all items in your ${notesTab} trash? This cannot be undone.`,
       isDestructive: true,
       onConfirm: async () => {
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+
         if (notesTab === "journal") {
           setTrash((prev) => prev.filter((t) => !t.isJournal));
-          if (navigator.onLine) await supabase.from("journal_entries").delete().not("deleted_at", "is", null);
+          if (navigator.onLine && user) {
+            await supabase.from("journal_entries").delete().eq("user_id", user.id).not("deleted_at", "is", null);
+          }
         } else {
           setTrash((prev) => prev.filter((t) => t.isJournal));
-          if (navigator.onLine) await supabase.from("notes").delete().not("deleted_at", "is", null);
+          if (navigator.onLine && user) {
+            await supabase.from("notes").delete().eq("user_id", user.id).not("deleted_at", "is", null);
+          }
         }
         setSelectedId(null);
         setIsListVisible(true);
@@ -794,7 +1027,7 @@ export default function NotesPage() {
       }
       setAutoSelectPending(false);
     }
-  }, [autoSelectPending, loading, filteredItems, isTrashOpen, notesTab]);
+  }, [autoSelectPending, loading, filteredItems, isTrashOpen, notesTab, setSelectedId]);
 
   const Snippet = ({ html, query }: { html: string; query: string }) => {
     const plain = (html || "").replace(/<[^>]+>/g, " ").replace(/&nbsp;/gi, " ").replace(/\s+/g, " ").trim();
@@ -805,7 +1038,7 @@ export default function NotesPage() {
     const start = Math.max(0, idx - 20);
     const end = Math.min(plain.length, idx + query.length + 40);
     const snippet = plain.slice(start, end);
-    const parts = snippet.split(new RegExp(`(${query})`, "gi"));
+    const parts = snippet.split(new RegExp(`(${escapeRegExp(query)})`, "gi"));
     return (
       <span className="opacity-80">
         {start > 0 && "..."}
@@ -829,6 +1062,38 @@ export default function NotesPage() {
     if (notesTab === "notes") return notes.find((n) => n.id === selectedId);
     return journals.find((j) => j.entry_date === selectedId);
   }, [selectedId, notesTab, notes, journals, trash, isTrashOpen]);
+
+  // Ensure restored folder/note still exists once server data arrives
+  useEffect(() => {
+    if (!hasFetchedServer || loading) return;
+
+    if (notesTab === "notes" && !isTrashOpen && selectedFolderId) {
+      if (!folders.some((f) => f.id === selectedFolderId)) {
+        setSelectedFolderId(null);
+      }
+    }
+
+    if (selectedId && !selectedItem) {
+      setSelectedId(null);
+      if (typeof window !== "undefined" && window.innerWidth < 1024) {
+        setIsListVisible(true);
+      } else if (!isTrashOpen) {
+        setAutoSelectPending(true);
+      }
+    }
+  }, [
+    hasFetchedServer,
+    loading,
+    notesTab,
+    isTrashOpen,
+    selectedFolderId,
+    folders,
+    selectedId,
+    selectedItem,
+    setSelectedFolderId,
+    setSelectedId,
+    setIsListVisible,
+  ]);
 
   const currentFolder = folders.find((f) => f.id === selectedFolderId);
 
@@ -1032,6 +1297,10 @@ export default function NotesPage() {
       ? "Tap the + icon to capture your thoughts."
       : "Tap the calendar icon to add an entry for a specific date.";
 
+  const activeItemType: "notes" | "journal" =
+    (!isTrashOpen && notesTab === "journal") || selectedItem?.isJournal ? "journal" : "notes";
+  const editorKey = `${isTrashOpen ? "trash" : notesTab}-${selectedId}`;
+
   return (
     <div className="relative flex h-full w-full bg-[#f7f5f0] dark:bg-[#121212] overflow-hidden">
       {/* SIDEBAR LIBRARY VIEW */}
@@ -1058,17 +1327,21 @@ export default function NotesPage() {
                       e.preventDefault();
                       e.stopPropagation();
                       setIsTrashOpen(false);
-                      setSelectedId(null);
+                      setTrashSelectedId(null);
+                      setTrashListVisible(true);
                       setNoteToFocus(null);
-                      setAutoSelectPending(true);
+                      const targetId = notesTab === "notes" ? notesSelectedId : journalSelectedId;
+                      setAutoSelectPending(!targetId);
                       setShowCalendar(false);
                     }}
                     onClick={(e) => {
                       e.stopPropagation();
                       setIsTrashOpen(false);
-                      setSelectedId(null);
+                      setTrashSelectedId(null);
+                      setTrashListVisible(true);
                       setNoteToFocus(null);
-                      setAutoSelectPending(true);
+                      const targetId = notesTab === "notes" ? notesSelectedId : journalSelectedId;
+                      setAutoSelectPending(!targetId);
                       setShowCalendar(false);
                     }}
                     className="flex items-center justify-center p-2.5 md:p-3 bg-white dark:bg-[#1a1a1a] text-[#888] rounded-xl border border-[#e0ddd5] dark:border-[#333] md:hover:text-[#3d3b33] md:dark:hover:text-[#f0f0f0] transition-all shadow-sm mr-1 shrink-0 cursor-pointer"
@@ -1090,9 +1363,9 @@ export default function NotesPage() {
                     <button
                       onClick={() => {
                         setIsTrashOpen(true);
-                        setSelectedId(null);
+                        setTrashSelectedId(null);
+                        setTrashListVisible(true);
                         setNoteToFocus(null);
-                        setAutoSelectPending(true);
                         setShowCalendar(false);
                       }}
                       data-tooltip-id="global-tooltip"
@@ -1117,9 +1390,9 @@ export default function NotesPage() {
                     <button
                       onClick={() => {
                         setIsTrashOpen(true);
-                        setSelectedId(null);
+                        setTrashSelectedId(null);
+                        setTrashListVisible(true);
                         setNoteToFocus(null);
-                        setAutoSelectPending(true);
                         setShowCalendar(false);
                       }}
                       data-tooltip-id="global-tooltip"
@@ -1220,6 +1493,9 @@ export default function NotesPage() {
 
           <div
             id="notes-library-scroll-container"
+            onScroll={(e) => {
+              libScrollTopRef.current = e.currentTarget.scrollTop;
+            }}
             className="flex-1 overflow-y-auto no-scrollbar px-4 pb-4 md:px-8 lg:px-10 lg:pl-8 scroll-smooth"
           >
             {loading && notes.length === 0 && journals.length === 0 ? (
@@ -1427,11 +1703,14 @@ export default function NotesPage() {
 
                 <div className="relative flex-1 flex flex-col">
                   <DistractionFreeEditor
-                    key={`${isTrashOpen ? "trash" : notesTab}-${selectedId}`}
+                    key={editorKey}
+                    editorStateKey={!isTrashOpen ? editorKey : undefined}
                     initialContent={selectedItem.content || "<p></p>"}
                     isEditable={!isTrashOpen}
-                    onSave={(html) => saveContent(html, selectedItem.entry_date || selectedItem.id)}
-                    noteType={(!isTrashOpen && notesTab === "journal") || selectedItem.isJournal ? "journal" : "notes"}
+                    onSave={(html, targetType) =>
+                      saveContent(html, selectedItem.entry_date || selectedItem.id, targetType || activeItemType)
+                    }
+                    noteType={activeItemType}
                     entryDate={selectedItem.entry_date}
                     shouldFocusOnMount={noteToFocus === (selectedItem.entry_date || selectedItem.id)}
                   />
