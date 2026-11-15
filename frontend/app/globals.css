@@ -56,12 +56,36 @@ body {
   padding-right: var(--safe-area-inset-right, 0px);
 }
 
-/* Allow text selection where the user actually needs to type/edit */
-/* Added .select-text to guarantee iOS Safari immediately transfers focus to the whole DOM tree */
-input, textarea, .chronoa-editor, .task-input-field, [contenteditable="true"], .select-text {
+/* Explicitly allow selection inside editables and their descendants so iOS Safari does not stall focus */
+input,
+textarea,
+.chronoa-editor,
+.chronoa-editor *,
+.task-input-field,
+[contenteditable="true"],
+[contenteditable="true"] *,
+.select-text,
+.select-text * {
   -webkit-user-select: text !important;
   user-select: text !important;
   cursor: text;
+}
+
+.no-editor-focus,
+.no-editor-focus * {
+  cursor: default;
+}
+
+.no-editor-focus input,
+.no-editor-focus textarea {
+  cursor: text;
+}
+
+.no-editor-focus button,
+.no-editor-focus a,
+.chronoa-editor a,
+.chronoa-editor a * {
+  cursor: pointer;
 }
 
 /* Enforce immediate click registration on touch interfaces, bypassing the 300ms delay */
@@ -84,7 +108,8 @@ h1, h2, h3, h4 { font-family: var(--font-display); font-weight: 500; }
   word-wrap: break-word;
   word-break: break-word;
   max-width: 100%;
-  overflow-x: hidden;
+  /* Keep visible so WebKit does not promote the editable to a nested scroll container */
+  overflow: visible;
   /* Re-enable native callouts so iOS can accurately position the cursor and magnifying glass */
   -webkit-touch-callout: default !important;
 }

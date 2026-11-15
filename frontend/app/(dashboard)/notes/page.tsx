@@ -49,6 +49,8 @@ const syncOfflineData = async () => {
   if (!navigator.onLine) return;
   if (offlineSyncPromise) return offlineSyncPromise;
 
+  let shouldRetryRemaining = false;
+
   offlineSyncPromise = (async () => {
     try {
       const queue = JSON.parse(localStorage.getItem("chronoa_offline_queue") || "[]");
@@ -64,17 +66,34 @@ const syncOfflineData = async () => {
       for (const item of queue) {
         try {
           if (item.type === "notes") {
-            const payload: any = { content: item.content, updated_at: item.updated_at };
-            if (item.title !== undefined) payload.title = item.title;
-            if (item.folder_id !== undefined) payload.folder_id = item.folder_id;
-            const { error } = await supabase
-              .from("notes")
-              .update(payload)
-              .eq("id", item.id)
-              .eq("user_id", user.id);
+            if (item.isNew) {
+              const { error } = await supabase.from("notes").upsert(
+                {
+                  id: item.id,
+                  user_id: user.id,
+                  title: item.title ?? "New Note",
+                  content: item.content ?? "<p></p>",
+                  folder_id: item.folder_id ?? null,
+                  updated_at: item.updated_at,
+                },
+                { onConflict: "id" }
+              );
+              if (!error) {
+                syncedItems.set(`${item.type}:${item.id}`, item.updated_at);
+              }
+            } else {
+              const payload: any = { content: item.content, updated_at: item.updated_at };
+              if (item.title !== undefined) payload.title = item.title;
+              if (item.folder_id !== undefined) payload.folder_id = item.folder_id;
+              const { error } = await supabase
+                .from("notes")
+                .update(payload)
+                .eq("id", item.id)
+                .eq("user_id", user.id);
 
-            if (!error) {
-              syncedItems.set(`${item.type}:${item.id}`, item.updated_at);
+              if (!error) {
+                syncedItems.set(`${item.type}:${item.id}`, item.updated_at);
+              }
             }
           } else {
             const { data, error } = await supabase
@@ -109,8 +128,22 @@ const syncOfflineData = async () => {
         return !syncedAt || q.updated_at !== syncedAt;
       });
       localStorage.setItem("chronoa_offline_queue", JSON.stringify(remaining));
+
+      // Follow up immediately if edits arrived while this sync was in flight
+      if (
+        remaining.length > 0 &&
+        syncedItems.size > 0 &&
+        remaining.some((q: any) => syncedItems.has(`${q.type}:${q.id}`))
+      ) {
+        shouldRetryRemaining = true;
+      }
     } finally {
       offlineSyncPromise = null;
+      if (shouldRetryRemaining && navigator.onLine) {
+        setTimeout(() => {
+          syncOfflineData();
+        }, 200);
+      }
     }
   })();
 
@@ -147,6 +180,15 @@ export default function NotesPage() {
   const [journals, setJournals] = useState<any[]>([]);
   const [trash, setTrash] = useState<any[]>([]);
   const [folders, setFolders] = useState<any[]>([]);
+
+  const notesRef = useRef<any[]>([]);
+  const journalsRef = useRef<any[]>([]);
+  useEffect(() => {
+    notesRef.current = notes;
+  }, [notes]);
+  useEffect(() => {
+    journalsRef.current = journals;
+  }, [journals]);
 
   const [searchQuery, setSearchQuery] = useState("");
   const [editTitle, setEditTitle] = useState("");
@@ -206,6 +248,10 @@ export default function NotesPage() {
   const prevPathnameRef = useRef<string | null>(null);
   const libScrollTopRef = useRef<number>(notesLibraryScrollTop);
   const hasRestoredLibScrollRef = useRef(false);
+  const isCreatingNoteRef = useRef(false);
+  const titleSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const titleTouchStartRef = useRef<{ x: number; y: number } | null>(null);
+  const scrollContainerTouchRef = useRef<{ x: number; y: number; time: number } | null>(null);
 
   const prevNotesTab = useRef(notesTab);
   useEffect(() => {
@@ -259,10 +305,61 @@ export default function NotesPage() {
     };
   }, [setNotesLibraryScrollTop]);
 
+  // Reset active tab back to its main root state and open the first item on desktop
+  const resetTabToMain = useCallback(
+    (tab: Tab) => {
+      setNotesTab(tab);
+      setIsTrashOpen(false);
+      setTrashSelectedId(null);
+      setTrashListVisible(true);
+      setNoteToFocus(null);
+      setSearchQuery("");
+      setShowCalendar(false);
+      libScrollTopRef.current = 0;
+      setNotesLibraryScrollTop(0);
+      document.getElementById("notes-library-scroll-container")?.scrollTo({ top: 0, behavior: "smooth" });
+
+      const isDesktop = typeof window !== "undefined" && window.innerWidth >= 1024;
+
+      if (tab === "notes") {
+        prevFolderId.current = null;
+        setSelectedFolderId(null);
+        if (isDesktop) {
+          const rootNotes = notesRef.current.filter((n) => (n.folder_id || null) === null);
+          setNotesSelectedId(rootNotes.length > 0 ? rootNotes[0].id : null);
+          setAutoSelectPending(rootNotes.length === 0);
+        } else {
+          setNotesSelectedId(null);
+          setNotesListVisible(true);
+        }
+      } else {
+        if (isDesktop) {
+          const firstJournal = journalsRef.current[0];
+          setJournalSelectedId(firstJournal ? firstJournal.entry_date : null);
+          setAutoSelectPending(!firstJournal);
+        } else {
+          setJournalSelectedId(null);
+          setJournalListVisible(true);
+        }
+      }
+    },
+    [
+      setNotesTab,
+      setIsTrashOpen,
+      setNotesLibraryScrollTop,
+      setSelectedFolderId,
+      setNotesSelectedId,
+      setNotesListVisible,
+      setJournalSelectedId,
+      setJournalListVisible,
+    ]
+  );
+
   // Reset View Event Listener (Nav tab tapped while already on Notes)
   useEffect(() => {
     const handleReset = (e: any) => {
       if (e.detail === "/notes") {
+        prevFolderId.current = null;
         libScrollTopRef.current = 0;
         resetNotesWorkspace();
         setTrashSelectedId(null);
@@ -349,6 +446,10 @@ export default function NotesPage() {
   ]);
 
   const handleTabChange = (id: Tab) => {
+    if (id === notesTab) {
+      resetTabToMain(id);
+      return;
+    }
     setNotesTab(id);
     setTrashSelectedId(null);
     setNoteToFocus(null);
@@ -416,6 +517,7 @@ export default function NotesPage() {
     let newNotes = nData.data || [];
     const pendingNoteItems = remainingQueue.filter((q: any) => q.type === "notes");
     if (pendingNoteItems.length > 0) {
+      const seenNoteIds = new Set(newNotes.map((n: any) => n.id));
       newNotes = newNotes.map((n: any) => {
         const pending = pendingNoteItems.find((p: any) => p.id === n.id);
         return pending
@@ -427,6 +529,19 @@ export default function NotesPage() {
               ...(pending.folder_id !== undefined ? { folder_id: pending.folder_id } : {}),
             }
           : n;
+      });
+      pendingNoteItems.forEach((p: any) => {
+        if (p.isNew && !seenNoteIds.has(p.id)) {
+          newNotes.unshift({
+            id: p.id,
+            user_id: user.id,
+            title: p.title ?? "New Note",
+            content: p.content ?? "<p></p>",
+            folder_id: p.folder_id ?? null,
+            updated_at: p.updated_at,
+            deleted_at: null,
+          });
+        }
       });
     }
     setNotes((prev) => (JSON.stringify(prev) === JSON.stringify(newNotes) ? prev : newNotes));
@@ -546,6 +661,11 @@ export default function NotesPage() {
   }, [showCalendar]);
 
   useEffect(() => {
+    if (titleSaveTimeoutRef.current) {
+      clearTimeout(titleSaveTimeoutRef.current);
+      titleSaveTimeoutRef.current = null;
+    }
+
     if (selectedId) {
       const item = isTrashOpen
         ? trash.find((t) => (t.entry_date || t.id) === selectedId)
@@ -564,6 +684,7 @@ export default function NotesPage() {
   useEffect(() => {
     return () => {
       setMobileNoteOpen(false);
+      if (titleSaveTimeoutRef.current) clearTimeout(titleSaveTimeoutRef.current);
     };
   }, [setMobileNoteOpen]);
 
@@ -696,20 +817,73 @@ export default function NotesPage() {
   };
 
   const createNote = async () => {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    const payload: any = { user_id: user?.id, title: "New Note" };
-    if (selectedFolderId) payload.folder_id = selectedFolderId;
+    if (isCreatingNoteRef.current) return;
+    isCreatingNoteRef.current = true;
 
-    const { data } = await supabase.from("notes").insert(payload).select().single();
-    if (data) {
+    try {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const updatedNow = new Date().toISOString();
+      const newId =
+        typeof crypto !== "undefined" && crypto.randomUUID
+          ? crypto.randomUUID()
+          : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+
+      if (!navigator.onLine) {
+        const offlineNote = {
+          id: newId,
+          user_id: user.id,
+          title: "New Note",
+          content: "<p></p>",
+          folder_id: selectedFolderId || null,
+          updated_at: updatedNow,
+          deleted_at: null,
+        };
+        setNotes((prev) => {
+          const next = [offlineNote, ...prev];
+          localStorage.setItem("chronoa_cache_notes", JSON.stringify(next));
+          return next;
+        });
+        const queue = JSON.parse(localStorage.getItem("chronoa_offline_queue") || "[]");
+        queue.push({
+          type: "notes",
+          id: newId,
+          title: "New Note",
+          content: "<p></p>",
+          folder_id: selectedFolderId || null,
+          updated_at: updatedNow,
+          isNew: true,
+        });
+        localStorage.setItem("chronoa_offline_queue", JSON.stringify(queue));
+        handleSelectItem(newId, true);
+        return;
+      }
+
+      const payload: any = { id: newId, user_id: user.id, title: "New Note" };
+      if (selectedFolderId) payload.folder_id = selectedFolderId;
+
+      const { data, error } = await supabase.from("notes").insert(payload).select().single();
+      if (error || !data) {
+        showConfirmDialog({
+          title: "Unable to Create Note",
+          message: error?.message || "Please check your connection and try again.",
+          confirmText: "OK",
+          onConfirm: () => {},
+        });
+        return;
+      }
+
       setNotes((prev) => {
         const next = [data, ...prev];
         localStorage.setItem("chronoa_cache_notes", JSON.stringify(next));
         return next;
       });
       handleSelectItem(data.id, true);
+    } finally {
+      isCreatingNoteRef.current = false;
     }
   };
 
@@ -754,28 +928,42 @@ export default function NotesPage() {
     }
   };
 
-  const updateNoteTitle = async () => {
-    if (!selectedId || notesTab !== "notes" || isTrashOpen) return;
-    const t = editTitle.trim() || "Untitled";
-    const updatedNow = new Date().toISOString();
-    setNotes((prev) => {
-      const next = prev.map((n) => (n.id === selectedId ? { ...n, title: t, updated_at: updatedNow } : n));
-      localStorage.setItem("chronoa_cache_notes", JSON.stringify(next));
-      return next;
-    });
+  const commitNoteTitle = useCallback(
+    (rawTitle: string, targetId: string | null) => {
+      if (!targetId || notesTab !== "notes" || isTrashOpen) return;
+      const t = rawTitle.trim() || "Untitled";
+      const existingNote = notesRef.current.find((n) => n.id === targetId);
+      if (existingNote && existingNote.title === t) return;
 
-    const queue = JSON.parse(localStorage.getItem("chronoa_offline_queue") || "[]");
-    const itemIndex = queue.findIndex((q: any) => q.id === selectedId && q.type === "notes");
-    const existingContent = notes.find((n) => n.id === selectedId)?.content || "";
+      const updatedNow = new Date().toISOString();
+      setNotes((prev) => {
+        const next = prev.map((n) => (n.id === targetId ? { ...n, title: t, updated_at: updatedNow } : n));
+        localStorage.setItem("chronoa_cache_notes", JSON.stringify(next));
+        return next;
+      });
 
-    if (itemIndex >= 0) {
-      queue[itemIndex].title = t;
-      queue[itemIndex].updated_at = updatedNow;
-    } else {
-      queue.push({ type: "notes", id: selectedId, content: existingContent, title: t, updated_at: updatedNow });
+      const queue = JSON.parse(localStorage.getItem("chronoa_offline_queue") || "[]");
+      const itemIndex = queue.findIndex((q: any) => q.id === targetId && q.type === "notes");
+      const existingContent = existingNote?.content || "";
+
+      if (itemIndex >= 0) {
+        queue[itemIndex].title = t;
+        queue[itemIndex].updated_at = updatedNow;
+      } else {
+        queue.push({ type: "notes", id: targetId, content: existingContent, title: t, updated_at: updatedNow });
+      }
+      localStorage.setItem("chronoa_offline_queue", JSON.stringify(queue));
+      syncOfflineData();
+    },
+    [notesTab, isTrashOpen]
+  );
+
+  const updateNoteTitle = () => {
+    if (titleSaveTimeoutRef.current) {
+      clearTimeout(titleSaveTimeoutRef.current);
+      titleSaveTimeoutRef.current = null;
     }
-    localStorage.setItem("chronoa_offline_queue", JSON.stringify(queue));
-    syncOfflineData();
+    commitNoteTitle(editTitle, selectedId);
   };
 
   const moveToFolder = async (id: string, folderId: string | null) => {
@@ -791,8 +979,7 @@ export default function NotesPage() {
 
     const queue = JSON.parse(localStorage.getItem("chronoa_offline_queue") || "[]");
     const itemIndex = queue.findIndex((q: any) => q.id === id && q.type === "notes");
-    const existingContent = notes.find((n) => n.id === id)?.content || "";
-    const existingTitle = notes.find((n) => n.id === id)?.title || "Untitled";
+    const currNote = notesRef.current.find((n) => n.id === id);
 
     if (itemIndex >= 0) {
       queue[itemIndex].folder_id = cleanFolderId;
@@ -801,8 +988,8 @@ export default function NotesPage() {
       queue.push({
         type: "notes",
         id,
-        content: existingContent,
-        title: existingTitle,
+        content: currNote?.content || "",
+        title: currNote?.title || "Untitled",
         folder_id: cleanFolderId,
         updated_at: updatedNow,
       });
@@ -832,18 +1019,22 @@ export default function NotesPage() {
 
     const queue = JSON.parse(localStorage.getItem("chronoa_offline_queue") || "[]");
     const itemIndex = queue.findIndex((q: any) => q.id === id && q.type === targetType);
-    const payload: any = { type: targetType, id, content: html, updated_at: updatedNow };
 
-    if (targetType === "notes") {
-      const currNote = notes.find((n) => n.id === id);
-      if (currNote) {
-        payload.title = currNote.title;
-        payload.folder_id = currNote.folder_id;
+    if (itemIndex >= 0) {
+      // Preserve any pending title or folder_id already queued
+      queue[itemIndex].content = html;
+      queue[itemIndex].updated_at = updatedNow;
+    } else {
+      const payload: any = { type: targetType, id, content: html, updated_at: updatedNow };
+      if (targetType === "notes") {
+        const currNote = notesRef.current.find((n) => n.id === id);
+        if (currNote) {
+          payload.title = currNote.title;
+          payload.folder_id = currNote.folder_id;
+        }
       }
+      queue.push(payload);
     }
-
-    if (itemIndex >= 0) queue[itemIndex] = payload;
-    else queue.push(payload);
 
     localStorage.setItem("chronoa_offline_queue", JSON.stringify(queue));
     syncOfflineData();
@@ -991,7 +1182,7 @@ export default function NotesPage() {
 
     if (!searchQuery.trim()) {
       if (notesTab === "notes" && !isTrashOpen) {
-        list = list.filter((n) => n.folder_id === selectedFolderId);
+        list = list.filter((n) => (n.folder_id || null) === (selectedFolderId || null));
       }
       return list;
     }
@@ -1007,7 +1198,9 @@ export default function NotesPage() {
 
   const currentFolders = useMemo(() => {
     if (notesTab !== "notes" || isTrashOpen || searchQuery.trim()) return [];
-    return folders.filter((f) => f.parent_id === selectedFolderId).sort((a, b) => a.name.localeCompare(b.name));
+    return folders
+      .filter((f) => (f.parent_id || null) === (selectedFolderId || null))
+      .sort((a, b) => a.name.localeCompare(b.name));
   }, [folders, selectedFolderId, notesTab, isTrashOpen, searchQuery]);
 
   useEffect(() => {
@@ -1109,7 +1302,9 @@ export default function NotesPage() {
   };
 
   const moveModalSubfolders = useMemo(() => {
-    return folders.filter((f) => f.parent_id === moveTargetFolderId).sort((a, b) => a.name.localeCompare(b.name));
+    return folders
+      .filter((f) => (f.parent_id || null) === (moveTargetFolderId || null))
+      .sort((a, b) => a.name.localeCompare(b.name));
   }, [folders, moveTargetFolderId]);
 
   const renderCalendar = (isMobilePopover = false) => {
@@ -1183,8 +1378,10 @@ export default function NotesPage() {
         <div className="flex items-center gap-3 flex-1 min-w-0">
           {isMobile && (
             <button
-              onPointerDown={(e) => {
-                e.preventDefault();
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                updateNoteTitle();
                 (document.activeElement as HTMLElement)?.blur();
                 setSelectedId(null);
                 setIsListVisible(true);
@@ -1199,8 +1396,7 @@ export default function NotesPage() {
             {(!isTrashOpen && notesTab === "journal") || selectedItem?.isJournal ? (
               <div
                 className="space-y-0.5 cursor-pointer hover:opacity-80 transition-opacity"
-                onPointerDown={(e) => {
-                  e.preventDefault();
+                onClick={() => {
                   document.getElementById("notes-scroll-container")?.scrollTo({ top: 0, behavior: "smooth" });
                 }}
               >
@@ -1211,15 +1407,43 @@ export default function NotesPage() {
               </div>
             ) : (
               <input
+                data-note-title-input="true"
                 value={editTitle}
-                onChange={(e) => setEditTitle(e.target.value)}
+                onChange={(e) => {
+                  const nextTitle = e.target.value;
+                  const targetId = selectedId;
+                  setEditTitle(nextTitle);
+                  if (titleSaveTimeoutRef.current) clearTimeout(titleSaveTimeoutRef.current);
+                  titleSaveTimeoutRef.current = setTimeout(() => {
+                    commitNoteTitle(nextTitle, targetId);
+                  }, 800);
+                }}
                 onBlur={updateNoteTitle}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    updateNoteTitle();
+                    e.currentTarget.blur();
+                    window.dispatchEvent(new CustomEvent("focus-editor"));
+                  }
+                }}
                 disabled={isTrashOpen}
                 placeholder="Title..."
                 spellCheck={false}
+                onTouchStart={(e) => {
+                  if (e.touches.length === 1) {
+                    titleTouchStartRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+                  }
+                }}
                 onTouchEnd={(e) => {
-                  if (document.activeElement !== e.currentTarget) {
-                    e.currentTarget.focus();
+                  const start = titleTouchStartRef.current;
+                  titleTouchStartRef.current = null;
+                  if (!start || isTrashOpen || e.changedTouches.length !== 1) return;
+                  const t = e.changedTouches[0];
+                  if (Math.abs(t.clientX - start.x) < 10 && Math.abs(t.clientY - start.y) < 10) {
+                    if (document.activeElement !== e.currentTarget) {
+                      e.currentTarget.focus();
+                    }
                   }
                 }}
                 className="select-text text-2xl lg:text-4xl text-[#3d3b33] dark:text-white font-serif leading-tight bg-transparent outline-none w-full placeholder:text-[#e0ddd5] dark:placeholder:text-[#2a2a2a] transition-all truncate lg:whitespace-normal"
@@ -1231,10 +1455,12 @@ export default function NotesPage() {
         <div className="flex items-center gap-1 shrink-0">
           {!isTrashOpen && notesTab === "notes" && !selectedItem?.isJournal && (
             <button
+              type="button"
               data-tooltip-id="global-tooltip"
               data-tooltip-content="Move Note"
-              onPointerDown={(e) => {
-                e.preventDefault();
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={(e) => {
+                e.stopPropagation();
                 (document.activeElement as HTMLElement)?.blur();
                 setMoveTargetFolderId(selectedItem?.folder_id || null);
                 setIsMoveModalOpen(true);
@@ -1247,10 +1473,12 @@ export default function NotesPage() {
 
           {!isTrashOpen ? (
             <button
+              type="button"
               data-tooltip-id="global-tooltip"
               data-tooltip-content="Move to Trash"
-              onPointerDown={(e) => {
-                e.preventDefault();
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={(e) => {
+                e.stopPropagation();
                 (document.activeElement as HTMLElement)?.blur();
                 moveToTrash(selectedItem?.entry_date || selectedItem?.id);
               }}
@@ -1261,10 +1489,12 @@ export default function NotesPage() {
           ) : (
             <>
               <button
+                type="button"
                 data-tooltip-id="global-tooltip"
                 data-tooltip-content="Restore"
-                onPointerDown={(e) => {
-                  e.preventDefault();
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={(e) => {
+                  e.stopPropagation();
                   (document.activeElement as HTMLElement)?.blur();
                   restoreNote(selectedItem);
                 }}
@@ -1273,10 +1503,12 @@ export default function NotesPage() {
                 <RotateCcw size={18} />
               </button>
               <button
+                type="button"
                 data-tooltip-id="global-tooltip"
                 data-tooltip-content="Delete Permanently"
-                onPointerDown={(e) => {
-                  e.preventDefault();
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={(e) => {
+                  e.stopPropagation();
                   (document.activeElement as HTMLElement)?.blur();
                   permanentlyDelete(selectedItem);
                 }}
@@ -1317,23 +1549,16 @@ export default function NotesPage() {
               <div
                 className="flex items-center gap-2.5 text-[#3d3b33] dark:text-[#f0f0f0] cursor-pointer hover:opacity-80 transition-opacity min-w-0"
                 onClick={() => {
-                  document.getElementById("notes-library-scroll-container")?.scrollTo({ top: 0, behavior: "smooth" });
-                  if (!isTrashOpen) setSelectedFolderId(null);
+                  if (!isTrashOpen) {
+                    resetTabToMain(notesTab as Tab);
+                  } else {
+                    document.getElementById("notes-library-scroll-container")?.scrollTo({ top: 0, behavior: "smooth" });
+                  }
                 }}
               >
                 {isTrashOpen && (
                   <button
-                    onPointerDown={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      setIsTrashOpen(false);
-                      setTrashSelectedId(null);
-                      setTrashListVisible(true);
-                      setNoteToFocus(null);
-                      const targetId = notesTab === "notes" ? notesSelectedId : journalSelectedId;
-                      setAutoSelectPending(!targetId);
-                      setShowCalendar(false);
-                    }}
+                    type="button"
                     onClick={(e) => {
                       e.stopPropagation();
                       setIsTrashOpen(false);
@@ -1640,15 +1865,16 @@ export default function NotesPage() {
         className={`
         cursor-text select-text
         flex-1 flex flex-col bg-white dark:bg-[#121212] transition-transform duration-500 ease-in-out z-40
-        max-lg:fixed max-lg:inset-0
+        max-md:fixed max-md:inset-0 md:max-lg:absolute md:max-lg:inset-0
         lg:static lg:translate-x-0
-        ${isListVisible && !isEditorFullscreen ? "max-lg:translate-x-full" : "max-lg:translate-x-0"}
+        ${isListVisible && !isEditorFullscreen ? "max-lg:translate-x-full max-lg:pointer-events-none" : "max-lg:translate-x-0"}
       `}
       >
         {selectedItem ? (
           <div className="flex-1 flex flex-col w-full overflow-hidden relative">
             {/* MOBILE FIXED HEADER */}
             <div
+              id="notes-mobile-header"
               className={`lg:hidden absolute top-0 left-0 right-0 z-50 px-4 sm:px-6 pt-[calc(0.75rem+max(1rem,env(safe-area-inset-top)))] pb-3 ${
                 isScrolled
                   ? "bg-white/80 dark:bg-[#121212]/80 backdrop-blur-xl border-b border-[#e0ddd5] dark:border-[#2a2a2a] shadow-sm"
@@ -1660,8 +1886,50 @@ export default function NotesPage() {
 
             <div
               id="notes-scroll-container"
-              className="flex-1 overflow-y-auto no-scrollbar w-full relative flex flex-col cursor-text select-text"
+              className="flex-1 overflow-y-auto overflow-x-hidden no-scrollbar w-full relative flex flex-col cursor-text select-text"
               onScroll={(e) => setIsScrolled(e.currentTarget.scrollTop > 10)}
+              onTouchStart={(e) => {
+                if (isTrashOpen || e.touches.length !== 1) {
+                  scrollContainerTouchRef.current = null;
+                  return;
+                }
+                const target = e.target as HTMLElement;
+                if (
+                  target.closest(".chronoa-editor-root") ||
+                  target.closest("button, a, input, textarea, .no-editor-focus")
+                ) {
+                  scrollContainerTouchRef.current = null;
+                  return;
+                }
+                scrollContainerTouchRef.current = {
+                  x: e.touches[0].clientX,
+                  y: e.touches[0].clientY,
+                  time: Date.now(),
+                };
+              }}
+              onTouchEnd={(e) => {
+                const start = scrollContainerTouchRef.current;
+                scrollContainerTouchRef.current = null;
+                if (!start || isTrashOpen || e.changedTouches.length !== 1) return;
+
+                const target = e.target as HTMLElement;
+                if (
+                  target.closest(".chronoa-editor-root") ||
+                  target.closest("button, a, input, textarea, .no-editor-focus")
+                ) {
+                  return;
+                }
+
+                const t = e.changedTouches[0];
+                if (
+                  Math.abs(t.clientX - start.x) < 10 &&
+                  Math.abs(t.clientY - start.y) < 10 &&
+                  Date.now() - start.time < 450
+                ) {
+                  e.preventDefault();
+                  window.dispatchEvent(new CustomEvent("chronoa-focus-editor-tap"));
+                }
+              }}
               onClick={(e) => {
                 const selection = window.getSelection();
                 if (selection && selection.toString().length > 0) {
@@ -1735,16 +2003,19 @@ export default function NotesPage() {
 
       {/* Move Note Modal */}
       {isMoveModalOpen && (
-        <div className="fixed inset-0 z-[600] flex items-center justify-center px-4 bg-black/40 dark:bg-black/60 backdrop-blur-sm animate-fade-in">
-          <div className="bg-[#f7f5f0] dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] rounded-[2.5rem] w-full max-w-md shadow-2xl flex flex-col overflow-hidden max-h-[85vh] animate-fade-up">
+        <div
+          className="fixed inset-0 z-[600] flex items-center justify-center px-4 bg-black/40 dark:bg-black/60 backdrop-blur-sm animate-fade-in"
+          onClick={() => setIsMoveModalOpen(false)}
+        >
+          <div
+            className="bg-[#f7f5f0] dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] rounded-[2.5rem] w-full max-w-md shadow-2xl flex flex-col overflow-hidden max-h-[85vh] animate-fade-up"
+            onClick={(e) => e.stopPropagation()}
+          >
             <header className="px-6 py-6 border-b border-[#e0ddd5] dark:border-[#2a2a2a] flex justify-between items-center bg-white dark:bg-[#1e1e1e] shrink-0">
               <h3 className="text-2xl font-serif text-[#3d3b33] dark:text-[#f0f0f0] font-medium tracking-tight">Move Note</h3>
               <button
-                onPointerDown={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  setIsMoveModalOpen(false);
-                }}
+                type="button"
+                onClick={() => setIsMoveModalOpen(false)}
                 className="p-2 text-[#888] hover:text-[#3d3b33] dark:hover:text-white bg-[#f0ede8] dark:bg-[#252525] hover:bg-[#e0ddd5] dark:hover:bg-[#333] rounded-full transition-colors cursor-pointer"
               >
                 <X size={18} />
@@ -1754,11 +2025,8 @@ export default function NotesPage() {
             <div className="p-6 md:p-8 overflow-y-auto no-scrollbar flex-1 space-y-5 bg-[#f7f5f0] dark:bg-[#121212]">
               <div className="flex flex-wrap items-center gap-1.5 text-sm font-medium text-[#888]">
                 <button
-                  onPointerDown={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    setMoveTargetFolderId(null);
-                  }}
+                  type="button"
+                  onClick={() => setMoveTargetFolderId(null)}
                   className={`hover:text-[#c2956e] transition-colors cursor-pointer ${
                     moveTargetFolderId === null ? "text-[#3d3b33] dark:text-white" : ""
                   }`}
@@ -1769,11 +2037,8 @@ export default function NotesPage() {
                   <React.Fragment key={f.id}>
                     <ChevronRight size={14} className="text-[#b0ad9a]" />
                     <button
-                      onPointerDown={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        setMoveTargetFolderId(f.id);
-                      }}
+                      type="button"
+                      onClick={() => setMoveTargetFolderId(f.id)}
                       className={`hover:text-[#c2956e] transition-colors truncate max-w-[120px] cursor-pointer ${
                         moveTargetFolderId === f.id ? "text-[#3d3b33] dark:text-white" : ""
                       }`}
@@ -1787,21 +2052,18 @@ export default function NotesPage() {
               <div className="border border-[#e0ddd5] dark:border-[#333] rounded-2xl bg-white dark:bg-[#1a1a1a] overflow-hidden shadow-sm">
                 {moveModalSubfolders.length > 0 ? (
                   moveModalSubfolders.map((f) => (
-                    <div
+                    <button
                       key={f.id}
-                      onPointerDown={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        setMoveTargetFolderId(f.id);
-                      }}
-                      className="flex items-center gap-3 p-3.5 border-b border-[#e0ddd5] dark:border-[#333] last:border-b-0 hover:bg-[#fdfbf7] dark:hover:bg-[#2a2a2a] cursor-pointer transition-colors group"
+                      type="button"
+                      onClick={() => setMoveTargetFolderId(f.id)}
+                      className="w-full text-left flex items-center gap-3 p-3.5 border-b border-[#e0ddd5] dark:border-[#333] last:border-b-0 hover:bg-[#fdfbf7] dark:hover:bg-[#2a2a2a] cursor-pointer transition-colors group"
                     >
                       <div className="w-8 h-8 rounded-xl bg-[#c2956e]/10 text-[#c2956e] flex items-center justify-center shrink-0">
                         <Folder size={16} />
                       </div>
                       <span className="text-[14px] font-medium text-[#3d3b33] dark:text-white truncate">{f.name}</span>
                       <ChevronRight size={16} className="ml-auto text-[#b0ad9a] opacity-50 group-hover:opacity-100 transition-opacity" />
-                    </div>
+                    </button>
                   ))
                 ) : (
                   <div className="p-6 text-center text-xs text-[#b0ad9a] italic">No subfolders here.</div>
@@ -1811,19 +2073,15 @@ export default function NotesPage() {
 
             <footer className="px-6 py-5 border-t border-[#e0ddd5] dark:border-[#2a2a2a] bg-white dark:bg-[#1e1e1e] flex justify-end gap-3 shrink-0">
               <button
-                onPointerDown={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  setIsMoveModalOpen(false);
-                }}
+                type="button"
+                onClick={() => setIsMoveModalOpen(false)}
                 className="px-5 py-2.5 rounded-xl text-[11px] font-bold uppercase tracking-widest text-[#888] hover:text-[#3d3b33] dark:hover:text-white transition-colors cursor-pointer"
               >
                 Cancel
               </button>
               <button
-                onPointerDown={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
+                type="button"
+                onClick={() => {
                   moveToFolder(selectedId!, moveTargetFolderId);
                   setIsMoveModalOpen(false);
                 }}
@@ -1837,7 +2095,7 @@ export default function NotesPage() {
       )}
 
       {isListVisible && !isTrashOpen && (
-        <div className="lg:hidden fixed bottom-[calc(110px+env(safe-area-inset-bottom))] right-6 z-[100] flex flex-col items-end gap-3">
+        <div className="lg:hidden fixed bottom-[calc(110px+env(safe-area-inset-bottom))] md:bottom-8 right-6 z-[100] flex flex-col items-end gap-3">
           {showCalendar && notesTab === "journal" && (
             <>
               <div className="fixed inset-0 z-40" onClick={() => setShowCalendar(false)} />

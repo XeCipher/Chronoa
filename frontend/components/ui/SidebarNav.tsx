@@ -270,7 +270,7 @@ export default function SidebarNav() {
       {/* Mobile Bottom Nav */}
       <nav
         className={`md:hidden fixed bottom-0 left-0 w-full h-[calc(82px+env(safe-area-inset-bottom))] pb-[calc(1.5rem+env(safe-area-inset-bottom))] pt-0 px-6 bg-white/95 dark:bg-[#121212]/95 backdrop-blur-xl border-t border-[#e0ddd5] dark:border-[#2a2a2a] flex items-center justify-between z-[100] transition-transform duration-300 ease-in-out overflow-x-auto no-scrollbar ${
-          mobileNoteOpen || isEditorFullscreen ? "translate-y-full" : "translate-y-0"
+          mobileNoteOpen || isEditorFullscreen ? "translate-y-full pointer-events-none" : "translate-y-0"
         }`}
       >
         {mobileNavItems.map((item) => {

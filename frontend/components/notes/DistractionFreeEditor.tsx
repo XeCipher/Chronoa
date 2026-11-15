@@ -2,6 +2,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
+import { createPortal } from "react-dom";
 import { useUiStore } from "@/store/uiStore";
 import { useEditor, EditorContent, NodeViewWrapper, NodeViewContent, ReactNodeViewRenderer } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
@@ -25,6 +26,7 @@ import {
   Link as LinkIcon,
   ChevronDown,
   ChevronRight,
+  Check,
 } from "lucide-react";
 
 interface EditorProps {
@@ -68,7 +70,7 @@ const MergeListsPlugin = Extension.create({
       new Plugin({
         key: new PluginKey("mergeLists"),
         appendTransaction(transactions, oldState, newState) {
-          let tr = newState.tr;
+          const tr = newState.tr;
           let modified = false;
           newState.doc.descendants((node, pos) => {
             if (node.type.name === "orderedList" || node.type.name === "bulletList") {
@@ -118,9 +120,14 @@ const HeadingNodeView = (props: any) => {
       {isEditable && (
         <div
           contentEditable={false}
-          className="absolute -left-6 lg:-left-8 top-1/2 -translate-y-1/2 cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity text-[#b0ad9a] hover:text-[#c2956e] p-1 z-10"
-          onPointerDown={(e) => {
+          role="button"
+          tabIndex={-1}
+          aria-label={collapsed ? "Expand section" : "Collapse section"}
+          className="absolute -left-5 lg:-left-8 top-1/2 -translate-y-1/2 cursor-pointer opacity-50 [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100 transition-opacity text-[#b0ad9a] hover:text-[#c2956e] p-1 z-10"
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={(e) => {
             e.preventDefault();
+            e.stopPropagation();
             updateAttributes({ collapsed: !collapsed });
           }}
         >
@@ -199,25 +206,39 @@ export default function DistractionFreeEditor({
   shouldFocusOnMount = false,
   editorStateKey,
 }: EditorProps) {
-  const { journalZoom, setJournalZoom, isEditorFullscreen, toggleEditorFullscreen } = useUiStore();
+  const {
+    journalZoom,
+    setJournalZoom,
+    isEditorFullscreen,
+    toggleEditorFullscreen,
+    mobileNoteOpen,
+  } = useUiStore();
+
+  const [mounted, setMounted] = useState(false);
   const [saveStatus, setSaveStatus] = useState("Saved");
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-
   const [placeholder, setPlaceholder] = useState("");
+  const [isMobileKeyboardOpen, setIsMobileKeyboardOpen] = useState(false);
+  const [isTitleFocused, setIsTitleFocused] = useState(false);
+  const [isMobileViewport, setIsMobileViewport] = useState(false);
 
-  const [bubbleStyle, setBubbleStyle] = useState<React.CSSProperties>({
-    opacity: 0,
-    pointerEvents: "none",
-    position: "fixed",
-    top: 0,
-    left: "50%",
-    transform: "translateX(-50%)",
-  });
+  const mobileBarRef = useRef<HTMLDivElement>(null);
+  const baselineHeightRef = useRef<number>(800);
+  const isMobileKeyboardOpenRef = useRef(false);
 
   const onSaveRef = useRef(onSave);
   const noteTypeRef = useRef(noteType);
   const editorStateKeyRef = useRef(editorStateKey);
   const isSandboxRef = useRef(isSandbox);
+
+  useEffect(() => {
+    setMounted(true);
+    baselineHeightRef.current = window.innerHeight;
+    const handleResize = () => setIsMobileViewport(window.innerWidth < 768);
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   useEffect(() => {
     onSaveRef.current = onSave;
@@ -252,6 +273,11 @@ export default function DistractionFreeEditor({
   const isRestoringStateRef = useRef(false);
   const hasRestoredStateRef = useRef(false);
 
+  // Track clean touch taps so iOS focuses on the first tap without firing on scroll
+  const touchStartRef = useRef<{ x: number; y: number; time: number; wasFocused: boolean } | null>(null);
+  const lastHandledTouchEndRef = useRef(0);
+  const lastTouchToolbarTriggerRef = useRef(0);
+
   // Track cursor selection, scroll offset, and focus state across route changes
   const latestSelectionRef = useRef<{ from: number; to: number }>({ from: 0, to: 0 });
   const lastScrollTopRef = useRef<number>(0);
@@ -268,9 +294,15 @@ export default function DistractionFreeEditor({
     };
     window.addEventListener("pointerdown", handlePointerDown);
     window.addEventListener("pointerup", handlePointerUp);
+    window.addEventListener("pointercancel", handlePointerUp);
+    window.addEventListener("touchend", handlePointerUp);
+    window.addEventListener("touchcancel", handlePointerUp);
     return () => {
       window.removeEventListener("pointerdown", handlePointerDown);
       window.removeEventListener("pointerup", handlePointerUp);
+      window.removeEventListener("pointercancel", handlePointerUp);
+      window.removeEventListener("touchend", handlePointerUp);
+      window.removeEventListener("touchcancel", handlePointerUp);
     };
   }, []);
 
@@ -289,6 +321,8 @@ export default function DistractionFreeEditor({
   useEffect(() => {
     if (noteType === "journal") {
       setPlaceholder(PROMPTS[Math.floor(Math.random() * PROMPTS.length)]);
+    } else {
+      setPlaceholder("");
     }
   }, [noteType]);
 
@@ -296,19 +330,18 @@ export default function DistractionFreeEditor({
   const ensureCursorVisible = useCallback((ed: ReturnType<typeof useEditor>) => {
     if (!ed || isRestoringStateRef.current) return;
 
-    // Do not interfere if the user is actively interacting with the pointer (mouse/touch hold)
+    // Do not interfere while the user holds a finger/mouse down
     if (isPointerDownRef.current) return;
 
-    // Do not interfere if the user has selected text (drag-selecting)
+    // Do not interfere if text is actively drag-selected
     const selection = window.getSelection();
     if (selection && !selection.isCollapsed && selection.toString().trim().length > 0) return;
 
-    // On desktop, only enforce the bottom buffer if actively typing (within the last 1 second)
+    // On desktop, only enforce the bottom buffer while actively typing
     if (window.innerWidth >= 1024) {
       if (Date.now() - lastTypeTimeRef.current > 1000) return;
     }
 
-    // Use requestAnimationFrame to ensure the DOM has painted the new line/character
     requestAnimationFrame(() => {
       try {
         const vv = window.visualViewport;
@@ -320,14 +353,22 @@ export default function DistractionFreeEditor({
         const pos = state.selection.to;
         const coords = view.coordsAtPos(pos);
 
-        // Standardized buffer to prevent aggressive jumps.
-        // Add ~100px (approx 4 lines) to the mobile buffer to account for taller keyboards.
-        const isMobile = window.innerWidth < 1024;
-        const bottomBuffer = isMobile ? 240 : 120;
-        const topBuffer = 100; // Keeps cursor below the sticky toolbar
+        const isPhone = window.innerWidth < 768;
+        const isTabletOrSmaller = window.innerWidth < 1024;
 
-        const safeBottom = vv.offsetTop + vv.height - bottomBuffer;
+        let topBuffer = 100;
+        if (isTabletOrSmaller && !isSandboxRef.current) {
+          const mobileHeader = document.getElementById("notes-mobile-header");
+          const headerBottom = mobileHeader ? mobileHeader.getBoundingClientRect().bottom : 88;
+          topBuffer = headerBottom + (isPhone ? 12 : 68);
+        }
+
+        const bottomBuffer = isPhone && !isSandboxRef.current
+          ? (isMobileKeyboardOpenRef.current ? 74 : 88)
+          : 120;
+
         const safeTop = vv.offsetTop + topBuffer;
+        const safeBottom = Math.max(safeTop + 36, vv.offsetTop + vv.height - bottomBuffer);
 
         let scrollDelta = 0;
         if (coords.bottom > safeBottom) {
@@ -357,7 +398,7 @@ export default function DistractionFreeEditor({
   const editor = useEditor({
     editable: isEditable,
     extensions: [
-      StarterKit.configure({ heading: false }), // Disabled native logic to apply custom attributes
+      StarterKit.configure({ heading: false }),
       CollapsibleHeading.configure({ levels: [1, 2] }),
       CollapsePlugin,
       Underline,
@@ -375,14 +416,11 @@ export default function DistractionFreeEditor({
     content: initialContent,
     editorProps: {
       clipboardTextSerializer: (slice) => {
-        // Prevents default double newlines (\n\n) between paragraphs when copying
-        // plain text, ensuring the copied text precisely matches the UI spacing.
         return slice.content.textBetween(0, slice.content.size, "\n");
       },
       attributes: {
-        // Enforce the contenteditable node to stretch and fill all available height.
         class:
-          "chronoa-editor select-text focus:outline-none w-full flex-1 h-full min-h-[70vh] text-[#3d3b33] dark:text-[#e0e0e0] pb-[40vh] md:pb-[30vh] cursor-text",
+          "chronoa-editor select-text focus:outline-none w-full flex-1 h-full min-h-[70vh] text-[#3d3b33] dark:text-[#e0e0e0] pb-[48vh] md:pb-[30vh] cursor-text",
         spellcheck: "false",
         autocorrect: "off",
         autocomplete: "off",
@@ -409,11 +447,9 @@ export default function DistractionFreeEditor({
         to: ed.state.selection.to,
       };
 
-      // Staggered checks to smoothly track the iOS/Android keyboard sliding animation
-      ensureCursorVisibleRef.current(ed);
-      setTimeout(() => ensureCursorVisibleRef.current(ed), 100);
-      setTimeout(() => ensureCursorVisibleRef.current(ed), 300);
-      setTimeout(() => ensureCursorVisibleRef.current(ed), 500);
+      // Allow iOS/Android keyboard animation and tap caret placement to settle before adjusting scroll
+      setTimeout(() => ensureCursorVisibleRef.current(ed), 140);
+      setTimeout(() => ensureCursorVisibleRef.current(ed), 360);
     },
     onBlur: ({ editor: ed, event }) => {
       isFocusedRef.current = false;
@@ -463,6 +499,13 @@ export default function DistractionFreeEditor({
     immediatelyRender: false,
   });
 
+  // Keep editable state synchronized without emitting spurious updates
+  useEffect(() => {
+    if (editor && editor.isEditable !== isEditable) {
+      editor.setEditable(isEditable, false);
+    }
+  }, [editor, isEditable]);
+
   // Restore cursor position, focus, and scroll position when returning from another tab
   useEffect(() => {
     if (!editor || hasRestoredStateRef.current) return;
@@ -505,38 +548,48 @@ export default function DistractionFreeEditor({
     });
   }, [editor, editorStateKey, isSandbox, shouldFocusOnMount]);
 
-  // Sync external updates without disrupting active typing
+  // Sync external updates silently (TipTap v3 defaults emitUpdate to true unless passed false)
   useEffect(() => {
     if (editor && initialContent !== undefined) {
-      if (!editor.isFocused) {
+      if (!editor.isFocused && !saveTimeoutRef.current) {
         const currentHTML = editor.getHTML();
         if (currentHTML !== initialContent) {
-          editor.commands.setContent(initialContent);
+          editor.commands.setContent(initialContent, { emitUpdate: false });
         }
       }
     }
   }, [initialContent, editor]);
 
-  // Handle explicit programmatic focus calls dispatched from outer containers (desktop only).
+  // Explicit programmatic focus helper (used by desktop container clicks and Enter on note title)
   useEffect(() => {
     const handleFocus = () => {
-      if (!editor || window.innerWidth < 1024) return;
+      if (!editor || !isEditable) return;
 
       const selection = window.getSelection();
       if (selection && selection.toString().length > 0) {
         return;
       }
 
-      if (!editor.isFocused) {
-        editor.view.dom.focus();
-      }
-      editor.commands.focus("end");
+      editor.commands.focus("end", { scrollIntoView: false });
+      editor.view.dom.focus({ preventScroll: true });
     };
     window.addEventListener("focus-editor", handleFocus);
     return () => window.removeEventListener("focus-editor", handleFocus);
-  }, [editor]);
+  }, [editor, isEditable]);
 
-  // ── VisualViewport Resize Listener ─────────────────────────────────────────
+  // Synchronous clean-tap focus dispatched from outer scroll container on mobile/desktop
+  useEffect(() => {
+    const handleOuterTap = () => {
+      if (!editor || !isEditable) return;
+      lastHandledTouchEndRef.current = Date.now();
+      editor.commands.focus("end", { scrollIntoView: false });
+      editor.view.dom.focus({ preventScroll: true });
+    };
+    window.addEventListener("chronoa-focus-editor-tap", handleOuterTap);
+    return () => window.removeEventListener("chronoa-focus-editor-tap", handleOuterTap);
+  }, [editor, isEditable]);
+
+  // ── VisualViewport Resize Listener & Mobile Formatting Bar Positioning ─────
   useEffect(() => {
     const vv = window.visualViewport;
     if (!vv) return;
@@ -550,6 +603,81 @@ export default function DistractionFreeEditor({
     vv.addEventListener("resize", handleVVChange);
     return () => vv.removeEventListener("resize", handleVVChange);
   }, [editor]);
+
+  useEffect(() => {
+    const handleFocusTrack = () => {
+      const active = document.activeElement as HTMLElement | null;
+      setIsTitleFocused(Boolean(active?.getAttribute("data-note-title-input") === "true"));
+    };
+    window.addEventListener("focusin", handleFocusTrack);
+    window.addEventListener("focusout", handleFocusTrack);
+    return () => {
+      window.removeEventListener("focusin", handleFocusTrack);
+      window.removeEventListener("focusout", handleFocusTrack);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (isSandbox || !isEditable || !isMobileViewport || !mobileNoteOpen || isTitleFocused) {
+      isMobileKeyboardOpenRef.current = false;
+      setIsMobileKeyboardOpen(false);
+      return;
+    }
+
+    let rafId = 0;
+    const syncBarPosition = () => {
+      cancelAnimationFrame(rafId);
+      rafId = requestAnimationFrame(() => {
+        const bar = mobileBarRef.current;
+        const vv = window.visualViewport;
+        const vvTop = vv ? vv.offsetTop : 0;
+        const vvHeight = vv ? vv.height : window.innerHeight;
+        const vvBottom = vvTop + vvHeight;
+
+        const active = document.activeElement as HTMLElement | null;
+        const isAnyInputFocused = Boolean(
+          active && (active.tagName === "INPUT" || active.tagName === "TEXTAREA" || active.isContentEditable)
+        );
+        if (!isAnyInputFocused) {
+          baselineHeightRef.current = Math.max(baselineHeightRef.current, vvHeight, window.innerHeight);
+        }
+
+        const kbOpen =
+          baselineHeightRef.current - vvHeight > 120 ||
+          window.innerHeight - vvHeight > 120;
+
+        isMobileKeyboardOpenRef.current = kbOpen;
+        setIsMobileKeyboardOpen((prev) => (prev !== kbOpen ? kbOpen : prev));
+
+        if (bar) {
+          bar.style.transform = `translate3d(0, calc(${vvBottom}px - 100%), 0)`;
+        }
+      });
+    };
+
+    const handleFocusDelayedSync = () => {
+      syncBarPosition();
+      setTimeout(syncBarPosition, 120);
+      setTimeout(syncBarPosition, 340);
+    };
+
+    syncBarPosition();
+    const vv = window.visualViewport;
+    vv?.addEventListener("resize", syncBarPosition);
+    vv?.addEventListener("scroll", syncBarPosition);
+    window.addEventListener("resize", syncBarPosition);
+    window.addEventListener("focusin", handleFocusDelayedSync);
+    window.addEventListener("focusout", handleFocusDelayedSync);
+
+    return () => {
+      cancelAnimationFrame(rafId);
+      vv?.removeEventListener("resize", syncBarPosition);
+      vv?.removeEventListener("scroll", syncBarPosition);
+      window.removeEventListener("resize", syncBarPosition);
+      window.removeEventListener("focusin", handleFocusDelayedSync);
+      window.removeEventListener("focusout", handleFocusDelayedSync);
+    };
+  }, [isSandbox, isEditable, isMobileViewport, mobileNoteOpen, isTitleFocused, mounted]);
 
   // ── Cleanup: Flush Pending Saves & Store Cursor Position ───────────────────
   useEffect(() => {
@@ -583,8 +711,9 @@ export default function DistractionFreeEditor({
 
   // ── Ctrl/Cmd + Zoom Interaction ────────────────────────────────────────────
   useEffect(() => {
+    if (!isEditable || !editor) return;
+
     const handleWheel = (e: WheelEvent) => {
-      if (!isEditable) return;
       if (e.ctrlKey || e.metaKey) {
         e.preventDefault();
         const z = useUiStore.getState().journalZoom;
@@ -595,7 +724,6 @@ export default function DistractionFreeEditor({
     };
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (!isEditable) return;
       if (e.ctrlKey || e.metaKey) {
         const z = useUiStore.getState().journalZoom;
         if (e.key === "=" || e.key === "+") {
@@ -608,83 +736,14 @@ export default function DistractionFreeEditor({
       }
     };
 
-    const editorEl = document.querySelector(".chronoa-editor");
-    if (editorEl) {
-      editorEl.addEventListener("wheel", handleWheel as any, { passive: false });
-      editorEl.addEventListener("keydown", handleKeyDown as any);
-    }
+    const editorEl = editor.view.dom;
+    editorEl.addEventListener("wheel", handleWheel, { passive: false });
+    editorEl.addEventListener("keydown", handleKeyDown);
     return () => {
-      if (editorEl) {
-        editorEl.removeEventListener("wheel", handleWheel as any);
-        editorEl.removeEventListener("keydown", handleKeyDown as any);
-      }
+      editorEl.removeEventListener("wheel", handleWheel);
+      editorEl.removeEventListener("keydown", handleKeyDown);
     };
-  }, [isEditable]);
-
-  // ── Mobile Bubble Menu Logic ───────────────────────────────────────────────
-  useEffect(() => {
-    if (!editor) return;
-
-    const updateBubble = () => {
-      if (window.innerWidth >= 768) {
-        setBubbleStyle((prev) => ({ ...prev, opacity: 0, pointerEvents: "none" }));
-        return;
-      }
-
-      const { selection } = editor.state;
-      if (selection.empty || !editor.isFocused) {
-        setBubbleStyle((prev) => ({ ...prev, opacity: 0, pointerEvents: "none" }));
-        return;
-      }
-
-      const { view } = editor as any;
-      const endCoords = view.coordsAtPos(selection.to);
-      const startCoords = view.coordsAtPos(selection.from);
-      const centerLeft = (startCoords.left + endCoords.left) / 2;
-      const halfMenuWidth = 140;
-      let safeLeft = centerLeft;
-      if (safeLeft < halfMenuWidth + 16) safeLeft = halfMenuWidth + 16;
-      if (safeLeft > window.innerWidth - halfMenuWidth - 16)
-        safeLeft = window.innerWidth - halfMenuWidth - 16;
-
-      setBubbleStyle({
-        opacity: 1,
-        pointerEvents: "auto",
-        position: "fixed",
-        top: `${endCoords.bottom + 12}px`,
-        left: `${safeLeft}px`,
-        transform: "translateX(-50%)",
-        zIndex: 100,
-      });
-    };
-
-    let rafId: number;
-    const throttled = () => {
-      if (rafId) cancelAnimationFrame(rafId);
-      rafId = requestAnimationFrame(updateBubble);
-    };
-
-    const handleBlur = () => {
-      setTimeout(() => {
-        if (!editor.isFocused)
-          setBubbleStyle((prev) => ({ ...prev, opacity: 0, pointerEvents: "none" }));
-      }, 100);
-    };
-
-    editor.on("selectionUpdate", throttled);
-    editor.on("focus", throttled);
-    editor.on("blur", handleBlur);
-    window.addEventListener("resize", throttled);
-    window.addEventListener("scroll", throttled, true);
-
-    return () => {
-      editor.off("selectionUpdate", throttled);
-      editor.off("focus", throttled);
-      editor.off("blur", handleBlur);
-      window.removeEventListener("resize", throttled);
-      window.removeEventListener("scroll", throttled, true);
-    };
-  }, [editor]);
+  }, [isEditable, editor]);
 
   // ── Timestamp & Link Handlers ──────────────────────────────────────────────
   const insertTimestamp = () => {
@@ -700,6 +759,7 @@ export default function DistractionFreeEditor({
     const isAtStart = editor.state.selection.anchor <= 1;
     const content = isAtStart ? `<p><strong>${display}</strong></p><p></p>` : `<p></p><p><strong>${display}</strong></p><p></p>`;
     editor.chain().focus().insertContent(content).run();
+    editor.view.dom.focus({ preventScroll: true });
   };
 
   const setLink = () => {
@@ -715,6 +775,71 @@ export default function DistractionFreeEditor({
     let url = selectedText.trim();
     if (!/^https?:\/\//i.test(url) && !/^mailto:/i.test(url) && !/^tel:/i.test(url)) url = `https://${url}`;
     editor.chain().focus().extendMarkRange("link").setLink({ href: url }).run();
+  };
+
+  // ── Touch Focus Handler for Single-Tap iOS Activation ──────────────────────
+  const handleContainerTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
+    if (!isEditable || !editor || e.touches.length !== 1) {
+      touchStartRef.current = null;
+      return;
+    }
+    const target = e.target as HTMLElement;
+    if (target.closest("button, a, input, textarea, .no-editor-focus, .chronoa-mobile-toolbar")) {
+      touchStartRef.current = null;
+      return;
+    }
+    const touch = e.touches[0];
+    touchStartRef.current = {
+      x: touch.clientX,
+      y: touch.clientY,
+      time: Date.now(),
+      wasFocused: editor.isFocused,
+    };
+  };
+
+  const handleContainerTouchEnd = (e: React.TouchEvent<HTMLDivElement>) => {
+    const start = touchStartRef.current;
+    touchStartRef.current = null;
+    if (!start || !isEditable || !editor || e.changedTouches.length !== 1) return;
+
+    const target = e.target as HTMLElement;
+    if (target.closest("button, a, input, textarea, .no-editor-focus, .chronoa-mobile-toolbar")) return;
+
+    const touch = e.changedTouches[0];
+    const dx = Math.abs(touch.clientX - start.x);
+    const dy = Math.abs(touch.clientY - start.y);
+    const dt = Date.now() - start.time;
+
+    // Ignore scrolls and long presses
+    if (dx > 10 || dy > 10 || dt > 450) return;
+
+    const editorDom = editor.view.dom;
+    const lastChild = editorDom.lastElementChild;
+    const tappedBelowContent =
+      !lastChild || touch.clientY > lastChild.getBoundingClientRect().bottom + 12;
+    const tappedInsideEditorDom = editorDom.contains(target);
+
+    if (tappedBelowContent || !tappedInsideEditorDom) {
+      lastHandledTouchEndRef.current = Date.now();
+      e.preventDefault();
+      e.stopPropagation();
+      editor.commands.focus("end", { scrollIntoView: false });
+      editor.view.dom.focus({ preventScroll: true });
+      return;
+    }
+
+    if (!start.wasFocused) {
+      lastHandledTouchEndRef.current = Date.now();
+      e.preventDefault();
+      e.stopPropagation();
+      const coords = editor.view.posAtCoords({ left: touch.clientX, top: touch.clientY });
+      if (coords) {
+        editor.commands.focus(coords.pos, { scrollIntoView: false });
+      } else {
+        editor.commands.focus("end", { scrollIntoView: false });
+      }
+      editor.view.dom.focus({ preventScroll: true });
+    }
   };
 
   if (!editor) return null;
@@ -738,6 +863,51 @@ export default function DistractionFreeEditor({
       {children}
     </button>
   );
+
+  // Mobile toolbar button preserves iOS selection & keyboard while allowing horizontal scroll
+  const MobileBarButton = ({ onAction, isActive, label, children }: any) => {
+    const btnTouchStartRef = useRef<{ x: number; y: number } | null>(null);
+
+    return (
+      <button
+        type="button"
+        aria-label={label}
+        onMouseDown={(e) => {
+          e.preventDefault();
+        }}
+        onTouchStart={(e) => {
+          if (e.touches.length === 1) {
+            btnTouchStartRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+          }
+        }}
+        onTouchEnd={(e) => {
+          const start = btnTouchStartRef.current;
+          btnTouchStartRef.current = null;
+          if (!start || e.changedTouches.length !== 1) return;
+          const t = e.changedTouches[0];
+          if (Math.abs(t.clientX - start.x) < 10 && Math.abs(t.clientY - start.y) < 10) {
+            e.preventDefault();
+            e.stopPropagation();
+            lastTouchToolbarTriggerRef.current = Date.now();
+            onAction();
+          }
+        }}
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          if (Date.now() - lastTouchToolbarTriggerRef.current < 400) return;
+          onAction();
+        }}
+        className={`flex items-center justify-center w-9 h-9 rounded-xl transition-all duration-150 shrink-0 cursor-pointer ${
+          isActive
+            ? "bg-[#c2956e] dark:bg-[#b0855f] text-white shadow-sm"
+            : "text-[#888] dark:text-[#999] active:bg-[#f0ede8] dark:active:bg-[#2a2a2a]"
+        }`}
+      >
+        {children}
+      </button>
+    );
+  };
 
   const Divider = () => <div className="w-px h-4 bg-[#e0ddd5] dark:bg-[#333] mx-0.5 shrink-0 self-center" />;
 
@@ -824,94 +994,221 @@ export default function DistractionFreeEditor({
     </>
   );
 
+  const showDockedMobileBar =
+    mounted && !isSandbox && isEditable && isMobileViewport && mobileNoteOpen && !isTitleFocused;
+
+  const showPlaceholder =
+    Boolean(placeholder) &&
+    editor.isEmpty &&
+    !editor.isActive("heading") &&
+    !editor.isActive("bulletList") &&
+    !editor.isActive("orderedList");
+
   return (
-    <div className={`relative w-full flex flex-col gap-2 h-full ${isSandbox ? "md:gap-10" : "md:gap-4"}`}>
-      {/* Mobile Top Bar */}
-      <div className="md:hidden flex w-full justify-between items-center gap-1.5 z-10 mt-2 mb-0">
-        <span
-          className={`text-[9px] font-bold uppercase tracking-widest whitespace-nowrap transition-colors pl-1 ${
-            saveStatus === "Saving..." ? "text-[#c2956e] dark:text-[#d1a784]" : "text-[#c4c0b8] dark:text-[#555]"
-          }`}
-        >
-          {saveStatus}
-        </span>
-        <div className="flex items-center gap-1.5">
-          {isEditable && (
-            <button
-              onPointerDown={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                insertTimestamp();
-              }}
-              className="cursor-pointer flex items-center justify-center w-[30px] h-[30px] rounded-xl bg-[#f7f5f0] dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#2a2a2a] text-[#888] hover:text-[#c2956e] shadow-sm transition-colors"
-            >
-              <Clock size={14} />
-            </button>
-          )}
-          <ZoomControl preventFocus={isEditable} />
-        </div>
-      </div>
-
-      {isEditable && (
-        <>
-          {/* Mobile Floating Bubble Menu */}
-          <div
-            className="md:hidden flex items-center gap-2 px-3 py-2 border border-[#e0ddd5] dark:border-[#2a2a2a] bg-white/95 dark:bg-[#121212]/95 backdrop-blur-md shadow-xl rounded-2xl w-max max-w-[92vw] overflow-x-auto no-scrollbar transition-opacity duration-200 no-editor-focus cursor-default"
-            style={bubbleStyle}
+    <div
+      className={`chronoa-editor-root relative w-full flex flex-col gap-2 h-full ${isSandbox ? "md:gap-10" : "md:gap-4"}`}
+      onTouchStart={handleContainerTouchStart}
+      onTouchEnd={handleContainerTouchEnd}
+    >
+      {/* Mobile Top Status & Zoom Bar */}
+      {!isSandbox && (
+        <div className="md:hidden flex w-full justify-between items-center gap-1.5 z-10 mt-2 mb-0">
+          <span
+            className={`text-[9px] font-bold uppercase tracking-widest whitespace-nowrap transition-colors pl-1 ${
+              saveStatus === "Saving..." ? "text-[#c2956e] dark:text-[#d1a784]" : "text-[#c4c0b8] dark:text-[#555]"
+            }`}
           >
-            <div className="flex items-center gap-0.5 overflow-x-auto no-scrollbar flex-1 min-w-0">
-              {renderFormattingButtons()}
-            </div>
+            {saveStatus}
+          </span>
+          <div className="flex items-center gap-1.5">
+            <ZoomControl preventFocus={isEditable} />
           </div>
+        </div>
+      )}
 
-          {/* Desktop Sticky Toolbar */}
+      {/* Keyboard-Aware Mobile Docked Formatting Bar (eliminates overlap with native iOS Copy/Paste popup) */}
+      {showDockedMobileBar &&
+        createPortal(
           <div
-            className={[
-              "hidden md:flex sticky top-2 lg:top-4 z-[60] no-editor-focus cursor-default",
-              "md:p-2 md:border md:border-[#e0ddd5] md:dark:border-[#2a2a2a] md:rounded-2xl",
-              "md:bg-white/95 md:dark:bg-[#121212]/95 md:backdrop-blur-xl",
-              "md:shadow-[0_4px_20px_0_rgba(0,0,0,0.05)] md:dark:shadow-[0_4px_20px_0_rgba(0,0,0,0.4)]",
-              "items-center gap-2",
-            ].join(" ")}
+            ref={mobileBarRef}
+            className="chronoa-mobile-toolbar md:hidden fixed top-0 left-0 right-0 z-[90] bg-[#fdfbf7]/95 dark:bg-[#1a1a1a]/95 backdrop-blur-xl border-t border-[#e0ddd5] dark:border-[#2a2a2a] shadow-[0_-4px_24px_rgba(0,0,0,0.06)] dark:shadow-[0_-4px_24px_rgba(0,0,0,0.45)] flex items-center gap-1.5 px-3 pt-1.5"
+            style={{
+              paddingBottom: isMobileKeyboardOpen ? "6px" : "max(10px, env(safe-area-inset-bottom))",
+              willChange: "transform",
+            }}
+            onMouseDown={(e) => e.preventDefault()}
           >
             <div className="flex items-center gap-0.5 overflow-x-auto no-scrollbar flex-1 min-w-0">
-              {renderFormattingButtons()}
-              <Divider />
-              <ToolbarButton title="Insert timestamp" onClick={insertTimestamp}>
-                <Clock size={15} />
-              </ToolbarButton>
-            </div>
-            <div className="flex items-center gap-2 shrink-0">
-              <span
-                className={`text-[9px] font-bold uppercase tracking-widest whitespace-nowrap transition-colors ${
-                  saveStatus === "Saving..." ? "text-[#c2956e] dark:text-[#d1a784]" : "text-[#c4c0b8] dark:text-[#555]"
-                }`}
+              <MobileBarButton
+                label="Bold"
+                isActive={activeStates.bold}
+                onAction={() => {
+                  editor.chain().focus().toggleBold().run();
+                  editor.view.dom.focus({ preventScroll: true });
+                }}
               >
-                {saveStatus}
-              </span>
-              <ZoomControl preventFocus />
-              {!isSandbox && (
+                <Bold size={16} />
+              </MobileBarButton>
+              <MobileBarButton
+                label="Italic"
+                isActive={activeStates.italic}
+                onAction={() => {
+                  editor.chain().focus().toggleItalic().run();
+                  editor.view.dom.focus({ preventScroll: true });
+                }}
+              >
+                <Italic size={16} />
+              </MobileBarButton>
+              <MobileBarButton
+                label="Underline"
+                isActive={activeStates.underline}
+                onAction={() => {
+                  editor.chain().focus().toggleUnderline().run();
+                  editor.view.dom.focus({ preventScroll: true });
+                }}
+              >
+                <UnderlineIcon size={16} />
+              </MobileBarButton>
+              <MobileBarButton
+                label="Link"
+                isActive={activeStates.link}
+                onAction={() => {
+                  setLink();
+                  editor.view.dom.focus({ preventScroll: true });
+                }}
+              >
+                <LinkIcon size={16} />
+              </MobileBarButton>
+              <Divider />
+              <MobileBarButton
+                label="Heading 1"
+                isActive={activeStates.heading1}
+                onAction={() => {
+                  editor.chain().focus().toggleHeading({ level: 1 }).run();
+                  editor.view.dom.focus({ preventScroll: true });
+                }}
+              >
+                <Heading1 size={16} />
+              </MobileBarButton>
+              <MobileBarButton
+                label="Heading 2"
+                isActive={activeStates.heading2}
+                onAction={() => {
+                  editor.chain().focus().toggleHeading({ level: 2 }).run();
+                  editor.view.dom.focus({ preventScroll: true });
+                }}
+              >
+                <Heading2 size={16} />
+              </MobileBarButton>
+              <Divider />
+              <MobileBarButton
+                label="Bullet list"
+                isActive={activeStates.bulletList}
+                onAction={() => {
+                  editor.chain().focus().toggleBulletList().run();
+                  editor.view.dom.focus({ preventScroll: true });
+                }}
+              >
+                <List size={16} />
+              </MobileBarButton>
+              <MobileBarButton
+                label="Ordered list"
+                isActive={activeStates.orderedList}
+                onAction={() => {
+                  editor.chain().focus().toggleOrderedList().run();
+                  editor.view.dom.focus({ preventScroll: true });
+                }}
+              >
+                <ListOrdered size={16} />
+              </MobileBarButton>
+              <Divider />
+              <MobileBarButton
+                label="Insert timestamp"
+                isActive={false}
+                onAction={insertTimestamp}
+              >
+                <Clock size={16} />
+              </MobileBarButton>
+            </div>
+
+            {isMobileKeyboardOpen && (
+              <div className="flex items-center gap-1.5 shrink-0 pl-1 border-l border-[#e0ddd5] dark:border-[#333]">
                 <button
-                  onPointerDown={(e) => {
+                  type="button"
+                  aria-label="Dismiss keyboard"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onTouchEnd={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
-                    toggleEditorFullscreen();
+                    editor.commands.blur();
+                    (document.activeElement as HTMLElement)?.blur();
                   }}
-                  className="cursor-pointer flex items-center justify-center w-[30px] h-[30px] md:w-8 md:h-8 rounded-xl bg-[#f7f5f0] dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#2a2a2a] text-[#888] hover:text-[#c2956e] dark:hover:text-[#d1a784] shadow-sm transition-colors shrink-0"
-                  data-tooltip-id="global-tooltip"
-                  data-tooltip-content={isEditorFullscreen ? "Exit Fullscreen" : "Fullscreen"}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    editor.commands.blur();
+                    (document.activeElement as HTMLElement)?.blur();
+                  }}
+                  className="flex items-center gap-1 px-2.5 h-8 rounded-xl bg-[#c2956e]/15 dark:bg-[#b0855f]/25 text-[#c2956e] dark:text-[#d1a784] text-[10px] font-bold uppercase tracking-widest shrink-0"
                 >
-                  {isEditorFullscreen ? <Minimize size={14} /> : <Maximize size={14} />}
+                  <Check size={13} strokeWidth={2.5} />
+                  <span>Done</span>
                 </button>
-              )}
-            </div>
+              </div>
+            )}
+          </div>,
+          document.body
+        )}
+
+      {/* Desktop Sticky Toolbar (also rendered on mobile inside landing page sandbox) */}
+      {isEditable && (
+        <div
+          className={[
+            isSandbox ? "flex p-2 border border-[#e0ddd5] dark:border-[#2a2a2a] rounded-2xl bg-white/95 dark:bg-[#121212]/95 backdrop-blur-xl shadow-[0_4px_20px_0_rgba(0,0,0,0.05)] dark:shadow-[0_4px_20px_0_rgba(0,0,0,0.4)]" : "hidden md:flex md:p-2 md:border md:border-[#e0ddd5] md:dark:border-[#2a2a2a] md:rounded-2xl md:bg-white/95 md:dark:bg-[#121212]/95 md:backdrop-blur-xl md:shadow-[0_4px_20px_0_rgba(0,0,0,0.05)] md:dark:shadow-[0_4px_20px_0_rgba(0,0,0,0.4)]",
+            "sticky top-2 lg:top-4 z-[60] no-editor-focus cursor-default items-center gap-2",
+          ].join(" ")}
+        >
+          <div className="flex items-center gap-0.5 overflow-x-auto no-scrollbar flex-1 min-w-0">
+            {renderFormattingButtons()}
+            <Divider />
+            <ToolbarButton title="Insert timestamp" onClick={insertTimestamp}>
+              <Clock size={15} />
+            </ToolbarButton>
           </div>
-        </>
+          <div className="flex items-center gap-2 shrink-0">
+            <span
+              className={`text-[9px] font-bold uppercase tracking-widest whitespace-nowrap transition-colors ${
+                saveStatus === "Saving..." ? "text-[#c2956e] dark:text-[#d1a784]" : "text-[#c4c0b8] dark:text-[#555]"
+              }`}
+            >
+              {saveStatus}
+            </span>
+            <ZoomControl preventFocus />
+            {!isSandbox && (
+              <button
+                onPointerDown={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  toggleEditorFullscreen();
+                }}
+                className="cursor-pointer flex items-center justify-center w-[30px] h-[30px] md:w-8 md:h-8 rounded-xl bg-[#f7f5f0] dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#2a2a2a] text-[#888] hover:text-[#c2956e] dark:hover:text-[#d1a784] shadow-sm transition-colors shrink-0"
+                data-tooltip-id="global-tooltip"
+                data-tooltip-content={isEditorFullscreen ? "Exit Fullscreen" : "Fullscreen"}
+              >
+                {isEditorFullscreen ? <Minimize size={14} /> : <Maximize size={14} />}
+              </button>
+            )}
+          </div>
+        </div>
       )}
 
       {/* Desktop Read-only Toolbar */}
       {!isEditable && (
-        <div className="hidden md:flex justify-end items-center gap-2 sticky top-2 lg:top-4 z-[60] bg-white/90 dark:bg-[#121212]/90 backdrop-blur-md p-2 rounded-2xl shadow-sm border border-[#e0ddd5] dark:border-[#2a2a2a] no-editor-focus cursor-default">
+        <div
+          className={`${
+            isSandbox ? "flex" : "hidden md:flex"
+          } justify-end items-center gap-2 sticky top-2 lg:top-4 z-[60] bg-white/90 dark:bg-[#121212]/90 backdrop-blur-md p-2 rounded-2xl shadow-sm border border-[#e0ddd5] dark:border-[#2a2a2a] no-editor-focus cursor-default`}
+        >
           <ZoomControl />
           {!isSandbox && (
             <button
@@ -934,28 +1231,29 @@ export default function DistractionFreeEditor({
         className="relative w-full flex-1 flex flex-col cursor-text select-text"
         style={{ fontSize: `${(journalZoom / 100) * 1.05}rem`, fontFamily: "inherit" }}
         onClick={(e) => {
-          if (window.innerWidth >= 1024 && editor) {
-            const selection = window.getSelection();
-            if (selection && selection.toString().length > 0) return;
+          if (!isEditable || !editor) return;
+          if (Date.now() - lastHandledTouchEndRef.current < 500) return;
 
-            const target = e.target as HTMLElement;
-            if (target.closest("p, h1, h2, h3, li, ul, ol, a, strong, em")) {
-              return;
-            }
+          const selection = window.getSelection();
+          if (selection && selection.toString().length > 0) return;
 
-            if (!editor.isFocused) {
-              editor.view.dom.focus();
-              editor.commands.focus("end");
-            }
+          const target = e.target as HTMLElement;
+          if (target.closest("p, h1, h2, h3, li, ul, ol, a, strong, em, button, input, .no-editor-focus")) {
+            return;
+          }
+
+          if (!editor.isFocused) {
+            editor.commands.focus("end", { scrollIntoView: false });
+            editor.view.dom.focus({ preventScroll: true });
           }
         }}
       >
-        {editor.isEmpty && (
+        {showPlaceholder && (
           <div className="absolute top-0 left-0 pointer-events-none text-[#c4c0b8] dark:text-[#666] opacity-70 italic w-full leading-[1.45]">
             {placeholder}
           </div>
         )}
-        <EditorContent editor={editor} className="mt-0 flex-1 flex flex-col h-full w-full" />
+        <EditorContent editor={editor} className="select-text mt-0 flex-1 flex flex-col h-full w-full" />
       </div>
     </div>
   );
