@@ -27,6 +27,20 @@ interface Props {
 
 const formatTimeStr = (d: Date) => (d.getMinutes() === 0 ? format(d, "h a") : format(d, "h:mm a"));
 
+const getVisualEnd = (start: Date, end: Date, isAllDay: boolean) => {
+  if (
+    !isAllDay &&
+    end > start &&
+    end.getHours() === 0 &&
+    end.getMinutes() === 0 &&
+    end.getSeconds() === 0 &&
+    end.getMilliseconds() === 0
+  ) {
+    return new Date(end.getTime() - 1);
+  }
+  return end;
+};
+
 const escapeRegExp = (string: string) => string.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 export default function TodayCalendarWidget({ variant, searchQuery = "", className = "" }: Props) {
@@ -80,6 +94,16 @@ export default function TodayCalendarWidget({ variant, searchQuery = "", classNa
     const end = new Date(today);
     end.setHours(23, 59, 59, 999);
 
+    const filterForToday = (list: CalendarEvent[]) =>
+      list
+        .filter((e) => !e.source_id || !inactiveSourceIds.includes(e.source_id))
+        .filter((e) => {
+          const evStart = new Date(e.start_time);
+          const evVisualEnd = getVisualEnd(evStart, new Date(e.end_time), e.is_all_day);
+          return isSameDay(evStart, new Date()) || (evStart <= end && evVisualEnd >= start);
+        })
+        .sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime());
+
     syncExternalCalendars(user.id).then(() => {
       supabase
         .from("calendar_events")
@@ -89,18 +113,7 @@ export default function TodayCalendarWidget({ variant, searchQuery = "", classNa
         .lte("start_time", end.toISOString())
         .then(({ data }) => {
           if (data) {
-            const validData = (data as CalendarEvent[]).filter(
-              (e) => !e.source_id || !inactiveSourceIds.includes(e.source_id)
-            );
-            const todayEvents = validData
-              .filter((e) => {
-                return (
-                  isSameDay(new Date(e.start_time), new Date()) ||
-                  (new Date(e.start_time) <= end && new Date(e.end_time) >= start)
-                );
-              })
-              .sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime());
-            updateTodayEventsIfChanged(todayEvents);
+            updateTodayEventsIfChanged(filterForToday(data as CalendarEvent[]));
           }
         });
     });
@@ -113,19 +126,7 @@ export default function TodayCalendarWidget({ variant, searchQuery = "", classNa
       .lte("start_time", end.toISOString());
 
     if (data) {
-      const validData = (data as CalendarEvent[]).filter(
-        (e) => !e.source_id || !inactiveSourceIds.includes(e.source_id)
-      );
-      const todayEvents = validData
-        .filter((e) => {
-          return (
-            isSameDay(new Date(e.start_time), today) ||
-            (new Date(e.start_time) <= end && new Date(e.end_time) >= start)
-          );
-        })
-        .sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime());
-
-      updateTodayEventsIfChanged(todayEvents);
+      updateTodayEventsIfChanged(filterForToday(data as CalendarEvent[]));
     }
     setLoading(false);
   }, [updateTodayEventsIfChanged]);

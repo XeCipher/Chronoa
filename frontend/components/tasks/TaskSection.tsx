@@ -127,9 +127,16 @@ export default function TaskSection({ type, title, viewMode = "focus", searchQue
       })
       .subscribe();
 
+    const handleRefetch = () => {
+      lastMutateTime.current = 0;
+      fetchTasks(false);
+    };
+    window.addEventListener("chronoa-tasks-refetch", handleRefetch);
+
     return () => {
       supabase.removeChannel(channel);
       clearTimeout(timeoutId);
+      window.removeEventListener("chronoa-tasks-refetch", handleRefetch);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [type]);
@@ -392,9 +399,7 @@ export default function TaskSection({ type, title, viewMode = "focus", searchQue
     collectNestedParents(task);
 
     if (viewMode === "focus") {
-      setTasks((prev) =>
-        prev.map((t) => (idsToUpdate.includes(t.id) ? { ...t, is_collapsed: collapsed } : t))
-      );
+      setTasks((prev) => prev.map((t) => (idsToUpdate.includes(t.id) ? { ...t, is_collapsed: collapsed } : t)));
       try {
         await supabase.from("tasks").update({ is_collapsed: collapsed }).in("id", idsToUpdate);
       } catch (err) {

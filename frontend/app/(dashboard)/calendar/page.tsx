@@ -189,7 +189,7 @@ export default function CalendarPage() {
         .from("calendar_events")
         .select("*")
         .eq("user_id", user.id)
-        .gte("start_time", start.toISOString())
+        .gte("end_time", start.toISOString())
         .lte("start_time", end.toISOString())
         .then(({ data }) => {
           if (data) {
@@ -205,7 +205,7 @@ export default function CalendarPage() {
       .from("calendar_events")
       .select("*")
       .eq("user_id", user.id)
-      .gte("start_time", start.toISOString())
+      .gte("end_time", start.toISOString())
       .lte("start_time", end.toISOString());
 
     if (data) {

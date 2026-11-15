@@ -1,23 +1,25 @@
 // frontend/components/analytics/FocusDistribution.tsx
 "use client";
 
-import { useState, useMemo, useEffect } from 'react';
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip } from 'recharts';
+import { useState, useMemo, useEffect } from "react";
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip } from "recharts";
 import { useUiStore } from "@/store/uiStore";
-import { Filter } from 'lucide-react';
+import { Filter } from "lucide-react";
 
-const COLORS = ['#7ca982', '#c2956e', '#6e90c2', '#a882c2', '#5b9ea0', '#b895d1', '#d1a784', '#e0b589'];
+const COLORS = ["#7ca982", "#c2956e", "#6e90c2", "#a882c2", "#5b9ea0", "#b895d1", "#d1a784", "#e0b589"];
 
 export default function FocusDistribution({ rawSessions }: { rawSessions: any[] }) {
   const { theme } = useUiStore();
-  const isDark = theme === 'dark' || (theme === 'system' && typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+  const isDark =
+    theme === "dark" ||
+    (theme === "system" && typeof window !== "undefined" && window.matchMedia("(prefers-color-scheme: dark)").matches);
   const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 768);
     handleResize();
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
   }, []);
 
   const [excludedCategories, setExcludedCategories] = useState<Set<string>>(new Set());
@@ -25,17 +27,19 @@ export default function FocusDistribution({ rawSessions }: { rawSessions: any[] 
   const { groupedData, activeData, totalActiveMinutes } = useMemo(() => {
     const map: Record<string, number> = {};
     let totalMinutes = 0;
-    
-    rawSessions.forEach(s => {
+
+    rawSessions.forEach((s) => {
       const cat = s.title || "Deep Work";
       const mins = Math.floor(s.duration_seconds / 60);
       map[cat] = (map[cat] || 0) + mins;
       totalMinutes += mins;
     });
 
-    const sortedRaw = Object.entries(map).map(([name, value]) => ({ name, value })).sort((a,b) => b.value - a.value);
-    
-    const threshold = totalMinutes * 0.10;
+    const sortedRaw = Object.entries(map)
+      .map(([name, value]) => ({ name, value }))
+      .sort((a, b) => b.value - a.value);
+
+    const threshold = totalMinutes * 0.1;
     const MIN_VISIBLE_ITEMS = 4;
     const finalGroups: { name: string; value: number }[] = [];
     let othersValue = 0;
@@ -52,44 +56,53 @@ export default function FocusDistribution({ rawSessions }: { rawSessions: any[] 
       finalGroups.push({ name: "Others", value: othersValue });
     }
 
-    const active = finalGroups.filter(c => !excludedCategories.has(c.name));
+    const active = finalGroups.filter((c) => !excludedCategories.has(c.name));
     const activeTotal = active.reduce((acc, curr) => acc + curr.value, 0);
 
     return { groupedData: finalGroups, activeData: active, totalActiveMinutes: activeTotal };
   }, [rawSessions, excludedCategories]);
 
   if (!rawSessions || rawSessions.length === 0) {
-    const skeletonColors = isDark ? ['#333', '#2a2a2a', '#222'] : ['#e0ddd5', '#d4d0c8', '#ebe8e2'];
+    const skeletonColors = isDark ? ["#333", "#2a2a2a", "#222"] : ["#e0ddd5", "#d4d0c8", "#ebe8e2"];
     return (
       <div className="bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] rounded-[2.5rem] p-6 lg:p-8 shadow-sm h-auto lg:h-[350px] flex flex-col lg:flex-row items-center justify-center transition-colors relative overflow-hidden">
-         <div className="absolute inset-0 flex items-center justify-center z-10 backdrop-blur-[2px]">
-            <div className="bg-white/90 dark:bg-black/80 px-6 py-3 rounded-2xl border border-[#e0ddd5] dark:border-[#333] shadow-sm">
-               <p className="text-sm text-[#b0ad9a] dark:text-[#7a7a7a] font-medium tracking-wide">Track focus session to see balance</p>
-            </div>
-         </div>
-         <div className="w-full lg:w-1/2 h-56 lg:h-full opacity-40 grayscale pointer-events-none">
-            <ResponsiveContainer width="100%" height="100%">
-               <PieChart>
-                 <Pie data={[{value:1}, {value:2}, {value:1.5}]} innerRadius="65%" outerRadius="90%" paddingAngle={4} dataKey="value" stroke="none">
-                    <Cell fill={skeletonColors[0]} />
-                    <Cell fill={skeletonColors[1]} />
-                    <Cell fill={skeletonColors[2]} />
-                 </Pie>
-               </PieChart>
-            </ResponsiveContainer>
-         </div>
-         <div className="w-full lg:w-1/2 hidden lg:flex flex-col gap-4 opacity-40 pointer-events-none px-6">
-            <div className="h-4 w-24 bg-[#e0ddd5] dark:bg-[#333] rounded-full" />
-            <div className="h-10 w-full bg-[#e0ddd5] dark:bg-[#333] rounded-xl" />
-            <div className="h-10 w-full bg-[#e0ddd5] dark:bg-[#333] rounded-xl" />
-            <div className="h-10 w-full bg-[#e0ddd5] dark:bg-[#333] rounded-xl" />
-         </div>
+        <div className="absolute inset-0 flex items-center justify-center z-10 backdrop-blur-[2px]">
+          <div className="bg-white/90 dark:bg-black/80 px-6 py-3 rounded-2xl border border-[#e0ddd5] dark:border-[#333] shadow-sm">
+            <p className="text-sm text-[#b0ad9a] dark:text-[#7a7a7a] font-medium tracking-wide">
+              Track focus session to see balance
+            </p>
+          </div>
+        </div>
+        <div className="w-full lg:w-1/2 h-56 lg:h-full opacity-40 grayscale pointer-events-none">
+          <ResponsiveContainer width="100%" height="100%">
+            <PieChart>
+              <Pie
+                data={[{ value: 1 }, { value: 2 }, { value: 1.5 }]}
+                innerRadius="65%"
+                outerRadius="90%"
+                paddingAngle={4}
+                dataKey="value"
+                stroke="none"
+              >
+                <Cell fill={skeletonColors[0]} />
+                <Cell fill={skeletonColors[1]} />
+                <Cell fill={skeletonColors[2]} />
+              </Pie>
+            </PieChart>
+          </ResponsiveContainer>
+        </div>
+        <div className="w-full lg:w-1/2 hidden lg:flex flex-col gap-4 opacity-40 pointer-events-none px-6">
+          <div className="h-4 w-24 bg-[#e0ddd5] dark:bg-[#333] rounded-full" />
+          <div className="h-10 w-full bg-[#e0ddd5] dark:bg-[#333] rounded-xl" />
+          <div className="h-10 w-full bg-[#e0ddd5] dark:bg-[#333] rounded-xl" />
+          <div className="h-10 w-full bg-[#e0ddd5] dark:bg-[#333] rounded-xl" />
+        </div>
       </div>
     );
   }
 
   const toggleCategory = (name: string) => {
-    setExcludedCategories(prev => {
+    setExcludedCategories((prev) => {
       const next = new Set(prev);
       if (next.has(name)) next.delete(name);
       else next.add(name);
@@ -105,7 +118,7 @@ export default function FocusDistribution({ rawSessions }: { rawSessions: any[] 
 
   const CustomTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
-      const pct = Math.round((payload[0].value / totalActiveMinutes) * 100);
+      const pct = totalActiveMinutes > 0 ? Math.round((payload[0].value / totalActiveMinutes) * 100) : 0;
       return (
         <div className="bg-[#3d3b33] border border-white/10 px-4 py-2.5 rounded-xl shadow-xl flex items-center gap-3">
           <div className="w-3 h-3 rounded-full" style={{ backgroundColor: payload[0].payload.fill || payload[0].color }} />
@@ -123,21 +136,35 @@ export default function FocusDistribution({ rawSessions }: { rawSessions: any[] 
 
   return (
     <div className="bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] rounded-[2.5rem] p-6 lg:p-8 shadow-sm h-auto lg:h-[350px] flex flex-col lg:flex-row items-center transition-colors">
-      
       <div className="w-full lg:w-1/2 h-56 lg:h-full relative shrink-0">
         {activeData.length > 0 ? (
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
-              <Pie data={activeData} innerRadius="65%" outerRadius="90%" paddingAngle={4} dataKey="value" stroke="none" animationDuration={1000}>
+              <Pie
+                data={activeData}
+                innerRadius="65%"
+                outerRadius="90%"
+                paddingAngle={4}
+                dataKey="value"
+                stroke="none"
+                animationDuration={1000}
+              >
                 {activeData.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={entry.name === 'Others' ? '#888888' : COLORS[groupedData.findIndex(c => c.name === entry.name) % COLORS.length]} />
+                  <Cell
+                    key={`cell-${index}`}
+                    fill={
+                      entry.name === "Others"
+                        ? "#888888"
+                        : COLORS[groupedData.findIndex((c) => c.name === entry.name) % COLORS.length]
+                    }
+                  />
                 ))}
               </Pie>
               {!isMobile && <RechartsTooltip content={<CustomTooltip />} />}
             </PieChart>
           </ResponsiveContainer>
         ) : (
-           <div className="w-full h-full flex items-center justify-center text-xs italic text-[#b0ad9a]">All filters excluded.</div>
+          <div className="w-full h-full flex items-center justify-center text-xs italic text-[#b0ad9a]">All filters excluded.</div>
         )}
         <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none p-4">
           <span className="text-[9px] font-bold uppercase tracking-widest text-[#b0ad9a] mb-1">Top Focus</span>
@@ -146,29 +173,38 @@ export default function FocusDistribution({ rawSessions }: { rawSessions: any[] 
           </span>
         </div>
       </div>
-      
+
       <div className="w-full lg:w-1/2 flex flex-col mt-6 lg:mt-0 lg:pl-6 h-auto lg:h-full max-h-[250px] lg:max-h-none">
         <div className="flex items-center gap-2 mb-3 text-[#b0ad9a] dark:text-[#7a7a7a] shrink-0">
-            <Filter size={14} />
-            <span className="text-[9px] font-bold uppercase tracking-widest">Active Filters</span>
+          <Filter size={14} />
+          <span className="text-[9px] font-bold uppercase tracking-widest">Active Filters</span>
         </div>
         <div className="flex-1 overflow-y-auto no-scrollbar space-y-1">
           {groupedData.map((cat, i) => {
             const isExcluded = excludedCategories.has(cat.name);
-            const color = cat.name === 'Others' ? '#888888' : COLORS[i % COLORS.length];
+            const color = cat.name === "Others" ? "#888888" : COLORS[i % COLORS.length];
             const pct = totalActiveMinutes > 0 && !isExcluded ? Math.round((cat.value / totalActiveMinutes) * 100) : 0;
             return (
-              <button 
-                key={i} 
+              <button
+                key={i}
                 onClick={() => toggleCategory(cat.name)}
-                className={`w-full flex items-center justify-between p-2.5 rounded-xl transition-all ${isExcluded ? 'opacity-40 hover:bg-[#f0ede8] dark:hover:bg-[#222]' : 'hover:bg-[#f7f5f0] dark:hover:bg-[#2a2a2a]'}`}
+                className={`w-full flex items-center justify-between p-2.5 rounded-xl transition-all ${
+                  isExcluded ? "opacity-40 hover:bg-[#f0ede8] dark:hover:bg-[#222]" : "hover:bg-[#f7f5f0] dark:hover:bg-[#2a2a2a]"
+                }`}
               >
                 <div className="flex items-center gap-3 min-w-0 pr-2">
-                  <div className={`w-3 h-3 rounded-full shrink-0 ${isExcluded ? 'bg-transparent border border-current' : ''}`} style={{ backgroundColor: isExcluded ? undefined : color, borderColor: isExcluded ? color : undefined }} />
-                  <span className={`text-xs font-medium truncate ${isExcluded ? 'text-[#888]' : 'text-[#3d3b33] dark:text-[#e0e0e0]'}`}>{cat.name}</span>
+                  <div
+                    className={`w-3 h-3 rounded-full shrink-0 ${isExcluded ? "bg-transparent border border-current" : ""}`}
+                    style={{ backgroundColor: isExcluded ? undefined : color, borderColor: isExcluded ? color : undefined }}
+                  />
+                  <span className={`text-xs font-medium truncate ${isExcluded ? "text-[#888]" : "text-[#3d3b33] dark:text-[#e0e0e0]"}`}>
+                    {cat.name}
+                  </span>
                 </div>
                 <div className="flex items-center gap-1.5 shrink-0 ml-auto">
-                  <span className="text-[11px] text-[#b0ad9a] dark:text-[#7a7a7a] font-bold tabular-nums">{formatMins(cat.value)}</span>
+                  <span className="text-[11px] text-[#b0ad9a] dark:text-[#7a7a7a] font-bold tabular-nums">
+                    {formatMins(cat.value)}
+                  </span>
                   {!isExcluded && <span className="text-[9px] font-bold text-[#c2956e] dark:text-[#b0855f] w-7 text-right">{pct}%</span>}
                 </div>
               </button>

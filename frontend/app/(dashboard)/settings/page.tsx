@@ -187,7 +187,7 @@ export default function SettingsPage() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [router, isFeedbackModalOpen, showGithubModal, editingSourceId, openColorDropdown]);
 
-  // Magic Scroll-to-Hash handler
+  // Scroll-to-Hash handler
   useEffect(() => {
     const hash = window.location.hash.replace("#", "");
     if (hash) {
@@ -374,8 +374,9 @@ export default function SettingsPage() {
   };
 
   const handleResetHourChange = async (hour: number) => {
-    setRoutineResetHour(hour);
-    updateRemoteSetting("routine_reset_hour", hour);
+    const clamped = Math.min(23, Math.max(0, Number.isNaN(hour) ? 0 : hour));
+    setRoutineResetHour(clamped);
+    updateRemoteSetting("routine_reset_hour", clamped);
   };
 
   const toggleHotkey = (id: string) => {
@@ -452,7 +453,7 @@ export default function SettingsPage() {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    const newName = file.name.replace(".ics", "");
+    const newName = file.name.replace(/\.ics$/i, "");
     if (calSources.some((s) => s.name === newName && s.type === "file")) {
       showConfirmDialog({
         title: "Duplicate File",
@@ -671,19 +672,29 @@ export default function SettingsPage() {
         } = await supabase.auth.getSession();
         if (session?.user) {
           try {
-            await fetch(`/api/auth/delete-account`, {
+            const res = await fetch(`/api/auth/delete-account`, {
               method: "DELETE",
               headers: {
                 Authorization: `Bearer ${session.access_token}`,
               },
             });
+            if (!res.ok) {
+              const errBody = await res.json().catch(() => ({}));
+              throw new Error(errBody.error || "Failed to delete account");
+            }
             setLastVisitedPage("/");
             await supabase.auth.signOut();
             localStorage.clear();
             sessionStorage.clear();
             window.location.replace("/");
-          } catch (e) {
+          } catch (e: any) {
             console.error(e);
+            showConfirmDialog({
+              title: "Deletion Failed",
+              message: e?.message || "Could not delete your account right now. Please try again.",
+              confirmText: "Dismiss",
+              onConfirm: () => {},
+            });
           }
         }
       },
@@ -1353,7 +1364,7 @@ export default function SettingsPage() {
                 min="0"
                 max="23"
                 value={routineResetHour}
-                onChange={(e) => handleResetHourChange(parseInt(e.target.value) || 0)}
+                onChange={(e) => handleResetHourChange(parseInt(e.target.value, 10))}
                 className="flex-1 bg-[#f7f5f0] dark:bg-[#252525] border border-[#e0ddd5] dark:border-[#333] rounded-xl px-4 py-3 text-sm outline-none focus:border-[#c2956e] dark:focus:border-[#b0855f] text-[#3d3b33] dark:text-[#f0f0f0] shadow-sm transition-all font-bold"
               />
               <div className="px-4 py-3 bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] rounded-xl text-[10px] font-bold text-[#b0ad9a] uppercase tracking-widest shadow-sm">

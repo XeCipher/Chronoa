@@ -33,6 +33,20 @@ interface Props {
 
 const formatEventTime = (d: Date) => (d.getMinutes() === 0 ? format(d, "h a") : format(d, "h:mm a"));
 
+const getVisualEnd = (start: Date, end: Date, isAllDay: boolean) => {
+  if (
+    !isAllDay &&
+    end > start &&
+    end.getHours() === 0 &&
+    end.getMinutes() === 0 &&
+    end.getSeconds() === 0 &&
+    end.getMilliseconds() === 0
+  ) {
+    return new Date(end.getTime() - 1);
+  }
+  return end;
+};
+
 const DOT_COLORS: Record<string, string> = {
   amber: "bg-[#c2956e] dark:bg-[#b0855f]",
   blue: "bg-blue-500 dark:bg-blue-400",
@@ -91,8 +105,10 @@ export default function MonthView({
     const dStr = format(date, "yyyy-MM-dd");
     return events
       .filter((e) => {
-        const startStr = format(new Date(e.start_time), "yyyy-MM-dd");
-        const endStr = format(new Date(e.end_time), "yyyy-MM-dd");
+        const start = new Date(e.start_time);
+        const visualEnd = getVisualEnd(start, new Date(e.end_time), e.is_all_day);
+        const startStr = format(start, "yyyy-MM-dd");
+        const endStr = format(visualEnd, "yyyy-MM-dd");
         return dStr >= startStr && dStr <= endStr;
       })
       .sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime());
@@ -243,8 +259,10 @@ export default function MonthView({
                   <div className="hidden lg:flex flex-col gap-1 flex-1 min-h-0 overflow-hidden relative z-10">
                     <div className="flex flex-col gap-1 overflow-hidden">
                       {visibleEvents.map((event) => {
-                        const isStart = format(new Date(event.start_time), "yyyy-MM-dd") === format(day, "yyyy-MM-dd");
-                        const isEnd = format(new Date(event.end_time), "yyyy-MM-dd") === format(day, "yyyy-MM-dd");
+                        const start = new Date(event.start_time);
+                        const visualEnd = getVisualEnd(start, new Date(event.end_time), event.is_all_day);
+                        const isStart = format(start, "yyyy-MM-dd") === format(day, "yyyy-MM-dd");
+                        const isEnd = format(visualEnd, "yyyy-MM-dd") === format(day, "yyyy-MM-dd");
                         const colorClasses = eventColors[event.color] || eventColors["amber"];
 
                         const durationMins =

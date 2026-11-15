@@ -219,8 +219,8 @@ function MockWeatherWidget({ isDark }: { isDark: boolean }) {
         if (window.matchMedia("(hover: hover)").matches) setIsToggled(false);
       }}
       onClick={() => setIsToggled(!isToggled)}
-      className={`flex items-center shadow-[0_8px_30px_rgb(0,0,0,0.08)] rounded-[2rem] p-1.5 md:p-2 cursor-pointer transition-all duration-500 ease-in-out h-[48px] md:h-[56px] overflow-hidden backdrop-blur-xl ${
-        isToggled ? "max-w-[250px] pr-4 md:pr-5" : "max-w-[90px] md:max-w-[104px] md:hover:max-w-[250px] md:hover:pr-4 md:hover:pr-5"
+      className={`group flex items-center border shadow-[0_8px_30px_rgb(0,0,0,0.08)] rounded-[2rem] p-1.5 md:p-2 cursor-pointer transition-all duration-500 ease-in-out h-[48px] md:h-[56px] overflow-hidden backdrop-blur-xl ${
+        isToggled ? "max-w-[250px] pr-4 md:pr-5" : "max-w-[90px] md:max-w-[104px] md:hover:max-w-[250px] md:hover:pr-5"
       }`}
       style={{ backgroundColor: bgGlass, borderColor: borderGlass }}
     >
@@ -281,7 +281,7 @@ function MockHomeTaskProgress({ isDark }: { isDark: boolean }) {
         if (window.matchMedia("(hover: hover)").matches) setIsToggled(false);
       }}
       onClick={() => setIsToggled(!isToggled)}
-      className={`flex transition-all duration-500 ease-in-out shadow-[0_8px_30px_rgb(0,0,0,0.08)] cursor-pointer overflow-hidden rounded-[2rem] z-40 backdrop-blur-xl ${
+      className={`flex border transition-all duration-500 ease-in-out shadow-[0_8px_30px_rgb(0,0,0,0.08)] cursor-pointer overflow-hidden rounded-[2rem] z-40 backdrop-blur-xl ${
         isToggled ? "flex-col items-start p-4 md:p-5 gap-3 w-[180px] md:w-[200px]" : "flex-row items-center p-1.5 md:p-2 h-[48px] md:h-[56px] w-[90px] md:w-[104px] gap-1.5 md:gap-2"
       }`}
       style={{ backgroundColor: bgGlass, borderColor: borderGlass }}
@@ -788,7 +788,6 @@ export function MockTaskSandbox() {
   );
 }
 
-// Local isolated implementation for the time sandbox
 function MockEngineCard({ engine, tab, onUpdate, onRemove, isOnlyInstance }: any) {
   const [liveSeconds, setLiveSeconds] = useState(engine.accumulatedSeconds);
   const [nowMs, setNowMs] = useState<number | null>(null);
@@ -829,9 +828,16 @@ function MockEngineCard({ engine, tab, onUpdate, onRemove, isOnlyInstance }: any
     return () => clearInterval(interval);
   }, [engine.isRunning, engine.startTime, engine.accumulatedSeconds]);
 
-  const handleStop = () => {
-    const finalSeconds = engine.accumulatedSeconds + Math.floor((Date.now() - (engine.startTime || Date.now())) / 1000);
+  const handlePause = () => {
+    const finalSeconds =
+      engine.isRunning && engine.startTime
+        ? engine.accumulatedSeconds + Math.floor((Date.now() - engine.startTime) / 1000)
+        : engine.accumulatedSeconds;
     onUpdate(engine.id, { isRunning: false, accumulatedSeconds: finalSeconds, startTime: null });
+  };
+
+  const handleResetStop = () => {
+    onUpdate(engine.id, { isRunning: false, accumulatedSeconds: 0, startTime: null });
   };
 
   const handleStart = () => {
@@ -983,14 +989,14 @@ function MockEngineCard({ engine, tab, onUpdate, onRemove, isOnlyInstance }: any
         <div className="flex items-center gap-3">
           {(engine.accumulatedSeconds > 0 || engine.isRunning) && (
             <button
-              onClick={handleStop}
+              onClick={handleResetStop}
               className="cursor-pointer w-12 h-12 flex items-center justify-center bg-white/60 dark:bg-black/60 border border-white/80 dark:border-white/10 text-red-500 rounded-full md:hover:scale-105 active:scale-95 transition-all shadow-sm md:hover:bg-white md:dark:hover:bg-black"
             >
               <Square size={18} fill="currentColor" />
             </button>
           )}
           <button
-            onClick={engine.isRunning ? handleStop : handleStart}
+            onClick={engine.isRunning ? handlePause : handleStart}
             className="cursor-pointer w-14 h-14 flex items-center justify-center bg-[#3d3b33] dark:bg-[#f0f0f0] text-white dark:text-[#121212] rounded-full md:hover:scale-105 active:scale-95 transition-all shadow-lg md:hover:bg-black md:dark:hover:bg-white"
           >
             {engine.isRunning ? <Pause size={22} fill="currentColor" /> : <Play size={22} fill="currentColor" className="ml-1" />}
@@ -1145,7 +1151,7 @@ export function MockTimeSandbox() {
 
       <MockGlobalTimeWidget hasRunning={hasRunning} />
 
-      <div className="w-full flex flex-col items-center relative z-10 w-full mt-2">
+      <div className="w-full flex flex-col items-center relative z-10 mt-2">
         <div className="flex justify-center items-center w-[24rem] max-w-[85vw] mb-6">
           <div className="flex bg-[#ebe8e2] dark:bg-[#1a1a1a] p-1 rounded-full shadow-inner border border-[#d4d0c8] dark:border-[#333]">
             {(["stopwatch", "timer"] as const).map((tab) => (

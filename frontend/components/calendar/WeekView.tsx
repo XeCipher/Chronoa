@@ -33,6 +33,20 @@ const HOURS = Array.from({ length: 24 }, (_, i) => i);
 
 const formatEventTime = (d: Date) => (d.getMinutes() === 0 ? format(d, "h a") : format(d, "h:mm a"));
 
+const getVisualEnd = (start: Date, end: Date, isAllDay: boolean) => {
+  if (
+    !isAllDay &&
+    end > start &&
+    end.getHours() === 0 &&
+    end.getMinutes() === 0 &&
+    end.getSeconds() === 0 &&
+    end.getMilliseconds() === 0
+  ) {
+    return new Date(end.getTime() - 1);
+  }
+  return end;
+};
+
 // Custom smooth scroll utility for a deliberate, slow animation
 const smoothScrollTo = (element: HTMLElement, targetPosition: number, duration: number) => {
   const startPosition = element.scrollTop;
@@ -125,8 +139,8 @@ export default function WeekView({
       .filter((e) => !e.is_all_day)
       .filter((e) => {
         const start = new Date(e.start_time);
-        const end = new Date(e.end_time);
-        return start <= endOfDay(days[days.length - 1]) && end >= startOfDay(days[0]);
+        const visualEnd = getVisualEnd(start, new Date(e.end_time), e.is_all_day);
+        return start <= endOfDay(days[days.length - 1]) && visualEnd >= startOfDay(days[0]);
       });
   }, [events, days]);
 
@@ -144,8 +158,10 @@ export default function WeekView({
   const calculateOverlaps = (day: Date) => {
     const dayEvents = timeEvents
       .filter((e) => {
-        const sStr = format(new Date(e.start_time), "yyyy-MM-dd");
-        const eStr = format(new Date(e.end_time), "yyyy-MM-dd");
+        const start = new Date(e.start_time);
+        const visualEnd = getVisualEnd(start, new Date(e.end_time), e.is_all_day);
+        const sStr = format(start, "yyyy-MM-dd");
+        const eStr = format(visualEnd, "yyyy-MM-dd");
         const dStr = format(day, "yyyy-MM-dd");
         return dStr >= sStr && dStr <= eStr;
       })
@@ -225,13 +241,13 @@ export default function WeekView({
     setDragCurrent(time);
   };
 
-  const handleMouseMove = (e: React.MouseEvent, day: Date) => {
+  const handleMouseMove = (e: React.MouseEvent) => {
     if (!isDragging || !dragStart) return;
     const rect = e.currentTarget.getBoundingClientRect();
     const y = Math.max(0, Math.min(e.clientY - rect.top, 1440));
     const hour = Math.floor(y / 60);
     const min = Math.floor((y % 60) / 15) * 15;
-    const time = setMinutes(setHours(day, hour), min);
+    const time = setMinutes(setHours(dragStart, hour), min);
     setDragCurrent(time);
   };
 
@@ -255,7 +271,10 @@ export default function WeekView({
     <div className="flex flex-col h-full bg-white dark:bg-[#1a1a1a] rounded-[2rem] border border-[#e0ddd5] dark:border-[#333] shadow-sm overflow-hidden flex-1 min-h-0 select-none">
       <div className="flex border-b border-[#e0ddd5] dark:border-[#333] bg-[#f7f5f0]/50 dark:bg-[#222]/50 shrink-0">
         <div className="w-12 md:w-16 border-r border-[#e0ddd5] dark:border-[#333] shrink-0" />
-        <div className="flex-1 grid divide-x divide-[#e0ddd5] dark:divide-[#333]" style={{ gridTemplateColumns: `repeat(${daysCount}, minmax(0, 1fr))` }}>
+        <div
+          className="flex-1 grid divide-x divide-[#e0ddd5] dark:divide-[#333]"
+          style={{ gridTemplateColumns: `repeat(${daysCount}, minmax(0, 1fr))` }}
+        >
           {days.map((day, i) => {
             const isTodayDate = isToday(day);
             return (
@@ -400,7 +419,7 @@ export default function WeekView({
                 key={colIdx}
                 className="flex-1 border-r border-[#e0ddd5] dark:border-[#333] last:border-r-0 relative h-[1440px] cursor-default"
                 onMouseDown={(e) => handleMouseDown(e, day)}
-                onMouseMove={(e) => handleMouseMove(e, day)}
+                onMouseMove={handleMouseMove}
                 onDragOver={(e) => e.preventDefault()}
                 onDrop={(e) => {
                   e.preventDefault();
@@ -428,7 +447,9 @@ export default function WeekView({
               >
                 <div
                   className={`absolute left-0 right-0 z-30 pointer-events-none border-t-[2px] ${
-                    isTodayDate ? "border-red-500 opacity-90" : "border-red-500/60 opacity-60 dark:border-red-500/70 dark:opacity-40"
+                    isTodayDate
+                      ? "border-red-500 opacity-90"
+                      : "border-red-500/60 opacity-60 dark:border-red-500/70 dark:opacity-40"
                   }`}
                   style={{ top: `${currentMins}px` }}
                 >
@@ -438,7 +459,10 @@ export default function WeekView({
                 </div>
 
                 {ghostStyle && (
-                  <div className="absolute rounded-lg bg-[#c2956e] text-white shadow-md pointer-events-none z-40 p-1.5 overflow-hidden" style={ghostStyle}>
+                  <div
+                    className="absolute rounded-lg bg-[#c2956e] text-white shadow-md pointer-events-none z-40 p-1.5 overflow-hidden"
+                    style={ghostStyle}
+                  >
                     <div className="text-[10px] font-bold leading-tight">New Event</div>
                   </div>
                 )}
@@ -451,7 +475,8 @@ export default function WeekView({
                   const isShort = numericHeight <= 35;
                   const showLocation = !isShort && event.location && numericHeight >= 55;
 
-                  const durationMins = (new Date(event.end_time).getTime() - new Date(event.start_time).getTime()) / 60000;
+                  const durationMins =
+                    (new Date(event.end_time).getTime() - new Date(event.start_time).getTime()) / 60000;
                   const showTime = !isShort && durationMins >= 45;
 
                   return (

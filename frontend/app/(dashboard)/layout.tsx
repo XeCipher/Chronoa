@@ -427,6 +427,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      if (!hotkeysEnabled) return;
+
       const isAlt = e.altKey;
       const isTyping =
         ["INPUT", "TEXTAREA"].includes((e.target as HTMLElement).tagName) ||
@@ -446,7 +448,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           setNotesTab("notes");
           router.push("/notes");
         }
-        if (key === "j" && !disabledHotkeys?.includes("journal")) {
+        if (key === "j" && !disabledHotkeys?.includes("journal") && !disabledHotkeys?.includes("notes")) {
           e.preventDefault();
           setNotesTab("journal");
           router.push("/notes");
