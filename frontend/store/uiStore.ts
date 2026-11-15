@@ -7,6 +7,13 @@ type NotesTab = 'notes' | 'journal' | 'trash';
 type SessionsFilter = 'all' | 'timer' | 'stopwatch';
 type CalendarView = 'month' | 'week' | '2-day' | 'day';
 
+export interface EditorCursorState {
+  from: number;
+  to: number;
+  scrollTop: number;
+  restoreFocus: boolean;
+}
+
 export type ConfirmDialogState = {
   title: string;
   message: string;
@@ -46,16 +53,25 @@ interface UiState {
   activeTaskIdWithMenu: string | null;
   archiveLayout: 'nested' | 'list';
   archiveSort: 'newest' | 'oldest';
-  
+
   mobileRoutineCollapsed: boolean;
   mobileTasksCollapsed: boolean;
   calendarWidgetCollapsed: boolean;
+
+  notesFolderId: string | null;
+  notesSelectedId: string | null;
+  journalSelectedId: string | null;
+  notesListVisible: boolean;
+  journalListVisible: boolean;
+  notesTrashOpen: boolean;
+  notesLibraryScrollTop: number;
+  editorCursorStates: Record<string, EditorCursorState>;
 
   confirmDialog: ConfirmDialogState | null;
   isGlobalTimeWidgetExpanded: boolean;
   isEditorFullscreen: boolean;
   isAiChatOpen: boolean;
-  
+
   setTaskArchiveDelay: (delay: number) => void;
   setRoutineResetHour: (hour: number) => void;
   setJournalZoom: (zoom: number) => void;
@@ -78,10 +94,20 @@ interface UiState {
   setActiveTaskIdWithMenu: (id: string | null) => void;
   setArchiveLayout: (layout: 'nested' | 'list') => void;
   setArchiveSort: (sort: 'newest' | 'oldest') => void;
-  
+
   setMobileRoutineCollapsed: (val: boolean) => void;
   setMobileTasksCollapsed: (val: boolean) => void;
   setCalendarWidgetCollapsed: (val: boolean) => void;
+
+  setNotesFolderId: (id: string | null) => void;
+  setNotesSelectedId: (id: string | null) => void;
+  setJournalSelectedId: (id: string | null) => void;
+  setNotesListVisible: (val: boolean) => void;
+  setJournalListVisible: (val: boolean) => void;
+  setNotesTrashOpen: (val: boolean) => void;
+  setNotesLibraryScrollTop: (val: number) => void;
+  setEditorCursorState: (key: string, cursorState: EditorCursorState) => void;
+  resetNotesWorkspace: () => void;
 
   showConfirmDialog: (options: ConfirmDialogState) => void;
   closeConfirmDialog: () => void;
@@ -120,7 +146,16 @@ export const useUiStore = create<UiState>()(
       mobileRoutineCollapsed: true,
       mobileTasksCollapsed: false,
       calendarWidgetCollapsed: false,
-      
+
+      notesFolderId: null,
+      notesSelectedId: null,
+      journalSelectedId: null,
+      notesListVisible: true,
+      journalListVisible: true,
+      notesTrashOpen: false,
+      notesLibraryScrollTop: 0,
+      editorCursorStates: {},
+
       confirmDialog: null,
       isGlobalTimeWidgetExpanded: false,
       isEditorFullscreen: false,
@@ -129,7 +164,7 @@ export const useUiStore = create<UiState>()(
       setTaskArchiveDelay: (delay) => set({ taskArchiveDelay: delay }),
       setRoutineResetHour: (hour) => set({ routineResetHour: hour }),
       setJournalZoom: (zoom) => set({ journalZoom: zoom }),
-      
+
       // Mutually exclusive pin states
       toggleSidebarPin: () => set((state) => {
         const next = !state.isSidebarPinned;
@@ -161,19 +196,58 @@ export const useUiStore = create<UiState>()(
       setMobileTasksCollapsed: (val) => set({ mobileTasksCollapsed: val }),
       setCalendarWidgetCollapsed: (val) => set({ calendarWidgetCollapsed: val }),
 
+      setNotesFolderId: (notesFolderId) => set({ notesFolderId }),
+      setNotesSelectedId: (notesSelectedId) => set({ notesSelectedId }),
+      setJournalSelectedId: (journalSelectedId) => set({ journalSelectedId }),
+      setNotesListVisible: (notesListVisible) => set({ notesListVisible }),
+      setJournalListVisible: (journalListVisible) => set({ journalListVisible }),
+      setNotesTrashOpen: (notesTrashOpen) => set({ notesTrashOpen }),
+      setNotesLibraryScrollTop: (notesLibraryScrollTop) => set({ notesLibraryScrollTop }),
+      setEditorCursorState: (key, cursorState) =>
+        set((state) => ({
+          editorCursorStates: { ...state.editorCursorStates, [key]: cursorState },
+        })),
+      resetNotesWorkspace: () =>
+        set({
+          notesFolderId: null,
+          notesSelectedId: null,
+          journalSelectedId: null,
+          notesListVisible: true,
+          journalListVisible: true,
+          notesTrashOpen: false,
+          notesLibraryScrollTop: 0,
+          editorCursorStates: {},
+        }),
+
       showConfirmDialog: (options) => set({ confirmDialog: options }),
       closeConfirmDialog: () => set({ confirmDialog: null }),
       setGlobalTimeWidgetExpanded: (val) => set({ isGlobalTimeWidgetExpanded: val }),
       toggleEditorFullscreen: () => set((state) => ({ isEditorFullscreen: !state.isEditorFullscreen })),
       setEditorFullscreen: (val) => set({ isEditorFullscreen: val }),
-      toggleAiChat: () => set(state => ({ isAiChatOpen: !state.isAiChatOpen })),
+      toggleAiChat: () => set((state) => ({ isAiChatOpen: !state.isAiChatOpen })),
       setAiChatOpen: (val) => set({ isAiChatOpen: val }),
     }),
-    { 
+    {
       name: 'chronoa-settings',
-      partialize: (state) => Object.fromEntries(
-        Object.entries(state).filter(([key]) => !['activeTaskIdWithMenu', 'mobileNoteOpen', 'confirmDialog', 'isGlobalTimeWidgetExpanded', 'isEditorFullscreen', 'isAiChatOpen'].includes(key))
-      ),
+      partialize: (state) =>
+        Object.fromEntries(
+          Object.entries(state).filter(
+            ([key]) =>
+              ![
+                'activeTaskIdWithMenu',
+                'mobileNoteOpen',
+                'confirmDialog',
+                'isGlobalTimeWidgetExpanded',
+                'isEditorFullscreen',
+                'isAiChatOpen',
+                'notesTrashOpen',
+                'notesListVisible',
+                'journalListVisible',
+                'notesLibraryScrollTop',
+                'editorCursorStates',
+              ].includes(key)
+          )
+        ),
     }
   )
 );

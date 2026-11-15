@@ -152,8 +152,14 @@ export default function RecursiveCheckbox({
   const lastBlurTimeRef = useRef<number>(0);
   const blurCollapseTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  const { taskArchiveDelay, activeTaskIdWithMenu, setActiveTaskIdWithMenu, disabledHotkeys, moveCompletedToBottom } =
-    useUiStore();
+  const {
+    taskArchiveDelay,
+    activeTaskIdWithMenu,
+    setActiveTaskIdWithMenu,
+    hotkeysEnabled,
+    disabledHotkeys,
+    moveCompletedToBottom,
+  } = useUiStore();
   const { addInstance, setTitle: setTimerTitle, setActiveTab, setForceShowWidgets } = useTimerStore();
 
   const [localTitle, setLocalTitle] = useState(task.title);
@@ -947,7 +953,7 @@ export default function RecursiveCheckbox({
           <button
             onClick={(e) => {
               e.stopPropagation();
-              if ((e.altKey || e.shiftKey) && hasNestedParents && onToggleCollapseAll) {
+              if (e.altKey && hasNestedParents && onToggleCollapseAll) {
                 onToggleCollapseAll(task, !isCollapsed);
                 return;
               }
@@ -968,8 +974,8 @@ export default function RecursiveCheckbox({
             data-tooltip-content={
               !isSandbox && hasNestedParents
                 ? isCollapsed
-                  ? "Click to expand • Alt/Shift+Click to expand all"
-                  : "Click to collapse • Alt/Shift+Click to collapse all"
+                  ? "Click to expand • Alt+Click to expand all"
+                  : "Click to collapse • Alt+Click to collapse all"
                 : undefined
             }
             className="shrink-0 -ml-1 text-[#b0ad9a] md:hover:text-[#c2956e] md:dark:hover:text-[#d1a784] transition-colors p-1"
@@ -1055,18 +1061,18 @@ export default function RecursiveCheckbox({
                   isActiveEditorRef.current = false;
                   lastCaretOffsetRef.current = null;
                   setIsExpanded(false);
-                  setLocalTitle(textRef.current?.textContent || "");
+                  setLocalTitle(textRef.current?.textContent?.trim() || "New Item");
                 }, 40);
               }}
               onKeyDown={(e) => {
-                if (e.shiftKey && e.key === "ArrowUp" && !disabledHotkeys?.includes("focus_up")) {
+                if (hotkeysEnabled && e.shiftKey && e.key === "ArrowUp" && !disabledHotkeys?.includes("focus_up")) {
                   e.preventDefault();
                   const inputs = Array.from(document.querySelectorAll(".task-input-field")) as HTMLElement[];
                   const idx = inputs.findIndex((el) => el.getAttribute("data-task-id") === task.id);
                   if (idx > 0) inputs[idx - 1].focus();
                   return;
                 }
-                if (e.shiftKey && e.key === "ArrowDown" && !disabledHotkeys?.includes("focus_down")) {
+                if (hotkeysEnabled && e.shiftKey && e.key === "ArrowDown" && !disabledHotkeys?.includes("focus_down")) {
                   e.preventDefault();
                   const focusNext = () => {
                     const inputs = Array.from(document.querySelectorAll(".task-input-field")) as HTMLElement[];
@@ -1093,12 +1099,12 @@ export default function RecursiveCheckbox({
                   return;
                 }
 
-                if (e.altKey && e.key === "ArrowUp" && !disabledHotkeys?.includes("up")) {
+                if (hotkeysEnabled && e.altKey && e.key === "ArrowUp" && !disabledHotkeys?.includes("up")) {
                   e.preventDefault();
                   if (canMoveUp) onMoveUp(task);
                   return;
                 }
-                if (e.altKey && e.key === "ArrowDown" && !disabledHotkeys?.includes("down")) {
+                if (hotkeysEnabled && e.altKey && e.key === "ArrowDown" && !disabledHotkeys?.includes("down")) {
                   e.preventDefault();
                   if (canMoveDown) onMoveDown(task);
                   return;
@@ -1106,9 +1112,11 @@ export default function RecursiveCheckbox({
 
                 if (e.key === "Enter") {
                   if (e.ctrlKey || e.metaKey) {
-                    e.preventDefault();
-                    saveCurrentText();
-                    onAdd(task.parent_id, task);
+                    if (hotkeysEnabled && !disabledHotkeys?.includes("new_sibling")) {
+                      e.preventDefault();
+                      saveCurrentText();
+                      onAdd(task.parent_id, task);
+                    }
                   } else if (e.shiftKey) {
                     e.preventDefault();
                     document.execCommand("insertText", false, "\n");
@@ -1124,9 +1132,9 @@ export default function RecursiveCheckbox({
                   e.currentTarget.blur();
                 }
                 if (e.key === "Tab") {
-                  const isDisabledHotkey = e.shiftKey
-                    ? disabledHotkeys?.includes("unindent")
-                    : disabledHotkeys?.includes("indent");
+                  const isDisabledHotkey =
+                    !hotkeysEnabled ||
+                    (e.shiftKey ? disabledHotkeys?.includes("unindent") : disabledHotkeys?.includes("indent"));
                   if (!isDisabledHotkey) {
                     e.preventDefault();
                     saveCurrentText();
