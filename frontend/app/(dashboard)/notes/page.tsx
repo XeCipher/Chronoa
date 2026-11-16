@@ -36,12 +36,42 @@ const TABS: { id: Tab; label: string; icon: React.ElementType }[] = [
 
 const escapeRegExp = (str: string) => str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
+const stripHtmlToPlain = (html: string) =>
+  (html || "").replace(/<[^>]+>/g, " ").replace(/&nbsp;/gi, " ").replace(/\s+/g, " ").trim();
+
 const getLocalYYYYMMDD = (date: Date) => {
   const y = date.getFullYear();
   const m = String(date.getMonth() + 1).padStart(2, "0");
   const d = String(date.getDate()).padStart(2, "0");
   return `${y}-${m}-${d}`;
 };
+
+const Snippet = React.memo(({ plain, query }: { plain: string; query: string }) => {
+  if (!plain) return <span className="text-[#b0ad9a] dark:text-[#555] opacity-50 italic">No content.</span>;
+  if (!query.trim()) return <span className="opacity-70">{plain.slice(0, 80)}</span>;
+  const idx = plain.toLowerCase().indexOf(query.toLowerCase());
+  if (idx === -1) return <span className="opacity-70">{plain.slice(0, 80)}</span>;
+  const start = Math.max(0, idx - 20);
+  const end = Math.min(plain.length, idx + query.length + 40);
+  const snippet = plain.slice(start, end);
+  const parts = snippet.split(new RegExp(`(${escapeRegExp(query)})`, "gi"));
+  return (
+    <span className="opacity-80">
+      {start > 0 && "..."}
+      {parts.map((p, i) =>
+        p.toLowerCase() === query.toLowerCase() ? (
+          <span key={i} className="bg-[#c2956e]/30 dark:bg-[#b0855f]/40 text-[#3d3b33] dark:text-white px-0.5 rounded font-medium">
+            {p}
+          </span>
+        ) : (
+          p
+        )
+      )}
+      {end < plain.length && "..."}
+    </span>
+  );
+});
+Snippet.displayName = "Snippet";
 
 let offlineSyncPromise: Promise<void> | null = null;
 
@@ -183,6 +213,7 @@ export default function NotesPage() {
 
   const notesRef = useRef<any[]>([]);
   const journalsRef = useRef<any[]>([]);
+  const userIdRef = useRef<string | null>(null);
   useEffect(() => {
     notesRef.current = notes;
   }, [notes]);
@@ -196,6 +227,11 @@ export default function NotesPage() {
 
   const [trashSelectedId, setTrashSelectedId] = useState<string | null>(null);
   const [trashListVisible, setTrashListVisible] = useState(true);
+
+  const [isDesktopViewport, setIsDesktopViewport] = useState(true);
+  const [isEditorHydrated, setIsEditorHydrated] = useState(false);
+  const [isClosingMobile, setIsClosingMobile] = useState(false);
+  const [mobileToolbarContainer, setMobileToolbarContainer] = useState<HTMLDivElement | null>(null);
 
   const selectedFolderId = notesFolderId;
   const setSelectedFolderId = setNotesFolderId;
@@ -225,11 +261,12 @@ export default function NotesPage() {
 
   const setIsListVisible = useCallback(
     (val: boolean) => {
+      setMobileNoteOpen(!val);
       if (isTrashOpen) setTrashListVisible(val);
       else if (notesTab === "notes") setNotesListVisible(val);
       else setJournalListVisible(val);
     },
-    [isTrashOpen, notesTab, setNotesListVisible, setJournalListVisible]
+    [isTrashOpen, notesTab, setNotesListVisible, setJournalListVisible, setMobileNoteOpen]
   );
 
   const [loading, setLoading] = useState(true);
@@ -244,19 +281,52 @@ export default function NotesPage() {
   const [moveTargetFolderId, setMoveTargetFolderId] = useState<string | null>(null);
 
   const desktopCalRef = useRef<HTMLDivElement>(null);
+  const mainRef = useRef<HTMLElement>(null);
   const lastFetchRef = useRef<number>(0);
   const prevPathnameRef = useRef<string | null>(null);
   const libScrollTopRef = useRef<number>(notesLibraryScrollTop);
   const hasRestoredLibScrollRef = useRef(false);
   const isCreatingNoteRef = useRef(false);
   const titleSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const closeTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const hydrateTimerRef = useRef<NodeJS.Timeout | null>(null);
   const titleTouchStartRef = useRef<{ x: number; y: number } | null>(null);
   const scrollContainerTouchRef = useRef<{ x: number; y: number; time: number } | null>(null);
+
+  useEffect(() => {
+    const syncViewport = () => setIsDesktopViewport(window.innerWidth >= 1024);
+    syncViewport();
+    window.addEventListener("resize", syncViewport);
+    return () => window.removeEventListener("resize", syncViewport);
+  }, []);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user?.id) userIdRef.current = session.user.id;
+    });
+  }, []);
+
+  const clearTransitionTimers = useCallback(() => {
+    if (closeTimerRef.current) {
+      clearTimeout(closeTimerRef.current);
+      closeTimerRef.current = null;
+    }
+    if (hydrateTimerRef.current) {
+      clearTimeout(hydrateTimerRef.current);
+      hydrateTimerRef.current = null;
+    }
+  }, []);
+
+  useEffect(() => {
+    return () => clearTransitionTimers();
+  }, [clearTransitionTimers]);
 
   const prevNotesTab = useRef(notesTab);
   useEffect(() => {
     if (prevNotesTab.current !== notesTab) {
       prevNotesTab.current = notesTab;
+      clearTransitionTimers();
+      setIsClosingMobile(false);
       setTrashSelectedId(null);
       setNoteToFocus(null);
       setSearchQuery("");
@@ -264,12 +334,14 @@ export default function NotesPage() {
       const targetSelectedId = notesTab === "notes" ? notesSelectedId : journalSelectedId;
       setAutoSelectPending(!targetSelectedId && !isTrashOpen);
     }
-  }, [notesTab, notesSelectedId, journalSelectedId, isTrashOpen]);
+  }, [notesTab, notesSelectedId, journalSelectedId, isTrashOpen, clearTransitionTimers]);
 
   const prevFolderId = useRef(selectedFolderId);
   useEffect(() => {
     if (prevFolderId.current !== selectedFolderId) {
       prevFolderId.current = selectedFolderId;
+      clearTransitionTimers();
+      setIsClosingMobile(false);
       setNotesSelectedId(null);
       setNoteToFocus(null);
       if (typeof window !== "undefined" && window.innerWidth < 1024) {
@@ -278,7 +350,7 @@ export default function NotesPage() {
         setAutoSelectPending(true);
       }
     }
-  }, [selectedFolderId, setNotesSelectedId, setNotesListVisible]);
+  }, [selectedFolderId, setNotesSelectedId, setNotesListVisible, clearTransitionTimers]);
 
   useEffect(() => {
     return () => {
@@ -308,6 +380,8 @@ export default function NotesPage() {
   // Reset active tab back to its main root state and open the first item on desktop
   const resetTabToMain = useCallback(
     (tab: Tab) => {
+      clearTransitionTimers();
+      setIsClosingMobile(false);
       setNotesTab(tab);
       setIsTrashOpen(false);
       setTrashSelectedId(null);
@@ -331,6 +405,7 @@ export default function NotesPage() {
         } else {
           setNotesSelectedId(null);
           setNotesListVisible(true);
+          setMobileNoteOpen(false);
         }
       } else {
         if (isDesktop) {
@@ -340,10 +415,12 @@ export default function NotesPage() {
         } else {
           setJournalSelectedId(null);
           setJournalListVisible(true);
+          setMobileNoteOpen(false);
         }
       }
     },
     [
+      clearTransitionTimers,
       setNotesTab,
       setIsTrashOpen,
       setNotesLibraryScrollTop,
@@ -352,6 +429,7 @@ export default function NotesPage() {
       setNotesListVisible,
       setJournalSelectedId,
       setJournalListVisible,
+      setMobileNoteOpen,
     ]
   );
 
@@ -359,6 +437,8 @@ export default function NotesPage() {
   useEffect(() => {
     const handleReset = (e: any) => {
       if (e.detail === "/notes") {
+        clearTransitionTimers();
+        setIsClosingMobile(false);
         prevFolderId.current = null;
         libScrollTopRef.current = 0;
         resetNotesWorkspace();
@@ -369,6 +449,7 @@ export default function NotesPage() {
         if (typeof window !== "undefined" && window.innerWidth < 1024) {
           setNotesListVisible(true);
           setJournalListVisible(true);
+          setMobileNoteOpen(false);
         } else {
           setAutoSelectPending(true);
         }
@@ -380,7 +461,70 @@ export default function NotesPage() {
     };
     window.addEventListener("chronoa-reset-tab", handleReset);
     return () => window.removeEventListener("chronoa-reset-tab", handleReset);
-  }, [resetNotesWorkspace, setNotesListVisible, setJournalListVisible]);
+  }, [resetNotesWorkspace, setNotesListVisible, setJournalListVisible, setMobileNoteOpen, clearTransitionTimers]);
+
+  const commitNoteTitle = useCallback(
+    (rawTitle: string, targetId: string | null) => {
+      if (!targetId || notesTab !== "notes" || isTrashOpen) return;
+      const t = rawTitle.trim() || "Untitled";
+      const existingNote = notesRef.current.find((n) => n.id === targetId);
+      if (existingNote && existingNote.title === t) return;
+
+      const updatedNow = new Date().toISOString();
+      setNotes((prev) => {
+        const next = prev.map((n) => (n.id === targetId ? { ...n, title: t, updated_at: updatedNow } : n));
+        localStorage.setItem("chronoa_cache_notes", JSON.stringify(next));
+        return next;
+      });
+
+      const queue = JSON.parse(localStorage.getItem("chronoa_offline_queue") || "[]");
+      const itemIndex = queue.findIndex((q: any) => q.id === targetId && q.type === "notes");
+      const existingContent = existingNote?.content || "";
+
+      if (itemIndex >= 0) {
+        queue[itemIndex].title = t;
+        queue[itemIndex].updated_at = updatedNow;
+      } else {
+        queue.push({ type: "notes", id: targetId, content: existingContent, title: t, updated_at: updatedNow });
+      }
+      localStorage.setItem("chronoa_offline_queue", JSON.stringify(queue));
+      syncOfflineData();
+    },
+    [notesTab, isTrashOpen]
+  );
+
+  const updateNoteTitle = useCallback(() => {
+    if (titleSaveTimeoutRef.current) {
+      clearTimeout(titleSaveTimeoutRef.current);
+      titleSaveTimeoutRef.current = null;
+    }
+    commitNoteTitle(editTitle, selectedId);
+  }, [commitNoteTitle, editTitle, selectedId]);
+
+  const handleCloseMobileEditor = useCallback(() => {
+    updateNoteTitle();
+    (document.activeElement as HTMLElement)?.blur();
+
+    if (hydrateTimerRef.current) {
+      clearTimeout(hydrateTimerRef.current);
+      hydrateTimerRef.current = null;
+    }
+    if (closeTimerRef.current) {
+      clearTimeout(closeTimerRef.current);
+    }
+
+    // Keep the note mounted while <main> slides offscreen so the user never sees a sudden blank swap
+    setIsClosingMobile(true);
+    setIsListVisible(true);
+
+    closeTimerRef.current = setTimeout(() => {
+      closeTimerRef.current = null;
+      setSelectedId(null);
+      setIsClosingMobile(false);
+      setIsEditorHydrated(false);
+      setNoteToFocus(null);
+    }, 360);
+  }, [updateNoteTitle, setIsListVisible, setSelectedId]);
 
   // Global Escape Key Listener for Exiting Fullscreen & Navigating Back
   useEffect(() => {
@@ -402,6 +546,8 @@ export default function NotesPage() {
         }
 
         if (isTrashOpen) {
+          clearTransitionTimers();
+          setIsClosingMobile(false);
           setIsTrashOpen(false);
           setTrashSelectedId(null);
           setTrashListVisible(true);
@@ -419,9 +565,13 @@ export default function NotesPage() {
         }
 
         if (!isListVisible) {
-          setSelectedId(null);
-          setIsListVisible(true);
-          setNoteToFocus(null);
+          if (typeof window !== "undefined" && window.innerWidth < 1024) {
+            handleCloseMobileEditor();
+          } else {
+            setSelectedId(null);
+            setIsListVisible(true);
+            setNoteToFocus(null);
+          }
           return;
         }
       }
@@ -443,6 +593,8 @@ export default function NotesPage() {
     notesSelectedId,
     journalSelectedId,
     setSelectedId,
+    handleCloseMobileEditor,
+    clearTransitionTimers,
   ]);
 
   const handleTabChange = (id: Tab) => {
@@ -450,6 +602,8 @@ export default function NotesPage() {
       resetTabToMain(id);
       return;
     }
+    clearTransitionTimers();
+    setIsClosingMobile(false);
     setNotesTab(id);
     setTrashSelectedId(null);
     setNoteToFocus(null);
@@ -503,6 +657,7 @@ export default function NotesPage() {
       setLoading(false);
       return;
     }
+    userIdRef.current = user.id;
 
     const [nData, jData, fData, tData, jTrashData] = await Promise.all([
       supabase.from("notes").select("*").is("deleted_at", null).order("updated_at", { ascending: false }),
@@ -689,13 +844,45 @@ export default function NotesPage() {
   }, [setMobileNoteOpen]);
 
   const handleSelectItem = (id: string, autoFocus: boolean = false) => {
+    const isMobileOrTablet = typeof window !== "undefined" && window.innerWidth < 1024;
+    const isReopeningSameClosingItem = isMobileOrTablet && isClosingMobile && selectedId === id;
+
+    clearTransitionTimers();
+    setIsClosingMobile(false);
+
+    if (isMobileOrTablet) {
+      if (!isReopeningSameClosingItem) {
+        // Defer heavy TipTap mount until the 320ms slide-in completes so iPhone stays locked at 60/120fps
+        setIsEditorHydrated(false);
+      }
+      hydrateTimerRef.current = setTimeout(() => {
+        hydrateTimerRef.current = null;
+        setIsEditorHydrated(true);
+      }, 340);
+    } else {
+      setIsEditorHydrated(true);
+    }
+
     setSelectedId(id);
     if (autoFocus) {
       setNoteToFocus(id);
     } else {
       setNoteToFocus(null);
     }
-    if (window.innerWidth < 1024) setIsListVisible(false);
+
+    // Reset or restore scroll position immediately on frame 0 before slide starts
+    const targetEditorKey = `${isTrashOpen ? "trash" : notesTab}-${id}`;
+    const savedCursor = !isTrashOpen ? useUiStore.getState().editorCursorStates[targetEditorKey] : undefined;
+    requestAnimationFrame(() => {
+      const scroller = document.getElementById("notes-scroll-container");
+      if (scroller) {
+        const nextTop = savedCursor ? savedCursor.scrollTop : 0;
+        scroller.scrollTop = nextTop;
+        setIsScrolled(nextTop > 10);
+      }
+    });
+
+    if (isMobileOrTablet) setIsListVisible(false);
   };
 
   const createFolder = async () => {
@@ -816,15 +1003,32 @@ export default function NotesPage() {
     });
   };
 
+  const resolveUserId = async (): Promise<string | null> => {
+    if (userIdRef.current) return userIdRef.current;
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+    if (session?.user?.id) {
+      userIdRef.current = session.user.id;
+      return session.user.id;
+    }
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (user?.id) {
+      userIdRef.current = user.id;
+      return user.id;
+    }
+    return null;
+  };
+
   const createNote = async () => {
     if (isCreatingNoteRef.current) return;
     isCreatingNoteRef.current = true;
 
     try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!user) return;
+      const uid = await resolveUserId();
+      if (!uid) return;
 
       const updatedNow = new Date().toISOString();
       const newId =
@@ -832,56 +1036,37 @@ export default function NotesPage() {
           ? crypto.randomUUID()
           : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 
-      if (!navigator.onLine) {
-        const offlineNote = {
-          id: newId,
-          user_id: user.id,
-          title: "New Note",
-          content: "<p></p>",
-          folder_id: selectedFolderId || null,
-          updated_at: updatedNow,
-          deleted_at: null,
-        };
-        setNotes((prev) => {
-          const next = [offlineNote, ...prev];
-          localStorage.setItem("chronoa_cache_notes", JSON.stringify(next));
-          return next;
-        });
-        const queue = JSON.parse(localStorage.getItem("chronoa_offline_queue") || "[]");
-        queue.push({
-          type: "notes",
-          id: newId,
-          title: "New Note",
-          content: "<p></p>",
-          folder_id: selectedFolderId || null,
-          updated_at: updatedNow,
-          isNew: true,
-        });
-        localStorage.setItem("chronoa_offline_queue", JSON.stringify(queue));
-        handleSelectItem(newId, true);
-        return;
-      }
-
-      const payload: any = { id: newId, user_id: user.id, title: "New Note" };
-      if (selectedFolderId) payload.folder_id = selectedFolderId;
-
-      const { data, error } = await supabase.from("notes").insert(payload).select().single();
-      if (error || !data) {
-        showConfirmDialog({
-          title: "Unable to Create Note",
-          message: error?.message || "Please check your connection and try again.",
-          confirmText: "OK",
-          onConfirm: () => {},
-        });
-        return;
-      }
+      const optimisticNote = {
+        id: newId,
+        user_id: uid,
+        title: "New Note",
+        content: "<p></p>",
+        folder_id: selectedFolderId || null,
+        updated_at: updatedNow,
+        deleted_at: null,
+      };
 
       setNotes((prev) => {
-        const next = [data, ...prev];
+        const next = [optimisticNote, ...prev];
         localStorage.setItem("chronoa_cache_notes", JSON.stringify(next));
         return next;
       });
-      handleSelectItem(data.id, true);
+
+      const queue = JSON.parse(localStorage.getItem("chronoa_offline_queue") || "[]");
+      queue.push({
+        type: "notes",
+        id: newId,
+        title: "New Note",
+        content: "<p></p>",
+        folder_id: selectedFolderId || null,
+        updated_at: updatedNow,
+        isNew: true,
+      });
+      localStorage.setItem("chronoa_offline_queue", JSON.stringify(queue));
+
+      // Open immediately so the slide animation starts with zero network latency
+      handleSelectItem(newId, true);
+      syncOfflineData();
     } finally {
       isCreatingNoteRef.current = false;
     }
@@ -896,9 +1081,7 @@ export default function NotesPage() {
       setShowCalendar(false);
       return;
     }
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+
     const newJournal = { entry_date: dateStr, content: "<p></p>" };
     setJournals((prev) => {
       const next = [...prev, newJournal].sort(
@@ -911,59 +1094,23 @@ export default function NotesPage() {
     setShowCalendar(false);
 
     if (navigator.onLine) {
+      const uid = await resolveUserId();
+      if (!uid) return;
       const { data, error } = await supabase
         .from("journal_entries")
         .update({ content: "<p></p>" })
         .eq("entry_date", dateStr)
-        .eq("user_id", user?.id)
+        .eq("user_id", uid)
         .select();
 
       if (!error && data && data.length === 0) {
         await supabase.from("journal_entries").insert({
-          user_id: user?.id,
+          user_id: uid,
           entry_date: dateStr,
           content: "<p></p>",
         });
       }
     }
-  };
-
-  const commitNoteTitle = useCallback(
-    (rawTitle: string, targetId: string | null) => {
-      if (!targetId || notesTab !== "notes" || isTrashOpen) return;
-      const t = rawTitle.trim() || "Untitled";
-      const existingNote = notesRef.current.find((n) => n.id === targetId);
-      if (existingNote && existingNote.title === t) return;
-
-      const updatedNow = new Date().toISOString();
-      setNotes((prev) => {
-        const next = prev.map((n) => (n.id === targetId ? { ...n, title: t, updated_at: updatedNow } : n));
-        localStorage.setItem("chronoa_cache_notes", JSON.stringify(next));
-        return next;
-      });
-
-      const queue = JSON.parse(localStorage.getItem("chronoa_offline_queue") || "[]");
-      const itemIndex = queue.findIndex((q: any) => q.id === targetId && q.type === "notes");
-      const existingContent = existingNote?.content || "";
-
-      if (itemIndex >= 0) {
-        queue[itemIndex].title = t;
-        queue[itemIndex].updated_at = updatedNow;
-      } else {
-        queue.push({ type: "notes", id: targetId, content: existingContent, title: t, updated_at: updatedNow });
-      }
-      localStorage.setItem("chronoa_offline_queue", JSON.stringify(queue));
-      syncOfflineData();
-    },
-    [notesTab, isTrashOpen]
-  );
-
-  const updateNoteTitle = () => {
-    if (titleSaveTimeoutRef.current) {
-      clearTimeout(titleSaveTimeoutRef.current);
-      titleSaveTimeoutRef.current = null;
-    }
-    commitNoteTitle(editTitle, selectedId);
   };
 
   const moveToFolder = async (id: string, folderId: string | null) => {
@@ -1051,6 +1198,8 @@ export default function NotesPage() {
   };
 
   const moveToTrash = async (id: string) => {
+    clearTransitionTimers();
+    setIsClosingMobile(false);
     const nextId = getNextId(id);
     const deleted_at = new Date().toISOString();
     const {
@@ -1079,6 +1228,8 @@ export default function NotesPage() {
   };
 
   const restoreNote = async (item: any) => {
+    clearTransitionTimers();
+    setIsClosingMobile(false);
     const id = item.entry_date || item.id;
     setTrash((prev) => prev.filter((t) => (t.entry_date || t.id) !== id));
     const {
@@ -1114,6 +1265,8 @@ export default function NotesPage() {
       message: "Are you sure you want to delete this permanently? It cannot be recovered.",
       isDestructive: true,
       onConfirm: async () => {
+        clearTransitionTimers();
+        setIsClosingMobile(false);
         const id = item.entry_date || item.id;
         const nextId = getNextId(id);
         const {
@@ -1142,6 +1295,8 @@ export default function NotesPage() {
       message: `Permanently delete all items in your ${notesTab} trash? This cannot be undone.`,
       isDestructive: true,
       onConfirm: async () => {
+        clearTransitionTimers();
+        setIsClosingMobile(false);
         const {
           data: { user },
         } = await supabase.auth.getUser();
@@ -1173,6 +1328,15 @@ export default function NotesPage() {
     return date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
   };
 
+  // Precompute plain text snippets once per data change to keep list transitions fast
+  const plainTextMap = useMemo(() => {
+    const map = new Map<string, string>();
+    notes.forEach((n) => map.set(n.id, stripHtmlToPlain(n.content)));
+    journals.forEach((j) => map.set(j.entry_date, stripHtmlToPlain(j.content)));
+    trash.forEach((t) => map.set(`trash:${t.entry_date || t.id}`, stripHtmlToPlain(t.content)));
+    return map;
+  }, [notes, journals, trash]);
+
   const filteredItems = useMemo(() => {
     let list = isTrashOpen
       ? trash.filter((t) => t.isJournal === (notesTab === "journal"))
@@ -1191,10 +1355,11 @@ export default function NotesPage() {
     return list.filter((item) => {
       const isJournal = isTrashOpen ? item.isJournal : notesTab === "journal";
       const title = isJournal ? formatDateLabel(item.entry_date) : item.title;
-      const plain = (item.content || "").replace(/<[^>]+>/g, " ").replace(/&nbsp;/gi, " ").toLowerCase();
+      const mapKey = isTrashOpen ? `trash:${item.entry_date || item.id}` : item.entry_date || item.id;
+      const plain = (plainTextMap.get(mapKey) || "").toLowerCase();
       return title?.toLowerCase().includes(q) || plain.includes(q);
     });
-  }, [notes, journals, trash, notesTab, searchQuery, isTrashOpen, selectedFolderId]);
+  }, [notes, journals, trash, notesTab, searchQuery, isTrashOpen, selectedFolderId, plainTextMap]);
 
   const currentFolders = useMemo(() => {
     if (notesTab !== "notes" || isTrashOpen || searchQuery.trim()) return [];
@@ -1221,33 +1386,6 @@ export default function NotesPage() {
       setAutoSelectPending(false);
     }
   }, [autoSelectPending, loading, filteredItems, isTrashOpen, notesTab, setSelectedId]);
-
-  const Snippet = ({ html, query }: { html: string; query: string }) => {
-    const plain = (html || "").replace(/<[^>]+>/g, " ").replace(/&nbsp;/gi, " ").replace(/\s+/g, " ").trim();
-    if (!plain) return <span className="text-[#b0ad9a] dark:text-[#555] opacity-50 italic">No content.</span>;
-    if (!query.trim()) return <span className="opacity-70">{plain.slice(0, 80)}</span>;
-    const idx = plain.toLowerCase().indexOf(query.toLowerCase());
-    if (idx === -1) return <span className="opacity-70">{plain.slice(0, 80)}</span>;
-    const start = Math.max(0, idx - 20);
-    const end = Math.min(plain.length, idx + query.length + 40);
-    const snippet = plain.slice(start, end);
-    const parts = snippet.split(new RegExp(`(${escapeRegExp(query)})`, "gi"));
-    return (
-      <span className="opacity-80">
-        {start > 0 && "..."}
-        {parts.map((p, i) =>
-          p.toLowerCase() === query.toLowerCase() ? (
-            <span key={i} className="bg-[#c2956e]/30 dark:bg-[#b0855f]/40 text-[#3d3b33] dark:text-white px-0.5 rounded font-medium">
-              {p}
-            </span>
-          ) : (
-            p
-          )
-        )}
-        {end < plain.length && "..."}
-      </span>
-    );
-  };
 
   const selectedItem = useMemo(() => {
     if (!selectedId) return null;
@@ -1381,11 +1519,7 @@ export default function NotesPage() {
               type="button"
               onClick={(e) => {
                 e.stopPropagation();
-                updateNoteTitle();
-                (document.activeElement as HTMLElement)?.blur();
-                setSelectedId(null);
-                setIsListVisible(true);
-                setNoteToFocus(null);
+                handleCloseMobileEditor();
               }}
               className="flex items-center justify-center p-2.5 bg-[#f7f5f0] dark:bg-[#1a1a1a] text-[#888] rounded-xl border border-[#e0ddd5] dark:border-[#333] md:hover:text-[#3d3b33] md:dark:hover:text-[#f0f0f0] transition-all shadow-sm shrink-0 cursor-pointer"
             >
@@ -1538,9 +1672,11 @@ export default function NotesPage() {
       {/* SIDEBAR LIBRARY VIEW */}
       <aside
         className={`
-        flex-shrink-0 flex flex-col bg-[#f7f5f0] dark:bg-[#121212] z-30 transition-all duration-300 ease-in-out overflow-hidden
-        ${isEditorFullscreen ? "w-0 border-none opacity-0" : "w-full lg:w-[350px] border-r border-[#e0ddd5] dark:border-[#2a2a2a]"}
-        ${isListVisible ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}
+        flex-shrink-0 flex flex-col bg-[#f7f5f0] dark:bg-[#121212] z-30 overflow-hidden
+        max-lg:transition-[transform,opacity] max-lg:duration-[320ms] max-lg:ease-[cubic-bezier(0.32,0.72,0,1)] max-lg:will-change-transform
+        lg:transition-[width,opacity] lg:duration-300 lg:ease-in-out
+        ${isEditorFullscreen ? "w-0 border-none opacity-0" : "w-full lg:w-[350px] lg:border-r lg:border-[#e0ddd5] lg:dark:border-[#2a2a2a]"}
+        ${isListVisible ? "translate-x-0 opacity-100" : "max-lg:-translate-x-12 max-lg:opacity-70 max-lg:pointer-events-none lg:translate-x-0"}
       `}
       >
         <div className="w-full lg:w-[350px] flex flex-col h-full shrink-0">
@@ -1561,6 +1697,8 @@ export default function NotesPage() {
                     type="button"
                     onClick={(e) => {
                       e.stopPropagation();
+                      clearTransitionTimers();
+                      setIsClosingMobile(false);
                       setIsTrashOpen(false);
                       setTrashSelectedId(null);
                       setTrashListVisible(true);
@@ -1587,6 +1725,8 @@ export default function NotesPage() {
                   <>
                     <button
                       onClick={() => {
+                        clearTransitionTimers();
+                        setIsClosingMobile(false);
                         setIsTrashOpen(true);
                         setTrashSelectedId(null);
                         setTrashListVisible(true);
@@ -1614,6 +1754,8 @@ export default function NotesPage() {
                   <>
                     <button
                       onClick={() => {
+                        clearTransitionTimers();
+                        setIsClosingMobile(false);
                         setIsTrashOpen(true);
                         setTrashSelectedId(null);
                         setTrashListVisible(true);
@@ -1751,7 +1893,7 @@ export default function NotesPage() {
                         <div
                           key={folder.id}
                           onClick={() => setSelectedFolderId(folder.id)}
-                          className="group flex items-center justify-between p-3.5 mb-2 rounded-2xl bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] md:hover:border-[#c2956e]/40 shadow-sm transition-all cursor-pointer"
+                          className="group flex items-center justify-between p-3.5 mb-2 rounded-2xl bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] md:hover:border-[#c2956e]/40 shadow-sm transition-colors cursor-pointer"
                         >
                           <div className="flex items-center gap-3 min-w-0">
                             <div className="w-9 h-9 rounded-xl bg-[#c2956e]/10 text-[#c2956e] dark:bg-[#b0855f]/20 dark:text-[#d1a784] flex items-center justify-center shrink-0">
@@ -1802,8 +1944,10 @@ export default function NotesPage() {
                     {filteredItems.map((item) => {
                       const isJournal = isTrashOpen ? item.isJournal : notesTab === "journal";
                       const id = item.entry_date || item.id;
-                      const isSelected = selectedId === id;
+                      const isSelected = selectedId === id && !isClosingMobile;
                       const title = isJournal ? formatDateLabel(item.entry_date) : item.title || "Untitled";
+                      const mapKey = isTrashOpen ? `trash:${id}` : id;
+                      const plain = plainTextMap.get(mapKey) || "";
                       const daysLeft = isTrashOpen
                         ? Math.ceil(30 - (Date.now() - new Date(item.deleted_at).getTime()) / (1000 * 60 * 60 * 24))
                         : 0;
@@ -1812,7 +1956,7 @@ export default function NotesPage() {
                         <button
                           key={id}
                           onClick={() => handleSelectItem(id)}
-                          className={`w-full text-left p-4 rounded-2xl transition-all duration-200 border relative group overflow-hidden cursor-pointer ${
+                          className={`w-full text-left p-4 rounded-2xl transition-colors duration-200 lg:transition-all border relative group overflow-hidden cursor-pointer ${
                             isSelected
                               ? "bg-white dark:bg-[#1e1e1e] border-[#e0ddd5] dark:border-[#222] lg:border-[#c2956e]/40 lg:dark:border-[#b0855f]/50 shadow-sm lg:shadow-md lg:translate-x-1"
                               : "bg-[#fdfbf7] dark:bg-[#161616] border-[#f0ede8] dark:border-[#222] md:hover:border-[#c2956e]/20 md:dark:hover:border-[#b0855f]/20 md:hover:shadow-sm"
@@ -1837,7 +1981,7 @@ export default function NotesPage() {
                                 Deletes in {daysLeft} days
                               </span>
                             )}
-                            <Snippet html={item.content} query={searchQuery} />
+                            <Snippet plain={plain} query={searchQuery} />
                           </div>
                         </button>
                       );
@@ -1862,22 +2006,43 @@ export default function NotesPage() {
 
       {/* MAIN CONTENT VIEW */}
       <main
+        ref={mainRef}
+        onTransitionEnd={(e) => {
+          if (e.target !== e.currentTarget || e.propertyName !== "transform") return;
+          if (!isListVisible) {
+            if (hydrateTimerRef.current) {
+              clearTimeout(hydrateTimerRef.current);
+              hydrateTimerRef.current = null;
+            }
+            setIsEditorHydrated(true);
+          } else if (isClosingMobile) {
+            if (closeTimerRef.current) {
+              clearTimeout(closeTimerRef.current);
+              closeTimerRef.current = null;
+            }
+            setSelectedId(null);
+            setIsClosingMobile(false);
+            setIsEditorHydrated(false);
+            setNoteToFocus(null);
+          }
+        }}
         className={`
         cursor-text select-text
-        flex-1 flex flex-col bg-white dark:bg-[#121212] transition-transform duration-500 ease-in-out z-40
+        flex-1 flex flex-col bg-white dark:bg-[#121212] z-40
+        max-lg:transition-transform max-lg:duration-[320ms] max-lg:ease-[cubic-bezier(0.32,0.72,0,1)] max-lg:will-change-transform
         max-md:fixed max-md:inset-0 md:max-lg:absolute md:max-lg:inset-0
         lg:static lg:translate-x-0
         ${isListVisible && !isEditorFullscreen ? "max-lg:translate-x-full max-lg:pointer-events-none" : "max-lg:translate-x-0"}
       `}
       >
         {selectedItem ? (
-          <div className="flex-1 flex flex-col w-full overflow-hidden relative">
+          <div ref={setMobileToolbarContainer} className="flex-1 flex flex-col w-full overflow-hidden relative">
             {/* MOBILE FIXED HEADER */}
             <div
               id="notes-mobile-header"
               className={`lg:hidden absolute top-0 left-0 right-0 z-50 px-4 sm:px-6 pt-[calc(0.75rem+max(1rem,env(safe-area-inset-top)))] pb-3 ${
-                isScrolled
-                  ? "bg-white/80 dark:bg-[#121212]/80 backdrop-blur-xl border-b border-[#e0ddd5] dark:border-[#2a2a2a] shadow-sm"
+                isScrolled && !isClosingMobile
+                  ? "bg-white/[0.96] dark:bg-[#121212]/[0.96] backdrop-blur-md border-b border-[#e0ddd5] dark:border-[#2a2a2a] shadow-sm"
                   : "bg-white dark:bg-[#121212] border-b border-transparent"
               }`}
             >
@@ -1981,6 +2146,16 @@ export default function NotesPage() {
                     noteType={activeItemType}
                     entryDate={selectedItem.entry_date}
                     shouldFocusOnMount={noteToFocus === (selectedItem.entry_date || selectedItem.id)}
+                    deferMount={!isDesktopViewport && !isEditorHydrated}
+                    isClosingMobile={isClosingMobile}
+                    mobileToolbarContainer={mobileToolbarContainer}
+                    onRequestImmediateHydrate={() => {
+                      if (hydrateTimerRef.current) {
+                        clearTimeout(hydrateTimerRef.current);
+                        hydrateTimerRef.current = null;
+                      }
+                      setIsEditorHydrated(true);
+                    }}
                   />
                 </div>
               </div>
@@ -2094,9 +2269,13 @@ export default function NotesPage() {
         </div>
       )}
 
-      {isListVisible && !isTrashOpen && (
-        <div className="lg:hidden fixed bottom-[calc(110px+env(safe-area-inset-bottom))] md:bottom-8 right-6 z-[100] flex flex-col items-end gap-3">
-          {showCalendar && notesTab === "journal" && (
+      {!isTrashOpen && (
+        <div
+          className={`lg:hidden fixed bottom-[calc(110px+env(safe-area-inset-bottom))] md:bottom-8 right-6 z-[35] flex flex-col items-end gap-3 transition-[opacity,transform] duration-200 ease-out ${
+            isListVisible ? "opacity-100 scale-100" : "opacity-0 scale-90 pointer-events-none"
+          }`}
+        >
+          {showCalendar && notesTab === "journal" && isListVisible && (
             <>
               <div className="fixed inset-0 z-40" onClick={() => setShowCalendar(false)} />
               <div className="relative z-50 mb-1 animate-fade-up origin-bottom-right">{renderCalendar(true)}</div>

@@ -53,6 +53,7 @@ interface UiState {
   activeTaskIdWithMenu: string | null;
   archiveLayout: 'nested' | 'list';
   archiveSort: 'newest' | 'oldest';
+  collapseHintCount: number;
 
   mobileRoutineCollapsed: boolean;
   mobileTasksCollapsed: boolean;
@@ -94,6 +95,8 @@ interface UiState {
   setActiveTaskIdWithMenu: (id: string | null) => void;
   setArchiveLayout: (layout: 'nested' | 'list') => void;
   setArchiveSort: (sort: 'newest' | 'oldest') => void;
+  incrementCollapseHintCount: () => void;
+  dismissCollapseHint: () => void;
 
   setMobileRoutineCollapsed: (val: boolean) => void;
   setMobileTasksCollapsed: (val: boolean) => void;
@@ -143,6 +146,7 @@ export const useUiStore = create<UiState>()(
       activeTaskIdWithMenu: null,
       archiveLayout: 'nested',
       archiveSort: 'newest',
+      collapseHintCount: 0,
       mobileRoutineCollapsed: true,
       mobileTasksCollapsed: false,
       calendarWidgetCollapsed: false,
@@ -192,6 +196,9 @@ export const useUiStore = create<UiState>()(
       setActiveTaskIdWithMenu: (id) => set({ activeTaskIdWithMenu: id }),
       setArchiveLayout: (archiveLayout) => set({ archiveLayout }),
       setArchiveSort: (archiveSort) => set({ archiveSort }),
+      incrementCollapseHintCount: () =>
+        set((state) => ({ collapseHintCount: Math.min(3, state.collapseHintCount + 1) })),
+      dismissCollapseHint: () => set({ collapseHintCount: 3 }),
       setMobileRoutineCollapsed: (val) => set({ mobileRoutineCollapsed: val }),
       setMobileTasksCollapsed: (val) => set({ mobileTasksCollapsed: val }),
       setCalendarWidgetCollapsed: (val) => set({ calendarWidgetCollapsed: val }),

@@ -152,6 +152,10 @@ export default function RecursiveCheckbox({
   const lastBlurTimeRef = useRef<number>(0);
   const blurCollapseTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Track collapse hover instruction views so it stops appearing after the first 3 times
+  const collapseHoverStartRef = useRef<number | null>(null);
+  const collapseHintConsumedRef = useRef(false);
+
   const {
     taskArchiveDelay,
     activeTaskIdWithMenu,
@@ -159,6 +163,9 @@ export default function RecursiveCheckbox({
     hotkeysEnabled,
     disabledHotkeys,
     moveCompletedToBottom,
+    collapseHintCount,
+    incrementCollapseHintCount,
+    dismissCollapseHint,
   } = useUiStore();
   const { addInstance, setTitle: setTimerTitle, setActiveTab, setForceShowWidgets } = useTimerStore();
 
@@ -472,6 +479,7 @@ export default function RecursiveCheckbox({
   const hasChildren = Boolean(task.children && task.children.length > 0);
   const hasNestedParents = Boolean(task.children?.some((c) => c.children && c.children.length > 0));
   const showKeepAliveToggle = showManagementActions && hasChildren;
+  const showCollapseHint = !isSandbox && hasNestedParents && collapseHintCount < 3;
 
   const isNodeCollapsed = (n: Task): boolean => {
     if (viewMode === "focus") {
@@ -951,11 +959,37 @@ export default function RecursiveCheckbox({
 
         {!isFlatList && hasChildren && (
           <button
+            onMouseEnter={() => {
+              if (showCollapseHint) {
+                collapseHoverStartRef.current = Date.now();
+                collapseHintConsumedRef.current = false;
+              }
+            }}
+            onMouseLeave={() => {
+              if (
+                showCollapseHint &&
+                !collapseHintConsumedRef.current &&
+                collapseHoverStartRef.current !== null &&
+                Date.now() - collapseHoverStartRef.current >= 200
+              ) {
+                collapseHintConsumedRef.current = true;
+                incrementCollapseHintCount();
+              }
+              collapseHoverStartRef.current = null;
+            }}
             onClick={(e) => {
               e.stopPropagation();
               if (e.altKey && hasNestedParents && onToggleCollapseAll) {
+                if (showCollapseHint) {
+                  collapseHintConsumedRef.current = true;
+                  dismissCollapseHint();
+                }
                 onToggleCollapseAll(task, !isCollapsed);
                 return;
+              }
+              if (showCollapseHint && !collapseHintConsumedRef.current) {
+                collapseHintConsumedRef.current = true;
+                incrementCollapseHintCount();
               }
               const newVal = !isCollapsed;
               if (viewMode === "focus") {
@@ -970,9 +1004,9 @@ export default function RecursiveCheckbox({
               }
             }}
             onPointerDown={(e) => e.stopPropagation()}
-            data-tooltip-id={!isSandbox && hasNestedParents ? "global-tooltip" : undefined}
+            data-tooltip-id={showCollapseHint ? "global-tooltip" : undefined}
             data-tooltip-content={
-              !isSandbox && hasNestedParents
+              showCollapseHint
                 ? isCollapsed
                   ? "Click to expand • Alt+Click to expand all"
                   : "Click to collapse • Alt+Click to collapse all"

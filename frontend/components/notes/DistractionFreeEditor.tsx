@@ -1,7 +1,7 @@
 // frontend/components/notes/DistractionFreeEditor.tsx
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useLayoutEffect, useRef, useCallback, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { useUiStore } from "@/store/uiStore";
 import { useEditor, EditorContent, NodeViewWrapper, NodeViewContent, ReactNodeViewRenderer } from "@tiptap/react";
@@ -38,6 +38,10 @@ interface EditorProps {
   isSandbox?: boolean;
   shouldFocusOnMount?: boolean;
   editorStateKey?: string;
+  deferMount?: boolean;
+  isClosingMobile?: boolean;
+  mobileToolbarContainer?: HTMLElement | null;
+  onRequestImmediateHydrate?: () => void;
 }
 
 type ActiveStates = {
@@ -61,6 +65,53 @@ const PROMPTS = [
   "Write about a moment that brought you peace.",
   "What are your main intentions for today?",
 ];
+
+// Sanitize HTML and preserve collapsed heading visibility so the static slide-in preview matches TipTap
+const buildPreviewHtml = (rawHtml: string): string => {
+  const safeInput = (rawHtml || "<p></p>")
+    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "")
+    .replace(/<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi, "")
+    .replace(/\son\w+\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/gi, "")
+    .replace(/href\s*=\s*(['"])\s*javascript:[^'"]*\1/gi, 'href="#"');
+
+  if (typeof window === "undefined" || !safeInput.includes('data-collapsed="true"')) {
+    return safeInput;
+  }
+
+  try {
+    const doc = new DOMParser().parseFromString(safeInput, "text/html");
+    let currentCollapseLevel: number | null = null;
+
+    Array.from(doc.body.children).forEach((el) => {
+      const tag = el.tagName;
+      if (tag === "H1" || tag === "H2") {
+        const level = tag === "H1" ? 1 : 2;
+        if (currentCollapseLevel !== null && level <= currentCollapseLevel) {
+          currentCollapseLevel = null;
+        }
+        if (currentCollapseLevel === null && el.getAttribute("data-collapsed") === "true") {
+          currentCollapseLevel = level;
+          el.classList.add(
+            "border-b-2",
+            "border-dashed",
+            "border-[#c2956e]/40",
+            "dark:border-[#b0855f]/40",
+            "pb-1",
+            "mb-2",
+            "inline-block",
+            "w-full"
+          );
+        }
+      } else if (currentCollapseLevel !== null) {
+        el.classList.add("hidden-by-collapse");
+      }
+    });
+
+    return doc.body.innerHTML;
+  } catch {
+    return safeInput;
+  }
+};
 
 // ProseMirror plugin to seamlessly auto-merge adjacent lists of the same type.
 const MergeListsPlugin = Extension.create({
@@ -196,7 +247,153 @@ const CollapsePlugin = Extension.create({
   },
 });
 
-export default function DistractionFreeEditor({
+const Divider = () => <div className="w-px h-4 bg-[#e0ddd5] dark:bg-[#333] mx-0.5 shrink-0 self-center" />;
+
+const EditorZoomControl = ({
+  zoom,
+  onChange,
+  preventFocus = false,
+}: {
+  zoom: number;
+  onChange: (next: number) => void;
+  preventFocus?: boolean;
+}) => {
+  const bind = (fn: () => void) =>
+    preventFocus
+      ? {
+          onPointerDown: (e: React.PointerEvent) => {
+            e.preventDefault();
+            e.stopPropagation();
+            fn();
+          },
+        }
+      : { onClick: fn };
+
+  return (
+    <div className="flex items-center gap-1 bg-[#f7f5f0] dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#2a2a2a] px-2 py-1 rounded-xl shrink-0">
+      <button
+        {...bind(() => onChange(Math.max(50, zoom - 10)))}
+        className="text-[#888] hover:text-[#c2956e] dark:hover:text-[#d1a784] text-sm font-bold leading-none transition-colors w-4 text-center select-none cursor-pointer"
+      >
+        −
+      </button>
+      <span className="text-[9px] font-bold text-[#3d3b33] dark:text-[#f0f0f0] w-7 text-center tabular-nums">
+        {zoom}%
+      </span>
+      <button
+        {...bind(() => onChange(Math.min(200, zoom + 10)))}
+        className="text-[#888] hover:text-[#c2956e] dark:hover:text-[#d1a784] text-sm font-bold leading-none transition-colors w-4 text-center select-none cursor-pointer"
+      >
+        +
+      </button>
+    </div>
+  );
+};
+
+// Anchored inside <main> during mobile slide-in/out so the formatting bar moves in lockstep with the sheet
+const MobileToolbarShell = ({ onTap }: { onTap?: () => void }) => (
+  <div
+    onClick={() => onTap?.()}
+    className="chronoa-mobile-toolbar md:hidden absolute bottom-0 left-0 right-0 z-[90] bg-[#fdfbf7]/[0.98] dark:bg-[#1a1a1a]/[0.98] border-t border-[#e0ddd5] dark:border-[#2a2a2a] shadow-[0_-4px_24px_rgba(0,0,0,0.06)] dark:shadow-[0_-4px_24px_rgba(0,0,0,0.45)] flex items-center gap-1.5 px-3 pt-1.5"
+    style={{ paddingBottom: "max(10px, env(safe-area-inset-bottom))" }}
+  >
+    <div className="flex items-center gap-0.5 overflow-x-auto no-scrollbar flex-1 min-w-0 text-[#888] dark:text-[#999]">
+      <span className="flex items-center justify-center w-9 h-9 rounded-xl shrink-0">
+        <Bold size={16} />
+      </span>
+      <span className="flex items-center justify-center w-9 h-9 rounded-xl shrink-0">
+        <Italic size={16} />
+      </span>
+      <span className="flex items-center justify-center w-9 h-9 rounded-xl shrink-0">
+        <UnderlineIcon size={16} />
+      </span>
+      <span className="flex items-center justify-center w-9 h-9 rounded-xl shrink-0">
+        <LinkIcon size={16} />
+      </span>
+      <Divider />
+      <span className="flex items-center justify-center w-9 h-9 rounded-xl shrink-0">
+        <Heading1 size={16} />
+      </span>
+      <span className="flex items-center justify-center w-9 h-9 rounded-xl shrink-0">
+        <Heading2 size={16} />
+      </span>
+      <Divider />
+      <span className="flex items-center justify-center w-9 h-9 rounded-xl shrink-0">
+        <List size={16} />
+      </span>
+      <span className="flex items-center justify-center w-9 h-9 rounded-xl shrink-0">
+        <ListOrdered size={16} />
+      </span>
+      <Divider />
+      <span className="flex items-center justify-center w-9 h-9 rounded-xl shrink-0">
+        <Clock size={16} />
+      </span>
+    </div>
+  </div>
+);
+
+function EditorPreview({
+  initialContent,
+  isEditable = true,
+  noteType = "notes",
+  isSandbox = false,
+  placeholder,
+  mobileToolbarContainer,
+  onRequestImmediateHydrate,
+}: {
+  initialContent: string;
+  isEditable?: boolean;
+  noteType?: "notes" | "journal";
+  isSandbox?: boolean;
+  placeholder: string;
+  mobileToolbarContainer?: HTMLElement | null;
+  onRequestImmediateHydrate?: () => void;
+}) {
+  const { journalZoom, setJournalZoom } = useUiStore();
+  const previewHtml = useMemo(() => buildPreviewHtml(initialContent), [initialContent]);
+  const isEmptyPreview = useMemo(() => {
+    const plain = (initialContent || "").replace(/<[^>]+>/g, "").replace(/&nbsp;/gi, "").trim();
+    return plain === "";
+  }, [initialContent]);
+
+  const showPlaceholder = Boolean(placeholder) && noteType === "journal" && isEmptyPreview;
+
+  return (
+    <div className={`chronoa-editor-root relative w-full flex flex-col gap-2 h-full ${isSandbox ? "md:gap-10" : "md:gap-4"}`}>
+      {!isSandbox && (
+        <div className="md:hidden flex w-full justify-between items-center gap-1.5 z-10 mt-2 mb-0">
+          <span className="text-[9px] font-bold uppercase tracking-widest whitespace-nowrap transition-colors pl-1 text-[#c4c0b8] dark:text-[#555]">
+            Saved
+          </span>
+          <div className="flex items-center gap-1.5">
+            <EditorZoomControl zoom={journalZoom} onChange={setJournalZoom} preventFocus={isEditable} />
+          </div>
+        </div>
+      )}
+
+      {!isSandbox && isEditable && mobileToolbarContainer &&
+        createPortal(<MobileToolbarShell onTap={onRequestImmediateHydrate} />, mobileToolbarContainer)}
+
+      <div
+        className="relative w-full flex-1 flex flex-col cursor-text select-text"
+        style={{ fontSize: `${(journalZoom / 100) * 1.05}rem`, fontFamily: "inherit" }}
+        onClick={() => onRequestImmediateHydrate?.()}
+      >
+        {showPlaceholder && (
+          <div className="absolute top-0 left-0 pointer-events-none text-[#c4c0b8] dark:text-[#666] opacity-70 italic w-full leading-[1.45]">
+            {placeholder}
+          </div>
+        )}
+        <div
+          className="chronoa-editor chronoa-editor-preview select-text w-full flex-1 h-full min-h-[70vh] text-[#3d3b33] dark:text-[#e0e0e0] pb-[48vh] md:pb-[30vh] cursor-text"
+          dangerouslySetInnerHTML={{ __html: previewHtml }}
+        />
+      </div>
+    </div>
+  );
+}
+
+function DistractionFreeEditorInner({
   initialContent,
   isEditable = true,
   onSave,
@@ -205,7 +402,10 @@ export default function DistractionFreeEditor({
   isSandbox = false,
   shouldFocusOnMount = false,
   editorStateKey,
-}: EditorProps) {
+  isClosingMobile = false,
+  mobileToolbarContainer,
+  placeholder,
+}: EditorProps & { placeholder: string }) {
   const {
     journalZoom,
     setJournalZoom,
@@ -217,14 +417,17 @@ export default function DistractionFreeEditor({
   const [mounted, setMounted] = useState(false);
   const [saveStatus, setSaveStatus] = useState("Saved");
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const [placeholder, setPlaceholder] = useState("");
   const [isMobileKeyboardOpen, setIsMobileKeyboardOpen] = useState(false);
   const [isTitleFocused, setIsTitleFocused] = useState(false);
-  const [isMobileViewport, setIsMobileViewport] = useState(false);
+  const [isMobileViewport, setIsMobileViewport] = useState(() =>
+    typeof window !== "undefined" ? window.innerWidth < 768 : false
+  );
 
   const mobileBarRef = useRef<HTMLDivElement>(null);
-  const baselineHeightRef = useRef<number>(800);
+  const baselineHeightRef = useRef<number>(typeof window !== "undefined" ? window.innerHeight : 800);
   const isMobileKeyboardOpenRef = useRef(false);
+  const wasKeyboardOpenOnCloseRef = useRef(false);
+  const prevClosingMobileRef = useRef(false);
 
   const onSaveRef = useRef(onSave);
   const noteTypeRef = useRef(noteType);
@@ -255,6 +458,14 @@ export default function DistractionFreeEditor({
   useEffect(() => {
     isSandboxRef.current = isSandbox;
   }, [isSandbox]);
+
+  if (isClosingMobile && !prevClosingMobileRef.current) {
+    wasKeyboardOpenOnCloseRef.current = isMobileKeyboardOpenRef.current;
+  }
+  if (!isClosingMobile && prevClosingMobileRef.current) {
+    wasKeyboardOpenOnCloseRef.current = false;
+  }
+  prevClosingMobileRef.current = isClosingMobile;
 
   const [activeStates, setActiveStates] = useState<ActiveStates>({
     bold: false,
@@ -310,6 +521,7 @@ export default function DistractionFreeEditor({
     const scroller = document.getElementById("notes-scroll-container");
     if (!scroller) return;
 
+    lastScrollTopRef.current = scroller.scrollTop;
     const handleScroll = () => {
       lastScrollTopRef.current = scroller.scrollTop;
     };
@@ -317,14 +529,6 @@ export default function DistractionFreeEditor({
     scroller.addEventListener("scroll", handleScroll, { passive: true });
     return () => scroller.removeEventListener("scroll", handleScroll);
   }, []);
-
-  useEffect(() => {
-    if (noteType === "journal") {
-      setPlaceholder(PROMPTS[Math.floor(Math.random() * PROMPTS.length)]);
-    } else {
-      setPlaceholder("");
-    }
-  }, [noteType]);
 
   // ── Core Scroll Engine: Flawless Margin Management ─────────────────────────
   const ensureCursorVisible = useCallback((ed: ReturnType<typeof useEditor>) => {
@@ -522,7 +726,10 @@ export default function DistractionFreeEditor({
     const safeTo = Math.min(Math.max(0, saved.to), docSize);
 
     latestSelectionRef.current = { from: safeFrom, to: safeTo };
-    lastScrollTopRef.current = saved.scrollTop;
+    const isDesktop = window.innerWidth >= 1024;
+    if (isDesktop) {
+      lastScrollTopRef.current = saved.scrollTop;
+    }
 
     requestAnimationFrame(() => {
       if (editor.isDestroyed) {
@@ -532,19 +739,25 @@ export default function DistractionFreeEditor({
 
       try {
         editor.commands.setTextSelection({ from: safeFrom, to: safeTo });
-        if (saved.restoreFocus && window.innerWidth >= 1024) {
+        if (saved.restoreFocus && isDesktop) {
           editor.view.dom.focus({ preventScroll: true });
         }
       } catch (_) {}
 
-      const scroller = document.getElementById("notes-scroll-container");
-      if (scroller) scroller.scrollTop = saved.scrollTop;
+      if (isDesktop) {
+        const scroller = document.getElementById("notes-scroll-container");
+        if (scroller) scroller.scrollTop = saved.scrollTop;
 
-      setTimeout(() => {
-        const scroller2 = document.getElementById("notes-scroll-container");
-        if (scroller2) scroller2.scrollTop = saved.scrollTop;
-        isRestoringStateRef.current = false;
-      }, 120);
+        setTimeout(() => {
+          const scroller2 = document.getElementById("notes-scroll-container");
+          if (scroller2) scroller2.scrollTop = saved.scrollTop;
+          isRestoringStateRef.current = false;
+        }, 120);
+      } else {
+        setTimeout(() => {
+          isRestoringStateRef.current = false;
+        }, 120);
+      }
     });
   }, [editor, editorStateKey, isSandbox, shouldFocusOnMount]);
 
@@ -617,8 +830,27 @@ export default function DistractionFreeEditor({
     };
   }, []);
 
+  const showDockedMobileBar =
+    mounted &&
+    Boolean(editor) &&
+    !isSandbox &&
+    isEditable &&
+    isMobileViewport &&
+    mobileNoteOpen &&
+    !isTitleFocused &&
+    !isClosingMobile;
+
+  // Position the portal toolbar before browser paint so it never flickers at top: 0
+  useLayoutEffect(() => {
+    if (!showDockedMobileBar || !mobileBarRef.current) return;
+    const vv = window.visualViewport;
+    const vvTop = vv ? vv.offsetTop : 0;
+    const vvHeight = vv ? vv.height : window.innerHeight;
+    mobileBarRef.current.style.transform = `translate3d(0, calc(${vvTop + vvHeight}px - 100%), 0)`;
+  }, [showDockedMobileBar]);
+
   useEffect(() => {
-    if (isSandbox || !isEditable || !isMobileViewport || !mobileNoteOpen || isTitleFocused) {
+    if (!showDockedMobileBar) {
       isMobileKeyboardOpenRef.current = false;
       setIsMobileKeyboardOpen(false);
       return;
@@ -677,7 +909,7 @@ export default function DistractionFreeEditor({
       window.removeEventListener("focusin", handleFocusDelayedSync);
       window.removeEventListener("focusout", handleFocusDelayedSync);
     };
-  }, [isSandbox, isEditable, isMobileViewport, mobileNoteOpen, isTitleFocused, mounted]);
+  }, [showDockedMobileBar]);
 
   // ── Cleanup: Flush Pending Saves & Store Cursor Position ───────────────────
   useEffect(() => {
@@ -842,7 +1074,18 @@ export default function DistractionFreeEditor({
     }
   };
 
-  if (!editor) return null;
+  if (!editor) {
+    return (
+      <EditorPreview
+        initialContent={initialContent}
+        isEditable={isEditable}
+        noteType={noteType}
+        isSandbox={isSandbox}
+        placeholder={placeholder}
+        mobileToolbarContainer={mobileToolbarContainer}
+      />
+    );
+  }
 
   // ── UI Components ──────────────────────────────────────────────────────────
   const ToolbarButton = ({ onClick, isActive, title, children }: any) => (
@@ -909,40 +1152,6 @@ export default function DistractionFreeEditor({
     );
   };
 
-  const Divider = () => <div className="w-px h-4 bg-[#e0ddd5] dark:bg-[#333] mx-0.5 shrink-0 self-center" />;
-
-  const ZoomControl = ({ preventFocus = false }: { preventFocus?: boolean }) => {
-    const bind = (fn: () => void) =>
-      preventFocus
-        ? {
-            onPointerDown: (e: React.PointerEvent) => {
-              e.preventDefault();
-              e.stopPropagation();
-              fn();
-            },
-          }
-        : { onClick: fn };
-    return (
-      <div className="flex items-center gap-1 bg-[#f7f5f0] dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#2a2a2a] px-2 py-1 rounded-xl shrink-0">
-        <button
-          {...bind(() => setJournalZoom(Math.max(50, journalZoom - 10)))}
-          className="text-[#888] hover:text-[#c2956e] dark:hover:text-[#d1a784] text-sm font-bold leading-none transition-colors w-4 text-center select-none cursor-pointer"
-        >
-          −
-        </button>
-        <span className="text-[9px] font-bold text-[#3d3b33] dark:text-[#f0f0f0] w-7 text-center tabular-nums">
-          {journalZoom}%
-        </span>
-        <button
-          {...bind(() => setJournalZoom(Math.min(200, journalZoom + 10)))}
-          className="text-[#888] hover:text-[#c2956e] dark:hover:text-[#d1a784] text-sm font-bold leading-none transition-colors w-4 text-center select-none cursor-pointer"
-        >
-          +
-        </button>
-      </div>
-    );
-  };
-
   const renderFormattingButtons = () => (
     <>
       <ToolbarButton title="Bold" onClick={() => editor.chain().focus().toggleBold().run()} isActive={activeStates.bold}>
@@ -994,8 +1203,15 @@ export default function DistractionFreeEditor({
     </>
   );
 
-  const showDockedMobileBar =
-    mounted && !isSandbox && isEditable && isMobileViewport && mobileNoteOpen && !isTitleFocused;
+  const showClosingShell =
+    mounted &&
+    !isSandbox &&
+    isEditable &&
+    isMobileViewport &&
+    isClosingMobile &&
+    !wasKeyboardOpenOnCloseRef.current &&
+    !isTitleFocused &&
+    Boolean(mobileToolbarContainer);
 
   const showPlaceholder =
     Boolean(placeholder) &&
@@ -1021,17 +1237,20 @@ export default function DistractionFreeEditor({
             {saveStatus}
           </span>
           <div className="flex items-center gap-1.5">
-            <ZoomControl preventFocus={isEditable} />
+            <EditorZoomControl zoom={journalZoom} onChange={setJournalZoom} preventFocus={isEditable} />
           </div>
         </div>
       )}
 
-      {/* Keyboard-Aware Mobile Docked Formatting Bar (eliminates overlap with native iOS Copy/Paste popup) */}
+      {/* Keep formatting bar attached to <main> during slide-out if keyboard was closed */}
+      {showClosingShell && mobileToolbarContainer && createPortal(<MobileToolbarShell />, mobileToolbarContainer)}
+
+      {/* Keyboard-Aware Mobile Docked Formatting Bar */}
       {showDockedMobileBar &&
         createPortal(
           <div
             ref={mobileBarRef}
-            className="chronoa-mobile-toolbar md:hidden fixed top-0 left-0 right-0 z-[90] bg-[#fdfbf7]/95 dark:bg-[#1a1a1a]/95 backdrop-blur-xl border-t border-[#e0ddd5] dark:border-[#2a2a2a] shadow-[0_-4px_24px_rgba(0,0,0,0.06)] dark:shadow-[0_-4px_24px_rgba(0,0,0,0.45)] flex items-center gap-1.5 px-3 pt-1.5"
+            className="chronoa-mobile-toolbar md:hidden fixed top-0 left-0 right-0 z-[90] bg-[#fdfbf7]/[0.98] dark:bg-[#1a1a1a]/[0.98] border-t border-[#e0ddd5] dark:border-[#2a2a2a] shadow-[0_-4px_24px_rgba(0,0,0,0.06)] dark:shadow-[0_-4px_24px_rgba(0,0,0,0.45)] flex items-center gap-1.5 px-3 pt-1.5"
             style={{
               paddingBottom: isMobileKeyboardOpen ? "6px" : "max(10px, env(safe-area-inset-bottom))",
               willChange: "transform",
@@ -1164,7 +1383,9 @@ export default function DistractionFreeEditor({
       {isEditable && (
         <div
           className={[
-            isSandbox ? "flex p-2 border border-[#e0ddd5] dark:border-[#2a2a2a] rounded-2xl bg-white/95 dark:bg-[#121212]/95 backdrop-blur-xl shadow-[0_4px_20px_0_rgba(0,0,0,0.05)] dark:shadow-[0_4px_20px_0_rgba(0,0,0,0.4)]" : "hidden md:flex md:p-2 md:border md:border-[#e0ddd5] md:dark:border-[#2a2a2a] md:rounded-2xl md:bg-white/95 md:dark:bg-[#121212]/95 md:backdrop-blur-xl md:shadow-[0_4px_20px_0_rgba(0,0,0,0.05)] md:dark:shadow-[0_4px_20px_0_rgba(0,0,0,0.4)]",
+            isSandbox
+              ? "flex p-2 border border-[#e0ddd5] dark:border-[#2a2a2a] rounded-2xl bg-white/95 dark:bg-[#121212]/95 backdrop-blur-xl shadow-[0_4px_20px_0_rgba(0,0,0,0.05)] dark:shadow-[0_4px_20px_0_rgba(0,0,0,0.4)]"
+              : "hidden md:flex md:p-2 md:border md:border-[#e0ddd5] md:dark:border-[#2a2a2a] md:rounded-2xl md:bg-white/95 md:dark:bg-[#121212]/95 md:backdrop-blur-xl md:shadow-[0_4px_20px_0_rgba(0,0,0,0.05)] md:dark:shadow-[0_4px_20px_0_rgba(0,0,0,0.4)]",
             "sticky top-2 lg:top-4 z-[60] no-editor-focus cursor-default items-center gap-2",
           ].join(" ")}
         >
@@ -1183,7 +1404,7 @@ export default function DistractionFreeEditor({
             >
               {saveStatus}
             </span>
-            <ZoomControl preventFocus />
+            <EditorZoomControl zoom={journalZoom} onChange={setJournalZoom} preventFocus />
             {!isSandbox && (
               <button
                 onPointerDown={(e) => {
@@ -1209,7 +1430,7 @@ export default function DistractionFreeEditor({
             isSandbox ? "flex" : "hidden md:flex"
           } justify-end items-center gap-2 sticky top-2 lg:top-4 z-[60] bg-white/90 dark:bg-[#121212]/90 backdrop-blur-md p-2 rounded-2xl shadow-sm border border-[#e0ddd5] dark:border-[#2a2a2a] no-editor-focus cursor-default`}
         >
-          <ZoomControl />
+          <EditorZoomControl zoom={journalZoom} onChange={setJournalZoom} />
           {!isSandbox && (
             <button
               onPointerDown={(e) => {
@@ -1257,4 +1478,42 @@ export default function DistractionFreeEditor({
       </div>
     </div>
   );
+}
+
+export default function DistractionFreeEditor(props: EditorProps) {
+  const {
+    initialContent,
+    isEditable = true,
+    noteType = "notes",
+    isSandbox = false,
+    deferMount = false,
+    mobileToolbarContainer,
+    onRequestImmediateHydrate,
+  } = props;
+
+  const [placeholder, setPlaceholder] = useState("");
+
+  useEffect(() => {
+    if (noteType === "journal") {
+      setPlaceholder(PROMPTS[Math.floor(Math.random() * PROMPTS.length)]);
+    } else {
+      setPlaceholder("");
+    }
+  }, [noteType]);
+
+  if (deferMount) {
+    return (
+      <EditorPreview
+        initialContent={initialContent}
+        isEditable={isEditable}
+        noteType={noteType}
+        isSandbox={isSandbox}
+        placeholder={placeholder}
+        mobileToolbarContainer={mobileToolbarContainer}
+        onRequestImmediateHydrate={onRequestImmediateHydrate}
+      />
+    );
+  }
+
+  return <DistractionFreeEditorInner {...props} placeholder={placeholder} />;
 }

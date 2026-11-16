@@ -140,6 +140,11 @@ h1, h2, h3, h4 { font-family: var(--font-display); font-weight: 500; }
   line-height: 1.45 !important;
 }
 
+/* Match ProseMirror's trailing-break height on empty lines in the static slide-in preview */
+.chronoa-editor-preview p:empty::before {
+  content: "\200B";
+}
+
 .chronoa-editor strong { font-weight: 800 !important; color: #000 !important; }
 .dark .chronoa-editor strong { color: #fff !important; }
 
