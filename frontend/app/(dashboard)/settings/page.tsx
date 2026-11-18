@@ -115,6 +115,8 @@ export default function SettingsPage() {
     setAddTaskAtTop,
     showHomeTaskProgress,
     setShowHomeTaskProgress,
+    showHomeSeconds,
+    setShowHomeSeconds,
     showConfirmDialog,
     setLastVisitedPage,
   } = useUiStore();
@@ -748,6 +750,57 @@ export default function SettingsPage() {
                 <HighlightText text={t} query={searchQuery} />
               </button>
             ))}
+          </div>
+        </section>
+      ),
+    },
+    {
+      id: "clock",
+      keys: ["home clock", "clock", "seconds", "home screen", "time"],
+      className: "",
+      render: () => (
+        <section className="space-y-4">
+          <div className="flex items-center gap-3 text-[#c2956e] dark:text-[#d1a784]">
+            <Clock size={20} />
+            <h3 className="text-xl font-medium text-[#3d3b33] dark:text-[#f0f0f0]">
+              <HighlightText text="Home Clock" query={searchQuery} />
+            </h3>
+          </div>
+          <p className="text-xs text-[#b0ad9a] dark:text-[#7a7a7a] mt-1 mb-4">
+            <HighlightText text="Customize how time is displayed on your home screen." query={searchQuery} />
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div
+              className="flex items-center justify-between p-4 bg-[#f7f5f0]/50 dark:bg-[#222] border border-[#e0ddd5] dark:border-[#333] rounded-2xl cursor-pointer"
+              onClick={() => {
+                const nextVal = !showHomeSeconds;
+                setShowHomeSeconds(nextVal);
+                updateRemoteSetting("show_home_seconds", nextVal);
+              }}
+            >
+              <div className="space-y-1 pr-4">
+                <span className="text-[13px] text-[#3d3b33] dark:text-[#f0f0f0] font-medium">
+                  <HighlightText text="Show Seconds" query={searchQuery} />
+                </span>
+                <p className="text-[10px] text-[#b0ad9a] dark:text-[#7a7a7a] leading-tight">
+                  <HighlightText text="Display seconds on the home screen clock." query={searchQuery} />
+                </p>
+              </div>
+              <button
+                type="button"
+                aria-label="Toggle seconds on home screen clock"
+                aria-pressed={showHomeSeconds}
+                className={`shrink-0 w-10 h-5 rounded-full transition-colors relative ${
+                  showHomeSeconds ? "bg-[#7ca982] dark:bg-[#6a9a70]" : "bg-[#e0ddd5] dark:bg-[#444]"
+                }`}
+              >
+                <div
+                  className={`w-4 h-4 bg-white rounded-full absolute top-0.5 transition-transform ${
+                    showHomeSeconds ? "translate-x-5" : "translate-x-0.5 shadow-sm"
+                  }`}
+                />
+              </button>
+            </div>
           </div>
         </section>
       ),

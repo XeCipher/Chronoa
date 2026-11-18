@@ -120,6 +120,10 @@ function MockCenterClock({ isDark }: { isDark: boolean }) {
 
   if (!time) return <div className="h-[160px] md:h-[200px]" />;
 
+  const hours12 = time.getHours() % 12 || 12;
+  const hoursStr = hours12.toString().padStart(2, "0");
+  const minutesStr = time.getMinutes().toString().padStart(2, "0");
+
   return (
     <div
       className="flex flex-col items-center justify-center select-none pointer-events-none transition-colors w-full z-10 -translate-y-8"
@@ -130,7 +134,7 @@ function MockCenterClock({ isDark }: { isDark: boolean }) {
           className="text-[90px] md:text-[140px] lg:text-[180px] tracking-tight leading-none"
           style={{ fontFamily: "var(--font-cormorant), serif", color: isDark ? "#f0f0f0" : "#3d3b33" }}
         >
-          {time.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: true }).split(" ")[0]}
+          {hoursStr}:{minutesStr}
         </h1>
         <span
           className="text-xl md:text-3xl ml-2 md:ml-4 font-sans font-medium tracking-[0.2em] uppercase"
@@ -145,10 +149,10 @@ function MockCenterClock({ isDark }: { isDark: boolean }) {
           style={{ backgroundColor: isDark ? "rgba(176,133,95,0.4)" : "rgba(194,149,110,0.4)" }}
         />
         <p
-          className="text-[9px] md:text-[14px] tracking-[0.4em] md:tracking-[0.6em] uppercase font-bold text-center"
+          className="text-[9px] md:text-[14px] tracking-[0.4em] md:tracking-[0.6em] uppercase font-bold text-center whitespace-nowrap"
           style={{ color: isDark ? "#e0e0e0" : "#3d3b33" }}
         >
-          {time.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
+          {time.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}
         </p>
         <div
           className="w-8 md:w-24 h-px"

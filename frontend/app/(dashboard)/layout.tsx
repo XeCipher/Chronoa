@@ -122,6 +122,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         ) {
           state.setShowHomeTaskProgress(profile.show_home_task_progress);
         }
+        if (
+          typeof profile.show_home_seconds === "boolean" &&
+          profile.show_home_seconds !== state.showHomeSeconds
+        ) {
+          state.setShowHomeSeconds(profile.show_home_seconds);
+        }
 
         if (profile.timer_state) {
           localSyncId.current = profile.timer_state.sync_id || generateSyncId();
@@ -189,6 +195,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               rec.show_home_task_progress !== state.showHomeTaskProgress
             ) {
               state.setShowHomeTaskProgress(rec.show_home_task_progress);
+            }
+            if (
+              typeof rec.show_home_seconds === "boolean" &&
+              rec.show_home_seconds !== state.showHomeSeconds
+            ) {
+              state.setShowHomeSeconds(rec.show_home_seconds);
             }
 
             if (rec.timer_state) {

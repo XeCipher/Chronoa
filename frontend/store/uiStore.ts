@@ -50,6 +50,7 @@ interface UiState {
   keepParentTaskAlive: boolean;
   addTaskAtTop: boolean;
   showHomeTaskProgress: boolean;
+  showHomeSeconds: boolean;
   activeTaskIdWithMenu: string | null;
   archiveLayout: 'nested' | 'list';
   archiveSort: 'newest' | 'oldest';
@@ -92,6 +93,7 @@ interface UiState {
   setKeepParentTaskAlive: (val: boolean) => void;
   setAddTaskAtTop: (val: boolean) => void;
   setShowHomeTaskProgress: (val: boolean) => void;
+  setShowHomeSeconds: (val: boolean) => void;
   setActiveTaskIdWithMenu: (id: string | null) => void;
   setArchiveLayout: (layout: 'nested' | 'list') => void;
   setArchiveSort: (sort: 'newest' | 'oldest') => void;
@@ -143,6 +145,7 @@ export const useUiStore = create<UiState>()(
       keepParentTaskAlive: false,
       addTaskAtTop: false,
       showHomeTaskProgress: true,
+      showHomeSeconds: false,
       activeTaskIdWithMenu: null,
       archiveLayout: 'nested',
       archiveSort: 'newest',
@@ -193,6 +196,7 @@ export const useUiStore = create<UiState>()(
       setKeepParentTaskAlive: (val) => set({ keepParentTaskAlive: val }),
       setAddTaskAtTop: (val) => set({ addTaskAtTop: val }),
       setShowHomeTaskProgress: (val) => set({ showHomeTaskProgress: val }),
+      setShowHomeSeconds: (val) => set({ showHomeSeconds: val }),
       setActiveTaskIdWithMenu: (id) => set({ activeTaskIdWithMenu: id }),
       setArchiveLayout: (archiveLayout) => set({ archiveLayout }),
       setArchiveSort: (archiveSort) => set({ archiveSort }),
