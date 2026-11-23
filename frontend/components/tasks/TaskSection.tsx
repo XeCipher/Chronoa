@@ -1,29 +1,36 @@
 // frontend/components/tasks/TaskSection.tsx
 "use client";
 
-import { useEffect, useState, useMemo, useRef } from "react";
+import { useEffect, useState, useMemo, useRef, useCallback } from "react";
+import { createPortal } from "react-dom";
 import { supabase } from "@/lib/supabase";
 import { Task } from "@/types/app.types";
 import RecursiveCheckbox from "../ui/RecursiveCheckbox";
-import { Plus, Edit3, CheckCircle2, ChevronDown, ChevronUp } from "lucide-react";
+import { Plus, Edit3, CheckCircle2, ChevronDown, ChevronUp, GripVertical, Check } from "lucide-react";
 import { useUiStore } from "@/store/uiStore";
 import { flushSync } from "react-dom";
 
 import {
   DndContext,
-  closestCenter,
+  DragOverlay,
+  AutoScrollActivator,
   KeyboardSensor,
   MouseSensor,
   TouchSensor,
   useSensor,
   useSensors,
-  DragEndEvent,
+  defaultDropAnimationSideEffects,
+  type CollisionDetection,
+  type DragEndEvent,
+  type DragStartEvent,
+  type KeyboardCoordinateGetter,
+  type Modifier,
+  type UniqueIdentifier,
 } from "@dnd-kit/core";
 import {
   SortableContext,
   verticalListSortingStrategy,
   arrayMove,
-  sortableKeyboardCoordinates,
 } from "@dnd-kit/sortable";
 
 interface Props {
@@ -42,11 +49,104 @@ function generateUUID() {
   });
 }
 
+const restrictToVerticalAxis: Modifier = ({ transform }) => ({
+  ...transform,
+  x: 0,
+});
+
+const findTaskNode = (nodes: Task[], id: string): Task | null => {
+  for (const node of nodes) {
+    if (node.id === id) return node;
+    if (node.children && node.children.length > 0) {
+      const found = findTaskNode(node.children, id);
+      if (found) return found;
+    }
+  }
+  return null;
+};
+
+const getNodeDepth = (allTasks: Task[], task: Task): number => {
+  let depth = 0;
+  let currentParentId = task.parent_id;
+  while (currentParentId) {
+    depth++;
+    const parent = allTasks.find((t) => t.id === currentParentId);
+    if (!parent) break;
+    currentParentId = parent.parent_id;
+  }
+  return depth;
+};
+
+const countSubtasks = (node: Task): number => {
+  if (!node.children || node.children.length === 0) return 0;
+  let total = node.children.length;
+  for (const child of node.children) {
+    total += countSubtasks(child);
+  }
+  return total;
+};
+
+const OVERLAY_COLOR_STYLES: Record<string, string> = {
+  none: "bg-white/95 dark:bg-[#1e1e1e]/95 ring-1 ring-[#c2956e]/40 dark:ring-[#b0855f]/50",
+  rose: "bg-rose-50/95 dark:bg-rose-950/95 ring-1 ring-rose-300 dark:ring-rose-800",
+  amber: "bg-amber-50/95 dark:bg-amber-950/95 ring-1 ring-amber-300 dark:ring-amber-800",
+  emerald: "bg-emerald-50/95 dark:bg-emerald-950/95 ring-1 ring-emerald-300 dark:ring-emerald-800",
+  blue: "bg-blue-50/95 dark:bg-blue-950/95 ring-1 ring-blue-300 dark:ring-blue-800",
+  purple: "bg-purple-50/95 dark:bg-purple-950/95 ring-1 ring-purple-300 dark:ring-purple-800",
+};
+
+function TaskDragOverlay({ task, depth }: { task: Task; depth: number }) {
+  const baseColor = task.color && task.color !== "none" ? task.color : "none";
+  const colorClass = OVERLAY_COLOR_STYLES[baseColor] || OVERLAY_COLOR_STYLES.none;
+  const titleSize = depth === 0 ? "text-[15px]" : depth === 1 ? "text-[13.5px]" : "text-[12.5px]";
+  const titleWeight = depth === 0 ? "font-[500]" : "font-[400]";
+  const checkboxSize = depth === 0 ? "w-[18px] h-[18px]" : "w-[15px] h-[15px]";
+  const checkboxRadius = depth === 0 ? "rounded-[5px]" : "rounded-[4px]";
+  const subtaskCount = countSubtasks(task);
+
+  return (
+    <div
+      className={`flex items-center gap-3 py-[7px] px-3 rounded-xl backdrop-blur-md shadow-[0_14px_34px_rgba(44,43,39,0.16)] dark:shadow-[0_14px_34px_rgba(0,0,0,0.65)] cursor-grabbing select-none ${colorClass}`}
+    >
+      <div className="p-2 md:p-1 -ml-3 md:-ml-2 -mr-1 md:mr-1 text-[#c2956e] dark:text-[#d1a784] shrink-0">
+        <GripVertical size={14} />
+      </div>
+
+      <div
+        className={`${checkboxSize} ${checkboxRadius} shrink-0 border flex items-center justify-center ${
+          task.is_completed
+            ? "bg-[#7ca982] dark:bg-[#6a9a70] border-[#7ca982]"
+            : "border-[#d4d0c8] dark:border-[#555] bg-white dark:bg-[#1a1a1a]"
+        }`}
+      >
+        {task.is_completed && <Check size={depth === 0 ? 10 : 9} strokeWidth={3} className="text-white" />}
+      </div>
+
+      <span
+        className={`flex-1 min-w-0 py-0.5 break-words line-clamp-2 ${titleSize} ${titleWeight} ${
+          task.is_completed ? "text-[#c4c0b8] dark:text-[#555] line-through" : "text-[#3d3b33] dark:text-[#e0e0e0]"
+        }`}
+      >
+        {task.title}
+      </span>
+
+      {subtaskCount > 0 && (
+        <span className="ml-auto shrink-0 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-[#f7f5f0] dark:bg-[#2a2a2a] text-[#c2956e] dark:text-[#d1a784] border border-[#e0ddd5] dark:border-[#3a3a3a]">
+          {subtaskCount} {subtaskCount === 1 ? "subtask" : "subtasks"}
+        </span>
+      )}
+    </div>
+  );
+}
+
 export default function TaskSection({ type, title, viewMode = "focus", searchQuery = "" }: Props) {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [isEditMode, setIsEditMode] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [newTaskId, setNewTaskId] = useState<string | null>(null);
+  const [mounted, setMounted] = useState(false);
+  const [activeDragId, setActiveDragId] = useState<string | null>(null);
+  const [dropAnimEnabled, setDropAnimEnabled] = useState(true);
 
   const {
     taskArchiveDelay,
@@ -57,16 +157,142 @@ export default function TaskSection({ type, title, viewMode = "focus", searchQue
     archiveSort,
     mobileRoutineCollapsed,
     setMobileRoutineCollapsed,
+    setActiveTaskIdWithMenu,
   } = useUiStore();
 
   const [now, setNow] = useState(Date.now());
   const sectionRef = useRef<HTMLDivElement>(null);
+
+  const tasksRef = useRef<Task[]>(tasks);
+  tasksRef.current = tasks;
+
+  const isDraggingRef = useRef(false);
 
   // Mutation lock blocks stale replica database responses from glitching the UI during typing/toggling
   const lastMutateTime = useRef<number>(0);
   const markMutated = () => {
     lastMutateTime.current = Date.now();
   };
+
+  // Scope keyboard drag strictly to siblings under the same parent so expanded children are skipped cleanly
+  const siblingKeyboardCoordinates: KeyboardCoordinateGetter = useCallback((event, { currentCoordinates, context }) => {
+    if (event.code !== "ArrowDown" && event.code !== "ArrowUp") {
+      return undefined;
+    }
+
+    event.preventDefault();
+
+    const { active, collisionRect, droppableContainers, droppableRects } = context;
+    if (!active || !collisionRect) return undefined;
+
+    const activeContainerId = active.data.current?.sortable?.containerId;
+    const activeTask = tasksRef.current.find((t) => t.id === active.id);
+    const activeParentId = activeTask ? activeTask.parent_id ?? null : null;
+
+    const siblingRects = droppableContainers
+      .getEnabled()
+      .filter((container) => {
+        if (activeContainerId && container.data.current?.sortable?.containerId) {
+          return container.data.current.sortable.containerId === activeContainerId;
+        }
+        const containerTask = tasksRef.current.find((t) => t.id === container.id);
+        return (containerTask ? containerTask.parent_id ?? null : null) === activeParentId;
+      })
+      .map((container) => ({
+        id: container.id,
+        rect: droppableRects.get(container.id),
+      }))
+      .filter((item): item is { id: UniqueIdentifier; rect: NonNullable<typeof item.rect> } => Boolean(item.rect))
+      .sort((a, b) => a.rect.top - b.rect.top);
+
+    if (siblingRects.length === 0) return undefined;
+
+    const probeY = collisionRect.top + Math.min(20, collisionRect.height / 2);
+
+    let currentIndex = siblingRects.findIndex(({ rect }) => probeY >= rect.top && probeY <= rect.bottom);
+
+    if (currentIndex === -1) {
+      let bestDist = Infinity;
+      siblingRects.forEach(({ rect }, idx) => {
+        const dist = Math.min(Math.abs(probeY - rect.top), Math.abs(probeY - rect.bottom));
+        if (dist < bestDist) {
+          bestDist = dist;
+          currentIndex = idx;
+        }
+      });
+    }
+
+    if (currentIndex === -1) return undefined;
+
+    const targetIndex =
+      event.code === "ArrowDown"
+        ? Math.min(siblingRects.length - 1, currentIndex + 1)
+        : Math.max(0, currentIndex - 1);
+
+    if (targetIndex === currentIndex) return undefined;
+
+    const targetRect = siblingRects[targetIndex].rect;
+    const deltaY = targetRect.top - collisionRect.top;
+
+    return {
+      x: currentCoordinates.x,
+      y: currentCoordinates.y + deltaY,
+    };
+  }, []);
+
+  // Only match siblings sharing the same parent_id, using pointer Y against vertical spans so tall expanded parents work cleanly
+  const siblingCollisionDetection: CollisionDetection = useCallback(
+    ({ active, collisionRect, droppableRects, droppableContainers, pointerCoordinates }) => {
+      const activeContainerId = active.data.current?.sortable?.containerId;
+      const activeTask = tasksRef.current.find((t) => t.id === active.id);
+      const activeParentId = activeTask ? activeTask.parent_id ?? null : null;
+
+      const siblingContainers = droppableContainers.filter((container) => {
+        if (activeContainerId && container.data.current?.sortable?.containerId) {
+          return container.data.current.sortable.containerId === activeContainerId;
+        }
+        const containerTask = tasksRef.current.find((t) => t.id === container.id);
+        return (containerTask ? containerTask.parent_id ?? null : null) === activeParentId;
+      });
+
+      const probeY = pointerCoordinates
+        ? pointerCoordinates.y
+        : collisionRect.top + Math.min(20, collisionRect.height / 2);
+
+      const collisions: {
+        id: UniqueIdentifier;
+        dist: number;
+        centerDist: number;
+        data: Record<string, unknown>;
+      }[] = [];
+
+      for (const container of siblingContainers) {
+        const rect = droppableRects.get(container.id);
+        if (!rect) continue;
+
+        let dist = 0;
+        if (probeY < rect.top) {
+          dist = rect.top - probeY;
+        } else if (probeY > rect.bottom) {
+          dist = probeY - rect.bottom;
+        }
+
+        const centerY = rect.top + rect.height / 2;
+        const centerDist = Math.abs(probeY - centerY);
+
+        collisions.push({
+          id: container.id,
+          dist,
+          centerDist,
+          data: { droppableContainer: container, value: dist },
+        });
+      }
+
+      collisions.sort((a, b) => a.dist - b.dist || a.centerDist - b.centerDist);
+      return collisions.map(({ id, data }) => ({ id, data }));
+    },
+    []
+  );
 
   const sensors = useSensors(
     useSensor(MouseSensor, {
@@ -76,20 +302,24 @@ export default function TaskSection({ type, title, viewMode = "focus", searchQue
     }),
     useSensor(TouchSensor, {
       activationConstraint: {
-        delay: 150,
-        tolerance: 5,
+        delay: 120,
+        tolerance: 8,
       },
     }),
     useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
+      coordinateGetter: siblingKeyboardCoordinates,
     })
   );
 
   const isCollapsedMobile = type === "routine" ? mobileRoutineCollapsed : false;
   const delayMs = taskArchiveDelay <= 0 ? 1000 : taskArchiveDelay * 60 * 1000;
 
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   const fetchTasks = async (isBackgroundSync = false) => {
-    if (isBackgroundSync && Date.now() - lastMutateTime.current < 2500) {
+    if (isBackgroundSync && (isDraggingRef.current || Date.now() - lastMutateTime.current < 2500)) {
       return;
     }
 
@@ -291,6 +521,16 @@ export default function TaskSection({ type, title, viewMode = "focus", searchQue
   const totalTasksCount = baseTasksForProgress.length;
   const totalCompletedCount = baseTasksForProgress.filter((t) => t.is_completed).length;
   const progressPercent = totalTasksCount > 0 ? Math.round((totalCompletedCount / totalTasksCount) * 100) : 0;
+
+  const activeDragTask = useMemo(
+    () => (activeDragId ? findTaskNode(displayTasks, activeDragId) : null),
+    [activeDragId, displayTasks]
+  );
+
+  const activeDragDepth = useMemo(
+    () => (activeDragTask ? getNodeDepth(tasks, activeDragTask) : 0),
+    [activeDragTask, tasks]
+  );
 
   const onUpdate = async (id: string, updates: Partial<Task>) => {
     markMutated();
@@ -895,8 +1135,42 @@ export default function TaskSection({ type, title, viewMode = "focus", searchQue
     }
   };
 
+  const handleDragStart = (event: DragStartEvent) => {
+    markMutated();
+    isDraggingRef.current = true;
+    setActiveTaskIdWithMenu(null);
+
+    if (
+      typeof document !== "undefined" &&
+      document.activeElement instanceof HTMLElement &&
+      document.activeElement.classList.contains("task-input-field")
+    ) {
+      document.activeElement.blur();
+    }
+
+    const dragId = String(event.active.id);
+    const draggedNode = findTaskNode(displayTasks, dragId);
+    const hasExpandedChildren = Boolean(
+      draggedNode && !draggedNode.is_collapsed && draggedNode.children && draggedNode.children.length > 0
+    );
+
+    setDropAnimEnabled(!hasExpandedChildren);
+    setActiveDragId(dragId);
+
+    if (typeof window !== "undefined") {
+      document.body.style.overflow = "hidden";
+    }
+  };
+
   const handleDragEnd = async (event: DragEndEvent) => {
     markMutated();
+    isDraggingRef.current = false;
+    setActiveDragId(null);
+
+    if (typeof window !== "undefined") {
+      document.body.style.overflow = "";
+    }
+
     const { active, over } = event;
     if (!over || active.id === over.id) return;
 
@@ -904,29 +1178,50 @@ export default function TaskSection({ type, title, viewMode = "focus", searchQue
     const overTask = tasks.find((t) => t.id === over.id);
 
     if (activeTask && overTask && activeTask.parent_id === overTask.parent_id) {
-      const siblings = tasks.filter((t) => t.parent_id === activeTask.parent_id).sort((a, b) => a.position - b.position);
+      const siblings = tasks
+        .filter((t) => t.parent_id === activeTask.parent_id)
+        .sort((a, b) => a.position - b.position);
 
       const oldIndex = siblings.findIndex((t) => t.id === active.id);
       const newIndex = siblings.findIndex((t) => t.id === over.id);
 
+      if (oldIndex === -1 || newIndex === -1 || oldIndex === newIndex) return;
+
       const newSiblings = arrayMove(siblings, oldIndex, newIndex);
-      const tasksToUpdate = newSiblings.map((t, i) => ({
-        id: t.id,
-        updates: { position: i },
-      }));
+      const positionUpdates = new Map<string, number>();
+      const changedUpdates: { id: string; position: number }[] = [];
+
+      newSiblings.forEach((t, i) => {
+        positionUpdates.set(t.id, i);
+        if (t.position !== i) {
+          changedUpdates.push({ id: t.id, position: i });
+        }
+      });
+
+      if (changedUpdates.length === 0) return;
 
       setTasks((prev) =>
         prev.map((t) => {
-          const update = tasksToUpdate.find((u) => u.id === t.id);
-          return update ? { ...t, ...update.updates } : t;
+          const nextPos = positionUpdates.get(t.id);
+          return nextPos !== undefined ? { ...t, position: nextPos } : t;
         })
       );
 
       try {
-        await Promise.all(tasksToUpdate.map((u) => supabase.from("tasks").update(u.updates).eq("id", u.id)));
+        await Promise.all(
+          changedUpdates.map((u) => supabase.from("tasks").update({ position: u.position }).eq("id", u.id))
+        );
       } catch (err) {
         console.error("Failed to reorder tasks", err);
       }
+    }
+  };
+
+  const handleDragCancel = () => {
+    isDraggingRef.current = false;
+    setActiveDragId(null);
+    if (typeof window !== "undefined") {
+      document.body.style.overflow = "";
     }
   };
 
@@ -970,7 +1265,11 @@ export default function TaskSection({ type, title, viewMode = "focus", searchQue
         ) : (
           <div className="space-y-[2px]">
             {viewMode === "focus" ? (
-              <SortableContext items={displayTasks.map((t) => t.id)} strategy={verticalListSortingStrategy}>
+              <SortableContext
+                id="sortable-root"
+                items={displayTasks.map((t) => t.id)}
+                strategy={verticalListSortingStrategy}
+              >
                 {displayTasks.map((t) => (
                   <RecursiveCheckbox
                     key={t.id}
@@ -1126,27 +1425,41 @@ export default function TaskSection({ type, title, viewMode = "focus", searchQue
       <div className="flex-1 overflow-y-auto no-scrollbar flex flex-col">
         {viewMode === "focus" ? (
           <DndContext
+            id={`tasks-dnd-${type}`}
             sensors={sensors}
-            collisionDetection={closestCenter}
-            onDragStart={() => {
-              markMutated();
-              if (typeof window !== "undefined") {
-                document.body.style.overflow = "hidden";
-              }
-            }}
-            onDragEnd={(e) => {
-              if (typeof window !== "undefined") {
-                document.body.style.overflow = "";
-              }
-              handleDragEnd(e);
-            }}
-            onDragCancel={() => {
-              if (typeof window !== "undefined") {
-                document.body.style.overflow = "";
-              }
-            }}
+            collisionDetection={siblingCollisionDetection}
+            modifiers={[restrictToVerticalAxis]}
+            autoScroll={{ activator: AutoScrollActivator.Pointer }}
+            onDragStart={handleDragStart}
+            onDragEnd={handleDragEnd}
+            onDragCancel={handleDragCancel}
           >
             {renderContent()}
+            {mounted &&
+              createPortal(
+                <DragOverlay
+                  dropAnimation={
+                    dropAnimEnabled
+                      ? {
+                          duration: 180,
+                          easing: "cubic-bezier(0.22, 1, 0.36, 1)",
+                          sideEffects: defaultDropAnimationSideEffects({
+                            styles: {
+                              active: {
+                                opacity: "0",
+                              },
+                            },
+                          }),
+                        }
+                      : null
+                  }
+                  style={{ height: "auto" }}
+                  zIndex={1000}
+                >
+                  {activeDragTask ? <TaskDragOverlay task={activeDragTask} depth={activeDragDepth} /> : null}
+                </DragOverlay>,
+                document.body
+              )}
           </DndContext>
         ) : (
           renderContent()

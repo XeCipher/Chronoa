@@ -294,19 +294,21 @@ export default function RecursiveCheckbox({
     };
   }, []);
 
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+  const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } = useSortable({
     id: task.id,
+    data: {
+      parentId: task.parent_id ?? null,
+    },
     disabled: viewMode !== "focus" || isSandbox || !isEditMode,
   });
 
+  // Hide the in-flow item cleanly when DragOverlay takes over so expanded subtrees never ghost behind displaced siblings
   const sortableStyle = isSandbox
     ? {}
     : {
-        transform: CSS.Translate.toString(transform),
+        transform: isDragging ? undefined : CSS.Translate.toString(transform),
         transition,
-        opacity: isDragging ? 0.4 : undefined,
-        zIndex: isDragging ? 50 : undefined,
-        position: isDragging ? ("relative" as const) : undefined,
+        opacity: isDragging ? 0 : undefined,
       };
 
   const isRoutine = task.task_type === "routine";
@@ -929,9 +931,10 @@ export default function RecursiveCheckbox({
       >
         {viewMode === "focus" && !isSandbox && isEditMode && (
           <div
+            ref={setActivatorNodeRef}
             {...attributes}
             {...listeners}
-            className={`cursor-grab active:cursor-grabbing text-[#c4c0b8] dark:text-[#555] lg:hover:text-[#c2956e] lg:dark:hover:text-[#b0855f] p-2 md:p-1 -ml-3 md:-ml-2 -mr-1 md:mr-1 transition-opacity touch-none ${
+            className={`cursor-grab active:cursor-grabbing text-[#c4c0b8] dark:text-[#555] lg:hover:text-[#c2956e] lg:dark:hover:text-[#b0855f] p-2 md:p-1 -ml-3 md:-ml-2 -mr-1 md:mr-1 transition-opacity touch-none select-none ${
               isDragging ? "opacity-100" : isTouchDevice ? "opacity-50" : "opacity-30 lg:opacity-0 lg:group-hover:opacity-100"
             }`}
           >
@@ -1277,7 +1280,11 @@ export default function RecursiveCheckbox({
           >
             <div className="ml-[34px] mt-[1px] mb-[2px] pl-4 border-l border-[#ebe8e2] dark:border-[#2a2a2a] space-y-[1px]">
               {viewMode === "focus" && !isSandbox ? (
-                <SortableContext items={task.children!.map((c) => c.id)} strategy={verticalListSortingStrategy}>
+                <SortableContext
+                  id={`sortable-${task.id}`}
+                  items={task.children!.map((c) => c.id)}
+                  strategy={verticalListSortingStrategy}
+                >
                   {renderChildren()}
                 </SortableContext>
               ) : (
