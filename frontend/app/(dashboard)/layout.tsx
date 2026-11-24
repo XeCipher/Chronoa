@@ -17,6 +17,29 @@ const generateSyncId = () =>
     ? crypto.randomUUID()
     : Math.random().toString(36).substring(2);
 
+const cacheUserMetadata = (user: any) => {
+  if (!user) return;
+  try {
+    localStorage.setItem("chronoa_user_name", user.user_metadata?.full_name || "User");
+    localStorage.setItem("chronoa_user_email", user.email || "");
+    const avatarUrl = user.user_metadata?.avatar_url || user.user_metadata?.picture;
+    if (avatarUrl) {
+      localStorage.setItem("chronoa_avatar", avatarUrl);
+    }
+  } catch (e) {}
+};
+
+const clearUserCaches = () => {
+  try {
+    localStorage.removeItem("chronoa_user_name");
+    localStorage.removeItem("chronoa_user_email");
+    localStorage.removeItem("chronoa_avatar");
+    localStorage.removeItem("chronoa_cache_cal_sources");
+    localStorage.removeItem("chronoa_cache_weather");
+    localStorage.removeItem("chronoa_cache_weather_city");
+  } catch (e) {}
+};
+
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -51,6 +74,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event) => {
       if (event === "SIGNED_OUT") {
+        clearUserCaches();
         if (window.location.pathname !== "/") {
           window.location.href = "/";
         }
@@ -86,6 +110,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             .update({ timezone: userTimezone })
             .eq("id", currentUserId);
         }
+
+        try {
+          if (profile.weather_city) {
+            localStorage.setItem("chronoa_cache_weather_city", profile.weather_city);
+          } else {
+            localStorage.removeItem("chronoa_cache_weather_city");
+          }
+        } catch (e) {}
 
         const state = useUiStore.getState();
         if (profile.theme && profile.theme !== state.theme) state.setTheme(profile.theme);
@@ -244,6 +276,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
       if (session?.user) {
         const currentUserId = session.user.id;
+        cacheUserMetadata(session.user);
         setUserId(currentUserId);
 
         const savedLastPage = useUiStore.getState().lastVisitedPage;
@@ -279,6 +312,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             }
           }
           if (!user || error) {
+            clearUserCaches();
             await supabase.auth.signOut();
             if (window.location.pathname !== "/") {
               window.location.href = "/";
@@ -288,6 +322,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             }
             return;
           }
+          cacheUserMetadata(user);
           hydrateProfileAndSubscribe(user.id);
         });
 
@@ -311,6 +346,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         return;
       }
 
+      cacheUserMetadata(user);
       setUserId(user.id);
       setIsLoading(false);
       hydrateProfileAndSubscribe(user.id);

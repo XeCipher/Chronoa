@@ -2,6 +2,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import CenterClock from "@/components/home/CenterClock";
 import SceneryBackground from "@/components/home/SceneryBackground";
 import ProductivityWidgets from "@/components/home/ProductivityWidgets";
@@ -32,6 +33,8 @@ export default function HomePage() {
   const showWidget = isHovered || isPinned || isTouched || forceShow;
 
   useEffect(() => {
+    router.prefetch("/settings");
+
     const cachedAvatar = localStorage.getItem("chronoa_avatar");
     if (cachedAvatar) setUserAvatar(cachedAvatar);
 
@@ -51,7 +54,7 @@ export default function HomePage() {
           });
       }
     });
-  }, []);
+  }, [router]);
 
   return (
     <div className="relative w-full h-full overflow-hidden flex items-center justify-center touch-none overscroll-none">
@@ -59,8 +62,10 @@ export default function HomePage() {
 
       {/* Mobile Top Profile Avatar */}
       <div className="fixed top-[calc(1.5rem+env(safe-area-inset-top))] left-[calc(1.5rem+env(safe-area-inset-left))] md:hidden z-40">
-        <button
-          onClick={() => router.push("/settings")}
+        <Link
+          href="/settings"
+          prefetch={true}
+          aria-label="Open Profile"
           className="w-10 h-10 flex items-center justify-center rounded-full bg-white/30 dark:bg-black/40 backdrop-blur-md shadow-sm border border-white/40 dark:border-white/10 text-[#3d3b33] dark:text-white transition-all active:scale-95 p-0"
         >
           {userAvatar ? (
@@ -73,7 +78,7 @@ export default function HomePage() {
           ) : (
             <User size={18} strokeWidth={2.5} className="text-[#555] dark:text-[#b0ad9a]" />
           )}
-        </button>
+        </Link>
       </div>
 
       {/* Mobile AI Button directly below the Profile avatar */}

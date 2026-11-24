@@ -216,7 +216,7 @@ export default function SidebarNav() {
                 ${isExpanded ? "px-4 justify-start gap-4" : "mx-0 justify-center"}
                 ${
                   pathname === "/settings"
-                    ? "bg-white dark:bg-[#252525] text-[#3d3b33] dark:text-[#fff] shadow-sm border border-[#e0ddd5] dark:border-[#333]"
+                    ? "bg-white dark:bg-[#252525] text-[#c2956e] dark:text-[#d1a784] shadow-sm border border-[#e0ddd5] dark:border-[#333]"
                     : "text-[#888888] dark:text-[#a0a0a0] md:hover:bg-white/50 md:dark:hover:bg-[#2a2a2a] md:hover:text-[#3d3b33] md:dark:hover:text-[#fff]"
                 }
               `}
@@ -227,10 +227,14 @@ export default function SidebarNav() {
                     src={userAvatar}
                     referrerPolicy="no-referrer"
                     alt="Profile"
-                    className="w-[30px] h-[30px] rounded-full object-cover border-[2px] border-[#d4d0c8] dark:border-[#444] shadow-sm"
+                    className={`w-[30px] h-[30px] rounded-full object-cover border-[2px] shadow-sm transition-colors ${
+                      pathname === "/settings"
+                        ? "border-[#c2956e] dark:border-[#d1a784]"
+                        : "border-[#d4d0c8] dark:border-[#444]"
+                    }`}
                   />
                 ) : (
-                  <User className="w-[22px] h-[22px] text-[#888] dark:text-[#a0a0a0]" />
+                  <User className="w-[22px] h-[22px]" />
                 )}
               </div>
               <span className={`transition-all duration-300 whitespace-nowrap ${isExpanded ? "opacity-100 w-auto" : "opacity-0 w-0"}`}>

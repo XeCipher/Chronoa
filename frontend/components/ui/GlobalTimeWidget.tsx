@@ -442,7 +442,7 @@ export default function GlobalTimeWidget() {
               <span className="text-xl text-[#b0ad9a] dark:text-[#7a7a7a] ml-1">{time.getHours() >= 12 ? "PM" : "AM"}</span>
             </div>
             <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#b0ad9a] dark:text-[#7a7a7a] mt-3">
-              {time.toLocaleDateString([], { weekday: "long", month: "long", day: "numeric", year: "numeric" })}
+              {time.toLocaleDateString([], { weekday: "short", month: "short", day: "numeric", year: "numeric" })}
             </p>
           </div>
 

@@ -3,6 +3,7 @@
 
 import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
+import { motion } from "framer-motion";
 import { useUiStore } from "@/store/uiStore";
 import { supabase } from "@/lib/supabase";
 import { parseICS, exportICS } from "@/lib/icsParser";
@@ -94,6 +95,15 @@ const CALENDAR_COLORS = [
   { id: "sage", bg: "bg-[#7ca982]" },
 ];
 
+const readCachedString = (key: string, fallback = "") => {
+  if (typeof window === "undefined") return fallback;
+  try {
+    return localStorage.getItem(key) || fallback;
+  } catch {
+    return fallback;
+  }
+};
+
 export default function SettingsPage() {
   const router = useRouter();
   const {
@@ -121,12 +131,25 @@ export default function SettingsPage() {
     setLastVisitedPage,
   } = useUiStore();
 
-  const [userName, setUserName] = useState("");
-  const [userEmail, setUserEmail] = useState("");
-  const [userAvatar, setUserAvatar] = useState<string | null>(null);
+  const [shouldSlideOnMobile] = useState(
+    () => typeof window !== "undefined" && window.innerWidth < 768 && useUiStore.getState().hasDashboardMounted
+  );
+  const [isClosingMobile, setIsClosingMobile] = useState(false);
+  const backTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  const [cityInput, setCityInput] = useState("");
-  const [currentCity, setCurrentCity] = useState("");
+  const [userName, setUserName] = useState(() => readCachedString("chronoa_user_name"));
+  const [userEmail, setUserEmail] = useState(() => readCachedString("chronoa_user_email"));
+  const [userAvatar, setUserAvatar] = useState<string | null>(() => {
+    if (typeof window === "undefined") return null;
+    try {
+      return localStorage.getItem("chronoa_avatar");
+    } catch {
+      return null;
+    }
+  });
+
+  const [cityInput, setCityInput] = useState(() => readCachedString("chronoa_cache_weather_city"));
+  const [currentCity, setCurrentCity] = useState(() => readCachedString("chronoa_cache_weather_city"));
   const [isSearching, setIsSearching] = useState(false);
   const [os, setOs] = useState<"mac" | "windows">("windows");
 
@@ -135,7 +158,15 @@ export default function SettingsPage() {
 
   // Calendar States
   const [isCalendarExpanded, setIsCalendarExpanded] = useState(false);
-  const [calSources, setCalSources] = useState<CalendarSource[]>([]);
+  const [calSources, setCalSources] = useState<CalendarSource[]>(() => {
+    if (typeof window === "undefined") return [];
+    try {
+      const cached = localStorage.getItem("chronoa_cache_cal_sources");
+      return cached ? JSON.parse(cached) : [];
+    } catch {
+      return [];
+    }
+  });
   const [newLinkUrl, setNewLinkUrl] = useState("");
   const [newLinkName, setNewLinkName] = useState("");
   const [isAddingLink, setIsAddingLink] = useState(false);
@@ -154,9 +185,29 @@ export default function SettingsPage() {
   const [openColorDropdown, setOpenColorDropdown] = useState<string | null>(null);
 
   useEffect(() => {
-    const cachedAvatar = localStorage.getItem("chronoa_avatar");
-    if (cachedAvatar) setUserAvatar(cachedAvatar);
+    return () => {
+      if (backTimeoutRef.current) clearTimeout(backTimeoutRef.current);
+    };
   }, []);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem("chronoa_cache_cal_sources", JSON.stringify(calSources));
+    } catch (e) {}
+  }, [calSources]);
+
+  const handleBack = () => {
+    if (typeof window !== "undefined" && window.innerWidth < 768) {
+      if (isClosingMobile) return;
+      setIsClosingMobile(true);
+      backTimeoutRef.current = setTimeout(() => {
+        if (window.history.length > 1) router.back();
+        else router.push("/home");
+      }, 240);
+    } else {
+      router.back();
+    }
+  };
 
   // Global Escape Key Listener for Back Navigation & Modal Dismissals
   useEffect(() => {
@@ -182,12 +233,13 @@ export default function SettingsPage() {
           return;
         }
 
-        router.back();
+        handleBack();
       }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [router, isFeedbackModalOpen, showGithubModal, editingSourceId, openColorDropdown]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isFeedbackModalOpen, showGithubModal, editingSourceId, openColorDropdown, isClosingMobile]);
 
   // Scroll-to-Hash handler
   useEffect(() => {
@@ -216,41 +268,95 @@ export default function SettingsPage() {
     const platform = window.navigator.platform.toLowerCase();
     if (platform.includes("mac")) setOs("mac");
 
-    const fetchProfileAndCalendars = async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (user) {
-        setUserName(user.user_metadata?.full_name || "User");
-        setUserEmail(user.email || "");
+    let isMounted = true;
 
-        const avatarUrl = user.user_metadata?.avatar_url || user.user_metadata?.picture;
+    const applyUserIdentity = (user: any) => {
+      if (!user || !isMounted) return;
+      const name = user.user_metadata?.full_name || "User";
+      const email = user.email || "";
+      const avatarUrl = user.user_metadata?.avatar_url || user.user_metadata?.picture;
+
+      setUserName((prev) => (prev === name ? prev : name));
+      setUserEmail((prev) => (prev === email ? prev : email));
+
+      try {
+        localStorage.setItem("chronoa_user_name", name);
+        localStorage.setItem("chronoa_user_email", email);
         if (avatarUrl) {
           setUserAvatar(avatarUrl);
           localStorage.setItem("chronoa_avatar", avatarUrl);
         }
+      } catch (e) {}
+    };
 
-        const { data: profile } = await supabase
+    const loadUserProfileAndSources = async (activeUser: any) => {
+      applyUserIdentity(activeUser);
+
+      const [profileRes, sourcesRes] = await Promise.all([
+        supabase
           .from("profiles")
           .select("routine_reset_hour, weather_city, disabled_hotkeys")
-          .eq("id", user.id)
-          .single();
-        if (profile?.routine_reset_hour !== undefined) setRoutineResetHour(profile.routine_reset_hour);
-        if (profile?.disabled_hotkeys) setDisabledHotkeys(profile.disabled_hotkeys);
-        if (profile?.weather_city) {
-          setCityInput(profile.weather_city);
-          setCurrentCity(profile.weather_city);
-        }
-
-        const { data: sources } = await supabase
+          .eq("id", activeUser.id)
+          .single(),
+        supabase
           .from("calendar_sources")
           .select("*")
-          .eq("user_id", user.id)
-          .order("created_at", { ascending: false });
-        if (sources) setCalSources(sources as CalendarSource[]);
+          .eq("user_id", activeUser.id)
+          .order("created_at", { ascending: false }),
+      ]);
+
+      if (!isMounted) return;
+
+      const profile = profileRes.data;
+      if (profile) {
+        if (profile.routine_reset_hour !== undefined) setRoutineResetHour(profile.routine_reset_hour);
+        if (profile.disabled_hotkeys) setDisabledHotkeys(profile.disabled_hotkeys);
+        if (profile.weather_city) {
+          setCityInput(profile.weather_city);
+          setCurrentCity(profile.weather_city);
+          try {
+            localStorage.setItem("chronoa_cache_weather_city", profile.weather_city);
+          } catch (e) {}
+        } else {
+          setCityInput("");
+          setCurrentCity("");
+          try {
+            localStorage.removeItem("chronoa_cache_weather_city");
+          } catch (e) {}
+        }
+      }
+
+      if (sourcesRes.data) {
+        setCalSources(sourcesRes.data as CalendarSource[]);
       }
     };
+
+    const fetchProfileAndCalendars = async () => {
+      // Read the cached session first so profile data and queries start without an auth round-trip
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      if (session?.user) {
+        await loadUserProfileAndSources(session.user);
+        supabase.auth.getUser().then(({ data: { user } }) => {
+          if (user) applyUserIdentity(user);
+        });
+        return;
+      }
+
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (user) {
+        await loadUserProfileAndSources(user);
+      }
+    };
+
     fetchProfileAndCalendars();
+    return () => {
+      isMounted = false;
+    };
   }, [setRoutineResetHour, setDisabledHotkeys]);
 
   useEffect(() => {
@@ -302,6 +408,9 @@ export default function SettingsPage() {
           .update({ weather_city: loc.name, weather_lat: loc.latitude, weather_lon: loc.longitude })
           .eq("id", user?.id);
         setCurrentCity(loc.name);
+        try {
+          localStorage.setItem("chronoa_cache_weather_city", loc.name);
+        } catch (e) {}
       } else {
         showConfirmDialog({
           title: "City Not Found",
@@ -343,6 +452,9 @@ export default function SettingsPage() {
               .eq("id", user?.id);
             setCurrentCity(city);
             setCityInput(city);
+            try {
+              localStorage.setItem("chronoa_cache_weather_city", city);
+            } catch (e) {}
           } catch (e) {
           } finally {
             setIsSearching(false);
@@ -660,6 +772,12 @@ export default function SettingsPage() {
   const handleLogout = async () => {
     setLastVisitedPage("/");
     await supabase.auth.signOut();
+    localStorage.removeItem("chronoa_user_name");
+    localStorage.removeItem("chronoa_user_email");
+    localStorage.removeItem("chronoa_avatar");
+    localStorage.removeItem("chronoa_cache_cal_sources");
+    localStorage.removeItem("chronoa_cache_weather");
+    localStorage.removeItem("chronoa_cache_weather_city");
     window.location.href = "/";
   };
 
@@ -1500,76 +1618,83 @@ export default function SettingsPage() {
   const visibleSections = sections.filter((s) => isVisible(s.keys));
 
   return (
-    <div className="w-full h-full flex flex-col overflow-hidden relative">
-      <div className="w-full max-w-4xl mx-auto px-4 md:px-8 lg:px-10 pt-4 md:pt-8 lg:pt-10 pb-4 shrink-0">
-        <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 shrink-0 mb-0">
-          <div className="flex items-center gap-4">
-            <button
-              onClick={() => router.back()}
-              className="md:hidden flex items-center justify-center p-2.5 md:p-3 bg-white dark:bg-[#1a1a1a] text-[#888] rounded-xl border border-[#e0ddd5] dark:border-[#333] hover:text-[#3d3b33] dark:hover:text-[#f0f0f0] transition-all shadow-sm"
-            >
-              <ArrowLeft size={18} />
-            </button>
-            <div
-              className="flex items-center gap-2.5 text-[#3d3b33] dark:text-[#f0f0f0] cursor-pointer hover:opacity-80 transition-opacity"
-              onClick={() => document.getElementById("settings-scroll-container")?.scrollTo({ top: 0, behavior: "smooth" })}
-            >
-              <h1 className="text-2xl md:text-4xl font-serif font-medium tracking-tight">Profile</h1>
+    <>
+      <motion.div
+        initial={shouldSlideOnMobile ? { x: "100%" } : false}
+        animate={{ x: isClosingMobile ? "100%" : 0 }}
+        transition={{ duration: 0.32, ease: [0.32, 0.72, 0, 1] }}
+        className="w-full h-full flex flex-col overflow-hidden relative bg-[#f7f5f0] dark:bg-[#121212] shadow-2xl md:shadow-none"
+      >
+        <div className="w-full max-w-4xl mx-auto px-4 md:px-8 lg:px-10 pt-4 md:pt-8 lg:pt-10 pb-4 shrink-0">
+          <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 shrink-0 mb-0">
+            <div className="flex items-center gap-4">
+              <button
+                onClick={handleBack}
+                className="md:hidden flex items-center justify-center p-2.5 md:p-3 bg-white dark:bg-[#1a1a1a] text-[#888] rounded-xl border border-[#e0ddd5] dark:border-[#333] hover:text-[#3d3b33] dark:hover:text-[#f0f0f0] transition-all shadow-sm"
+              >
+                <ArrowLeft size={18} />
+              </button>
+              <div
+                className="flex items-center gap-2.5 text-[#3d3b33] dark:text-[#f0f0f0] cursor-pointer hover:opacity-80 transition-opacity"
+                onClick={() => document.getElementById("settings-scroll-container")?.scrollTo({ top: 0, behavior: "smooth" })}
+              >
+                <h1 className="text-2xl md:text-4xl font-serif font-medium tracking-tight">Profile</h1>
+              </div>
             </div>
-          </div>
-          <div className="relative w-full md:w-64 shrink-0">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-[#b0ad9a]" size={16} />
-            <input
-              type="text"
-              placeholder="Search profile..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              spellCheck={false}
-              className="w-full bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] rounded-full md:rounded-xl pl-11 pr-4 py-3 outline-none focus:border-[#c2956e] dark:focus:border-[#b0855f] text-sm text-[#3d3b33] dark:text-[#f0f0f0] shadow-sm transition-all"
-            />
-          </div>
-        </header>
-      </div>
-
-      <div id="settings-scroll-container" className="flex-1 overflow-y-scroll overflow-x-hidden no-scrollbar w-full">
-        <div className="w-full max-w-4xl mx-auto px-4 md:px-8 lg:px-10 pb-6 md:pb-12 flex flex-col">
-          {/* Modern Profile Identity Header Card */}
-          <div className="bg-white dark:bg-[#1a1a1a] border border-[#ebe8e2] dark:border-[#2a2a2a] rounded-[2.5rem] p-6 md:p-8 shadow-sm flex flex-col md:flex-row items-center gap-5 transition-all mb-6">
-            {userAvatar ? (
-              <img
-                src={userAvatar}
-                referrerPolicy="no-referrer"
-                alt="Avatar"
-                className="w-20 h-20 md:w-24 md:h-24 rounded-full object-cover shadow-md border-2 border-[#f0ede8] dark:border-[#333]"
+            <div className="relative w-full md:w-64 shrink-0">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-[#b0ad9a]" size={16} />
+              <input
+                type="text"
+                placeholder="Search profile..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                spellCheck={false}
+                className="w-full bg-white dark:bg-[#1a1a1a] border border-[#e0ddd5] dark:border-[#333] rounded-full md:rounded-xl pl-11 pr-4 py-3 outline-none focus:border-[#c2956e] dark:focus:border-[#b0855f] text-sm text-[#3d3b33] dark:text-[#f0f0f0] shadow-sm transition-all"
               />
-            ) : (
-              <div className="w-20 h-20 md:w-24 md:h-24 rounded-full bg-[#f0ede8] dark:bg-[#333] flex items-center justify-center shadow-md border-2 border-[#e0ddd5] dark:border-[#444]">
-                <User size={40} className="text-[#888]" />
-              </div>
-            )}
-            <div className="flex flex-col items-center md:items-start text-center md:text-left">
-              <h2 className="text-2xl md:text-3xl font-serif text-[#3d3b33] dark:text-[#f0f0f0] font-medium">
-                {userName || "Your Profile"}
-              </h2>
-              <p className="text-sm font-medium text-[#888] dark:text-[#7a7a7a] mt-1">{userEmail}</p>
             </div>
-          </div>
+          </header>
+        </div>
 
-          <div className="bg-white dark:bg-[#1a1a1a] border border-[#ebe8e2] dark:border-[#2a2a2a] rounded-[2.5rem] p-6 md:p-10 shadow-sm flex flex-col gap-10 transition-all relative">
-            {visibleSections.map((sec, i) => (
-              <div key={sec.id} id={sec.id} className={`flex flex-col gap-10 ${sec.className} transition-all duration-700`}>
-                {sec.render()}
-                {i < visibleSections.length - 1 && <hr className="border-[#f0ede8] dark:border-[#2a2a2a]" />}
+        <div id="settings-scroll-container" className="flex-1 overflow-y-scroll overflow-x-hidden no-scrollbar w-full">
+          <div className="w-full max-w-4xl mx-auto px-4 md:px-8 lg:px-10 pb-6 md:pb-12 flex flex-col">
+            {/* Modern Profile Identity Header Card */}
+            <div className="bg-white dark:bg-[#1a1a1a] border border-[#ebe8e2] dark:border-[#2a2a2a] rounded-[2.5rem] p-6 md:p-8 shadow-sm flex flex-col md:flex-row items-center gap-5 transition-all mb-6">
+              {userAvatar ? (
+                <img
+                  src={userAvatar}
+                  referrerPolicy="no-referrer"
+                  alt="Avatar"
+                  className="w-20 h-20 md:w-24 md:h-24 rounded-full object-cover shadow-md border-2 border-[#f0ede8] dark:border-[#333]"
+                />
+              ) : (
+                <div className="w-20 h-20 md:w-24 md:h-24 rounded-full bg-[#f0ede8] dark:bg-[#333] flex items-center justify-center shadow-md border-2 border-[#e0ddd5] dark:border-[#444]">
+                  <User size={40} className="text-[#888]" />
+                </div>
+              )}
+              <div className="flex flex-col items-center md:items-start text-center md:text-left">
+                <h2 className="text-2xl md:text-3xl font-serif text-[#3d3b33] dark:text-[#f0f0f0] font-medium">
+                  {userName || "Your Profile"}
+                </h2>
+                <p className="text-sm font-medium text-[#888] dark:text-[#7a7a7a] mt-1">{userEmail}</p>
               </div>
-            ))}
-            {visibleSections.length === 0 && (
-              <div className="text-center py-12 text-[#b0ad9a] dark:text-[#7a7a7a] italic text-sm">
-                No settings match your search.
-              </div>
-            )}
+            </div>
+
+            <div className="bg-white dark:bg-[#1a1a1a] border border-[#ebe8e2] dark:border-[#2a2a2a] rounded-[2.5rem] p-6 md:p-10 shadow-sm flex flex-col gap-10 transition-all relative">
+              {visibleSections.map((sec, i) => (
+                <div key={sec.id} id={sec.id} className={`flex flex-col gap-10 ${sec.className} transition-all duration-700`}>
+                  {sec.render()}
+                  {i < visibleSections.length - 1 && <hr className="border-[#f0ede8] dark:border-[#2a2a2a]" />}
+                </div>
+              ))}
+              {visibleSections.length === 0 && (
+                <div className="text-center py-12 text-[#b0ad9a] dark:text-[#7a7a7a] italic text-sm">
+                  No settings match your search.
+                </div>
+              )}
+            </div>
           </div>
         </div>
-      </div>
+      </motion.div>
 
       {showGithubModal && (
         <div className="fixed inset-0 z-[500] flex items-center justify-center px-4 bg-black/40 dark:bg-black/60 backdrop-blur-sm animate-fade-in transition-all">
@@ -1591,6 +1716,6 @@ export default function SettingsPage() {
       )}
 
       <FeedbackModal isOpen={isFeedbackModalOpen} onClose={() => setIsFeedbackModalOpen(false)} />
-    </div>
+    </>
   );
 }

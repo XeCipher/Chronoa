@@ -73,6 +73,7 @@ interface UiState {
   isGlobalTimeWidgetExpanded: boolean;
   isEditorFullscreen: boolean;
   isAiChatOpen: boolean;
+  hasDashboardMounted: boolean;
 
   setTaskArchiveDelay: (delay: number) => void;
   setRoutineResetHour: (hour: number) => void;
@@ -121,6 +122,7 @@ interface UiState {
   setEditorFullscreen: (val: boolean) => void;
   toggleAiChat: () => void;
   setAiChatOpen: (val: boolean) => void;
+  setHasDashboardMounted: (val: boolean) => void;
 }
 
 export const useUiStore = create<UiState>()(
@@ -167,6 +169,7 @@ export const useUiStore = create<UiState>()(
       isGlobalTimeWidgetExpanded: false,
       isEditorFullscreen: false,
       isAiChatOpen: false,
+      hasDashboardMounted: false,
 
       setTaskArchiveDelay: (delay) => set({ taskArchiveDelay: delay }),
       setRoutineResetHour: (hour) => set({ routineResetHour: hour }),
@@ -237,6 +240,7 @@ export const useUiStore = create<UiState>()(
       setEditorFullscreen: (val) => set({ isEditorFullscreen: val }),
       toggleAiChat: () => set((state) => ({ isAiChatOpen: !state.isAiChatOpen })),
       setAiChatOpen: (val) => set({ isAiChatOpen: val }),
+      setHasDashboardMounted: (val) => set({ hasDashboardMounted: val }),
     }),
     {
       name: 'chronoa-settings',
@@ -251,6 +255,7 @@ export const useUiStore = create<UiState>()(
                 'isGlobalTimeWidgetExpanded',
                 'isEditorFullscreen',
                 'isAiChatOpen',
+                'hasDashboardMounted',
                 'notesTrashOpen',
                 'notesListVisible',
                 'journalListVisible',

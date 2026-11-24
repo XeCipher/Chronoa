@@ -6,6 +6,7 @@ import {
   Sparkles,
   Send,
   X,
+  ArrowLeft,
   Mic,
   RefreshCw,
   CheckCircle2,
@@ -1207,14 +1208,24 @@ export function AiChatPanel() {
           isAiChatOpen ? "translate-x-0" : "translate-x-full"
         }`}
       >
-        <div className="flex items-center justify-between p-6 border-b border-[#e0ddd5] dark:border-[#2a2a2a] bg-[#fdfbf7] dark:bg-[#1a1a1a] shrink-0">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-[#c2956e]/10 dark:bg-[#b0855f]/20 flex items-center justify-center text-[#c2956e] dark:text-[#d1a784]">
-              <Sparkles size={20} className="fill-current" />
+        <div className="flex items-center justify-between px-4 sm:px-6 pt-[max(1.25rem,calc(0.75rem+env(safe-area-inset-top)))] pb-4 md:p-6 border-b border-[#e0ddd5] dark:border-[#2a2a2a] bg-[#fdfbf7] dark:bg-[#1a1a1a] shrink-0">
+          <div className="flex items-center gap-3 min-w-0">
+            <button
+              type="button"
+              onClick={() => setAiChatOpen(false)}
+              aria-label="Close Chronoa AI"
+              className="md:hidden flex items-center justify-center p-2.5 bg-white dark:bg-[#1a1a1a] text-[#888] rounded-xl border border-[#e0ddd5] dark:border-[#333] hover:text-[#3d3b33] dark:hover:text-[#f0f0f0] transition-all shadow-sm shrink-0"
+            >
+              <ArrowLeft size={18} />
+            </button>
+            <div className="w-9 h-9 md:w-10 md:h-10 rounded-full bg-[#c2956e]/10 dark:bg-[#b0855f]/20 flex items-center justify-center text-[#c2956e] dark:text-[#d1a784] shrink-0">
+              <Sparkles size={18} className="md:w-5 md:h-5 fill-current" />
             </div>
-            <h2 className="font-serif text-2xl font-medium text-[#3d3b33] dark:text-[#f0f0f0] tracking-tight">Chronoa AI</h2>
+            <h2 className="font-serif text-xl md:text-2xl font-medium text-[#3d3b33] dark:text-[#f0f0f0] tracking-tight truncate">
+              Chronoa AI
+            </h2>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 shrink-0">
             <button
               onClick={() => setMessages([])}
               className="p-2 text-[#888] hover:bg-[#f0ede8] dark:hover:bg-[#2a2a2a] hover:text-[#3d3b33] dark:hover:text-[#f0f0f0] rounded-full transition-colors"
@@ -1225,7 +1236,8 @@ export function AiChatPanel() {
             </button>
             <button
               onClick={() => setAiChatOpen(false)}
-              className="p-2 text-[#888] hover:bg-[#f0ede8] dark:hover:bg-[#2a2a2a] hover:text-[#3d3b33] dark:hover:text-[#f0f0f0] rounded-full transition-colors"
+              aria-label="Close Chronoa AI"
+              className="hidden md:flex p-2 text-[#888] hover:bg-[#f0ede8] dark:hover:bg-[#2a2a2a] hover:text-[#3d3b33] dark:hover:text-[#f0f0f0] rounded-full transition-colors"
             >
               <X size={18} />
             </button>
@@ -1300,7 +1312,7 @@ export function AiChatPanel() {
           </div>
         )}
 
-        <div className="p-4 md:p-6 border-t border-[#e0ddd5] dark:border-[#2a2a2a] shrink-0 bg-[#fdfbf7] dark:bg-[#1a1a1a]">
+        <div className="px-4 pt-4 pb-[max(1rem,env(safe-area-inset-bottom))] md:p-6 border-t border-[#e0ddd5] dark:border-[#2a2a2a] shrink-0 bg-[#fdfbf7] dark:bg-[#1a1a1a]">
           <div
             className={`relative flex items-end w-full bg-white dark:bg-[#252525] border border-[#e0ddd5] dark:border-[#333] rounded-[1.5rem] shadow-sm focus-within:border-[#c2956e] dark:focus-within:border-[#b0855f] transition-colors overflow-hidden min-h-[54px] py-2 pl-5 pr-2 ${
               isDictating ? "border-red-500/50 dark:border-red-500/50 bg-red-50/50 dark:bg-red-900/10" : ""

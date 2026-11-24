@@ -66,10 +66,15 @@ export default function MonthView({
   selectedDate,
   isMobile: isMobileProp,
 }: Props) {
+  const gridRef = useRef<HTMLDivElement>(null);
   const rightPanelScrollRef = useRef<HTMLDivElement>(null);
   const scrollTimeout = useRef<NodeJS.Timeout | null>(null);
   const [isUserScrolling, setIsUserScrolling] = useState(false);
   const [dragOverDayIdx, setDragOverDayIdx] = useState<number | null>(null);
+  const [slotCapacities, setSlotCapacities] = useState<{ maxFitAll: number; maxWithMore: number }>({
+    maxFitAll: 3,
+    maxWithMore: 2,
+  });
 
   const [isMobile, setIsMobile] = useState(isMobileProp);
 
@@ -101,6 +106,41 @@ export default function MonthView({
     return eachDayOfInterval({ start: startDate, end: endDate });
   }, [currentDate]);
 
+  const rowsCount = days.length / 7;
+
+  // Measure the actual day-cell height so overflowing events transition cleanly into "+N more" without clipping
+  useEffect(() => {
+    const el = gridRef.current;
+    if (!el) return;
+
+    const updateCapacity = () => {
+      const gridHeight = el.clientHeight;
+      if (!gridHeight || rowsCount <= 0) return;
+
+      const cellHeight = (gridHeight - (rowsCount - 1)) / rowsCount;
+      // Vertical cell padding (16px) + date row and margin (32px) + 2px buffer
+      const availableHeight = Math.max(0, cellHeight - 50);
+
+      const eventSlotHeight = 20;
+      const gapHeight = 4;
+      const moreRowHeight = 18;
+
+      const maxFitAll = Math.max(0, Math.floor((availableHeight + gapHeight) / (eventSlotHeight + gapHeight)));
+      const maxWithMore = Math.max(0, Math.floor((availableHeight - moreRowHeight) / (eventSlotHeight + gapHeight)));
+
+      setSlotCapacities((prev) =>
+        prev.maxFitAll === maxFitAll && prev.maxWithMore === maxWithMore
+          ? prev
+          : { maxFitAll, maxWithMore }
+      );
+    };
+
+    updateCapacity();
+    const observer = new ResizeObserver(updateCapacity);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [rowsCount]);
+
   const getEventsForDay = (date: Date) => {
     const dStr = format(date, "yyyy-MM-dd");
     return events
@@ -115,7 +155,6 @@ export default function MonthView({
   };
 
   const selectedDayEvents = getEventsForDay(selectedDate);
-  const rowsCount = days.length / 7;
 
   useEffect(() => {
     if (isUserScrolling || !isToday(selectedDate)) return;
@@ -167,6 +206,7 @@ export default function MonthView({
           </div>
 
           <div
+            ref={gridRef}
             className="flex-1 grid grid-cols-7 bg-[#e0ddd5] dark:bg-[#333] gap-px min-h-0 w-full"
             style={{ gridTemplateRows: `repeat(${rowsCount}, minmax(0, 1fr))` }}
           >
@@ -176,9 +216,11 @@ export default function MonthView({
               const isTodayDate = isToday(day);
               const isSelected = isSameDay(day, selectedDate);
 
-              const maxVisible = 3;
-              const visibleEvents = dayEvents.slice(0, maxVisible);
-              const extraCount = dayEvents.length - maxVisible;
+              const fitsAll = dayEvents.length <= slotCapacities.maxFitAll;
+              const visibleEvents = fitsAll ? dayEvents : dayEvents.slice(0, slotCapacities.maxWithMore);
+              const hiddenEvents = fitsAll ? [] : dayEvents.slice(slotCapacities.maxWithMore);
+              const extraCount = hiddenEvents.length;
+              const hiddenColors = Array.from(new Set(hiddenEvents.map((e) => e.color))).slice(0, 3);
 
               return (
                 <div
@@ -257,57 +299,74 @@ export default function MonthView({
                   </div>
 
                   <div className="hidden lg:flex flex-col gap-1 flex-1 min-h-0 overflow-hidden relative z-10">
-                    <div className="flex flex-col gap-1 overflow-hidden">
-                      {visibleEvents.map((event) => {
-                        const start = new Date(event.start_time);
-                        const visualEnd = getVisualEnd(start, new Date(event.end_time), event.is_all_day);
-                        const isStart = format(start, "yyyy-MM-dd") === format(day, "yyyy-MM-dd");
-                        const isEnd = format(visualEnd, "yyyy-MM-dd") === format(day, "yyyy-MM-dd");
-                        const colorClasses = eventColors[event.color] || eventColors["amber"];
+                    {visibleEvents.map((event) => {
+                      const start = new Date(event.start_time);
+                      const visualEnd = getVisualEnd(start, new Date(event.end_time), event.is_all_day);
+                      const isStart = format(start, "yyyy-MM-dd") === format(day, "yyyy-MM-dd");
+                      const isEnd = format(visualEnd, "yyyy-MM-dd") === format(day, "yyyy-MM-dd");
+                      const colorClasses = eventColors[event.color] || eventColors["amber"];
 
-                        const durationMins =
-                          (new Date(event.end_time).getTime() - new Date(event.start_time).getTime()) / 60000;
-                        const showTime = durationMins >= 45;
-                        const canDrag = !event.is_readonly && Boolean(onEventMove);
+                      const durationMins =
+                        (new Date(event.end_time).getTime() - new Date(event.start_time).getTime()) / 60000;
+                      const showTime = durationMins >= 45;
+                      const canDrag = !event.is_readonly && Boolean(onEventMove);
 
-                        return (
-                          <div
-                            key={event.id}
-                            draggable={canDrag}
-                            onDragStart={(e) => {
-                              if (!canDrag) return;
-                              e.stopPropagation();
-                              e.dataTransfer.setData("text/plain", event.id);
-                              e.dataTransfer.setData("sourceDay", format(day, "yyyy-MM-dd"));
-                            }}
-                            className={`px-1.5 py-0.5 text-[10px] font-semibold flex items-center border border-transparent shadow-sm shrink-0 ${
-                              canDrag ? "cursor-grab active:cursor-grabbing" : ""
-                            } ${colorClasses} ${isStart ? "rounded-md md:rounded-md" : "rounded-none border-l-0"} ${
-                              isEnd ? "rounded-md md:rounded-md" : "rounded-none border-r-0"
-                            }`}
-                          >
-                            <div className="flex-1 truncate min-w-0 pr-1">{event.title}</div>
-                            {!event.is_all_day && showTime && (
-                              <div className="opacity-70 text-[8px] font-bold tracking-wider shrink-0 hidden md:block text-right">
-                                <span>{formatEventTime(new Date(event.start_time))}</span>
-                                <span className="hidden xl:inline"> - {formatEventTime(new Date(event.end_time))}</span>
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
+                      return (
+                        <div
+                          key={event.id}
+                          draggable={canDrag}
+                          onDragStart={(e) => {
+                            if (!canDrag) return;
+                            e.stopPropagation();
+                            e.dataTransfer.setData("text/plain", event.id);
+                            e.dataTransfer.setData("sourceDay", format(day, "yyyy-MM-dd"));
+                          }}
+                          className={`px-1.5 py-0.5 text-[10px] leading-[14px] font-semibold flex items-center border border-transparent shadow-sm shrink-0 ${
+                            canDrag ? "cursor-grab active:cursor-grabbing" : ""
+                          } ${colorClasses} ${isStart ? "rounded-md md:rounded-md" : "rounded-none border-l-0"} ${
+                            isEnd ? "rounded-md md:rounded-md" : "rounded-none border-r-0"
+                          }`}
+                        >
+                          <div className="flex-1 truncate min-w-0 pr-1">{event.title}</div>
+                          {!event.is_all_day && showTime && (
+                            <div className="opacity-70 text-[8px] font-bold tracking-wider shrink-0 hidden md:block text-right">
+                              <span>{formatEventTime(new Date(event.start_time))}</span>
+                              <span className="hidden xl:inline"> - {formatEventTime(new Date(event.end_time))}</span>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
                     {extraCount > 0 && (
-                      <div className="px-1.5 py-0.5 text-[9px] font-bold text-[#b0ad9a] dark:text-[#7a7a7a] bg-[#f0ede8] dark:bg-[#252525] border border-[#e0ddd5] dark:border-[#333] rounded-md mt-auto text-center transition-colors shadow-sm shrink-0 pointer-events-none">
-                        And more
+                      <div className="px-1.5 py-0.5 text-[10px] leading-[12px] font-semibold text-[#888] dark:text-[#999] flex items-center gap-1.5 shrink-0 pointer-events-none select-none">
+                        <div className="flex items-center -space-x-0.5 shrink-0">
+                          {hiddenColors.map((color, idx) => (
+                            <span
+                              key={idx}
+                              className={`w-1.5 h-1.5 rounded-full ring-1 ring-white dark:ring-[#1a1a1a] ${
+                                DOT_COLORS[color] || DOT_COLORS["amber"]
+                              }`}
+                            />
+                          ))}
+                        </div>
+                        <span className="truncate">
+                          {visibleEvents.length === 0
+                            ? `${extraCount} ${extraCount === 1 ? "event" : "events"}`
+                            : `+${extraCount} more`}
+                        </span>
                       </div>
                     )}
                   </div>
 
-                  <div className="lg:hidden flex flex-wrap gap-1 justify-start mt-auto relative z-10 mb-0.5 ml-0.5 pointer-events-none">
-                    {dayEvents.map((e, idx) => (
-                      <div key={idx} className={`w-1.5 h-1.5 rounded-full ${DOT_COLORS[e.color] || DOT_COLORS["amber"]}`} />
+                  <div className="lg:hidden flex items-center gap-1 justify-start mt-auto relative z-10 mb-0.5 ml-0.5 pointer-events-none">
+                    {dayEvents.slice(0, 4).map((e, idx) => (
+                      <div key={idx} className={`w-1.5 h-1.5 rounded-full shrink-0 ${DOT_COLORS[e.color] || DOT_COLORS["amber"]}`} />
                     ))}
+                    {dayEvents.length > 4 && (
+                      <span className="text-[8px] font-bold text-[#888] dark:text-[#999] leading-none">
+                        +{dayEvents.length - 4}
+                      </span>
+                    )}
                   </div>
                 </div>
               );
