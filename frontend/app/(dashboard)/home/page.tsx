@@ -11,6 +11,7 @@ import HomeTaskProgress from "@/components/home/HomeTaskProgress";
 import TodayCalendarWidget from "@/components/calendar/TodayCalendarWidget";
 import { AiButton } from "@/components/ai/AiChatWidget";
 import { useTimerStore } from "@/store/timerStore";
+import { useUiStore } from "@/store/uiStore";
 import { User } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
@@ -19,7 +20,14 @@ export default function HomePage() {
   const router = useRouter();
   const [isHovered, setIsHovered] = useState(false);
   const [isTouched, setIsTouched] = useState(false);
-  const [userAvatar, setUserAvatar] = useState<string | null>(null);
+  const [userAvatar, setUserAvatar] = useState<string | null>(() => {
+    if (typeof window === "undefined" || !useUiStore.getState().hasDashboardMounted) return null;
+    try {
+      return localStorage.getItem("chronoa_avatar");
+    } catch {
+      return null;
+    }
+  });
   const [timeSessionsCount, setTimeSessionsCount] = useState<number | null>(null);
 
   const isPinned = useTimerStore((state: any) => state.isPinned);

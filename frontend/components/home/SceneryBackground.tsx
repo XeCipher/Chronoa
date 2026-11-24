@@ -2,9 +2,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useUiStore } from "@/store/uiStore";
 
 export default function SceneryBackground() {
-  const [hour, setHour] = useState<number | null>(null);
+  const [hour, setHour] = useState<number | null>(() =>
+    typeof window !== "undefined" && useUiStore.getState().hasDashboardMounted ? new Date().getHours() : null
+  );
 
   useEffect(() => {
     setHour(new Date().getHours());

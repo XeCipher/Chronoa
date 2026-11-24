@@ -20,6 +20,13 @@ export default function DashboardTemplate({ children }: { children: React.ReactN
     return true;
   });
 
+  // Use a brisk fade-in when returning from Settings on mobile so there is no sluggish pause
+  const [isQuickReturnFade] = useState(() => {
+    if (!hasDashboardMounted) return false;
+    if (typeof window === "undefined" || window.innerWidth >= 768) return false;
+    return useUiStore.getState().lastVisitedPage === "/settings";
+  });
+
   useEffect(() => {
     if (!hasDashboardMounted) {
       setHasDashboardMounted(true);
@@ -31,7 +38,7 @@ export default function DashboardTemplate({ children }: { children: React.ReactN
       initial={shouldFade ? { opacity: 0 } : false}
       animate={{ opacity: 1 }}
       transition={{
-        duration: 0.48,
+        duration: isQuickReturnFade ? 0.22 : 0.48,
         ease: [0.22, 1, 0.36, 1],
       }}
       className="w-full h-full"

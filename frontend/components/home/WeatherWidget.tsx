@@ -3,6 +3,7 @@
 
 import { useEffect, useState, useRef, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
+import { useUiStore } from "@/store/uiStore";
 import {
   Cloud,
   Sun,
@@ -18,14 +19,29 @@ import {
 } from "lucide-react";
 import { useRouter, usePathname } from "next/navigation";
 
+const readInitialWeather = () => {
+  if (typeof window === "undefined" || !useUiStore.getState().hasDashboardMounted) {
+    return { weather: null, city: "", isLoaded: false };
+  }
+  try {
+    const cached = localStorage.getItem("chronoa_cache_weather");
+    const cachedCity = localStorage.getItem("chronoa_cache_weather_city");
+    if (cached && cachedCity) {
+      return { weather: JSON.parse(cached), city: cachedCity, isLoaded: true };
+    }
+  } catch (e) {}
+  return { weather: null, city: "", isLoaded: false };
+};
+
 export default function WeatherWidget() {
   const router = useRouter();
   const pathname = usePathname();
-  const [weather, setWeather] = useState<any>(null);
-  const [city, setCity] = useState("");
+  const [initialWeather] = useState(readInitialWeather);
+  const [weather, setWeather] = useState<any>(initialWeather.weather);
+  const [city, setCity] = useState(initialWeather.city);
   const [isToggled, setIsToggled] = useState(false);
   const [promptCount, setPromptCount] = useState(0);
-  const [isLoaded, setIsLoaded] = useState(false);
+  const [isLoaded, setIsLoaded] = useState(initialWeather.isLoaded);
   const widgetRef = useRef<HTMLDivElement>(null);
   const lastFetchRef = useRef<number>(0);
 
@@ -108,8 +124,8 @@ export default function WeatherWidget() {
 
     if (cached && cachedCity) {
       try {
-        setWeather(JSON.parse(cached));
-        setCity(cachedCity);
+        setWeather((prev: any) => (JSON.stringify(prev) === cached ? prev : JSON.parse(cached)));
+        setCity((prev) => (prev === cachedCity ? prev : cachedCity));
         setIsLoaded(true);
       } catch (e) {}
     }

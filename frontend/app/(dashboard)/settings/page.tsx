@@ -1,7 +1,7 @@
 // frontend/app/(dashboard)/settings/page.tsx
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { useUiStore } from "@/store/uiStore";
@@ -134,8 +134,12 @@ export default function SettingsPage() {
   const [shouldSlideOnMobile] = useState(
     () => typeof window !== "undefined" && window.innerWidth < 768 && useUiStore.getState().hasDashboardMounted
   );
+  const [canGoBackInHistory] = useState(
+    () => typeof window !== "undefined" && useUiStore.getState().hasDashboardMounted && window.history.length > 1
+  );
   const [isClosingMobile, setIsClosingMobile] = useState(false);
   const backTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const hasNavigatedBackRef = useRef(false);
 
   const [userName, setUserName] = useState(() => readCachedString("chronoa_user_name"));
   const [userEmail, setUserEmail] = useState(() => readCachedString("chronoa_user_email"));
@@ -185,6 +189,10 @@ export default function SettingsPage() {
   const [openColorDropdown, setOpenColorDropdown] = useState<string | null>(null);
 
   useEffect(() => {
+    router.prefetch("/home");
+  }, [router]);
+
+  useEffect(() => {
     return () => {
       if (backTimeoutRef.current) clearTimeout(backTimeoutRef.current);
     };
@@ -196,16 +204,30 @@ export default function SettingsPage() {
     } catch (e) {}
   }, [calSources]);
 
+  const finishMobileBack = useCallback(() => {
+    if (hasNavigatedBackRef.current) return;
+    hasNavigatedBackRef.current = true;
+    if (backTimeoutRef.current) {
+      clearTimeout(backTimeoutRef.current);
+      backTimeoutRef.current = null;
+    }
+    if (canGoBackInHistory) {
+      router.back();
+    } else {
+      router.push("/home");
+    }
+  }, [canGoBackInHistory, router]);
+
   const handleBack = () => {
     if (typeof window !== "undefined" && window.innerWidth < 768) {
       if (isClosingMobile) return;
+      router.prefetch("/home");
       setIsClosingMobile(true);
-      backTimeoutRef.current = setTimeout(() => {
-        if (window.history.length > 1) router.back();
-        else router.push("/home");
-      }, 240);
+      // Fallback in case reduced-motion skips Framer's completion callback
+      backTimeoutRef.current = setTimeout(finishMobileBack, 280);
     } else {
-      router.back();
+      if (canGoBackInHistory) router.back();
+      else router.push("/home");
     }
   };
 
@@ -1621,9 +1643,23 @@ export default function SettingsPage() {
     <>
       <motion.div
         initial={shouldSlideOnMobile ? { x: "100%" } : false}
-        animate={{ x: isClosingMobile ? "100%" : 0 }}
-        transition={{ duration: 0.32, ease: [0.32, 0.72, 0, 1] }}
-        className="w-full h-full flex flex-col overflow-hidden relative bg-[#f7f5f0] dark:bg-[#121212] shadow-2xl md:shadow-none"
+        animate={isClosingMobile ? { x: "100%", opacity: 0 } : { x: 0, opacity: 1 }}
+        transition={
+          isClosingMobile
+            ? {
+                x: { duration: 0.24, ease: [0.32, 0.72, 0, 1] },
+                opacity: { duration: 0.24, ease: [0.4, 0, 0.6, 1] },
+              }
+            : { duration: 0.32, ease: [0.32, 0.72, 0, 1] }
+        }
+        onAnimationComplete={(definition) => {
+          if (isClosingMobile && (definition as { x?: string | number } | undefined)?.x !== 0) {
+            finishMobileBack();
+          }
+        }}
+        className={`w-full h-full flex flex-col overflow-hidden relative bg-[#f7f5f0] dark:bg-[#121212] shadow-2xl md:shadow-none ${
+          isClosingMobile ? "pointer-events-none" : ""
+        }`}
       >
         <div className="w-full max-w-4xl mx-auto px-4 md:px-8 lg:px-10 pt-4 md:pt-8 lg:pt-10 pb-4 shrink-0">
           <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 shrink-0 mb-0">

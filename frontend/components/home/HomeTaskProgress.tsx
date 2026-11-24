@@ -7,13 +7,32 @@ import { useUiStore } from "@/store/uiStore";
 import { CheckCircle2, ListTodo } from "lucide-react";
 import { usePathname } from "next/navigation";
 
+const readInitialTaskProgress = () => {
+  if (typeof window === "undefined" || !useUiStore.getState().hasDashboardMounted) {
+    return { routinePct: 0, normalLeft: 0, loading: true };
+  }
+  try {
+    const cachedPct = localStorage.getItem("chronoa_cache_home_task_routine_pct");
+    if (cachedPct !== null) {
+      const cachedLeft = localStorage.getItem("chronoa_cache_home_task_normal_left");
+      return {
+        routinePct: parseInt(cachedPct, 10) || 0,
+        normalLeft: parseInt(cachedLeft || "0", 10) || 0,
+        loading: false,
+      };
+    }
+  } catch (e) {}
+  return { routinePct: 0, normalLeft: 0, loading: true };
+};
+
 export default function HomeTaskProgress() {
   const { showHomeTaskProgress } = useUiStore();
   const pathname = usePathname();
 
-  const [routinePct, setRoutinePct] = useState(0);
-  const [normalLeft, setNormalLeft] = useState(0);
-  const [loading, setLoading] = useState(true);
+  const [initialProgress] = useState(readInitialTaskProgress);
+  const [routinePct, setRoutinePct] = useState(initialProgress.routinePct);
+  const [normalLeft, setNormalLeft] = useState(initialProgress.normalLeft);
+  const [loading, setLoading] = useState(initialProgress.loading);
 
   const [isExpanded, setIsExpanded] = useState(false);
   const [isHovered, setIsHovered] = useState(false);

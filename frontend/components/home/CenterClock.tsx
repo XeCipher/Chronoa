@@ -5,7 +5,9 @@ import { useState, useEffect } from "react";
 import { useUiStore } from "@/store/uiStore";
 
 export default function CenterClock() {
-  const [time, setTime] = useState<Date | null>(null);
+  const [time, setTime] = useState<Date | null>(() =>
+    typeof window !== "undefined" && useUiStore.getState().hasDashboardMounted ? new Date() : null
+  );
   const { showHomeSeconds } = useUiStore();
 
   useEffect(() => {
