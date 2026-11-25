@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { startOfDay } from "date-fns";
+import { startOfDay, endOfDay } from "date-fns";
 import { X, Calendar as CalendarIcon, AlignLeft, Palette, Trash2, CheckCircle2, Repeat, MapPin, Video } from "lucide-react";
 import { CalendarEvent } from "@/types/app.types";
 import { useUiStore } from "@/store/uiStore";
@@ -47,6 +47,70 @@ const DAYS_OF_WEEK = [
   { id: 5, label: "F" },
   { id: 6, label: "S" },
 ];
+
+const getEventRecencyMs = (event: CalendarEvent, endOfTodayMs: number): number => {
+  const startMs = new Date(event.start_time).getTime() || 0;
+  const createdMs = new Date(event.created_at).getTime() || 0;
+  const updatedMs = new Date(event.updated_at || event.created_at).getTime() || createdMs;
+
+  // External ICS feeds stamp created_at/updated_at on sync rather than when the event happened
+  if (event.is_readonly) {
+    return startMs <= endOfTodayMs ? startMs : 0;
+  }
+
+  // Recurring instances pre-generated up to +1 year should rank by series creation/last edit
+  if (event.series_id) {
+    return updatedMs;
+  }
+
+  const wasEdited = updatedMs - createdMs > 5000;
+  if (wasEdited) {
+    return startMs <= endOfTodayMs ? Math.max(startMs, updatedMs) : updatedMs;
+  }
+
+  // Upcoming standalone events rank by when the user created them
+  if (startMs > endOfTodayMs) {
+    return createdMs;
+  }
+
+  // Backfilled past entries (>2 days old when created) rank by their actual calendar date
+  if (createdMs - startMs > 2 * 24 * 60 * 60 * 1000) {
+    return startMs;
+  }
+
+  return Math.max(startMs, createdMs);
+};
+
+const compareCalendarEvents = (a: CalendarEvent, b: CalendarEvent, endOfTodayMs: number): number => {
+  const recencyA = getEventRecencyMs(a, endOfTodayMs);
+  const recencyB = getEventRecencyMs(b, endOfTodayMs);
+  if (recencyB !== recencyA) {
+    return recencyB - recencyA;
+  }
+
+  if (Boolean(a.is_readonly) !== Boolean(b.is_readonly)) {
+    return a.is_readonly ? 1 : -1;
+  }
+
+  const startA = new Date(a.start_time).getTime() || 0;
+  const startB = new Date(b.start_time).getTime() || 0;
+  const aIsPastOrToday = startA <= endOfTodayMs;
+  const bIsPastOrToday = startB <= endOfTodayMs;
+
+  if (aIsPastOrToday !== bIsPastOrToday) {
+    return aIsPastOrToday ? -1 : 1;
+  }
+
+  if (aIsPastOrToday && bIsPastOrToday) {
+    if (startB !== startA) return startB - startA;
+  } else {
+    if (startA !== startB) return startA - startB;
+  }
+
+  const detailScore = (e: CalendarEvent) =>
+    (e.meeting_url ? 4 : 0) + (e.location ? 2 : 0) + (e.description ? 1 : 0);
+  return detailScore(b) - detailScore(a);
+};
 
 export default function EventModal({
   isOpen,
@@ -111,48 +175,138 @@ export default function EventModal({
 
   // Fetch intelligent recommendations based on past calendar events and completed tasks
   useEffect(() => {
-    if (initialEvent || isReadOnly || !title.trim() || !isOpen) {
+    const cleanTitle = title.trim();
+    if (initialEvent || isReadOnly || !cleanTitle || !isOpen) {
       setRecommendations([]);
       return;
     }
+
+    let cancelled = false;
+
     const fetchRecs = async () => {
       const {
         data: { user },
       } = await supabase.auth.getUser();
-      if (!user) return;
+      if (!user || cancelled) return;
 
-      const [evRes, tkRes] = await Promise.all([
-        supabase.from("calendar_events").select("*").eq("user_id", user.id).ilike("title", `%${title}%`).limit(10),
+      const escapedTitle = cleanTitle.replace(/[\\%_]/g, "\\$&");
+      const pattern = `%${escapedTitle}%`;
+      const endOfToday = endOfDay(new Date());
+      const endOfTodayIso = endOfToday.toISOString();
+      const endOfTodayMs = endOfToday.getTime();
+
+      const buildRecentEventsQuery = (orderByUpdated: boolean) => {
+        const query = supabase
+          .from("calendar_events")
+          .select("*")
+          .eq("user_id", user.id)
+          .ilike("title", pattern);
+        if (orderByUpdated) {
+          return query.order("updated_at", { ascending: false }).order("created_at", { ascending: false }).limit(200);
+        }
+        return query.order("created_at", { ascending: false }).limit(200);
+      };
+
+      const [recentEvResInitial, pastEvRes, upcomingEvRes, sourcesRes, tkRes] = await Promise.all([
+        buildRecentEventsQuery(true),
+        supabase
+          .from("calendar_events")
+          .select("*")
+          .eq("user_id", user.id)
+          .ilike("title", pattern)
+          .lte("start_time", endOfTodayIso)
+          .order("start_time", { ascending: false })
+          .limit(200),
+        supabase
+          .from("calendar_events")
+          .select("*")
+          .eq("user_id", user.id)
+          .ilike("title", pattern)
+          .gt("start_time", endOfTodayIso)
+          .order("start_time", { ascending: true })
+          .limit(100),
+        supabase.from("calendar_sources").select("id, is_active").eq("user_id", user.id),
         supabase
           .from("tasks")
           .select("*")
           .eq("user_id", user.id)
           .eq("is_completed", true)
-          .ilike("title", `%${title}%`)
-          .limit(10),
+          .is("deleted_at", null)
+          .ilike("title", pattern)
+          .order("completed_at", { ascending: false })
+          .limit(30),
       ]);
+
+      if (cancelled) return;
+
+      const recentEvRes = recentEvResInitial.error ? await buildRecentEventsQuery(false) : recentEvResInitial;
+      if (cancelled) return;
+
+      const inactiveSourceIds = new Set(
+        ((sourcesRes.data || []) as { id: string; is_active?: boolean | null }[])
+          .filter((s) => s.is_active === false)
+          .map((s) => s.id)
+      );
+
+      const eventMap = new Map<string, CalendarEvent>();
+      const collectEvents = (rows?: CalendarEvent[] | null) => {
+        rows?.forEach((ev) => {
+          if (ev.source_id && inactiveSourceIds.has(ev.source_id)) return;
+          if (!eventMap.has(ev.id)) {
+            eventMap.set(ev.id, ev);
+          }
+        });
+      };
+
+      collectEvents(recentEvRes.data as CalendarEvent[] | null);
+      collectEvents(pastEvRes.data as CalendarEvent[] | null);
+      collectEvents(upcomingEvRes.data as CalendarEvent[] | null);
+
+      const sortedEvents = Array.from(eventMap.values()).sort((a, b) =>
+        compareCalendarEvents(a, b, endOfTodayMs)
+      );
 
       const unique: any[] = [];
       const seen = new Set<string>();
 
       const process = (items: any[], type: string) => {
         items?.forEach((i) => {
-          const lower = i.title.toLowerCase();
-          if (!seen.has(lower)) {
-            seen.add(lower);
-            unique.push({ ...i, _type: type });
-          }
+          const lower = (i.title || "").trim().toLowerCase();
+          if (!lower || seen.has(lower)) return;
+          seen.add(lower);
+          unique.push({ ...i, _type: type });
         });
       };
 
-      process(evRes.data || [], "event");
+      process(sortedEvents, "event");
       process(tkRes.data || [], "task");
 
-      setRecommendations(unique);
+      const queryLower = cleanTitle.toLowerCase();
+      const getMatchTier = (itemTitle: string) => {
+        const normalized = (itemTitle || "").trim().toLowerCase();
+        if (normalized === queryLower) return 0;
+        if (normalized.startsWith(queryLower)) return 1;
+        return 2;
+      };
+
+      unique.sort((a, b) => {
+        const tierDiff = getMatchTier(a.title) - getMatchTier(b.title);
+        if (tierDiff !== 0) return tierDiff;
+        if (a._type !== b._type) return a._type === "event" ? -1 : 1;
+        if (a._type === "event" && b._type === "event") {
+          return compareCalendarEvents(a, b, endOfTodayMs);
+        }
+        return 0;
+      });
+
+      setRecommendations(unique.slice(0, 15));
     };
 
     const timer = setTimeout(fetchRecs, 300);
-    return () => clearTimeout(timer);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
   }, [title, initialEvent, isReadOnly, isOpen]);
 
   useEffect(() => {
@@ -351,9 +505,9 @@ export default function EventModal({
       setDescription(rec.description || "");
       setLocation(rec.location || "");
       setMeetingUrl(rec.meeting_url || "");
-      setColor(rec.color || "amber");
+      setColor(rec.color && rec.color !== "none" ? rec.color : "amber");
 
-      setIsAllDay(rec.is_all_day);
+      setIsAllDay(Boolean(rec.is_all_day));
 
       const recStart = new Date(rec.start_time);
       const recEnd = new Date(rec.end_time);
@@ -369,7 +523,8 @@ export default function EventModal({
       } else {
         newStart.setHours(recStart.getHours(), recStart.getMinutes(), recStart.getSeconds(), 0);
         const diff = recEnd.getTime() - recStart.getTime();
-        const newEnd = new Date(newStart.getTime() + diff);
+        const safeDiff = diff > 0 ? diff : 60 * 60000;
+        const newEnd = new Date(newStart.getTime() + safeDiff);
         setStartTime(newStart);
         setEndTime(newEnd);
       }
@@ -504,7 +659,10 @@ export default function EventModal({
               placeholder="Event Title"
               value={title}
               rows={1}
-              onChange={(e) => setTitle(e.target.value.replace(/\n/g, ""))}
+              onChange={(e) => {
+                setTitle(e.target.value.replace(/\n/g, ""));
+                setShowRecommendations(true);
+              }}
               onFocus={() => setShowRecommendations(true)}
               disabled={isReadOnly}
               className={`flex-1 min-w-0 w-full text-2xl sm:text-3xl font-serif outline-none resize-none no-scrollbar placeholder:text-[#c4c0b8] dark:placeholder:text-[#555] transition-colors ${
@@ -517,11 +675,13 @@ export default function EventModal({
               <div className="absolute top-full left-0 w-full mt-2 bg-white dark:bg-[#252525] border border-[#e0ddd5] dark:border-[#333] rounded-2xl shadow-xl z-[100] max-h-52 overflow-y-auto no-scrollbar animate-fade-in">
                 {recommendations.map((rec) => (
                   <button
-                    key={rec.id}
+                    key={`${rec._type}-${rec.id}`}
+                    type="button"
                     onClick={() => applyRecommendation(rec)}
-                    className="w-full flex items-center justify-start px-4 py-3 border-b border-[#e0ddd5] dark:border-[#333] last:border-b-0 hover:bg-[#f7f5f0] dark:hover:bg-[#1a1a1a] transition-colors"
+                    className="w-full flex items-center justify-between gap-2 px-4 py-3 border-b border-[#e0ddd5] dark:border-[#333] last:border-b-0 hover:bg-[#f7f5f0] dark:hover:bg-[#1a1a1a] transition-colors text-left cursor-pointer"
                   >
                     <span className="text-sm font-semibold text-[#3d3b33] dark:text-[#f0f0f0] truncate">{rec.title}</span>
+                    {rec.meeting_url && <Video size={13} className="text-[#c2956e] dark:text-[#b0855f] shrink-0 opacity-80" />}
                   </button>
                 ))}
               </div>

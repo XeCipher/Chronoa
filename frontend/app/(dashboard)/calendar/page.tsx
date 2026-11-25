@@ -400,19 +400,30 @@ export default function CalendarPage() {
     const baseEvent = { ...updates, user_id: user.id };
 
     if (updates.id) {
+      const nowIso = new Date().toISOString();
+      const shouldSetUpdatedAt = Boolean(referenceEvent && "updated_at" in referenceEvent);
+      const shouldSetCreatedAt = Boolean(referenceEvent && "created_at" in referenceEvent);
       const isUpgradingToSeries = !referenceEvent?.series_id && updates.repeat_pattern && updates.repeat_pattern !== "none";
 
       if (isUpgradingToSeries) {
         const newSeriesId = crypto.randomUUID();
-        const upgradedEvent = { ...baseEvent, series_id: newSeriesId } as CalendarEvent;
+        const upgradedEvent = {
+          ...baseEvent,
+          series_id: newSeriesId,
+          ...(shouldSetUpdatedAt ? { updated_at: nowIso } : {}),
+        } as CalendarEvent;
 
         setEvents((prev) => prev.map((e) => (e.id === updates.id ? { ...upgradedEvent } : e)));
         await supabase.from("calendar_events").update({ ...upgradedEvent }).eq("id", updates.id);
 
         await generateRecurringEvents(upgradedEvent, newSeriesId);
       } else if (updateMode === "this" || !updates.series_id) {
-        setEvents((prev) => prev.map((e) => (e.id === updates.id ? ({ ...e, ...updates } as CalendarEvent) : e)));
-        await supabase.from("calendar_events").update({ ...updates }).eq("id", updates.id);
+        const eventUpdates = {
+          ...updates,
+          ...(shouldSetUpdatedAt ? { updated_at: nowIso } : {}),
+        };
+        setEvents((prev) => prev.map((e) => (e.id === updates.id ? ({ ...e, ...eventUpdates } as CalendarEvent) : e)));
+        await supabase.from("calendar_events").update(eventUpdates).eq("id", updates.id);
       } else {
         const timeChanged =
           new Date(updates.start_time!).getTime() !== new Date(referenceEvent!.start_time).getTime() ||
@@ -439,6 +450,8 @@ export default function CalendarPage() {
             ...baseEvent,
             id: newInstanceId,
             series_id: isNowStandalone ? null : updates.series_id,
+            ...(shouldSetCreatedAt ? { created_at: nowIso } : {}),
+            ...(shouldSetUpdatedAt ? { updated_at: nowIso } : {}),
           } as CalendarEvent;
 
           setEvents((prev) => [...prev, updatedCurrent]);
@@ -456,6 +469,8 @@ export default function CalendarPage() {
           if (updates.color !== referenceEvent!.color) diff.color = updates.color;
 
           if (Object.keys(diff).length > 0) {
+            if (shouldSetUpdatedAt) diff.updated_at = nowIso;
+
             setEvents((prev) =>
               prev.map((e) => {
                 if (e.series_id === updates.series_id && new Date(e.start_time) >= currentStartTime) {
