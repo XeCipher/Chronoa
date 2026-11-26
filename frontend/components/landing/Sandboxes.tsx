@@ -5,7 +5,6 @@ import React, { useState, useEffect, useMemo, useRef } from "react";
 import RecursiveCheckbox from "@/components/ui/RecursiveCheckbox";
 import WeekView from "@/components/calendar/WeekView";
 import DistractionFreeEditor from "@/components/notes/DistractionFreeEditor";
-import { SceneryStage, TimeOfDay } from "@/components/home/SceneryBackground";
 import { initialMockTasks, generateMockEvents, generateMockDailyMap, generateMockSessions } from "./MockData";
 import {
   CheckCircle2,
@@ -42,13 +41,71 @@ import ActivityHeatmap from "@/components/analytics/ActivityHeatmap";
 import FocusDistribution from "@/components/analytics/FocusDistribution";
 
 function MockLandingScenery({ WTime, isDark }: { WTime: string; isDark: boolean }) {
+  const WPalettes: Record<string, any> = {
+    dawn: {
+      bg: isDark ? "#1a1210" : "#fdf9f4",
+      orb1: isDark ? "#b8624b" : "#ffb580",
+      orb2: isDark ? "#c27355" : "#ff8a75",
+      orb3: isDark ? "#8e63a3" : "#cb9bf5",
+    },
+    day: {
+      bg: isDark ? "#0f1115" : "#f6f4ef",
+      orb1: isDark ? "#4c5fa3" : "#c59bff",
+      orb2: isDark ? "#2c5c8a" : "#7dbaf7",
+      orb3: isDark ? "#356e4c" : "#7fe09d",
+    },
+    dusk: {
+      bg: isDark ? "#1a1012" : "#f9f3f2",
+      orb1: isDark ? "#a6485e" : "#ff7582",
+      orb2: isDark ? "#9c578a" : "#f092d0",
+      orb3: isDark ? "#a85e32" : "#eb9654",
+    },
+    night: {
+      bg: isDark ? "#050810" : "#eff2fa",
+      orb1: isDark ? "#35528a" : "#82a3e8",
+      orb2: isDark ? "#2a3b6e" : "#a698eb",
+      orb3: isDark ? "#2d5873" : "#6fb8d6",
+    },
+  };
+  const current = WPalettes[WTime];
   return (
-    <SceneryStage
-      timeOfDay={(WTime as TimeOfDay) || "day"}
-      forcedDark={isDark}
-      interactive={false}
-      className="absolute inset-0 -z-50 rounded-[2.5rem]"
-    />
+    <div
+      className="absolute inset-0 -z-50 overflow-hidden transition-colors duration-[3000ms] rounded-[2.5rem]"
+      style={{ backgroundColor: current.bg }}
+    >
+      <style
+        dangerouslySetInnerHTML={{
+          __html: `
+        @keyframes mockFloat1 { 0%, 100% { transform: translate(0px, 0px) scale(1); opacity: 0.72; } 33% { transform: translate(50px, -50px) scale(1.1); opacity: 0.92; } 66% { transform: translate(-30px, 20px) scale(0.9); opacity: 0.65; } }
+        @keyframes mockFloat2 { 0%, 100% { transform: translate(0px, 0px) scale(1); opacity: 0.72; } 33% { transform: translate(-50px, 50px) scale(1.2); opacity: 0.6; } 66% { transform: translate(40px, -30px) scale(0.85); opacity: 0.9; } }
+        @keyframes mockFloat3 { 0%, 100% { transform: translate(0px, 0px) scale(1); opacity: 0.6; } 33% { transform: translate(30px, 40px) scale(0.92); opacity: 0.85; } 66% { transform: translate(-40px, -40px) scale(1.15); opacity: 0.52; } }
+        .mock-orb-1 { animation: mockFloat1 18s ease-in-out infinite; }
+        .mock-orb-2 { animation: mockFloat2 22s ease-in-out infinite; }
+        .mock-orb-3 { animation: mockFloat3 25s ease-in-out infinite; }
+      `,
+        }}
+      />
+      <div className="absolute inset-0 w-full h-full">
+        <div
+          className={`mock-orb-1 absolute top-[-10%] right-[-10%] w-[80vw] h-[80vw] md:w-[50vw] md:h-[50vw] rounded-full filter blur-[80px] md:blur-[110px] transition-colors duration-[3000ms] ${
+            isDark ? "mix-blend-screen" : "mix-blend-multiply"
+          }`}
+          style={{ backgroundColor: current.orb1 }}
+        />
+        <div
+          className={`mock-orb-2 absolute bottom-[-20%] left-[-10%] w-[90vw] h-[90vw] md:w-[60vw] md:h-[60vw] rounded-full filter blur-[80px] md:blur-[110px] transition-colors duration-[3000ms] ${
+            isDark ? "mix-blend-screen" : "mix-blend-multiply"
+          }`}
+          style={{ backgroundColor: current.orb2 }}
+        />
+        <div
+          className={`mock-orb-3 absolute top-[20%] left-[20%] w-[75vw] h-[75vw] md:w-[45vw] md:h-[45vw] rounded-full filter blur-[80px] md:blur-[110px] transition-colors duration-[3000ms] ${
+            isDark ? "mix-blend-screen" : "mix-blend-multiply"
+          }`}
+          style={{ backgroundColor: current.orb3 }}
+        />
+      </div>
+    </div>
   );
 }
 
@@ -142,8 +199,7 @@ function MockWeatherWidget({ isDark }: { isDark: boolean }) {
     if ([51, 53, 55, 56, 57].includes(calibratedCode)) return { text: "Drizzle", icon: CloudDrizzle, color: "#93c5fd" };
     if ([61, 63, 65, 66, 67, 80, 81, 82].includes(calibratedCode))
       return { text: "Rainy", icon: CloudRain, color: "#3b82f6" };
-    if ([71, 73, 75, 77, 85, 86].includes(calibratedCode))
-      return { text: "Snowy", icon: Snowflake, color: "#dbeafe" };
+    if ([71, 73, 75, 77, 85, 86].includes(calibratedCode)) return { text: "Snowy", icon: Snowflake, color: "#dbeafe" };
     if ([95, 96, 99].includes(calibratedCode)) return { text: "Storms", icon: CloudLightning, color: "#a855f7" };
     return { text: day ? "Sunny" : "Clear", icon: day ? Sun : Moon, color: day ? "#f59e0b" : "#a5b4fc" };
   };
