@@ -5,6 +5,7 @@ import React, { useState, useEffect, useMemo, useRef } from "react";
 import RecursiveCheckbox from "@/components/ui/RecursiveCheckbox";
 import WeekView from "@/components/calendar/WeekView";
 import DistractionFreeEditor from "@/components/notes/DistractionFreeEditor";
+import { SceneryStage, TimeOfDay } from "@/components/home/SceneryBackground";
 import { initialMockTasks, generateMockEvents, generateMockDailyMap, generateMockSessions } from "./MockData";
 import {
   CheckCircle2,
@@ -41,71 +42,13 @@ import ActivityHeatmap from "@/components/analytics/ActivityHeatmap";
 import FocusDistribution from "@/components/analytics/FocusDistribution";
 
 function MockLandingScenery({ WTime, isDark }: { WTime: string; isDark: boolean }) {
-  const WPalettes: Record<string, any> = {
-    dawn: {
-      bg: isDark ? "#1a1210" : "#fdfbf7",
-      orb1: isDark ? "#8a4e40" : "#ffcba6",
-      orb2: isDark ? "#8a5a44" : "#ffa68f",
-      orb3: isDark ? "#6c4f7a" : "#d6aef2",
-    },
-    day: {
-      bg: isDark ? "#0f1115" : "#f7f5f0",
-      orb1: isDark ? "#2d3b5c" : "#d4b3ff",
-      orb2: isDark ? "#1e2e42" : "#9bc7f5",
-      orb3: isDark ? "#253828" : "#a1e3b3",
-    },
-    dusk: {
-      bg: isDark ? "#1a1012" : "#f8f5f2",
-      orb1: isDark ? "#7a3b4c" : "#ff8a90",
-      orb2: isDark ? "#7a4b6c" : "#f5b0db",
-      orb3: isDark ? "#7d4628" : "#de9c64",
-    },
-    night: {
-      bg: isDark ? "#050810" : "#f2f4f8",
-      orb1: isDark ? "#1f2b45" : "#9eb4db",
-      orb2: isDark ? "#111926" : "#b9c6e3",
-      orb3: isDark ? "#172033" : "#8da8cf",
-    },
-  };
-  const current = WPalettes[WTime];
   return (
-    <div
-      className="absolute inset-0 -z-50 overflow-hidden transition-colors duration-[3000ms] rounded-[2.5rem]"
-      style={{ backgroundColor: current.bg }}
-    >
-      <style
-        dangerouslySetInnerHTML={{
-          __html: `
-        @keyframes mockFloat1 { 0%, 100% { transform: translate(0px, 0px) scale(1); opacity: 0.7; } 33% { transform: translate(50px, -50px) scale(1.1); opacity: 0.9; } 66% { transform: translate(-30px, 20px) scale(0.9); opacity: 0.6; } }
-        @keyframes mockFloat2 { 0%, 100% { transform: translate(0px, 0px) scale(1); opacity: 0.7; } 33% { transform: translate(-50px, 50px) scale(1.2); opacity: 0.5; } 66% { transform: translate(40px, -30px) scale(0.8); opacity: 0.9; } }
-        @keyframes mockFloat3 { 0%, 100% { transform: translate(0px, 0px) scale(1); opacity: 0.5; } 33% { transform: translate(30px, 40px) scale(0.9); opacity: 0.8; } 66% { transform: translate(-40px, -40px) scale(1.15); opacity: 0.4; } }
-        .mock-orb-1 { animation: mockFloat1 18s ease-in-out infinite; }
-        .mock-orb-2 { animation: mockFloat2 22s ease-in-out infinite; }
-        .mock-orb-3 { animation: mockFloat3 25s ease-in-out infinite; }
-      `,
-        }}
-      />
-      <div className="absolute inset-0 w-full h-full" style={{ opacity: isDark ? 1 : 0.8 }}>
-        <div
-          className={`mock-orb-1 absolute top-[-10%] right-[-10%] w-[80vw] h-[80vw] md:w-[50vw] md:h-[50vw] rounded-full filter blur-[100px] md:blur-[140px] transition-colors duration-[3000ms] ${
-            isDark ? "mix-blend-screen" : "mix-blend-multiply"
-          }`}
-          style={{ backgroundColor: current.orb1 }}
-        />
-        <div
-          className={`mock-orb-2 absolute bottom-[-20%] left-[-10%] w-[90vw] h-[90vw] md:w-[60vw] md:h-[60vw] rounded-full filter blur-[100px] md:blur-[140px] transition-colors duration-[3000ms] ${
-            isDark ? "mix-blend-screen" : "mix-blend-multiply"
-          }`}
-          style={{ backgroundColor: current.orb2 }}
-        />
-        <div
-          className={`mock-orb-3 absolute top-[20%] left-[20%] w-[75vw] h-[75vw] md:w-[45vw] md:h-[45vw] rounded-full filter blur-[100px] md:blur-[140px] transition-colors duration-[3000ms] ${
-            isDark ? "mix-blend-screen" : "mix-blend-multiply"
-          }`}
-          style={{ backgroundColor: current.orb3 }}
-        />
-      </div>
-    </div>
+    <SceneryStage
+      timeOfDay={(WTime as TimeOfDay) || "day"}
+      forcedDark={isDark}
+      interactive={false}
+      className="absolute inset-0 -z-50 rounded-[2.5rem]"
+    />
   );
 }
 
