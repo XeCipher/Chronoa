@@ -161,14 +161,16 @@ export function SplitEditorialClock({ parts, showSeconds, use24Hour }: ClockFace
         </div>
       </div>
 
-      {/* Bottom Colophon & Day Progress */}
+      {/* Bottom Colophon */}
       <div
         className="w-full flex items-center justify-between px-1 pt-2.5 md:pt-3 border-t relative"
         style={{ borderColor: "var(--clk-border-hair)" }}
       >
         {showSeconds && (
           <div
-            className="absolute top-0 left-0 h-[1.5px] transition-all duration-500 ease-out"
+            className={`absolute top-0 left-0 h-[1.5px] ease-out ${
+              parts.rawSeconds === 0 ? "transition-none" : "transition-all duration-500"
+            }`}
             style={{
               width: `${secRatio}%`,
               backgroundColor: "var(--clk-accent)",
@@ -182,26 +184,12 @@ export function SplitEditorialClock({ parts, showSeconds, use24Hour }: ClockFace
           WK {parts.weekNumber} · DAY {parts.dayOfYear}
         </span>
 
-        <div className="flex items-center gap-2.5">
-          <div
-            className="w-16 sm:w-24 h-[2px] rounded-full overflow-hidden"
-            style={{ backgroundColor: "var(--clk-dot-off)" }}
-          >
-            <div
-              className="h-full rounded-full transition-all duration-700"
-              style={{
-                width: `${parts.dayProgressPct}%`,
-                backgroundColor: "var(--clk-accent)",
-              }}
-            />
-          </div>
-          <span
-            className="text-[9px] md:text-[10px] font-bold tracking-[0.2em] tabular-nums"
-            style={{ color: "var(--clk-muted)" }}
-          >
-            {parts.dayProgressPct}%
-          </span>
-        </div>
+        <span
+          className="text-[9px] md:text-[10px] font-bold tracking-[0.26em] uppercase"
+          style={{ color: "var(--clk-muted)" }}
+        >
+          {parts.celestialPhase}
+        </span>
       </div>
     </div>
   );
@@ -387,8 +375,6 @@ export function OrbitCelestialClock({ time, parts, showSeconds, use24Hour }: Clo
 
 /* ─── 4. Monumental Stacked (Swiss Poster Architecture) ───────────────────── */
 export function StackedMonumentClock({ parts, showSeconds, use24Hour }: ClockFaceProps) {
-  const secPct = (parts.rawSeconds / 59) * 100;
-
   return (
     <div className="flex items-center justify-center gap-4 sm:gap-7 md:gap-9 select-none pointer-events-none">
       {/* Stacked Two-Tier Colossal Numerals */}
@@ -455,16 +441,16 @@ export function StackedMonumentClock({ parts, showSeconds, use24Hour }: ClockFac
             {parts.monthShort} {parts.dayNum}
           </span>
 
-          {/* Minute Pulse Track */}
+          {/* Month Progress Track */}
           <div className="w-full flex items-center gap-2 mt-2">
             <div
               className="flex-1 h-[2.5px] rounded-full overflow-hidden"
               style={{ backgroundColor: "var(--clk-dot-off)" }}
             >
               <div
-                className="h-full rounded-full transition-all duration-500 ease-out"
+                className="h-full rounded-full transition-all duration-700 ease-out"
                 style={{
-                  width: `${showSeconds ? secPct : parts.dayProgressPct}%`,
+                  width: `${parts.monthProgressPct}%`,
                   backgroundColor: "var(--clk-accent)",
                 }}
               />

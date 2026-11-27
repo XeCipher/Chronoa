@@ -7,7 +7,8 @@ export type HomeClockStyle =
   | "flip"
   | "orbit"
   | "stacked"
-  | "dotmatrix";
+  | "dotmatrix"
+  | "canvas";
 
 export interface ClockStyleMeta {
   id: HomeClockStyle;
@@ -59,6 +60,12 @@ export const HOME_CLOCK_STYLES: ClockStyleMeta[] = [
     subtitle: "Hardware pin grid",
     keywords: ["dot", "matrix", "led", "hardware", "digital", "grid"],
   },
+  {
+    id: "canvas",
+    name: "Canvas",
+    subtitle: "Full-screen display",
+    keywords: ["canvas", "full", "fullscreen", "large", "giant", "immersive", "big"],
+  },
 ];
 
 export const isValidHomeClockStyle = (val: unknown): val is HomeClockStyle => {
@@ -83,7 +90,7 @@ export interface ClockTimeParts {
   compactDate: string;
   dayOfYear: number;
   weekNumber: number;
-  dayProgressPct: number;
+  monthProgressPct: number;
   solarFraction: number;
   celestialPhase: string;
   isDaytime: boolean;
@@ -142,7 +149,9 @@ export const getClockTimeParts = (time: Date, use24Hour: boolean): ClockTimePart
 
   const elapsedSeconds = rawHours * 3600 + rawMinutes * 60 + rawSeconds;
   const solarFraction = elapsedSeconds / 86400;
-  const dayProgressPct = Math.min(100, Math.max(0, Math.round(solarFraction * 100)));
+
+  const daysInMonth = new Date(time.getFullYear(), time.getMonth() + 1, 0).getDate();
+  const monthProgressPct = Math.min(100, Math.max(1, Math.round((time.getDate() / daysInMonth) * 100)));
 
   return {
     hours,
@@ -162,7 +171,7 @@ export const getClockTimeParts = (time: Date, use24Hour: boolean): ClockTimePart
     compactDate,
     dayOfYear: getDayOfYear(time),
     weekNumber: getIsoWeekNumber(time),
-    dayProgressPct,
+    monthProgressPct,
     solarFraction,
     celestialPhase: getCelestialPhase(rawHours),
     isDaytime: rawHours >= 6 && rawHours < 19,
