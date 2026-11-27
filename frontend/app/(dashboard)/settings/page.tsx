@@ -8,6 +8,10 @@ import { useUiStore } from "@/store/uiStore";
 import { supabase } from "@/lib/supabase";
 import { parseICS, exportICS } from "@/lib/icsParser";
 import { CalendarSource, CalendarEvent } from "@/types/app.types";
+import { HOME_CLOCK_STYLES, HomeClockStyle } from "@/lib/clockStyles";
+import CenterClock from "@/components/home/CenterClock";
+import SceneryBackground from "@/components/home/SceneryBackground";
+import { ClockStyleGlyph } from "@/components/home/ClockStyleGlyph";
 import FeedbackModal from "@/components/settings/FeedbackModal";
 import {
   MapPin,
@@ -22,6 +26,7 @@ import {
   AlertTriangle,
   Keyboard,
   CheckCircle2,
+  Check,
   Info,
   ArrowLeft,
   Star,
@@ -127,6 +132,10 @@ export default function SettingsPage() {
     setShowHomeTaskProgress,
     showHomeSeconds,
     setShowHomeSeconds,
+    showHome24Hour,
+    setShowHome24Hour,
+    homeClockStyle,
+    setHomeClockStyle,
     showConfirmDialog,
     setLastVisitedPage,
   } = useUiStore();
@@ -410,6 +419,11 @@ export default function SettingsPage() {
       data: { user },
     } = await supabase.auth.getUser();
     if (user) await supabase.from("profiles").update({ [key]: value }).eq("id", user.id);
+  };
+
+  const handleClockStyleSelect = (styleId: HomeClockStyle) => {
+    setHomeClockStyle(styleId);
+    updateRemoteSetting("home_clock_style", styleId);
   };
 
   const handleLocationSearch = async () => {
@@ -857,6 +871,9 @@ export default function SettingsPage() {
     return keys.some((k) => k.toLowerCase().includes(searchQuery.toLowerCase()));
   };
 
+  const activeClockMeta =
+    HOME_CLOCK_STYLES.find((s) => s.id === homeClockStyle) || HOME_CLOCK_STYLES[0];
+
   const sections = [
     {
       id: "appearance",
@@ -896,19 +913,103 @@ export default function SettingsPage() {
     },
     {
       id: "clock",
-      keys: ["home clock", "clock", "seconds", "home screen", "time"],
+      keys: [
+        "home clock",
+        "clock",
+        "seconds",
+        "24",
+        "hour",
+        "format",
+        "date",
+        "home screen",
+        "time",
+        "style",
+        ...HOME_CLOCK_STYLES.flatMap((s) => [s.name, s.subtitle, ...s.keywords]),
+      ],
       className: "",
       render: () => (
-        <section className="space-y-4">
-          <div className="flex items-center gap-3 text-[#c2956e] dark:text-[#d1a784]">
-            <Clock size={20} />
-            <h3 className="text-xl font-medium text-[#3d3b33] dark:text-[#f0f0f0]">
-              <HighlightText text="Home Clock" query={searchQuery} />
-            </h3>
+        <section className="space-y-6">
+          <div>
+            <div className="flex items-center gap-3 text-[#c2956e] dark:text-[#d1a784]">
+              <Clock size={20} />
+              <h3 className="text-xl font-medium text-[#3d3b33] dark:text-[#f0f0f0]">
+                <HighlightText text="Home Clock" query={searchQuery} />
+              </h3>
+            </div>
+            <p className="text-xs text-[#b0ad9a] dark:text-[#7a7a7a] mt-1">
+              <HighlightText
+                text="Choose a timepiece style and customize how time and date appear on your home screen."
+                query={searchQuery}
+              />
+            </p>
           </div>
-          <p className="text-xs text-[#b0ad9a] dark:text-[#7a7a7a] mt-1 mb-4">
-            <HighlightText text="Customize how time is displayed on your home screen." query={searchQuery} />
-          </p>
+
+          {/* Live Interactive Preview Stage */}
+          <div className="relative w-full h-[210px] sm:h-[240px] md:h-[260px] rounded-[2rem] border border-[#e0ddd5] dark:border-[#333] overflow-hidden flex items-center justify-center shadow-inner isolate">
+            <SceneryBackground contained />
+
+            <div className="absolute top-3.5 left-4 z-20 flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/40 dark:bg-black/40 backdrop-blur-md border border-white/50 dark:border-white/10 shadow-sm pointer-events-none">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#c2956e] animate-pulse" />
+              <span className="text-[9px] font-bold uppercase tracking-[0.22em] text-[#3d3b33] dark:text-[#f0f0f0]">
+                {activeClockMeta.name}
+              </span>
+            </div>
+
+            <div className="relative z-10 flex items-center justify-center scale-[0.46] sm:scale-[0.58] md:scale-[0.64] pointer-events-none select-none">
+              <CenterClock />
+            </div>
+          </div>
+
+          {/* Timepiece Style Cards Grid */}
+          <div className="space-y-2.5">
+            <span className="text-[10px] font-bold uppercase tracking-widest text-[#b0ad9a] dark:text-[#7a7a7a] pl-1 block">
+              <HighlightText text="Clock & Date Styles" query={searchQuery} />
+            </span>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+              {HOME_CLOCK_STYLES.map((style) => {
+                const isSelected = homeClockStyle === style.id;
+                return (
+                  <button
+                    key={style.id}
+                    type="button"
+                    onClick={() => handleClockStyleSelect(style.id)}
+                    className={`relative group flex flex-col items-center justify-between p-3.5 rounded-2xl border text-center transition-all duration-200 active:scale-[0.98] cursor-pointer ${
+                      isSelected
+                        ? "bg-white dark:bg-[#242424] border-[#c2956e] dark:border-[#b0855f] ring-1 ring-[#c2956e]/40 dark:ring-[#b0855f]/40 shadow-md"
+                        : "bg-[#f7f5f0]/60 dark:bg-[#222] border-[#e0ddd5] dark:border-[#333] md:hover:border-[#c2956e]/50 md:dark:hover:border-[#b0855f]/50 md:hover:bg-white md:dark:hover:bg-[#252525]"
+                    }`}
+                  >
+                    {isSelected && (
+                      <span className="absolute top-2.5 right-2.5 w-5 h-5 rounded-full bg-[#c2956e] dark:bg-[#b0855f] text-white flex items-center justify-center shadow-sm">
+                        <Check size={11} strokeWidth={3} />
+                      </span>
+                    )}
+
+                    <div className="w-full py-1 text-[#888] dark:text-[#888]">
+                      <ClockStyleGlyph styleId={style.id} isActive={isSelected} />
+                    </div>
+
+                    <div className="mt-2 w-full">
+                      <p
+                        className={`text-[13px] font-medium truncate ${
+                          isSelected
+                            ? "text-[#c2956e] dark:text-[#d1a784]"
+                            : "text-[#3d3b33] dark:text-[#f0f0f0]"
+                        }`}
+                      >
+                        <HighlightText text={style.name} query={searchQuery} />
+                      </p>
+                      <p className="text-[10px] text-[#b0ad9a] dark:text-[#7a7a7a] truncate mt-0.5">
+                        <HighlightText text={style.subtitle} query={searchQuery} />
+                      </p>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Clock Behavior Toggles */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div
               className="flex items-center justify-between p-4 bg-[#f7f5f0]/50 dark:bg-[#222] border border-[#e0ddd5] dark:border-[#333] rounded-2xl cursor-pointer"
@@ -937,6 +1038,38 @@ export default function SettingsPage() {
                 <div
                   className={`w-4 h-4 bg-white rounded-full absolute top-0.5 transition-transform ${
                     showHomeSeconds ? "translate-x-5" : "translate-x-0.5 shadow-sm"
+                  }`}
+                />
+              </button>
+            </div>
+
+            <div
+              className="flex items-center justify-between p-4 bg-[#f7f5f0]/50 dark:bg-[#222] border border-[#e0ddd5] dark:border-[#333] rounded-2xl cursor-pointer"
+              onClick={() => {
+                const nextVal = !showHome24Hour;
+                setShowHome24Hour(nextVal);
+                updateRemoteSetting("show_home_24_hour", nextVal);
+              }}
+            >
+              <div className="space-y-1 pr-4">
+                <span className="text-[13px] text-[#3d3b33] dark:text-[#f0f0f0] font-medium">
+                  <HighlightText text="24-Hour Time" query={searchQuery} />
+                </span>
+                <p className="text-[10px] text-[#b0ad9a] dark:text-[#7a7a7a] leading-tight">
+                  <HighlightText text="Use 24-hour format instead of AM / PM." query={searchQuery} />
+                </p>
+              </div>
+              <button
+                type="button"
+                aria-label="Toggle 24-hour clock format"
+                aria-pressed={showHome24Hour}
+                className={`shrink-0 w-10 h-5 rounded-full transition-colors relative ${
+                  showHome24Hour ? "bg-[#7ca982] dark:bg-[#6a9a70]" : "bg-[#e0ddd5] dark:bg-[#444]"
+                }`}
+              >
+                <div
+                  className={`w-4 h-4 bg-white rounded-full absolute top-0.5 transition-transform ${
+                    showHome24Hour ? "translate-x-5" : "translate-x-0.5 shadow-sm"
                   }`}
                 />
               </button>
@@ -1739,7 +1872,7 @@ export default function SettingsPage() {
               <Star size={28} className="fill-current" />
             </div>
             <h3 className="text-2xl md:text-3xl font-serif text-[#3d3b33] dark:text-[#f0f0f0] mb-2 leading-tight">
-              Let's grow together
+              Let&apos;s grow together
             </h3>
             <p className="text-[13px] text-[#888] dark:text-[#7a7a7a] mb-6 leading-relaxed px-2">
               If you value this workspace, consider starring us on GitHub.

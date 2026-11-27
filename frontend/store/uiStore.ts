@@ -1,6 +1,7 @@
 // frontend/store/uiStore.ts
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import type { HomeClockStyle } from '@/lib/clockStyles';
 
 type TasksView = 'focus' | 'archive' | 'trash';
 type NotesTab = 'notes' | 'journal' | 'trash';
@@ -51,6 +52,8 @@ interface UiState {
   addTaskAtTop: boolean;
   showHomeTaskProgress: boolean;
   showHomeSeconds: boolean;
+  showHome24Hour: boolean;
+  homeClockStyle: HomeClockStyle;
   activeTaskIdWithMenu: string | null;
   archiveLayout: 'nested' | 'list';
   archiveSort: 'newest' | 'oldest';
@@ -95,6 +98,8 @@ interface UiState {
   setAddTaskAtTop: (val: boolean) => void;
   setShowHomeTaskProgress: (val: boolean) => void;
   setShowHomeSeconds: (val: boolean) => void;
+  setShowHome24Hour: (val: boolean) => void;
+  setHomeClockStyle: (style: HomeClockStyle) => void;
   setActiveTaskIdWithMenu: (id: string | null) => void;
   setArchiveLayout: (layout: 'nested' | 'list') => void;
   setArchiveSort: (sort: 'newest' | 'oldest') => void;
@@ -148,6 +153,8 @@ export const useUiStore = create<UiState>()(
       addTaskAtTop: false,
       showHomeTaskProgress: true,
       showHomeSeconds: false,
+      showHome24Hour: false,
+      homeClockStyle: 'editorial',
       activeTaskIdWithMenu: null,
       archiveLayout: 'nested',
       archiveSort: 'newest',
@@ -200,6 +207,8 @@ export const useUiStore = create<UiState>()(
       setAddTaskAtTop: (val) => set({ addTaskAtTop: val }),
       setShowHomeTaskProgress: (val) => set({ showHomeTaskProgress: val }),
       setShowHomeSeconds: (val) => set({ showHomeSeconds: val }),
+      setShowHome24Hour: (val) => set({ showHome24Hour: val }),
+      setHomeClockStyle: (style) => set({ homeClockStyle: style }),
       setActiveTaskIdWithMenu: (id) => set({ activeTaskIdWithMenu: id }),
       setArchiveLayout: (archiveLayout) => set({ archiveLayout }),
       setArchiveSort: (archiveSort) => set({ archiveSort }),

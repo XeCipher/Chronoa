@@ -241,3 +241,81 @@ h1, h2, h3, h4 { font-family: var(--font-display); font-weight: 500; }
   animation: workspaceExit 0.8s cubic-bezier(0.4, 0, 0.2, 1) forwards;
   overflow: hidden;
 }
+
+/* ─── Home Clock Themes & 3D Split-Flap Motion ───────────────────────────── */
+
+.clock-theme-auto {
+  --clk-ink: #3d3b33;
+  --clk-ink-soft: rgba(61, 59, 51, 0.72);
+  --clk-muted: #8b867b;
+  --clk-accent: #c2956e;
+  --clk-accent-soft: rgba(194, 149, 110, 0.28);
+  --clk-surface: rgba(255, 255, 255, 0.36);
+  --clk-surface-strong: rgba(255, 255, 255, 0.64);
+  --clk-border: rgba(255, 255, 255, 0.55);
+  --clk-border-hair: rgba(61, 59, 51, 0.14);
+  --clk-dot-off: rgba(61, 59, 51, 0.11);
+  --clk-shadow: 0 14px 40px rgba(44, 43, 39, 0.10);
+}
+
+.dark .clock-theme-auto,
+.clock-theme-dark {
+  --clk-ink: #f2f0ec;
+  --clk-ink-soft: rgba(242, 240, 236, 0.72);
+  --clk-muted: #9c9890;
+  --clk-accent: #d1a784;
+  --clk-accent-soft: rgba(209, 167, 132, 0.28);
+  --clk-surface: rgba(18, 18, 22, 0.44);
+  --clk-surface-strong: rgba(26, 26, 32, 0.72);
+  --clk-border: rgba(255, 255, 255, 0.12);
+  --clk-border-hair: rgba(255, 255, 255, 0.14);
+  --clk-dot-off: rgba(255, 255, 255, 0.12);
+  --clk-shadow: 0 18px 46px rgba(0, 0, 0, 0.55);
+}
+
+.clock-theme-light {
+  --clk-ink: #3d3b33;
+  --clk-ink-soft: rgba(61, 59, 51, 0.72);
+  --clk-muted: #8b867b;
+  --clk-accent: #c2956e;
+  --clk-accent-soft: rgba(194, 149, 110, 0.28);
+  --clk-surface: rgba(255, 255, 255, 0.36);
+  --clk-surface-strong: rgba(255, 255, 255, 0.64);
+  --clk-border: rgba(255, 255, 255, 0.55);
+  --clk-border-hair: rgba(61, 59, 51, 0.14);
+  --clk-dot-off: rgba(61, 59, 51, 0.11);
+  --clk-shadow: 0 14px 40px rgba(44, 43, 39, 0.10);
+}
+
+@keyframes chronoaFlipTop {
+  0% {
+    transform: rotateX(0deg);
+  }
+  100% {
+    transform: rotateX(-90deg);
+  }
+}
+
+@keyframes chronoaFlipBottom {
+  0% {
+    transform: rotateX(90deg);
+  }
+  100% {
+    transform: rotateX(0deg);
+  }
+}
+
+.chronoa-flip-top {
+  transform-origin: 50% 100%;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  animation: chronoaFlipTop 180ms cubic-bezier(0.4, 0, 1, 1) forwards;
+}
+
+.chronoa-flip-bottom {
+  transform-origin: 50% 0%;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  transform: rotateX(90deg);
+  animation: chronoaFlipBottom 200ms cubic-bezier(0, 0, 0.2, 1) 175ms forwards;
+}

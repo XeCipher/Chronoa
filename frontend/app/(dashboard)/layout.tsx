@@ -7,6 +7,7 @@ import { supabase } from "@/lib/supabase";
 import SidebarNav from "@/components/ui/SidebarNav";
 import { useUiStore } from "@/store/uiStore";
 import { useTimerStore } from "@/store/timerStore";
+import { isValidHomeClockStyle } from "@/lib/clockStyles";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import GlobalTimeWidget from "@/components/ui/GlobalTimeWidget";
 import { AiChatPanel } from "@/components/ai/AiChatWidget";
@@ -160,6 +161,18 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         ) {
           state.setShowHomeSeconds(profile.show_home_seconds);
         }
+        if (
+          typeof profile.show_home_24_hour === "boolean" &&
+          profile.show_home_24_hour !== state.showHome24Hour
+        ) {
+          state.setShowHome24Hour(profile.show_home_24_hour);
+        }
+        if (
+          isValidHomeClockStyle(profile.home_clock_style) &&
+          profile.home_clock_style !== state.homeClockStyle
+        ) {
+          state.setHomeClockStyle(profile.home_clock_style);
+        }
 
         if (profile.timer_state) {
           localSyncId.current = profile.timer_state.sync_id || generateSyncId();
@@ -233,6 +246,18 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               rec.show_home_seconds !== state.showHomeSeconds
             ) {
               state.setShowHomeSeconds(rec.show_home_seconds);
+            }
+            if (
+              typeof rec.show_home_24_hour === "boolean" &&
+              rec.show_home_24_hour !== state.showHome24Hour
+            ) {
+              state.setShowHome24Hour(rec.show_home_24_hour);
+            }
+            if (
+              isValidHomeClockStyle(rec.home_clock_style) &&
+              rec.home_clock_style !== state.homeClockStyle
+            ) {
+              state.setHomeClockStyle(rec.home_clock_style);
             }
 
             if (rec.timer_state) {

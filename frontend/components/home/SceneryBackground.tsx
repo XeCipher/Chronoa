@@ -4,9 +4,15 @@
 import { useEffect, useState } from "react";
 import { useUiStore } from "@/store/uiStore";
 
-export default function SceneryBackground() {
+export default function SceneryBackground({
+  contained = false,
+}: {
+  contained?: boolean;
+}) {
   const [hour, setHour] = useState<number | null>(() =>
-    typeof window !== "undefined" && useUiStore.getState().hasDashboardMounted ? new Date().getHours() : null
+    typeof window !== "undefined" && useUiStore.getState().hasDashboardMounted
+      ? new Date().getHours()
+      : null
   );
 
   useEffect(() => {
@@ -56,7 +62,11 @@ export default function SceneryBackground() {
   const currentPalette = palettes[time];
 
   return (
-    <div className={`fixed inset-0 z-0 overflow-hidden pointer-events-none transition-colors duration-[3000ms] ${currentPalette.bg}`}>
+    <div
+      className={`${
+        contained ? "absolute" : "fixed"
+      } inset-0 z-0 overflow-hidden pointer-events-none transition-colors duration-[3000ms] ${currentPalette.bg}`}
+    >
       <style
         dangerouslySetInnerHTML={{
           __html: `

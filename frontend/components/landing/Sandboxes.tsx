@@ -5,6 +5,8 @@ import React, { useState, useEffect, useMemo, useRef } from "react";
 import RecursiveCheckbox from "@/components/ui/RecursiveCheckbox";
 import WeekView from "@/components/calendar/WeekView";
 import DistractionFreeEditor from "@/components/notes/DistractionFreeEditor";
+import CenterClock from "@/components/home/CenterClock";
+import { HOME_CLOCK_STYLES, HomeClockStyle } from "@/lib/clockStyles";
 import { initialMockTasks, generateMockEvents, generateMockDailyMap, generateMockSessions } from "./MockData";
 import {
   CheckCircle2,
@@ -103,60 +105,6 @@ function MockLandingScenery({ WTime, isDark }: { WTime: string; isDark: boolean 
             isDark ? "mix-blend-screen" : "mix-blend-multiply"
           }`}
           style={{ backgroundColor: current.orb3 }}
-        />
-      </div>
-    </div>
-  );
-}
-
-function MockCenterClock({ isDark }: { isDark: boolean }) {
-  const [time, setTime] = useState<Date | null>(null);
-
-  useEffect(() => {
-    setTime(new Date());
-    const timer = setInterval(() => setTime(new Date()), 1000);
-    return () => clearInterval(timer);
-  }, []);
-
-  if (!time) return <div className="h-[160px] md:h-[200px]" />;
-
-  const hours12 = time.getHours() % 12 || 12;
-  const hoursStr = hours12.toString().padStart(2, "0");
-  const minutesStr = time.getMinutes().toString().padStart(2, "0");
-
-  return (
-    <div
-      className="flex flex-col items-center justify-center select-none pointer-events-none transition-colors w-full z-10 -translate-y-8"
-      style={{ filter: isDark ? "drop-shadow(0 10px 30px rgba(0,0,0,0.6))" : "drop-shadow(0 4px 6px rgba(0,0,0,0.1))" }}
-    >
-      <div className="flex items-baseline justify-center">
-        <h1
-          className="text-[90px] md:text-[140px] lg:text-[180px] tracking-tight leading-none"
-          style={{ fontFamily: "var(--font-cormorant), serif", color: isDark ? "#f0f0f0" : "#3d3b33" }}
-        >
-          {hoursStr}:{minutesStr}
-        </h1>
-        <span
-          className="text-xl md:text-3xl ml-2 md:ml-4 font-sans font-medium tracking-[0.2em] uppercase"
-          style={{ color: isDark ? "#b0855f" : "#c2956e" }}
-        >
-          {time.getHours() >= 12 ? "PM" : "AM"}
-        </span>
-      </div>
-      <div className="flex items-center gap-4 md:gap-6 mt-4 md:mt-8 opacity-85 transition-colors">
-        <div
-          className="w-8 md:w-24 h-px"
-          style={{ backgroundColor: isDark ? "rgba(176,133,95,0.4)" : "rgba(194,149,110,0.4)" }}
-        />
-        <p
-          className="text-[9px] md:text-[14px] tracking-[0.4em] md:tracking-[0.6em] uppercase font-bold text-center whitespace-nowrap"
-          style={{ color: isDark ? "#e0e0e0" : "#3d3b33" }}
-        >
-          {time.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}
-        </p>
-        <div
-          className="w-8 md:w-24 h-px"
-          style={{ backgroundColor: isDark ? "rgba(176,133,95,0.4)" : "rgba(194,149,110,0.4)" }}
         />
       </div>
     </div>
@@ -414,6 +362,7 @@ function ExpandedMockTasksProgressWidget({ routinePct, normalLeft }: { routinePc
 export function MockHomeSandbox() {
   const [isDark, setIsDark] = useState(false);
   const [timeOfDay, setTimeOfDay] = useState<"dawn" | "day" | "dusk" | "night">("day");
+  const [clockStyle, setClockStyle] = useState<HomeClockStyle>("editorial");
 
   useEffect(() => {
     const isSystemDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
@@ -432,7 +381,7 @@ export function MockHomeSandbox() {
   }, []);
 
   return (
-    <div className="flex flex-col gap-5 w-full items-center">
+    <div className="flex flex-col gap-4 w-full items-center">
       <div className="relative w-full h-[450px] md:h-[600px] rounded-[2.5rem] overflow-hidden border border-[#e0ddd5] dark:border-[#333] shadow-2xl flex flex-col items-center justify-center isolate">
         <MockLandingScenery WTime={timeOfDay} isDark={isDark} />
 
@@ -441,46 +390,71 @@ export function MockHomeSandbox() {
           <MockHomeTaskProgress isDark={isDark} />
         </div>
 
-        <div className="absolute inset-0 flex items-center justify-center z-10 w-full px-4">
-          <MockCenterClock isDark={isDark} />
+        <div className="absolute inset-0 flex items-center justify-center z-10 w-full px-4 pt-12 md:pt-0">
+          <div className="scale-[0.84] sm:scale-95 md:scale-100 transition-transform duration-300">
+            <CenterClock
+              clockStyle={clockStyle}
+              showSeconds={false}
+              use24Hour={false}
+              forceTheme={isDark ? "dark" : "light"}
+            />
+          </div>
         </div>
       </div>
 
-      <div className="flex flex-row flex-wrap justify-center gap-2 md:gap-3 items-center z-20">
-        <div className="flex items-center gap-1 bg-white dark:bg-[#1a1a1a] p-1.5 rounded-full border border-[#e0ddd5] dark:border-[#333] shadow-sm">
-          <button
-            onClick={() => setIsDark(false)}
-            className={`p-2 rounded-full transition-all cursor-pointer ${
-              !isDark
-                ? "bg-[#f7f5f0] dark:bg-[#252525] text-[#c2956e] dark:text-[#d1a784] shadow-sm"
-                : "text-[#888] md:hover:text-[#3d3b33] md:dark:hover:text-[#f0f0f0]"
-            }`}
-          >
-            <Sun size={14} />
-          </button>
-          <button
-            onClick={() => setIsDark(true)}
-            className={`p-2 rounded-full transition-all cursor-pointer ${
-              isDark
-                ? "bg-[#f7f5f0] dark:bg-[#252525] text-[#c2956e] dark:text-[#d1a784] shadow-sm"
-                : "text-[#888] md:hover:text-[#3d3b33] md:dark:hover:text-[#f0f0f0]"
-            }`}
-          >
-            <Moon size={14} />
-          </button>
-        </div>
-        <div className="flex items-center gap-1 bg-white dark:bg-[#1a1a1a] p-1.5 rounded-full border border-[#e0ddd5] dark:border-[#333] shadow-sm">
-          {(["dawn", "day", "dusk", "night"] as const).map((t) => (
+      <div className="flex flex-col items-center gap-2.5 w-full z-20">
+        <div className="flex flex-row flex-wrap justify-center gap-2 md:gap-3 items-center">
+          <div className="flex items-center gap-1 bg-white dark:bg-[#1a1a1a] p-1.5 rounded-full border border-[#e0ddd5] dark:border-[#333] shadow-sm">
             <button
-              key={t}
-              onClick={() => setTimeOfDay(t)}
-              className={`px-4 md:px-6 py-2 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all cursor-pointer ${
-                timeOfDay === t
+              onClick={() => setIsDark(false)}
+              className={`p-2 rounded-full transition-all cursor-pointer ${
+                !isDark
                   ? "bg-[#f7f5f0] dark:bg-[#252525] text-[#c2956e] dark:text-[#d1a784] shadow-sm"
                   : "text-[#888] md:hover:text-[#3d3b33] md:dark:hover:text-[#f0f0f0]"
               }`}
             >
-              {t}
+              <Sun size={14} />
+            </button>
+            <button
+              onClick={() => setIsDark(true)}
+              className={`p-2 rounded-full transition-all cursor-pointer ${
+                isDark
+                  ? "bg-[#f7f5f0] dark:bg-[#252525] text-[#c2956e] dark:text-[#d1a784] shadow-sm"
+                  : "text-[#888] md:hover:text-[#3d3b33] md:dark:hover:text-[#f0f0f0]"
+              }`}
+            >
+              <Moon size={14} />
+            </button>
+          </div>
+          <div className="flex items-center gap-1 bg-white dark:bg-[#1a1a1a] p-1.5 rounded-full border border-[#e0ddd5] dark:border-[#333] shadow-sm">
+            {(["dawn", "day", "dusk", "night"] as const).map((t) => (
+              <button
+                key={t}
+                onClick={() => setTimeOfDay(t)}
+                className={`px-4 md:px-6 py-2 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all cursor-pointer ${
+                  timeOfDay === t
+                    ? "bg-[#f7f5f0] dark:bg-[#252525] text-[#c2956e] dark:text-[#d1a784] shadow-sm"
+                    : "text-[#888] md:hover:text-[#3d3b33] md:dark:hover:text-[#f0f0f0]"
+                }`}
+              >
+                {t}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="flex items-center gap-1 bg-white dark:bg-[#1a1a1a] p-1.5 rounded-full border border-[#e0ddd5] dark:border-[#333] shadow-sm overflow-x-auto no-scrollbar max-w-full">
+          {HOME_CLOCK_STYLES.map((style) => (
+            <button
+              key={style.id}
+              onClick={() => setClockStyle(style.id)}
+              className={`px-3.5 md:px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all cursor-pointer whitespace-nowrap shrink-0 ${
+                clockStyle === style.id
+                  ? "bg-[#f7f5f0] dark:bg-[#252525] text-[#c2956e] dark:text-[#d1a784] shadow-sm"
+                  : "text-[#888] md:hover:text-[#3d3b33] md:dark:hover:text-[#f0f0f0]"
+              }`}
+            >
+              {style.name}
             </button>
           ))}
         </div>
@@ -750,7 +724,7 @@ export function MockTaskSandbox() {
             <div className="flex justify-between items-start md:items-center">
               <div className="flex flex-col">
                 <h2 className="text-[22px] md:text-[26px] text-[#3d3b33] dark:text-[#f0f0f0] font-serif font-medium tracking-tight leading-none">
-                  Tasks & Ideas
+                  Tasks &amp; Ideas
                 </h2>
                 <p className="text-[10px] text-[#b0ad9a] dark:text-[#7a7a7a] mt-1.5 font-medium">One-off tasks and projects.</p>
               </div>
@@ -1283,7 +1257,7 @@ export function MockCalendarSandbox() {
       <div className="w-full lg:w-1/3 flex flex-col gap-2 md:gap-4 px-4 md:px-8 text-center lg:text-left shrink-0">
         <h3 className="text-3xl md:text-4xl font-serif text-[#3d3b33] dark:text-[#f0f0f0]">Your Days, Visualized</h3>
         <p className="text-[#888] dark:text-[#a0a0a0] leading-relaxed text-sm">
-          A gorgeous drag-and-drop calendar. Sync Google & Apple calendars, or subscribe to public <b>.ics</b> links. Try adding a task directly from the tasks section!
+          A gorgeous drag-and-drop calendar. Sync Google &amp; Apple calendars, or subscribe to public <b>.ics</b> links. Try adding a task directly from the tasks section!
         </p>
       </div>
       <div className="w-full lg:w-2/3 flex-1 lg:h-[500px] relative pointer-events-auto rounded-[2rem] shadow-2xl min-h-0">
@@ -1333,7 +1307,7 @@ export function MockNotesSandbox() {
       }`}
     >
       <div className="text-center max-w-2xl mx-auto px-4 w-full shrink-0">
-        <h3 className="text-3xl md:text-4xl font-serif text-[#3d3b33] dark:text-[#f0f0f0] mb-2 md:mb-3">Clarity & Focus</h3>
+        <h3 className="text-3xl md:text-4xl font-serif text-[#3d3b33] dark:text-[#f0f0f0] mb-2 md:mb-3">Clarity &amp; Focus</h3>
         <p className="text-[#888] dark:text-[#a0a0a0] leading-relaxed text-sm">
           Beautiful text formatting that stays out of your way. Zoom in and out instantly with intuitive controls.
         </p>
@@ -1651,7 +1625,7 @@ export function MockAiSandbox() {
           And of course, an Intelligence.
         </h3>
         <p className="text-[#888] dark:text-[#a0a0a0] leading-relaxed text-sm md:text-base">
-          Manual data entry is a thing of the past. Chronoa AI is deeply woven into your workspace to automate your workflow. It doesn't just converse with you. It executes commands instantly. Try the actions below to experience it natively.
+          Manual data entry is a thing of the past. Chronoa AI is deeply woven into your workspace to automate your workflow. It doesn&apos;t just converse with you. It executes commands instantly. Try the actions below to experience it natively.
         </p>
       </div>
 

@@ -112,7 +112,9 @@ export default function HomePage() {
 
       <div
         className={`relative z-10 transition-all duration-[800ms] md:duration-[1000ms] ease-[cubic-bezier(0.16,1,0.3,1)] will-change-[transform,opacity] ${
-          showWidget ? "-translate-y-[16vh] scale-90 opacity-80" : "max-md:-translate-y-[8vh] md:-translate-y-[4vh] scale-100 opacity-100"
+          showWidget
+            ? "max-md:-translate-y-[13vh] max-md:scale-[0.82] md:-translate-y-[16vh] md:scale-90 opacity-80"
+            : "max-md:-translate-y-[6vh] md:-translate-y-[4vh] scale-100 opacity-100"
         }`}
       >
         <CenterClock />
