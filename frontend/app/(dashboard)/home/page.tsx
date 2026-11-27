@@ -101,15 +101,15 @@ export default function HomePage() {
         <HomeTaskProgress />
       </div>
 
-      {/* Slide off-screen without fading opacity so the glass schedule widget never triggers an ancestor backdrop root */}
+      {/* Keep Schedule at full opacity so backdrop-blur-xl blurs immediately without a Backdrop Root */}
       <div
         inert={showWidget}
         aria-hidden={showWidget}
         className="fixed z-20 hidden md:flex flex-col items-end gap-4 bottom-10 right-10 pointer-events-none"
       >
         <div
-          className={`transition-transform duration-[800ms] ease-[cubic-bezier(0.16,1,0.3,1)] ${
-            showWidget ? "translate-x-[calc(280px+5rem)] pointer-events-none" : "translate-x-0 pointer-events-auto"
+          className={`transition-[translate,transform,opacity] duration-[800ms] ease-[cubic-bezier(0.4,0,0.2,1)] ${
+            showWidget ? "opacity-0 translate-x-24 pointer-events-none" : "opacity-100 translate-x-0 pointer-events-auto"
           }`}
         >
           <AiButton variant="desktop" />
@@ -118,7 +118,7 @@ export default function HomePage() {
           variant="home"
           className={
             showWidget
-              ? "translate-x-[calc(100%+5rem)] pointer-events-none"
+              ? "translate-x-[calc(100%+4.5rem)] pointer-events-none"
               : "translate-x-0 pointer-events-auto"
           }
         />

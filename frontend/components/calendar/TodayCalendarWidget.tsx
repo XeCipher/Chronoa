@@ -416,7 +416,7 @@ export default function TodayCalendarWidget({ variant, searchQuery = "", classNa
 
   const containerClasses =
     variant === "home"
-      ? "w-[280px] bg-white/20 dark:bg-black/30 backdrop-blur-xl border border-white/40 dark:border-white/10 rounded-[2rem] shadow-[0_8px_30px_rgb(0,0,0,0.08)] overflow-hidden transition-[transform,background-color,border-color,box-shadow] duration-[800ms] ease-[cubic-bezier(0.16,1,0.3,1)]"
+      ? "w-[280px] bg-white/20 dark:bg-black/30 backdrop-blur-xl border border-white/40 dark:border-white/10 rounded-[2rem] shadow-[0_8px_30px_rgb(0,0,0,0.08)] overflow-hidden transition-[translate,transform,background-color,border-color,box-shadow] duration-[800ms] ease-[cubic-bezier(0.4,0,0.2,1)]"
       : "w-full flex flex-col bg-white/70 dark:bg-[#1a1a1a]/80 backdrop-blur-sm border border-[#ebe8e2] dark:border-[#333] rounded-[28px] overflow-hidden shadow-[0_2px_16px_rgba(44,43,39,0.05)] transition-all duration-300";
 
   const headerClasses =
