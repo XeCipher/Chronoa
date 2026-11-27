@@ -129,7 +129,7 @@ export default function HomePage() {
           isFullscreenClock
             ? `w-full h-full flex items-center justify-center px-2.5 pt-2 pb-11 md:px-6 md:pt-5 md:pb-12 ${
                 showWidget
-                  ? "max-md:-translate-y-[14vh] max-md:scale-[0.76] md:-translate-y-[15vh] md:scale-[0.80] opacity-75"
+                  ? "max-md:-translate-y-[126px] max-md:scale-[0.58] md:-translate-y-[140px] md:scale-[0.60] opacity-80"
                   : "translate-y-0 scale-100 opacity-100"
               }`
             : showWidget
