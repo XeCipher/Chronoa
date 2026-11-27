@@ -375,6 +375,7 @@ h1, h2, h3, h4 { font-family: var(--font-display); font-weight: 500; }
 
 .chronoa-fs-container {
   container-type: size;
+  container-name: chronoa-fs;
 }
 
 .chronoa-fs-meta {
@@ -382,11 +383,30 @@ h1, h2, h3, h4 { font-family: var(--font-display); font-weight: 500; }
   letter-spacing: clamp(0.24em, 0.35cqw, 0.38em);
 }
 
-@container (max-height: 290px) {
+.chronoa-fs-portrait {
+  display: none;
+}
+
+.chronoa-fs-landscape {
+  display: block;
+}
+
+@container chronoa-fs (max-height: 290px) {
   .chronoa-fs-meta {
     font-size: 9px;
     letter-spacing: 0.24em;
     padding-top: 2px;
+  }
+}
+
+/* Switch orientation in CSS so the very first paint matches the container without waiting for ResizeObserver */
+@container chronoa-fs (orientation: portrait) {
+  .chronoa-fs-portrait {
+    display: block;
+  }
+
+  .chronoa-fs-landscape {
+    display: none;
   }
 }
 

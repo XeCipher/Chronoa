@@ -1,7 +1,7 @@
 // frontend/components/home/clocks/FullscreenClock.tsx
 "use client";
 
-import { useEffect, useId, useRef, useState } from "react";
+import { useId } from "react";
 import { ClockFaceProps } from "./ClassicAndEditorialClocks";
 
 export type ClockTimeOfDay = "dawn" | "day" | "dusk" | "night";
@@ -54,35 +54,16 @@ const resolveTimeOfDay = (hour: number, override?: ClockTimeOfDay): ClockTimeOfD
 };
 
 export function FullscreenClock({ parts, showSeconds, use24Hour, timeOfDay }: FullscreenClockProps) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [isPortrait, setIsPortrait] = useState(false);
-
   const rawId = useId();
-  const gradId = `chronoa-fs-grad-${rawId.replace(/:/g, "")}`;
-
-  useEffect(() => {
-    const el = containerRef.current;
-    if (!el) return;
-
-    const observer = new ResizeObserver((entries) => {
-      const entry = entries[0];
-      if (!entry) return;
-      const { width, height } = entry.contentRect;
-      if (width > 0 && height > 0) {
-        setIsPortrait(height >= width);
-      }
-    });
-
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, []);
+  const baseGradId = `chronoa-fs-grad-${rawId.replace(/:/g, "")}`;
+  const gradPortraitId = `${baseGradId}-p`;
+  const gradLandscapeId = `${baseGradId}-l`;
 
   const activeTod = resolveTimeOfDay(parts.rawHours, timeOfDay);
   const colonLit = !showSeconds || parts.rawSeconds % 2 === 0;
 
   return (
     <div
-      ref={containerRef}
       data-tod={activeTod}
       aria-label={`${parts.hours}:${parts.minutes}${showSeconds ? `:${parts.seconds}` : ""}${
         use24Hour ? "" : ` ${parts.ampm}`
@@ -90,59 +71,57 @@ export function FullscreenClock({ parts, showSeconds, use24Hour, timeOfDay }: Fu
       className="chronoa-fs-container w-full h-full flex flex-col items-center justify-center select-none pointer-events-none"
     >
       <div className="relative flex-1 min-h-0 w-full flex items-center justify-center">
-        {isPortrait ? (
-          <svg
-            viewBox="-4 -4 224 434"
-            preserveAspectRatio="xMidYMid meet"
-            className="w-full h-full overflow-visible"
-            style={{ filter: "drop-shadow(0 12px 30px var(--clk-fs-glow))" }}
-            aria-hidden="true"
+        <svg
+          viewBox="-4 -4 224 434"
+          preserveAspectRatio="xMidYMid meet"
+          className="chronoa-fs-portrait w-full h-full overflow-visible"
+          style={{ filter: "drop-shadow(0 12px 30px var(--clk-fs-glow))" }}
+          aria-hidden="true"
+        >
+          <defs>
+            <linearGradient id={gradPortraitId} gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="216" y2="426">
+              <stop offset="0%" style={{ stopColor: "var(--clk-fs-g1)" }} />
+              <stop offset="50%" style={{ stopColor: "var(--clk-fs-g2)" }} />
+              <stop offset="100%" style={{ stopColor: "var(--clk-fs-g3)" }} />
+            </linearGradient>
+          </defs>
+
+          <VectorDigit digit={parts.hours[0]} x={0} y={0} strokeId={gradPortraitId} />
+          <VectorDigit digit={parts.hours[1]} x={116} y={0} strokeId={gradPortraitId} />
+
+          <VectorDigit digit={parts.minutes[0]} x={0} y={226} strokeId={gradPortraitId} />
+          <VectorDigit digit={parts.minutes[1]} x={116} y={226} strokeId={gradPortraitId} />
+        </svg>
+
+        <svg
+          viewBox="-4 -4 484 208"
+          preserveAspectRatio="xMidYMid meet"
+          className="chronoa-fs-landscape w-full h-full overflow-visible"
+          style={{ filter: "drop-shadow(0 12px 30px var(--clk-fs-glow))" }}
+          aria-hidden="true"
+        >
+          <defs>
+            <linearGradient id={gradLandscapeId} gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="476" y2="200">
+              <stop offset="0%" style={{ stopColor: "var(--clk-fs-g1)" }} />
+              <stop offset="52%" style={{ stopColor: "var(--clk-fs-g2)" }} />
+              <stop offset="100%" style={{ stopColor: "var(--clk-fs-g3)" }} />
+            </linearGradient>
+          </defs>
+
+          <VectorDigit digit={parts.hours[0]} x={0} y={0} strokeId={gradLandscapeId} />
+          <VectorDigit digit={parts.hours[1]} x={114} y={0} strokeId={gradLandscapeId} />
+
+          <g
+            className="transition-opacity duration-500"
+            style={{ opacity: colonLit ? 0.92 : 0.36 }}
           >
-            <defs>
-              <linearGradient id={gradId} gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="216" y2="426">
-                <stop offset="0%" style={{ stopColor: "var(--clk-fs-g1)" }} />
-                <stop offset="50%" style={{ stopColor: "var(--clk-fs-g2)" }} />
-                <stop offset="100%" style={{ stopColor: "var(--clk-fs-g3)" }} />
-              </linearGradient>
-            </defs>
+            <circle cx={238} cy={66} r={11} fill={`url(#${gradLandscapeId})`} />
+            <circle cx={238} cy={134} r={11} fill={`url(#${gradLandscapeId})`} />
+          </g>
 
-            <VectorDigit digit={parts.hours[0]} x={0} y={0} strokeId={gradId} />
-            <VectorDigit digit={parts.hours[1]} x={116} y={0} strokeId={gradId} />
-
-            <VectorDigit digit={parts.minutes[0]} x={0} y={226} strokeId={gradId} />
-            <VectorDigit digit={parts.minutes[1]} x={116} y={226} strokeId={gradId} />
-          </svg>
-        ) : (
-          <svg
-            viewBox="-4 -4 484 208"
-            preserveAspectRatio="xMidYMid meet"
-            className="w-full h-full overflow-visible"
-            style={{ filter: "drop-shadow(0 12px 30px var(--clk-fs-glow))" }}
-            aria-hidden="true"
-          >
-            <defs>
-              <linearGradient id={gradId} gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="476" y2="200">
-                <stop offset="0%" style={{ stopColor: "var(--clk-fs-g1)" }} />
-                <stop offset="52%" style={{ stopColor: "var(--clk-fs-g2)" }} />
-                <stop offset="100%" style={{ stopColor: "var(--clk-fs-g3)" }} />
-              </linearGradient>
-            </defs>
-
-            <VectorDigit digit={parts.hours[0]} x={0} y={0} strokeId={gradId} />
-            <VectorDigit digit={parts.hours[1]} x={114} y={0} strokeId={gradId} />
-
-            <g
-              className="transition-opacity duration-500"
-              style={{ opacity: colonLit ? 0.92 : 0.36 }}
-            >
-              <circle cx={238} cy={66} r={11} fill={`url(#${gradId})`} />
-              <circle cx={238} cy={134} r={11} fill={`url(#${gradId})`} />
-            </g>
-
-            <VectorDigit digit={parts.minutes[0]} x={262} y={0} strokeId={gradId} />
-            <VectorDigit digit={parts.minutes[1]} x={376} y={0} strokeId={gradId} />
-          </svg>
-        )}
+          <VectorDigit digit={parts.minutes[0]} x={262} y={0} strokeId={gradLandscapeId} />
+          <VectorDigit digit={parts.minutes[1]} x={376} y={0} strokeId={gradLandscapeId} />
+        </svg>
       </div>
 
       {/* Minimal date and optional seconds strip */}
