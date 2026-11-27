@@ -43,28 +43,28 @@ import FocusDistribution from "@/components/analytics/FocusDistribution";
 function MockLandingScenery({ WTime, isDark }: { WTime: string; isDark: boolean }) {
   const WPalettes: Record<string, any> = {
     dawn: {
-      bg: isDark ? "#1a1210" : "#fdf9f4",
-      orb1: isDark ? "#b8624b" : "#ffb580",
-      orb2: isDark ? "#c27355" : "#ff8a75",
-      orb3: isDark ? "#8e63a3" : "#cb9bf5",
+      bg: isDark ? "#1a1210" : "#fdfbf7",
+      orb1: isDark ? "#8a4e40" : "#ffcba6",
+      orb2: isDark ? "#8a5a44" : "#ffa68f",
+      orb3: isDark ? "#6c4f7a" : "#d6aef2",
     },
     day: {
-      bg: isDark ? "#0f1115" : "#f6f4ef",
-      orb1: isDark ? "#4c5fa3" : "#c59bff",
-      orb2: isDark ? "#2c5c8a" : "#7dbaf7",
-      orb3: isDark ? "#356e4c" : "#7fe09d",
+      bg: isDark ? "#0f1115" : "#f7f5f0",
+      orb1: isDark ? "#2d3b5c" : "#d4b3ff",
+      orb2: isDark ? "#1e2e42" : "#9bc7f5",
+      orb3: isDark ? "#253828" : "#a1e3b3",
     },
     dusk: {
-      bg: isDark ? "#1a1012" : "#f9f3f2",
-      orb1: isDark ? "#a6485e" : "#ff7582",
-      orb2: isDark ? "#9c578a" : "#f092d0",
-      orb3: isDark ? "#a85e32" : "#eb9654",
+      bg: isDark ? "#1a1012" : "#f8f5f2",
+      orb1: isDark ? "#7a3b4c" : "#ff8a90",
+      orb2: isDark ? "#7a4b6c" : "#f5b0db",
+      orb3: isDark ? "#7d4628" : "#de9c64",
     },
     night: {
-      bg: isDark ? "#050810" : "#eff2fa",
-      orb1: isDark ? "#35528a" : "#82a3e8",
-      orb2: isDark ? "#2a3b6e" : "#a698eb",
-      orb3: isDark ? "#2d5873" : "#6fb8d6",
+      bg: isDark ? "#050810" : "#f2f4f8",
+      orb1: isDark ? "#1f2b45" : "#9eb4db",
+      orb2: isDark ? "#111926" : "#b9c6e3",
+      orb3: isDark ? "#172033" : "#8da8cf",
     },
   };
   const current = WPalettes[WTime];
@@ -76,30 +76,30 @@ function MockLandingScenery({ WTime, isDark }: { WTime: string; isDark: boolean 
       <style
         dangerouslySetInnerHTML={{
           __html: `
-        @keyframes mockFloat1 { 0%, 100% { transform: translate(0px, 0px) scale(1); opacity: 0.72; } 33% { transform: translate(50px, -50px) scale(1.1); opacity: 0.92; } 66% { transform: translate(-30px, 20px) scale(0.9); opacity: 0.65; } }
-        @keyframes mockFloat2 { 0%, 100% { transform: translate(0px, 0px) scale(1); opacity: 0.72; } 33% { transform: translate(-50px, 50px) scale(1.2); opacity: 0.6; } 66% { transform: translate(40px, -30px) scale(0.85); opacity: 0.9; } }
-        @keyframes mockFloat3 { 0%, 100% { transform: translate(0px, 0px) scale(1); opacity: 0.6; } 33% { transform: translate(30px, 40px) scale(0.92); opacity: 0.85; } 66% { transform: translate(-40px, -40px) scale(1.15); opacity: 0.52; } }
+        @keyframes mockFloat1 { 0%, 100% { transform: translate(0px, 0px) scale(1); opacity: 0.7; } 33% { transform: translate(50px, -50px) scale(1.1); opacity: 0.9; } 66% { transform: translate(-30px, 20px) scale(0.9); opacity: 0.6; } }
+        @keyframes mockFloat2 { 0%, 100% { transform: translate(0px, 0px) scale(1); opacity: 0.7; } 33% { transform: translate(-50px, 50px) scale(1.2); opacity: 0.5; } 66% { transform: translate(40px, -30px) scale(0.8); opacity: 0.9; } }
+        @keyframes mockFloat3 { 0%, 100% { transform: translate(0px, 0px) scale(1); opacity: 0.5; } 33% { transform: translate(30px, 40px) scale(0.9); opacity: 0.8; } 66% { transform: translate(-40px, -40px) scale(1.15); opacity: 0.4; } }
         .mock-orb-1 { animation: mockFloat1 18s ease-in-out infinite; }
         .mock-orb-2 { animation: mockFloat2 22s ease-in-out infinite; }
         .mock-orb-3 { animation: mockFloat3 25s ease-in-out infinite; }
       `,
         }}
       />
-      <div className="absolute inset-0 w-full h-full">
+      <div className="absolute inset-0 w-full h-full" style={{ opacity: isDark ? 1 : 0.8 }}>
         <div
-          className={`mock-orb-1 absolute top-[-10%] right-[-10%] w-[80vw] h-[80vw] md:w-[50vw] md:h-[50vw] rounded-full filter blur-[80px] md:blur-[110px] transition-colors duration-[3000ms] ${
+          className={`mock-orb-1 absolute top-[-10%] right-[-10%] w-[80vw] h-[80vw] md:w-[50vw] md:h-[50vw] rounded-full filter blur-[100px] md:blur-[140px] transition-colors duration-[3000ms] ${
             isDark ? "mix-blend-screen" : "mix-blend-multiply"
           }`}
           style={{ backgroundColor: current.orb1 }}
         />
         <div
-          className={`mock-orb-2 absolute bottom-[-20%] left-[-10%] w-[90vw] h-[90vw] md:w-[60vw] md:h-[60vw] rounded-full filter blur-[80px] md:blur-[110px] transition-colors duration-[3000ms] ${
+          className={`mock-orb-2 absolute bottom-[-20%] left-[-10%] w-[90vw] h-[90vw] md:w-[60vw] md:h-[60vw] rounded-full filter blur-[100px] md:blur-[140px] transition-colors duration-[3000ms] ${
             isDark ? "mix-blend-screen" : "mix-blend-multiply"
           }`}
           style={{ backgroundColor: current.orb2 }}
         />
         <div
-          className={`mock-orb-3 absolute top-[20%] left-[20%] w-[75vw] h-[75vw] md:w-[45vw] md:h-[45vw] rounded-full filter blur-[80px] md:blur-[110px] transition-colors duration-[3000ms] ${
+          className={`mock-orb-3 absolute top-[20%] left-[20%] w-[75vw] h-[75vw] md:w-[45vw] md:h-[45vw] rounded-full filter blur-[100px] md:blur-[140px] transition-colors duration-[3000ms] ${
             isDark ? "mix-blend-screen" : "mix-blend-multiply"
           }`}
           style={{ backgroundColor: current.orb3 }}
