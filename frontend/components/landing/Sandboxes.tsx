@@ -392,14 +392,14 @@ export function MockHomeSandbox() {
 
         <div
           className={
-            clockStyle === "canvas"
-              ? "absolute inset-0 z-10 flex items-center justify-center pt-24 pb-6 px-4 md:py-10 md:px-10 pointer-events-none"
+            clockStyle === "fullscreen"
+              ? "absolute inset-0 z-10 flex items-center justify-center pt-16 pb-6 px-4 md:py-10 md:px-10 pointer-events-none"
               : "absolute inset-0 flex items-center justify-center z-10 w-full px-4 pt-12 md:pt-0"
           }
         >
           <div
             className={
-              clockStyle === "canvas"
+              clockStyle === "fullscreen"
                 ? "w-full h-full flex items-center justify-center transition-transform duration-300"
                 : "scale-[0.84] sm:scale-95 md:scale-100 transition-transform duration-300"
             }

@@ -1,7 +1,7 @@
 // frontend/store/uiStore.ts
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { HomeClockStyle } from '@/lib/clockStyles';
+import { isValidHomeClockStyle, type HomeClockStyle } from '@/lib/clockStyles';
 
 type TasksView = 'focus' | 'archive' | 'trash';
 type NotesTab = 'notes' | 'journal' | 'trash';
@@ -253,6 +253,14 @@ export const useUiStore = create<UiState>()(
     }),
     {
       name: 'chronoa-settings',
+      onRehydrateStorage: () => (state) => {
+        if (!state) return;
+        if ((state.homeClockStyle as string) === 'canvas') {
+          state.setHomeClockStyle('fullscreen');
+        } else if (!isValidHomeClockStyle(state.homeClockStyle)) {
+          state.setHomeClockStyle('editorial');
+        }
+      },
       partialize: (state) =>
         Object.fromEntries(
           Object.entries(state).filter(

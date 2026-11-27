@@ -41,6 +41,71 @@ const clearUserCaches = () => {
   } catch (e) {}
 };
 
+const applyProfileSettings = (rec: any) => {
+  if (!rec) return;
+  const state = useUiStore.getState();
+
+  if (rec.theme && rec.theme !== state.theme) state.setTheme(rec.theme);
+  if (rec.task_archive_delay !== null && rec.task_archive_delay !== undefined && rec.task_archive_delay !== state.taskArchiveDelay)
+    state.setTaskArchiveDelay(rec.task_archive_delay);
+  if (rec.routine_reset_hour !== null && rec.routine_reset_hour !== undefined && rec.routine_reset_hour !== state.routineResetHour)
+    state.setRoutineResetHour(rec.routine_reset_hour);
+  if (rec.hotkeys_enabled !== null && rec.hotkeys_enabled !== undefined && rec.hotkeys_enabled !== state.hotkeysEnabled)
+    state.setHotkeysEnabled(rec.hotkeys_enabled);
+  if (
+    rec.disabled_hotkeys &&
+    JSON.stringify(rec.disabled_hotkeys) !== JSON.stringify(state.disabledHotkeys)
+  ) {
+    state.setDisabledHotkeys(rec.disabled_hotkeys);
+  }
+  if (
+    rec.move_completed_to_bottom !== null &&
+    rec.move_completed_to_bottom !== undefined &&
+    rec.move_completed_to_bottom !== state.moveCompletedToBottom
+  ) {
+    state.setMoveCompletedToBottom(rec.move_completed_to_bottom);
+  }
+  if (
+    rec.keep_parent_task_alive !== null &&
+    rec.keep_parent_task_alive !== undefined &&
+    rec.keep_parent_task_alive !== state.keepParentTaskAlive
+  ) {
+    state.setKeepParentTaskAlive(rec.keep_parent_task_alive);
+  }
+  if (
+    rec.add_task_at_top !== null &&
+    rec.add_task_at_top !== undefined &&
+    rec.add_task_at_top !== state.addTaskAtTop
+  ) {
+    state.setAddTaskAtTop(rec.add_task_at_top);
+  }
+  if (
+    rec.show_home_task_progress !== null &&
+    rec.show_home_task_progress !== undefined &&
+    rec.show_home_task_progress !== state.showHomeTaskProgress
+  ) {
+    state.setShowHomeTaskProgress(rec.show_home_task_progress);
+  }
+  if (
+    typeof rec.show_home_seconds === "boolean" &&
+    rec.show_home_seconds !== state.showHomeSeconds
+  ) {
+    state.setShowHomeSeconds(rec.show_home_seconds);
+  }
+  if (
+    typeof rec.show_home_24_hour === "boolean" &&
+    rec.show_home_24_hour !== state.showHome24Hour
+  ) {
+    state.setShowHome24Hour(rec.show_home_24_hour);
+  }
+  if (
+    isValidHomeClockStyle(rec.home_clock_style) &&
+    rec.home_clock_style !== state.homeClockStyle
+  ) {
+    state.setHomeClockStyle(rec.home_clock_style);
+  }
+};
+
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -87,6 +152,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   useEffect(() => {
     let channel: any;
     let isMounted = true;
+    let cleanupForegroundListeners: (() => void) | null = null;
 
     const hydrateProfileAndSubscribe = async (currentUserId: string) => {
       supabase
@@ -120,59 +186,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           }
         } catch (e) {}
 
-        const state = useUiStore.getState();
-        if (profile.theme && profile.theme !== state.theme) state.setTheme(profile.theme);
-        if (profile.task_archive_delay !== null && profile.task_archive_delay !== state.taskArchiveDelay)
-          state.setTaskArchiveDelay(profile.task_archive_delay);
-        if (profile.routine_reset_hour !== null && profile.routine_reset_hour !== state.routineResetHour)
-          state.setRoutineResetHour(profile.routine_reset_hour);
-        if (profile.hotkeys_enabled !== null && profile.hotkeys_enabled !== state.hotkeysEnabled)
-          state.setHotkeysEnabled(profile.hotkeys_enabled);
-        if (
-          profile.disabled_hotkeys &&
-          JSON.stringify(profile.disabled_hotkeys) !== JSON.stringify(state.disabledHotkeys)
-        ) {
-          state.setDisabledHotkeys(profile.disabled_hotkeys);
-        }
-        if (
-          profile.move_completed_to_bottom !== null &&
-          profile.move_completed_to_bottom !== state.moveCompletedToBottom
-        ) {
-          state.setMoveCompletedToBottom(profile.move_completed_to_bottom);
-        }
-        if (
-          profile.keep_parent_task_alive !== null &&
-          profile.keep_parent_task_alive !== state.keepParentTaskAlive
-        ) {
-          state.setKeepParentTaskAlive(profile.keep_parent_task_alive);
-        }
-        if (profile.add_task_at_top !== null && profile.add_task_at_top !== state.addTaskAtTop) {
-          state.setAddTaskAtTop(profile.add_task_at_top);
-        }
-        if (
-          profile.show_home_task_progress !== null &&
-          profile.show_home_task_progress !== state.showHomeTaskProgress
-        ) {
-          state.setShowHomeTaskProgress(profile.show_home_task_progress);
-        }
-        if (
-          typeof profile.show_home_seconds === "boolean" &&
-          profile.show_home_seconds !== state.showHomeSeconds
-        ) {
-          state.setShowHomeSeconds(profile.show_home_seconds);
-        }
-        if (
-          typeof profile.show_home_24_hour === "boolean" &&
-          profile.show_home_24_hour !== state.showHome24Hour
-        ) {
-          state.setShowHome24Hour(profile.show_home_24_hour);
-        }
-        if (
-          isValidHomeClockStyle(profile.home_clock_style) &&
-          profile.home_clock_style !== state.homeClockStyle
-        ) {
-          state.setHomeClockStyle(profile.home_clock_style);
-        }
+        applyProfileSettings(profile);
 
         if (profile.timer_state) {
           localSyncId.current = profile.timer_state.sync_id || generateSyncId();
@@ -206,59 +220,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           { event: "UPDATE", schema: "public", table: "profiles", filter: `id=eq.${currentUserId}` },
           (payload) => {
             const rec = payload.new;
-            const state = useUiStore.getState();
-
-            if (rec.theme && rec.theme !== state.theme) state.setTheme(rec.theme);
-            if (rec.task_archive_delay !== null && rec.task_archive_delay !== state.taskArchiveDelay)
-              state.setTaskArchiveDelay(rec.task_archive_delay);
-            if (rec.routine_reset_hour !== null && rec.routine_reset_hour !== state.routineResetHour)
-              state.setRoutineResetHour(rec.routine_reset_hour);
-            if (rec.hotkeys_enabled !== null && rec.hotkeys_enabled !== state.hotkeysEnabled)
-              state.setHotkeysEnabled(rec.hotkeys_enabled);
-            if (
-              rec.disabled_hotkeys &&
-              JSON.stringify(rec.disabled_hotkeys) !== JSON.stringify(state.disabledHotkeys)
-            ) {
-              state.setDisabledHotkeys(rec.disabled_hotkeys);
-            }
-            if (
-              rec.move_completed_to_bottom !== null &&
-              rec.move_completed_to_bottom !== state.moveCompletedToBottom
-            ) {
-              state.setMoveCompletedToBottom(rec.move_completed_to_bottom);
-            }
-            if (
-              rec.keep_parent_task_alive !== null &&
-              rec.keep_parent_task_alive !== state.keepParentTaskAlive
-            ) {
-              state.setKeepParentTaskAlive(rec.keep_parent_task_alive);
-            }
-            if (rec.add_task_at_top !== null && rec.add_task_at_top !== state.addTaskAtTop)
-              state.setAddTaskAtTop(rec.add_task_at_top);
-            if (
-              rec.show_home_task_progress !== null &&
-              rec.show_home_task_progress !== state.showHomeTaskProgress
-            ) {
-              state.setShowHomeTaskProgress(rec.show_home_task_progress);
-            }
-            if (
-              typeof rec.show_home_seconds === "boolean" &&
-              rec.show_home_seconds !== state.showHomeSeconds
-            ) {
-              state.setShowHomeSeconds(rec.show_home_seconds);
-            }
-            if (
-              typeof rec.show_home_24_hour === "boolean" &&
-              rec.show_home_24_hour !== state.showHome24Hour
-            ) {
-              state.setShowHome24Hour(rec.show_home_24_hour);
-            }
-            if (
-              isValidHomeClockStyle(rec.home_clock_style) &&
-              rec.home_clock_style !== state.homeClockStyle
-            ) {
-              state.setHomeClockStyle(rec.home_clock_style);
-            }
+            applyProfileSettings(rec);
 
             if (rec.timer_state) {
               const remoteSyncId = rec.timer_state.sync_id;
@@ -289,6 +251,31 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           }
         )
         .subscribe();
+
+      // Re-sync clock & UI preferences when waking a sleeping laptop or returning to the mobile app
+      let lastForegroundSync = 0;
+      const syncOnForeground = async () => {
+        if (document.visibilityState === "hidden") return;
+        const now = Date.now();
+        if (now - lastForegroundSync < 3000) return;
+        lastForegroundSync = now;
+
+        const { data: latest } = await supabase
+          .from("profiles")
+          .select("*")
+          .eq("id", currentUserId)
+          .single();
+
+        if (!isMounted || !latest) return;
+        applyProfileSettings(latest);
+      };
+
+      window.addEventListener("focus", syncOnForeground);
+      document.addEventListener("visibilitychange", syncOnForeground);
+      cleanupForegroundListeners = () => {
+        window.removeEventListener("focus", syncOnForeground);
+        document.removeEventListener("visibilitychange", syncOnForeground);
+      };
     };
 
     const checkAuthAndSubscribe = async () => {
@@ -381,6 +368,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
     return () => {
       isMounted = false;
+      if (cleanupForegroundListeners) cleanupForegroundListeners();
       if (channel) {
         supabase.removeChannel(channel);
       }

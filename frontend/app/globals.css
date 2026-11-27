@@ -259,6 +259,7 @@ h1, h2, h3, h4 { font-family: var(--font-display); font-weight: 500; }
   --clk-border: rgba(255, 255, 255, 0.55);
   --clk-border-hair: rgba(61, 59, 51, 0.14);
   --clk-dot-off: rgba(61, 59, 51, 0.11);
+  --clk-matrix-off: rgba(61, 59, 51, 0.045);
   --clk-shadow: 0 14px 40px rgba(44, 43, 39, 0.10);
 }
 
@@ -274,6 +275,7 @@ h1, h2, h3, h4 { font-family: var(--font-display); font-weight: 500; }
   --clk-border: rgba(255, 255, 255, 0.12);
   --clk-border-hair: rgba(255, 255, 255, 0.14);
   --clk-dot-off: rgba(255, 255, 255, 0.12);
+  --clk-matrix-off: rgba(255, 255, 255, 0.045);
   --clk-shadow: 0 18px 46px rgba(0, 0, 0, 0.55);
 }
 
@@ -288,7 +290,118 @@ h1, h2, h3, h4 { font-family: var(--font-display); font-weight: 500; }
   --clk-border: rgba(255, 255, 255, 0.55);
   --clk-border-hair: rgba(61, 59, 51, 0.14);
   --clk-dot-off: rgba(61, 59, 51, 0.11);
+  --clk-matrix-off: rgba(61, 59, 51, 0.045);
   --clk-shadow: 0 14px 40px rgba(44, 43, 39, 0.10);
+}
+
+/* ─── Fullscreen Clock Layout & Container Queries ──────────────────────── */
+
+.chronoa-fs-container {
+  container-type: size;
+  --fs-digit: min(31cqw, 62cqh);
+  --fs-sec: max(14px, calc(var(--fs-digit) * 0.32));
+  --fs-badge: max(9px, calc(var(--fs-digit) * 0.068));
+  --fs-meta: clamp(9px, min(2.2cqw, 3.4cqh), 13px);
+  --fs-meta-track: clamp(0.14em, 0.28cqw, 0.32em);
+  --fs-gap: clamp(10px, 2.2cqw, 28px);
+}
+
+.chronoa-fs-container[data-has-seconds="true"] {
+  --fs-digit: min(24.5cqw, 56cqh);
+}
+
+.chronoa-fs-stage {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: var(--fs-gap);
+}
+
+.chronoa-fs-sep {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(6px, calc(var(--fs-digit) * 0.12), 26px);
+  padding: 0 clamp(2px, 0.5cqw, 10px);
+}
+
+.chronoa-fs-sep-dot {
+  width: clamp(4px, calc(var(--fs-digit) * 0.04), 11px);
+  height: clamp(4px, calc(var(--fs-digit) * 0.04), 11px);
+  border-radius: 9999px;
+  background-color: var(--clk-accent);
+  transition: opacity 300ms ease;
+}
+
+.chronoa-fs-sep-rule {
+  display: none;
+}
+
+.chronoa-fs-side {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: clamp(3px, calc(var(--fs-digit) * 0.03), 10px);
+  padding-left: clamp(5px, 0.9cqw, 16px);
+  border-left: 1px solid var(--clk-border-hair);
+}
+
+.chronoa-fs-footer {
+  width: min(88cqw, max(235px, calc(var(--fs-digit) * 2.45)));
+  margin-top: clamp(12px, 3.8cqh, 36px);
+}
+
+@container (max-aspect-ratio: 95 / 100) {
+  .chronoa-fs-container {
+    --fs-digit: min(56cqw, 31cqh);
+    --fs-sec: clamp(18px, calc(var(--fs-digit) * 0.16), 34px);
+    --fs-badge: clamp(10px, calc(var(--fs-digit) * 0.075), 14px);
+    --fs-meta: clamp(9px, min(2.6cqw, 2.2cqh), 13px);
+    --fs-meta-track: clamp(0.18em, 0.35cqw, 0.32em);
+    --fs-gap: clamp(8px, 2.2cqh, 20px);
+  }
+
+  .chronoa-fs-container[data-has-seconds="true"] {
+    --fs-digit: min(52cqw, 28cqh);
+  }
+
+  .chronoa-fs-stage {
+    flex-direction: column;
+    gap: var(--fs-gap);
+  }
+
+  .chronoa-fs-sep {
+    padding: 0;
+  }
+
+  .chronoa-fs-sep-dot {
+    display: none;
+  }
+
+  .chronoa-fs-sep-rule {
+    display: block;
+    width: clamp(32px, 14cqw, 72px);
+    height: 1px;
+    background-color: var(--clk-accent-soft);
+  }
+
+  .chronoa-fs-side {
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding-left: 0;
+    border-left: none;
+    margin-top: clamp(4px, 1.2cqh, 12px);
+  }
+
+  .chronoa-fs-footer {
+    width: min(76cqw, 320px);
+    margin-top: clamp(14px, 3.2cqh, 28px);
+  }
 }
 
 @keyframes chronoaFlipTop {

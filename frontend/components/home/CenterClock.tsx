@@ -9,6 +9,7 @@ import {
   SplitEditorialClock,
   OrbitCelestialClock,
   StackedMonumentClock,
+  FullscreenClock,
 } from "./clocks/ClassicAndEditorialClocks";
 import {
   ChronoDialClock,
@@ -49,7 +50,9 @@ export default function CenterClock({
     return () => clearInterval(timer);
   }, []);
 
-  if (!time) return <div className="h-[200px]" />; // Prevents Hydration Shift
+  if (!time) {
+    return <div className={activeStyle === "fullscreen" ? "w-full h-full" : "h-[200px]"} />;
+  }
 
   const parts = getClockTimeParts(time, activeUse24Hour);
   const themeClass =
@@ -80,6 +83,8 @@ export default function CenterClock({
         return <StackedMonumentClock {...faceProps} />;
       case "dotmatrix":
         return <DotMatrixClock {...faceProps} />;
+      case "fullscreen":
+        return <FullscreenClock {...faceProps} />;
       case "editorial":
       default:
         return <EditorialClock {...faceProps} />;
@@ -87,7 +92,12 @@ export default function CenterClock({
   };
 
   return (
-    <div key={activeStyle} className={`${themeClass} animate-fade-up`}>
+    <div
+      key={activeStyle}
+      className={`${themeClass} animate-fade-up ${
+        activeStyle === "fullscreen" ? "w-full h-full flex items-center justify-center" : ""
+      }`}
+    >
       {renderFace()}
     </div>
   );

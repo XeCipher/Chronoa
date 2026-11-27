@@ -158,7 +158,6 @@ export function ClockStyleGlyph({
         <div className="flex items-center justify-center h-12 select-none">
           <div className="px-2.5 py-1.5 rounded-lg border border-[#e0ddd5] dark:border-[#444] bg-white/80 dark:bg-[#252525]">
             <svg viewBox="0 0 46 20" className="w-11 h-5">
-              {/* Stylized miniature dot cluster */}
               {[0, 1, 2, 3, 4].map((row) =>
                 [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((col) => {
                   const isColon = col === 5 && (row === 1 || row === 3);
@@ -172,7 +171,7 @@ export function ClockStyleGlyph({
                       key={`${row}-${col}`}
                       cx={3 + col * 4}
                       cy={2 + row * 4}
-                      r={on ? 1.35 : 0.85}
+                      r={on ? 1.4 : 0.7}
                       fill={
                         isColon
                           ? "#c2956e"
@@ -180,12 +179,29 @@ export function ClockStyleGlyph({
                           ? accent
                           : "currentColor"
                       }
-                      opacity={isColon ? 1 : on ? 0.85 : 0.16}
+                      opacity={isColon ? 1 : on ? 0.85 : 0.06}
                     />
                   );
                 })
               )}
             </svg>
+          </div>
+        </div>
+      );
+
+    case "fullscreen":
+      return (
+        <div className="flex items-center justify-center h-12 select-none">
+          <div className="relative w-16 h-10 rounded-lg border border-[#e0ddd5] dark:border-[#444] bg-white/80 dark:bg-[#252525] flex flex-col items-center justify-center px-1 overflow-hidden">
+            <span
+              className="text-[20px] font-light leading-[0.8] tracking-tight text-[#3d3b33] dark:text-[#f0f0f0]"
+              style={{ fontFamily: "var(--font-cormorant), serif" }}
+            >
+              12
+              <span style={{ color: "#c2956e" }}>:</span>
+              15
+            </span>
+            <div className="w-10 h-px bg-[#c2956e]/50 mt-1" />
           </div>
         </div>
       );

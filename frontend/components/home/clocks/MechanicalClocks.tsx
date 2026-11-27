@@ -40,7 +40,23 @@ export function ChronoDialClock({ time, parts, showSeconds, use24Hour }: ClockFa
   const initialOffset = (DIAL_CIRCUMFERENCE * (1 - initialFraction)).toFixed(2);
 
   useEffect(() => {
-    if (!showSeconds) return;
+    if (!showSeconds) {
+      // Clear any leftover inline offset from sweeping and snap back to minutes
+      const now = new Date();
+      const minFrac = (now.getMinutes() + now.getSeconds() / 60) / 60;
+      const deg = (minFrac * 360).toFixed(2);
+      const offset = (DIAL_CIRCUMFERENCE * (1 - minFrac)).toFixed(2);
+
+      if (handRef.current) {
+        handRef.current.setAttribute("transform", `rotate(${deg} ${DIAL_CENTER} ${DIAL_CENTER})`);
+      }
+      if (arcRef.current) {
+        arcRef.current.style.strokeDashoffset = "";
+        arcRef.current.setAttribute("stroke-dashoffset", offset);
+      }
+      return;
+    }
+
     let rafId = 0;
 
     const sweep = () => {
@@ -53,7 +69,10 @@ export function ChronoDialClock({ time, parts, showSeconds, use24Hour }: ClockFa
         );
       }
       if (arcRef.current) {
-        arcRef.current.style.strokeDashoffset = (DIAL_CIRCUMFERENCE * (1 - frac)).toFixed(2);
+        arcRef.current.setAttribute(
+          "stroke-dashoffset",
+          (DIAL_CIRCUMFERENCE * (1 - frac)).toFixed(2)
+        );
       }
       rafId = requestAnimationFrame(sweep);
     };
@@ -471,8 +490,8 @@ function MatrixDigit({
               key={`${r}-${c}`}
               cx={5 + c * 10}
               cy={5 + r * 10}
-              r={on ? 3.8 : 2.6}
-              fill={on ? activeColor : "var(--clk-dot-off)"}
+              r={on ? 3.9 : 1.75}
+              fill={on ? activeColor : "var(--clk-matrix-off)"}
               className="transition-all duration-200"
             />
           );
@@ -490,7 +509,7 @@ function MatrixColon({ pulse, className }: { pulse: boolean; className: string }
         cy="25"
         r="3.8"
         fill="var(--clk-accent)"
-        opacity={pulse ? 1 : 0.35}
+        opacity={pulse ? 1 : 0.28}
         className="transition-opacity duration-300"
       />
       <circle
@@ -498,7 +517,7 @@ function MatrixColon({ pulse, className }: { pulse: boolean; className: string }
         cy="45"
         r="3.8"
         fill="var(--clk-accent)"
-        opacity={pulse ? 1 : 0.35}
+        opacity={pulse ? 1 : 0.28}
         className="transition-opacity duration-300"
       />
     </svg>

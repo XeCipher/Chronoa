@@ -8,7 +8,7 @@ export type HomeClockStyle =
   | "orbit"
   | "stacked"
   | "dotmatrix"
-  | "canvas";
+  | "fullscreen";
 
 export interface ClockStyleMeta {
   id: HomeClockStyle;
@@ -61,10 +61,10 @@ export const HOME_CLOCK_STYLES: ClockStyleMeta[] = [
     keywords: ["dot", "matrix", "led", "hardware", "digital", "grid"],
   },
   {
-    id: "canvas",
-    name: "Canvas",
-    subtitle: "Full-screen display",
-    keywords: ["canvas", "full", "fullscreen", "large", "giant", "immersive", "big"],
+    id: "fullscreen",
+    name: "Fullscreen",
+    subtitle: "Edge-to-edge display",
+    keywords: ["fullscreen", "full", "immersive", "minimal", "screen", "giant", "big"],
   },
 ];
 

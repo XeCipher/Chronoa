@@ -30,6 +30,7 @@ export default function HomePage() {
   });
   const [timeSessionsCount, setTimeSessionsCount] = useState<number | null>(null);
 
+  const homeClockStyle = useUiStore((state) => state.homeClockStyle);
   const isPinned = useTimerStore((state: any) => state.isPinned);
   const forceShow = useTimerStore((state: any) => state.forceShowWidgets);
   const setForceShow = useTimerStore((state: any) => state.setForceShowWidgets);
@@ -39,6 +40,7 @@ export default function HomePage() {
   const isAnyRunning = timers?.some((t: any) => t.isRunning) || stopwatches?.some((s: any) => s.isRunning);
 
   const showWidget = isHovered || isPinned || isTouched || forceShow;
+  const isFullscreenClock = homeClockStyle === "fullscreen";
 
   useEffect(() => {
     router.prefetch("/settings");
@@ -112,7 +114,13 @@ export default function HomePage() {
 
       <div
         className={`relative z-10 transition-all duration-[800ms] md:duration-[1000ms] ease-[cubic-bezier(0.16,1,0.3,1)] will-change-[transform,opacity] ${
-          showWidget
+          isFullscreenClock
+            ? `w-full h-full flex items-center justify-center pt-16 pb-10 px-4 md:py-10 md:px-10 ${
+                showWidget
+                  ? "max-md:-translate-y-[14vh] max-md:scale-[0.78] md:-translate-y-[16vh] md:scale-[0.84] opacity-75"
+                  : "translate-y-0 scale-100 opacity-100"
+              }`
+            : showWidget
             ? "max-md:-translate-y-[13vh] max-md:scale-[0.82] md:-translate-y-[16vh] md:scale-90 opacity-80"
             : "max-md:-translate-y-[6vh] md:-translate-y-[4vh] scale-100 opacity-100"
         }`}

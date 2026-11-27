@@ -8,7 +8,7 @@ import { useUiStore } from "@/store/uiStore";
 import { supabase } from "@/lib/supabase";
 import { parseICS, exportICS } from "@/lib/icsParser";
 import { CalendarSource, CalendarEvent } from "@/types/app.types";
-import { HOME_CLOCK_STYLES, HomeClockStyle } from "@/lib/clockStyles";
+import { HOME_CLOCK_STYLES, HomeClockStyle, isValidHomeClockStyle } from "@/lib/clockStyles";
 import CenterClock from "@/components/home/CenterClock";
 import SceneryBackground from "@/components/home/SceneryBackground";
 import { ClockStyleGlyph } from "@/components/home/ClockStyleGlyph";
@@ -326,7 +326,7 @@ export default function SettingsPage() {
       const [profileRes, sourcesRes] = await Promise.all([
         supabase
           .from("profiles")
-          .select("routine_reset_hour, weather_city, disabled_hotkeys")
+          .select("routine_reset_hour, weather_city, disabled_hotkeys, home_clock_style, show_home_seconds, show_home_24_hour")
           .eq("id", activeUser.id)
           .single(),
         supabase
@@ -342,6 +342,10 @@ export default function SettingsPage() {
       if (profile) {
         if (profile.routine_reset_hour !== undefined) setRoutineResetHour(profile.routine_reset_hour);
         if (profile.disabled_hotkeys) setDisabledHotkeys(profile.disabled_hotkeys);
+        if (isValidHomeClockStyle(profile.home_clock_style)) setHomeClockStyle(profile.home_clock_style);
+        if (typeof profile.show_home_seconds === "boolean") setShowHomeSeconds(profile.show_home_seconds);
+        if (typeof profile.show_home_24_hour === "boolean") setShowHome24Hour(profile.show_home_24_hour);
+
         if (profile.weather_city) {
           setCityInput(profile.weather_city);
           setCurrentCity(profile.weather_city);
@@ -388,7 +392,7 @@ export default function SettingsPage() {
     return () => {
       isMounted = false;
     };
-  }, [setRoutineResetHour, setDisabledHotkeys]);
+  }, [setRoutineResetHour, setDisabledHotkeys, setHomeClockStyle, setShowHomeSeconds, setShowHome24Hour]);
 
   useEffect(() => {
     let timer: NodeJS.Timeout;
@@ -416,9 +420,24 @@ export default function SettingsPage() {
 
   const updateRemoteSetting = async (key: string, value: any) => {
     const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (user) await supabase.from("profiles").update({ [key]: value }).eq("id", user.id);
+      data: { session },
+    } = await supabase.auth.getSession();
+    let activeUserId = session?.user?.id;
+
+    if (!activeUserId) {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      activeUserId = user?.id;
+    }
+
+    if (activeUserId) {
+      const { error } = await supabase
+        .from("profiles")
+        .update({ [key]: value })
+        .eq("id", activeUserId);
+      if (error) console.error(`Failed to update ${key}:`, error);
+    }
   };
 
   const handleClockStyleSelect = (styleId: HomeClockStyle) => {
@@ -957,8 +976,8 @@ export default function SettingsPage() {
 
             <div
               className={
-                homeClockStyle === "canvas"
-                  ? "absolute inset-0 z-10 flex items-center justify-center px-4 pt-9 pb-3 pointer-events-none select-none"
+                homeClockStyle === "fullscreen"
+                  ? "absolute inset-0 z-10 flex items-center justify-center px-4 pt-10 pb-3 pointer-events-none select-none"
                   : "relative z-10 flex items-center justify-center scale-[0.46] sm:scale-[0.58] md:scale-[0.64] pointer-events-none select-none"
               }
             >
