@@ -390,8 +390,20 @@ export function MockHomeSandbox() {
           <MockHomeTaskProgress isDark={isDark} />
         </div>
 
-        <div className="absolute inset-0 flex items-center justify-center z-10 w-full px-4 pt-12 md:pt-0">
-          <div className="scale-[0.84] sm:scale-95 md:scale-100 transition-transform duration-300">
+        <div
+          className={
+            clockStyle === "canvas"
+              ? "absolute inset-0 z-10 flex items-center justify-center pt-24 pb-6 px-4 md:py-10 md:px-10 pointer-events-none"
+              : "absolute inset-0 flex items-center justify-center z-10 w-full px-4 pt-12 md:pt-0"
+          }
+        >
+          <div
+            className={
+              clockStyle === "canvas"
+                ? "w-full h-full flex items-center justify-center transition-transform duration-300"
+                : "scale-[0.84] sm:scale-95 md:scale-100 transition-transform duration-300"
+            }
+          >
             <CenterClock
               clockStyle={clockStyle}
               showSeconds={false}

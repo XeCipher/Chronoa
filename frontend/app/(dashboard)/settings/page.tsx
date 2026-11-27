@@ -955,7 +955,13 @@ export default function SettingsPage() {
               </span>
             </div>
 
-            <div className="relative z-10 flex items-center justify-center scale-[0.46] sm:scale-[0.58] md:scale-[0.64] pointer-events-none select-none">
+            <div
+              className={
+                homeClockStyle === "canvas"
+                  ? "absolute inset-0 z-10 flex items-center justify-center px-4 pt-9 pb-3 pointer-events-none select-none"
+                  : "relative z-10 flex items-center justify-center scale-[0.46] sm:scale-[0.58] md:scale-[0.64] pointer-events-none select-none"
+              }
+            >
               <CenterClock />
             </div>
           </div>
