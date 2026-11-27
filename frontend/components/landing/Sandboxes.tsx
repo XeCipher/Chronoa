@@ -393,7 +393,7 @@ export function MockHomeSandbox() {
         <div
           className={
             clockStyle === "fullscreen"
-              ? "absolute inset-0 z-10 flex items-center justify-center pt-16 pb-6 px-4 md:py-10 md:px-10 pointer-events-none"
+              ? "absolute inset-0 z-10 flex items-center justify-center px-3 pt-4 pb-3 sm:px-5 sm:py-5 md:px-8 md:py-7 pointer-events-none"
               : "absolute inset-0 flex items-center justify-center z-10 w-full px-4 pt-12 md:pt-0"
           }
         >
@@ -409,6 +409,7 @@ export function MockHomeSandbox() {
               showSeconds={false}
               use24Hour={false}
               forceTheme={isDark ? "dark" : "light"}
+              timeOfDay={timeOfDay}
             />
           </div>
         </div>

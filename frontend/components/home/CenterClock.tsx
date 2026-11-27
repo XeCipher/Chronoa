@@ -9,19 +9,20 @@ import {
   SplitEditorialClock,
   OrbitCelestialClock,
   StackedMonumentClock,
-  FullscreenClock,
 } from "./clocks/ClassicAndEditorialClocks";
 import {
   ChronoDialClock,
   FlipBoardClock,
   DotMatrixClock,
 } from "./clocks/MechanicalClocks";
+import { FullscreenClock, ClockTimeOfDay } from "./clocks/FullscreenClock";
 
 interface CenterClockProps {
   clockStyle?: HomeClockStyle;
   showSeconds?: boolean;
   use24Hour?: boolean;
   forceTheme?: "light" | "dark";
+  timeOfDay?: ClockTimeOfDay;
 }
 
 export default function CenterClock({
@@ -29,6 +30,7 @@ export default function CenterClock({
   showSeconds,
   use24Hour,
   forceTheme,
+  timeOfDay,
 }: CenterClockProps = {}) {
   const [time, setTime] = useState<Date | null>(() =>
     typeof window !== "undefined" && useUiStore.getState().hasDashboardMounted
@@ -84,7 +86,7 @@ export default function CenterClock({
       case "dotmatrix":
         return <DotMatrixClock {...faceProps} />;
       case "fullscreen":
-        return <FullscreenClock {...faceProps} />;
+        return <FullscreenClock {...faceProps} timeOfDay={timeOfDay} />;
       case "editorial":
       default:
         return <EditorialClock {...faceProps} />;

@@ -261,6 +261,10 @@ h1, h2, h3, h4 { font-family: var(--font-display); font-weight: 500; }
   --clk-dot-off: rgba(61, 59, 51, 0.11);
   --clk-matrix-off: rgba(61, 59, 51, 0.045);
   --clk-shadow: 0 14px 40px rgba(44, 43, 39, 0.10);
+  --clk-fs-g1: #232429;
+  --clk-fs-g2: #94633e;
+  --clk-fs-g3: #3e7060;
+  --clk-fs-glow: rgba(148, 99, 62, 0.12);
 }
 
 .dark .clock-theme-auto,
@@ -277,6 +281,10 @@ h1, h2, h3, h4 { font-family: var(--font-display); font-weight: 500; }
   --clk-dot-off: rgba(255, 255, 255, 0.12);
   --clk-matrix-off: rgba(255, 255, 255, 0.045);
   --clk-shadow: 0 18px 46px rgba(0, 0, 0, 0.55);
+  --clk-fs-g1: #faf8f4;
+  --clk-fs-g2: #e6bf96;
+  --clk-fs-g3: #92d9b6;
+  --clk-fs-glow: rgba(230, 191, 150, 0.16);
 }
 
 .clock-theme-light {
@@ -292,115 +300,93 @@ h1, h2, h3, h4 { font-family: var(--font-display); font-weight: 500; }
   --clk-dot-off: rgba(61, 59, 51, 0.11);
   --clk-matrix-off: rgba(61, 59, 51, 0.045);
   --clk-shadow: 0 14px 40px rgba(44, 43, 39, 0.10);
+  --clk-fs-g1: #232429;
+  --clk-fs-g2: #94633e;
+  --clk-fs-g3: #3e7060;
+  --clk-fs-glow: rgba(148, 99, 62, 0.12);
+}
+
+/* Time-of-day adaptive gradients for the fullscreen clock */
+.clock-theme-auto [data-tod="dawn"],
+.clock-theme-light [data-tod="dawn"] {
+  --clk-fs-g1: #301f1b;
+  --clk-fs-g2: #ab563c;
+  --clk-fs-g3: #724982;
+  --clk-fs-glow: rgba(171, 86, 60, 0.14);
+}
+
+.clock-theme-auto [data-tod="day"],
+.clock-theme-light [data-tod="day"] {
+  --clk-fs-g1: #232429;
+  --clk-fs-g2: #94633e;
+  --clk-fs-g3: #3e7060;
+  --clk-fs-glow: rgba(148, 99, 62, 0.12);
+}
+
+.clock-theme-auto [data-tod="dusk"],
+.clock-theme-light [data-tod="dusk"] {
+  --clk-fs-g1: #331c24;
+  --clk-fs-g2: #b34853;
+  --clk-fs-g3: #6e457d;
+  --clk-fs-glow: rgba(179, 72, 83, 0.14);
+}
+
+.clock-theme-auto [data-tod="night"],
+.clock-theme-light [data-tod="night"] {
+  --clk-fs-g1: #161e30;
+  --clk-fs-g2: #3b5891;
+  --clk-fs-g3: #2e6b87;
+  --clk-fs-glow: rgba(59, 88, 145, 0.14);
+}
+
+.dark .clock-theme-auto [data-tod="dawn"],
+.clock-theme-dark [data-tod="dawn"] {
+  --clk-fs-g1: #fff4e8;
+  --clk-fs-g2: #ffb58a;
+  --clk-fs-g3: #d8a3f0;
+  --clk-fs-glow: rgba(255, 181, 138, 0.18);
+}
+
+.dark .clock-theme-auto [data-tod="day"],
+.clock-theme-dark [data-tod="day"] {
+  --clk-fs-g1: #faf8f4;
+  --clk-fs-g2: #e6bf96;
+  --clk-fs-g3: #92d9b6;
+  --clk-fs-glow: rgba(230, 191, 150, 0.16);
+}
+
+.dark .clock-theme-auto [data-tod="dusk"],
+.clock-theme-dark [data-tod="dusk"] {
+  --clk-fs-g1: #fff0f3;
+  --clk-fs-g2: #ff99ab;
+  --clk-fs-g3: #eba575;
+  --clk-fs-glow: rgba(255, 153, 171, 0.18);
+}
+
+.dark .clock-theme-auto [data-tod="night"],
+.clock-theme-dark [data-tod="night"] {
+  --clk-fs-g1: #f2f6ff;
+  --clk-fs-g2: #9dbfff;
+  --clk-fs-g3: #80cbe8;
+  --clk-fs-glow: rgba(157, 191, 255, 0.18);
 }
 
 /* ─── Fullscreen Clock Layout & Container Queries ──────────────────────── */
 
 .chronoa-fs-container {
   container-type: size;
-  --fs-digit: min(31cqw, 62cqh);
-  --fs-sec: max(14px, calc(var(--fs-digit) * 0.32));
-  --fs-badge: max(9px, calc(var(--fs-digit) * 0.068));
-  --fs-meta: clamp(9px, min(2.2cqw, 3.4cqh), 13px);
-  --fs-meta-track: clamp(0.14em, 0.28cqw, 0.32em);
-  --fs-gap: clamp(10px, 2.2cqw, 28px);
 }
 
-.chronoa-fs-container[data-has-seconds="true"] {
-  --fs-digit: min(24.5cqw, 56cqh);
+.chronoa-fs-meta {
+  font-size: clamp(10px, 1.4cqh, 13px);
+  letter-spacing: clamp(0.24em, 0.35cqw, 0.38em);
 }
 
-.chronoa-fs-stage {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  justify-content: center;
-  gap: var(--fs-gap);
-}
-
-.chronoa-fs-sep {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: clamp(6px, calc(var(--fs-digit) * 0.12), 26px);
-  padding: 0 clamp(2px, 0.5cqw, 10px);
-}
-
-.chronoa-fs-sep-dot {
-  width: clamp(4px, calc(var(--fs-digit) * 0.04), 11px);
-  height: clamp(4px, calc(var(--fs-digit) * 0.04), 11px);
-  border-radius: 9999px;
-  background-color: var(--clk-accent);
-  transition: opacity 300ms ease;
-}
-
-.chronoa-fs-sep-rule {
-  display: none;
-}
-
-.chronoa-fs-side {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  justify-content: center;
-  gap: clamp(3px, calc(var(--fs-digit) * 0.03), 10px);
-  padding-left: clamp(5px, 0.9cqw, 16px);
-  border-left: 1px solid var(--clk-border-hair);
-}
-
-.chronoa-fs-footer {
-  width: min(88cqw, max(235px, calc(var(--fs-digit) * 2.45)));
-  margin-top: clamp(12px, 3.8cqh, 36px);
-}
-
-@container (max-aspect-ratio: 95 / 100) {
-  .chronoa-fs-container {
-    --fs-digit: min(56cqw, 31cqh);
-    --fs-sec: clamp(18px, calc(var(--fs-digit) * 0.16), 34px);
-    --fs-badge: clamp(10px, calc(var(--fs-digit) * 0.075), 14px);
-    --fs-meta: clamp(9px, min(2.6cqw, 2.2cqh), 13px);
-    --fs-meta-track: clamp(0.18em, 0.35cqw, 0.32em);
-    --fs-gap: clamp(8px, 2.2cqh, 20px);
-  }
-
-  .chronoa-fs-container[data-has-seconds="true"] {
-    --fs-digit: min(52cqw, 28cqh);
-  }
-
-  .chronoa-fs-stage {
-    flex-direction: column;
-    gap: var(--fs-gap);
-  }
-
-  .chronoa-fs-sep {
-    padding: 0;
-  }
-
-  .chronoa-fs-sep-dot {
-    display: none;
-  }
-
-  .chronoa-fs-sep-rule {
-    display: block;
-    width: clamp(32px, 14cqw, 72px);
-    height: 1px;
-    background-color: var(--clk-accent-soft);
-  }
-
-  .chronoa-fs-side {
-    flex-direction: row;
-    align-items: center;
-    justify-content: center;
-    gap: 12px;
-    padding-left: 0;
-    border-left: none;
-    margin-top: clamp(4px, 1.2cqh, 12px);
-  }
-
-  .chronoa-fs-footer {
-    width: min(76cqw, 320px);
-    margin-top: clamp(14px, 3.2cqh, 28px);
+@container (max-height: 290px) {
+  .chronoa-fs-meta {
+    font-size: 9px;
+    letter-spacing: 0.24em;
+    padding-top: 2px;
   }
 }
 

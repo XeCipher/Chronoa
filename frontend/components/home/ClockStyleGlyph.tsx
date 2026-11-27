@@ -1,7 +1,9 @@
 // frontend/components/home/ClockStyleGlyph.tsx
 "use client";
 
+import { useId } from "react";
 import { HomeClockStyle } from "@/lib/clockStyles";
+import { FULLSCREEN_DIGIT_PATHS } from "./clocks/FullscreenClock";
 
 export function ClockStyleGlyph({
   styleId,
@@ -11,6 +13,8 @@ export function ClockStyleGlyph({
   isActive: boolean;
 }) {
   const accent = isActive ? "#c2956e" : "currentColor";
+  const rawId = useId();
+  const glyphGradId = `glyph-fs-grad-${rawId.replace(/:/g, "")}`;
 
   switch (styleId) {
     case "editorial":
@@ -192,16 +196,35 @@ export function ClockStyleGlyph({
     case "fullscreen":
       return (
         <div className="flex items-center justify-center h-12 select-none">
-          <div className="relative w-16 h-10 rounded-lg border border-[#e0ddd5] dark:border-[#444] bg-white/80 dark:bg-[#252525] flex flex-col items-center justify-center px-1 overflow-hidden">
-            <span
-              className="text-[20px] font-light leading-[0.8] tracking-tight text-[#3d3b33] dark:text-[#f0f0f0]"
-              style={{ fontFamily: "var(--font-cormorant), serif" }}
-            >
-              12
-              <span style={{ color: "#c2956e" }}>:</span>
-              15
-            </span>
-            <div className="w-10 h-px bg-[#c2956e]/50 mt-1" />
+          <div className="relative w-16 h-10 rounded-lg border border-[#e0ddd5] dark:border-[#444] bg-white/80 dark:bg-[#252525] flex items-center justify-center px-1.5 py-1.5 overflow-hidden">
+            <svg viewBox="-4 -4 484 208" className="w-full h-full" aria-hidden="true">
+              <defs>
+                <linearGradient id={glyphGradId} gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="476" y2="200">
+                  <stop offset="0%" stopColor={isActive ? "#c2956e" : "#888888"} />
+                  <stop offset="55%" stopColor="#c2956e" />
+                  <stop offset="100%" stopColor={isActive ? "#7ca982" : "#a882c2"} />
+                </linearGradient>
+              </defs>
+              {[
+                { d: FULLSCREEN_DIGIT_PATHS["1"].d, x: 0 },
+                { d: FULLSCREEN_DIGIT_PATHS["2"].d, x: 114 },
+                { d: FULLSCREEN_DIGIT_PATHS["1"].d, x: 262 },
+                { d: FULLSCREEN_DIGIT_PATHS["5"].d, x: 376 },
+              ].map((item, idx) => (
+                <path
+                  key={idx}
+                  d={item.d}
+                  transform={`translate(${item.x}, 0)`}
+                  fill="none"
+                  stroke={`url(#${glyphGradId})`}
+                  strokeWidth={22}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              ))}
+              <circle cx={238} cy={66} r={12} fill={`url(#${glyphGradId})`} />
+              <circle cx={238} cy={134} r={12} fill={`url(#${glyphGradId})`} />
+            </svg>
           </div>
         </div>
       );

@@ -63,8 +63,8 @@ export const HOME_CLOCK_STYLES: ClockStyleMeta[] = [
   {
     id: "fullscreen",
     name: "Fullscreen",
-    subtitle: "Edge-to-edge display",
-    keywords: ["fullscreen", "full", "immersive", "minimal", "screen", "giant", "big"],
+    subtitle: "Edge-to-edge gradient",
+    keywords: ["fullscreen", "full", "immersive", "minimal", "screen", "giant", "big", "gradient", "landscape", "portrait"],
   },
 ];
 

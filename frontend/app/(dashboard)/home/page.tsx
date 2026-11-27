@@ -115,9 +115,9 @@ export default function HomePage() {
       <div
         className={`relative z-10 transition-all duration-[800ms] md:duration-[1000ms] ease-[cubic-bezier(0.16,1,0.3,1)] will-change-[transform,opacity] ${
           isFullscreenClock
-            ? `w-full h-full flex items-center justify-center pt-16 pb-10 px-4 md:py-10 md:px-10 ${
+            ? `w-full h-full flex items-center justify-center px-2.5 pt-2 pb-11 md:px-6 md:pt-5 md:pb-12 ${
                 showWidget
-                  ? "max-md:-translate-y-[14vh] max-md:scale-[0.78] md:-translate-y-[16vh] md:scale-[0.84] opacity-75"
+                  ? "max-md:-translate-y-[14vh] max-md:scale-[0.76] md:-translate-y-[15vh] md:scale-[0.80] opacity-75"
                   : "translate-y-0 scale-100 opacity-100"
               }`
             : showWidget

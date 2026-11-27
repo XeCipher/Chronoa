@@ -977,7 +977,7 @@ export default function SettingsPage() {
             <div
               className={
                 homeClockStyle === "fullscreen"
-                  ? "absolute inset-0 z-10 flex items-center justify-center px-4 pt-10 pb-3 pointer-events-none select-none"
+                  ? "absolute inset-0 z-10 flex items-center justify-center px-4 pt-11 pb-2.5 pointer-events-none select-none"
                   : "relative z-10 flex items-center justify-center scale-[0.46] sm:scale-[0.58] md:scale-[0.64] pointer-events-none select-none"
               }
             >
