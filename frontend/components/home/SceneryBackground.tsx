@@ -25,31 +25,31 @@ export default function SceneryBackground() {
 
   const time = getTimeOfDay();
 
-  // Refined palettes: Beautiful, soft, elegant pastels for light mode that aren't overwhelmingly bright
+  // Balanced pastel palettes: vibrant enough to feel alive without overpowering the workspace
   const palettes = {
     dawn: {
-      bg: "bg-[#fdfbf7] dark:bg-[#1a1210]",
-      orb1: "bg-[#ffcba6] dark:bg-[#8a4e40]",
-      orb2: "bg-[#ffa68f] dark:bg-[#8a5a44]",
-      orb3: "bg-[#d6aef2] dark:bg-[#6c4f7a]",
+      bg: "bg-[#fdfaf5] dark:bg-[#1a1210]",
+      orb1: "bg-[#ffc093] dark:bg-[#a15846]",
+      orb2: "bg-[#ff9882] dark:bg-[#a6674d]",
+      orb3: "bg-[#d1a5f4] dark:bg-[#7d598f]",
     },
     day: {
       bg: "bg-[#f7f5f0] dark:bg-[#0f1115]",
-      orb1: "bg-[#d4b3ff] dark:bg-[#2d3b5c]",
-      orb2: "bg-[#9bc7f5] dark:bg-[#1e2e42]",
-      orb3: "bg-[#a1e3b3] dark:bg-[#253828]",
+      orb1: "bg-[#cca7ff] dark:bg-[#3d4d80]",
+      orb2: "bg-[#8cc0f6] dark:bg-[#254566]",
+      orb3: "bg-[#90e2a8] dark:bg-[#2d533a]",
     },
     dusk: {
-      bg: "bg-[#f8f5f2] dark:bg-[#1a1012]",
-      orb1: "bg-[#ff8a90] dark:bg-[#7a3b4c]",
-      orb2: "bg-[#f5b0db] dark:bg-[#7a4b6c]",
-      orb3: "bg-[#de9c64] dark:bg-[#7d4628]",
+      bg: "bg-[#f8f4f2] dark:bg-[#1a1012]",
+      orb1: "bg-[#ff8089] dark:bg-[#904255]",
+      orb2: "bg-[#f3a1d6] dark:bg-[#8b517b]",
+      orb3: "bg-[#e5995c] dark:bg-[#93522d]",
     },
     night: {
-      bg: "bg-[#f2f4f8] dark:bg-[#050810]",
-      orb1: "bg-[#9eb4db] dark:bg-[#1f2b45]",
-      orb2: "bg-[#b9c6e3] dark:bg-[#111926]",
-      orb3: "bg-[#8da8cf] dark:bg-[#172033]",
+      bg: "bg-[#f0f3f9] dark:bg-[#050810]",
+      orb1: "bg-[#90ace2] dark:bg-[#2a3f68]",
+      orb2: "bg-[#b0afe7] dark:bg-[#1e2a4a]",
+      orb3: "bg-[#7eb0d3] dark:bg-[#223c53]",
     },
   };
 
@@ -60,9 +60,9 @@ export default function SceneryBackground() {
       <style
         dangerouslySetInnerHTML={{
           __html: `
-        @keyframes float1 { 0%, 100% { transform: translate(0px, 0px) scale(1); opacity: 0.7; } 33% { transform: translate(50px, -50px) scale(1.1); opacity: 0.9; } 66% { transform: translate(-30px, 20px) scale(0.9); opacity: 0.6; } }
-        @keyframes float2 { 0%, 100% { transform: translate(0px, 0px) scale(1); opacity: 0.7; } 33% { transform: translate(-50px, 50px) scale(1.2); opacity: 0.5; } 66% { transform: translate(40px, -30px) scale(0.8); opacity: 0.9; } }
-        @keyframes float3 { 0%, 100% { transform: translate(0px, 0px) scale(1); opacity: 0.5; } 33% { transform: translate(30px, 40px) scale(0.9); opacity: 0.8; } 66% { transform: translate(-40px, -40px) scale(1.15); opacity: 0.4; } }
+        @keyframes float1 { 0%, 100% { transform: translate(0px, 0px) scale(1); opacity: 0.7; } 33% { transform: translate(50px, -50px) scale(1.1); opacity: 0.9; } 66% { transform: translate(-30px, 20px) scale(0.9); opacity: 0.62; } }
+        @keyframes float2 { 0%, 100% { transform: translate(0px, 0px) scale(1); opacity: 0.7; } 33% { transform: translate(-50px, 50px) scale(1.2); opacity: 0.55; } 66% { transform: translate(40px, -30px) scale(0.8); opacity: 0.9; } }
+        @keyframes float3 { 0%, 100% { transform: translate(0px, 0px) scale(1); opacity: 0.55; } 33% { transform: translate(30px, 40px) scale(0.9); opacity: 0.82; } 66% { transform: translate(-40px, -40px) scale(1.15); opacity: 0.45; } }
         .orb-1 { animation: float1 18s ease-in-out infinite; }
         .orb-2 { animation: float2 22s ease-in-out infinite; }
         .orb-3 { animation: float3 25s ease-in-out infinite; }
@@ -70,15 +70,15 @@ export default function SceneryBackground() {
         }}
       />
 
-      <div className="absolute inset-0 w-full h-full opacity-80 dark:opacity-100">
+      <div className="absolute inset-0 w-full h-full opacity-90 dark:opacity-100">
         <div
-          className={`orb-1 absolute top-[-10%] right-[-10%] w-[80vw] h-[80vw] md:w-[50vw] md:h-[50vw] rounded-full mix-blend-multiply dark:mix-blend-screen filter blur-[100px] md:blur-[140px] transition-colors duration-[3000ms] ${currentPalette.orb1}`}
+          className={`orb-1 absolute top-[-10%] right-[-10%] w-[80vw] h-[80vw] md:w-[50vw] md:h-[50vw] rounded-full mix-blend-multiply dark:mix-blend-screen filter blur-[90px] md:blur-[125px] transition-colors duration-[3000ms] ${currentPalette.orb1}`}
         />
         <div
-          className={`orb-2 absolute bottom-[-20%] left-[-10%] w-[90vw] h-[90vw] md:w-[60vw] md:h-[60vw] rounded-full mix-blend-multiply dark:mix-blend-screen filter blur-[100px] md:blur-[140px] transition-colors duration-[3000ms] ${currentPalette.orb2}`}
+          className={`orb-2 absolute bottom-[-20%] left-[-10%] w-[90vw] h-[90vw] md:w-[60vw] md:h-[60vw] rounded-full mix-blend-multiply dark:mix-blend-screen filter blur-[90px] md:blur-[125px] transition-colors duration-[3000ms] ${currentPalette.orb2}`}
         />
         <div
-          className={`orb-3 absolute top-[20%] left-[20%] w-[75vw] h-[75vw] md:w-[45vw] md:h-[45vw] rounded-full mix-blend-multiply dark:mix-blend-screen filter blur-[100px] md:blur-[140px] transition-colors duration-[3000ms] ${currentPalette.orb3}`}
+          className={`orb-3 absolute top-[20%] left-[20%] w-[75vw] h-[75vw] md:w-[45vw] md:h-[45vw] rounded-full mix-blend-multiply dark:mix-blend-screen filter blur-[90px] md:blur-[125px] transition-colors duration-[3000ms] ${currentPalette.orb3}`}
         />
       </div>
 
