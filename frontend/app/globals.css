@@ -16,6 +16,10 @@
   --color-amber:        194, 149, 110;
   --color-amber-light:  245, 237, 227;
 
+  --font-cormorant:      'Cormorant Garamond';
+  --font-dm-sans:        'DM Sans';
+  --font-jetbrains-mono: 'JetBrains Mono';
+
   --font-display:       'Cormorant Garamond', Georgia, serif;
   --font-body:          'DM Sans', 'Helvetica Neue', Arial, sans-serif;
   --font-mono:          'JetBrains Mono', 'Fira Code', monospace;
